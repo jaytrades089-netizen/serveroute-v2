@@ -37,16 +37,6 @@ export default function WorkerHome() {
     retry: false
   });
 
-  // Redirect to login if not authenticated
-  if (!userLoading && (userError || !user)) {
-    base44.auth.redirectToLogin();
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
-
   const { data: routes = [], isLoading: routesLoading } = useQuery({
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
