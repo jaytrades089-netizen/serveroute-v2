@@ -45,7 +45,7 @@ export default function WorkerSettings() {
   });
 
   const handleLogout = () => {
-    base44.auth.logout();
+    window.location.href = base44.auth.getLoginUrl();
   };
 
   if (userLoading || settingsLoading) {
