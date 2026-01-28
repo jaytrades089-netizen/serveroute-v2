@@ -31,10 +31,9 @@ function getCurrentPhase(timezone = 'America/Detroit') {
 export default function WorkerHome() {
   const [currentPhase, setCurrentPhase] = useState('ntc');
 
-  const { data: user, isLoading: userLoading, isError: userError } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    retry: false
+    queryFn: () => base44.auth.me()
   });
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
@@ -85,11 +84,7 @@ export default function WorkerHome() {
     return () => clearInterval(interval);
   }, [user]);
 
-  useEffect(() => {
-    if (!userLoading && (userError || !user)) {
-      base44.auth.redirectToLogin();
-    }
-  }, [user, userLoading, userError]);
+
 
   if (userLoading || !user) {
     return (

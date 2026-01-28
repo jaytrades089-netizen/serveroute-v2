@@ -44,9 +44,8 @@ export default function WorkerSettings() {
     }
   });
 
-  const handleLogout = async () => {
-    await base44.auth.logout();
-    base44.auth.redirectToLogin();
+  const handleLogout = () => {
+    base44.auth.logout();
   };
 
   if (userLoading || settingsLoading) {
