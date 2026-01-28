@@ -6,6 +6,7 @@ import Notifications from './pages/Notifications';
 import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerPayout from './pages/WorkerPayout';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
+import LoginPage from './pages/LoginPage';
 
 
 export const PAGES = {
@@ -17,9 +18,10 @@ export const PAGES = {
     "WorkerAddresses": WorkerAddresses,
     "WorkerPayout": WorkerPayout,
     "WorkerRouteDetail": WorkerRouteDetail,
+    "LoginPage": LoginPage,
 }
 
 export const pagesConfig = {
-    mainPage: "WorkerHome",
+    mainPage: "LoginPage",
     Pages: PAGES,
 };
