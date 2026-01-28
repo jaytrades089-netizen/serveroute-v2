@@ -7,7 +7,6 @@ import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerPayout from './pages/WorkerPayout';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
 
-
 export const PAGES = {
     "WorkerHome": WorkerHome,
     "WorkerRoutes": WorkerRoutes,
