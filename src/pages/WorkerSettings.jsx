@@ -45,13 +45,7 @@ export default function WorkerSettings() {
   });
 
   const handleLogout = async () => {
-    try {
-      await base44.auth.logout();
-    } catch (e) {
-      // Ignore errors
-    }
-    // Force redirect to login
-    base44.auth.redirectToLogin(window.location.origin);
+    await base44.auth.logout('/');
   };
 
   if (userLoading || settingsLoading) {
