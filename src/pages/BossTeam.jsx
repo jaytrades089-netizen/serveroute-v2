@@ -30,7 +30,16 @@ export default function BossTeam() {
     queryKey: ['companyServers', companyId],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
+      return users.filter(u => u.company_id === companyId && u.role === 'server');
+    },
+    enabled: !!user
+  });
+
+  const { data: availableServers = [], refetch: refetchAvailable } = useQuery({
+    queryKey: ['availableServers'],
+    queryFn: async () => {
+      const users = await base44.entities.User.list();
+      return users.filter(u => !u.company_id && u.role === 'server');
     },
     enabled: !!user
   });
@@ -63,6 +72,25 @@ export default function BossTeam() {
       toast.error(error.message || 'Failed to send invitation');
     }
     setIsInviting(false);
+  };
+
+  const handleRequestToJoin = async (server) => {
+    try {
+      // Create a notification for the server asking them to join
+      await base44.entities.Notification.create({
+        user_id: server.id,
+        company_id: companyId,
+        type: 'system_alert',
+        title: 'Team Invitation',
+        body: `${user.full_name || 'A boss'} has invited you to join their team. Would you like to accept?`,
+        related_id: user.id,
+        related_type: 'user',
+        read: false
+      });
+      toast.success(`Invitation sent to ${server.full_name}`);
+    } catch (error) {
+      toast.error(error.message || 'Failed to send invitation');
+    }
   };
 
   const { data: notifications = [] } = useQuery({
@@ -237,6 +265,41 @@ export default function BossTeam() {
               );
             })}
           </div>
+        )}
+
+        {/* Available Servers Section */}
+        {availableServers.length > 0 && (
+          <>
+            <h2 className="font-semibold text-lg mt-8 mb-4">Available Servers ({availableServers.length})</h2>
+            <p className="text-sm text-gray-500 mb-3">These servers don't have a team yet. Send them an invite to join yours.</p>
+            <div className="space-y-3">
+              {availableServers.map((server) => (
+                <Card key={server.id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-gray-600 font-bold text-sm">
+                            {server.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'U'}
+                          </span>
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{server.full_name}</h3>
+                          <p className="text-sm text-gray-500">{server.email}</p>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        onClick={() => handleRequestToJoin(server)}
+                      >
+                        <UserPlus className="w-4 h-4 mr-1" /> Invite
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
         )}
       </main>
 
