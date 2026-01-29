@@ -60,6 +60,14 @@ import AddressImport from './pages/AddressImport';
 import AddressPool from './pages/AddressPool';
 import AddAddress from './pages/AddAddress';
 import EditAddress from './pages/EditAddress';
+import CreateRoute from './pages/CreateRoute';
+import RouteEditor from './pages/RouteEditor';
+import BossRoutes from './pages/BossRoutes';
+import AssignRoute from './pages/AssignRoute';
+import UnassignRoute from './pages/UnassignRoute';
+import ReassignRoute from './pages/ReassignRoute';
+import BossTeam from './pages/BossTeam';
+import BossSettings from './pages/BossSettings';
 
 
 export const PAGES = {
@@ -76,6 +84,14 @@ export const PAGES = {
     "AddressPool": AddressPool,
     "AddAddress": AddAddress,
     "EditAddress": EditAddress,
+    "CreateRoute": CreateRoute,
+    "RouteEditor": RouteEditor,
+    "BossRoutes": BossRoutes,
+    "AssignRoute": AssignRoute,
+    "UnassignRoute": UnassignRoute,
+    "ReassignRoute": ReassignRoute,
+    "BossTeam": BossTeam,
+    "BossSettings": BossSettings,
 }
 
 export const pagesConfig = {
