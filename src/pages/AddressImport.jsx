@@ -103,16 +103,17 @@ export default function AddressImport() {
     queryFn: () => base44.auth.me()
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: existingAddresses = [] } = useQuery({
-    queryKey: ['existingAddresses', user?.company_id],
+    queryKey: ['existingAddresses', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Address.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id && step === 'preview'
+    enabled: !!user && step === 'preview'
   });
 
   const handleFileSelect = (e) => {
@@ -208,7 +209,7 @@ export default function AddressImport() {
     
     // Create ImportJob record
     const importJob = await base44.entities.ImportJob.create({
-      company_id: user.company_id || 'default',
+      company_id: companyId,
       boss_id: user.id,
       filename: file.name,
       total_rows: parsedData.rows.length,
@@ -224,7 +225,7 @@ export default function AddressImport() {
         const fullAddress = `${row.address}, ${row.city}, ${row.state} ${row.zip}`;
         
         await base44.entities.Address.create({
-          company_id: user.company_id || 'default',
+          company_id: companyId,
           legal_address: fullAddress,
           normalized_address: fullAddress,
           city: row.city,
@@ -261,7 +262,7 @@ export default function AddressImport() {
     
     // Audit log
     await base44.entities.AuditLog.create({
-      company_id: user.company_id || 'default',
+      company_id: companyId,
       action_type: 'addresses_imported',
       actor_id: user.id,
       actor_role: user.role || 'boss',

@@ -108,8 +108,10 @@ export default function EditAddress() {
       
       await base44.entities.Address.update(addressId, updateData);
       
+      const companyId = user.company_id || 'default';
+      
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'address_updated',
         actor_id: user.id,
         actor_role: user.role || 'boss',
@@ -133,7 +135,7 @@ export default function EditAddress() {
       if (route && ['assigned', 'active'].includes(route.status) && route.worker_id) {
         await base44.entities.Notification.create({
           user_id: route.worker_id,
-          company_id: user.company_id,
+          company_id: companyId,
           type: 'assignment_files_added',
           title: 'Address Updated',
           body: `An address in ${route.folder_name} has been updated: ${fullAddress}`,

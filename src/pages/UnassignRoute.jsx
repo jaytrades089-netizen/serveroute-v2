@@ -32,14 +32,15 @@ export default function UnassignRoute() {
     enabled: !!routeId
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: servers = [] } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+    queryKey: ['companyServers', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
+      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const unassignMutation = useMutation({
@@ -64,7 +65,7 @@ export default function UnassignRoute() {
       // Notify server
       await base44.entities.Notification.create({
         user_id: previousServerId,
-        company_id: user.company_id,
+        company_id: companyId,
         type: 'reassigned_away',
         title: 'Route Unassigned',
         body: `${route.folder_name} has been removed from your assignments.`,
@@ -74,7 +75,7 @@ export default function UnassignRoute() {
       
       // Audit log
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_unassigned',
         actor_id: user.id,
         actor_role: user.role || 'boss',

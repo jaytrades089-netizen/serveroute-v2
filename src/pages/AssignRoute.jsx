@@ -56,26 +56,26 @@ export default function AssignRoute() {
     enabled: !!routeId
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: servers = [] } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+    queryKey: ['companyServers', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
+      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: allRoutes = [] } = useQuery({
-    queryKey: ['allRoutes', user?.company_id],
+    queryKey: ['allRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const assignMutation = useMutation({
@@ -84,7 +84,7 @@ export default function AssignRoute() {
       
       // Create assignment
       const assignment = await base44.entities.Assignment.create({
-        company_id: user.company_id,
+        company_id: companyId,
         boss_id: user.id,
         server_id: selectedServerId,
         batch_name: route.folder_name,
@@ -104,7 +104,7 @@ export default function AssignRoute() {
       // Send notification
       await base44.entities.Notification.create({
         user_id: selectedServerId,
-        company_id: user.company_id,
+        company_id: companyId,
         type: 'assignment_new',
         title: 'New Assignment',
         body: `You've been assigned ${route.folder_name} (${routeAddresses.length} addresses, due ${format(new Date(route.due_date), 'MMM d')})`,
@@ -114,7 +114,7 @@ export default function AssignRoute() {
       
       // Audit log
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'assignment_created',
         actor_id: user.id,
         actor_role: user.role || 'boss',

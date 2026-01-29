@@ -48,26 +48,26 @@ export default function ReassignRoute() {
     enabled: !!routeId
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: servers = [] } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+    queryKey: ['companyServers', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
+      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: allRoutes = [] } = useQuery({
-    queryKey: ['allRoutes', user?.company_id],
+    queryKey: ['allRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const reassignMutation = useMutation({
@@ -91,7 +91,7 @@ export default function ReassignRoute() {
       // Notify old server
       await base44.entities.Notification.create({
         user_id: route.worker_id,
-        company_id: user.company_id,
+        company_id: companyId,
         type: 'reassigned_away',
         title: 'Route Reassigned',
         body: `${route.folder_name} has been reassigned to ${newServer.full_name}. Reason: ${reasonLabel}`,
@@ -102,7 +102,7 @@ export default function ReassignRoute() {
       // Notify new server
       await base44.entities.Notification.create({
         user_id: selectedServerId,
-        company_id: user.company_id,
+        company_id: companyId,
         type: 'reassigned_to',
         title: 'Route Assigned',
         body: `${route.folder_name} has been assigned to you (reassigned from ${oldServer?.full_name})`,
@@ -112,7 +112,7 @@ export default function ReassignRoute() {
       
       // Audit log
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_reassigned',
         actor_id: user.id,
         actor_role: user.role || 'boss',
