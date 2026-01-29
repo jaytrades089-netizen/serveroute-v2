@@ -40,26 +40,26 @@ export default function BossRoutes() {
     queryFn: () => base44.auth.me()
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: routes = [], isLoading } = useQuery({
-    queryKey: ['allRoutes', user?.company_id],
+    queryKey: ['allRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: servers = [] } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+    queryKey: ['companyServers', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
+      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: notifications = [] } = useQuery({
@@ -97,7 +97,7 @@ export default function BossRoutes() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_updated',
         actor_id: user.id,
         actor_role: user.role || 'boss',
