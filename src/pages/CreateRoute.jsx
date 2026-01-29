@@ -33,8 +33,10 @@ export default function CreateRoute() {
 
   const createRouteMutation = useMutation({
     mutationFn: async (routeData) => {
+      const companyId = user.company_id || 'default';
+      
       const newRoute = await base44.entities.Route.create({
-        company_id: user.company_id,
+        company_id: companyId,
         folder_name: routeData.folder_name,
         due_date: format(routeData.due_date, 'yyyy-MM-dd'),
         completion_rule: routeData.completion_rule,
@@ -44,7 +46,7 @@ export default function CreateRoute() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_created',
         actor_id: user.id,
         actor_role: user.role || 'boss',
