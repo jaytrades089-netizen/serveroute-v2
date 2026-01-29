@@ -61,17 +61,18 @@ export default function RouteEditor() {
     enabled: !!routeId
   });
 
-  const { data: poolAddresses = [] } = useQuery({
-    queryKey: ['poolAddresses', user?.company_id],
+  const companyId = user?.company_id || 'default';
+
+  const { data: poolAddresses = [], isLoading: poolLoading } = useQuery({
+    queryKey: ['poolAddresses', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const all = await base44.entities.Address.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
       return all.filter(a => !a.route_id);
     },
-    enabled: !!user?.company_id && showAddModal
+    enabled: !!user && showAddModal
   });
 
   const updateRouteMutation = useMutation({
@@ -99,7 +100,7 @@ export default function RouteEditor() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_addresses_added',
         actor_id: user.id,
         actor_role: user.role || 'boss',
@@ -134,7 +135,7 @@ export default function RouteEditor() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_addresses_removed',
         actor_id: user.id,
         actor_role: user.role || 'boss',
@@ -166,7 +167,7 @@ export default function RouteEditor() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_finalized',
         actor_id: user.id,
         actor_role: user.role || 'boss',
@@ -335,14 +336,35 @@ export default function RouteEditor() {
               <DialogHeader>
                 <DialogTitle>Add Addresses to {route.folder_name}</DialogTitle>
               </DialogHeader>
-              <Input
-                placeholder="Search addresses..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="mb-3"
-              />
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  placeholder="Search addresses..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+                {filteredPoolAddresses.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (selectedPoolIds.size === filteredPoolAddresses.length) {
+                        setSelectedPoolIds(new Set());
+                      } else {
+                        setSelectedPoolIds(new Set(filteredPoolAddresses.map(a => a.id)));
+                      }
+                    }}
+                  >
+                    {selectedPoolIds.size === filteredPoolAddresses.length ? 'Deselect All' : 'Select All'}
+                  </Button>
+                )}
+              </div>
               <div className="flex-1 overflow-y-auto space-y-2">
-                {filteredPoolAddresses.length === 0 ? (
+                {poolLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+                  </div>
+                ) : filteredPoolAddresses.length === 0 ? (
                   <p className="text-center text-gray-500 py-4">No addresses in pool</p>
                 ) : (
                   filteredPoolAddresses.map(addr => (
