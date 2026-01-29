@@ -38,30 +38,30 @@ export default function AddressPool() {
     queryFn: () => base44.auth.me()
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: addresses = [], isLoading } = useQuery({
-    queryKey: ['poolAddresses', user?.company_id],
+    queryKey: ['poolAddresses', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const all = await base44.entities.Address.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
       return all.filter(a => !a.route_id);
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: routes = [] } = useQuery({
-    queryKey: ['draftRoutes', user?.company_id],
+    queryKey: ['draftRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         status: 'draft',
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const deleteAddressMutation = useMutation({
@@ -72,7 +72,7 @@ export default function AddressPool() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'address_deleted',
         actor_id: user.id,
         actor_role: user.role || 'boss',
@@ -101,7 +101,7 @@ export default function AddressPool() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'route_addresses_added',
         actor_id: user.id,
         actor_role: user.role || 'boss',
