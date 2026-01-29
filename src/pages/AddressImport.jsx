@@ -183,11 +183,6 @@ export default function AddressImport() {
   const importAddresses = async () => {
     if (!parsedData || !user) return;
     
-    if (!user.company_id) {
-      toast.error('Your account is not associated with a company. Please contact your administrator.');
-      return;
-    }
-    
     setStep('importing');
     setImportProgress(0);
     
@@ -213,7 +208,7 @@ export default function AddressImport() {
     
     // Create ImportJob record
     const importJob = await base44.entities.ImportJob.create({
-      company_id: user.company_id,
+      company_id: user.company_id || 'default',
       boss_id: user.id,
       filename: file.name,
       total_rows: parsedData.rows.length,
@@ -229,7 +224,7 @@ export default function AddressImport() {
         const fullAddress = `${row.address}, ${row.city}, ${row.state} ${row.zip}`;
         
         await base44.entities.Address.create({
-          company_id: user.company_id,
+          company_id: user.company_id || 'default',
           legal_address: fullAddress,
           normalized_address: fullAddress,
           city: row.city,
@@ -266,7 +261,7 @@ export default function AddressImport() {
     
     // Audit log
     await base44.entities.AuditLog.create({
-      company_id: user.company_id,
+      company_id: user.company_id || 'default',
       action_type: 'addresses_imported',
       actor_id: user.id,
       actor_role: user.role || 'boss',
@@ -453,15 +448,13 @@ export default function AddressImport() {
                 <Button 
                   onClick={importAddresses} 
                   className="flex-1"
-                  disabled={userLoading || !user?.company_id}
+                  disabled={userLoading}
                 >
                   {userLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Loading...
                     </>
-                  ) : !user?.company_id ? (
-                    'No Company Assigned'
                   ) : (
                     `Import ${parsedData.rows.length} Addresses`
                   )}
