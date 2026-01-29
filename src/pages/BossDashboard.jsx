@@ -30,29 +30,29 @@ export default function BossDashboard() {
     queryFn: () => base44.auth.me()
   });
 
+  const companyId = user?.company_id || 'default';
+
   const { data: addresses = [] } = useQuery({
-    queryKey: ['poolAddresses', user?.company_id],
+    queryKey: ['poolAddresses', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Address.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         route_id: null,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: routes = [] } = useQuery({
-    queryKey: ['allRoutes', user?.company_id],
+    queryKey: ['allRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: servers = [] } = useQuery({
@@ -105,10 +105,10 @@ export default function BossDashboard() {
   const todayDate = format(new Date(), 'EEEE, MMMM d, yyyy');
 
   const stats = [
-    { id: 'pool', label: 'Address Pool', value: addresses.length, icon: Package, color: 'bg-blue-100 text-blue-600' },
-    { id: 'draft', label: 'Draft Routes', value: draftRoutes.length, icon: FileEdit, color: 'bg-orange-100 text-orange-600' },
-    { id: 'ready', label: 'Ready', value: readyRoutes.length, icon: CheckCircle, color: 'bg-green-100 text-green-600' },
-    { id: 'assigned', label: 'Assigned', value: assignedRoutes.length, icon: Rocket, color: 'bg-purple-100 text-purple-600' }
+    { id: 'pool', label: 'Address Pool', value: addresses.length, icon: Package, color: 'bg-blue-100 text-blue-600', link: 'AddressPool' },
+    { id: 'draft', label: 'Draft Routes', value: draftRoutes.length, icon: FileEdit, color: 'bg-orange-100 text-orange-600', link: 'BossRoutes' },
+    { id: 'ready', label: 'Ready', value: readyRoutes.length, icon: CheckCircle, color: 'bg-green-100 text-green-600', link: 'BossRoutes' },
+    { id: 'assigned', label: 'Assigned', value: assignedRoutes.length, icon: Rocket, color: 'bg-purple-100 text-purple-600', link: 'BossRoutes' }
   ];
 
   // Calculate server capacities
@@ -187,7 +187,11 @@ export default function BossDashboard() {
           {stats.map(stat => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.id} className="cursor-pointer hover:shadow-md transition-shadow">
+              <Card 
+                key={stat.id} 
+                className="cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => navigate(createPageUrl(stat.link))}
+              >
                 <CardContent className="p-4">
                   <div className={`w-10 h-10 rounded-lg ${stat.color} flex items-center justify-center mb-2`}>
                     <Icon className="w-5 h-5" />
@@ -250,11 +254,17 @@ export default function BossDashboard() {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Link to={createPageUrl('AddressPool')}>
+            <Button variant="outline" className="w-full h-14 justify-start gap-3">
+              <Package className="w-5 h-5 text-blue-600" />
+              <span>Address Pool</span>
+            </Button>
+          </Link>
           <Link to={createPageUrl('AddressImport')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
-              <Upload className="w-5 h-5 text-blue-600" />
-              <span>Import Addresses</span>
+              <Upload className="w-5 h-5 text-orange-600" />
+              <span>Import</span>
             </Button>
           </Link>
           <Link to={createPageUrl('CreateRoute')}>
@@ -266,7 +276,7 @@ export default function BossDashboard() {
           <Link to={createPageUrl('BossRoutes')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <ClipboardList className="w-5 h-5 text-purple-600" />
-              <span>View All Routes</span>
+              <span>All Routes</span>
             </Button>
           </Link>
         </div>
