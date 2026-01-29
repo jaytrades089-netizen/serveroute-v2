@@ -68,6 +68,7 @@ import UnassignRoute from './pages/UnassignRoute';
 import ReassignRoute from './pages/ReassignRoute';
 import BossTeam from './pages/BossTeam';
 import BossSettings from './pages/BossSettings';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
@@ -97,4 +98,5 @@ export const PAGES = {
 export const pagesConfig = {
     mainPage: "WorkerHome",
     Pages: PAGES,
+    Layout: __Layout,
 };
