@@ -1,41 +1,69 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Loader2, FileText, Bell, User, Mail, MapPin } from 'lucide-react';
+import { Loader2, FileText, Bell, User, Mail, MapPin, UserPlus } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import BossBottomNav from '../components/boss/BossBottomNav';
 
 export default function BossTeam() {
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [isInviting, setIsInviting] = useState(false);
+
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
 
-  const { data: servers = [], isLoading } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+  const companyId = user?.company_id || 'default';
+
+  const { data: servers = [], isLoading, refetch: refetchServers } = useQuery({
+    queryKey: ['companyServers', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
+      return users.filter(u => (u.company_id === companyId || !u.company_id) && u.role === 'server');
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
 
   const { data: routes = [] } = useQuery({
-    queryKey: ['allRoutes', user?.company_id],
+    queryKey: ['allRoutes', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
       return base44.entities.Route.filter({
-        company_id: user.company_id,
+        company_id: companyId,
         deleted_at: null
       });
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
+
+  const handleInviteServer = async () => {
+    if (!inviteEmail || !inviteEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsInviting(true);
+    try {
+      await base44.users.inviteUser(inviteEmail, 'user');
+      toast.success(`Invitation sent to ${inviteEmail}`);
+      setInviteEmail('');
+      setShowInviteModal(false);
+      refetchServers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to send invitation');
+    }
+    setIsInviting(false);
+  };
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['bossNotifications', user?.id],
@@ -98,6 +126,52 @@ export default function BossTeam() {
               </span>
             )}
           </Link>
+          <Dialog open={showInviteModal} onOpenChange={setShowInviteModal}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="secondary">
+                <UserPlus className="w-4 h-4 mr-1" /> Invite
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite Server</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-4">
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="server@example.com"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                  />
+                </div>
+                <p className="text-sm text-gray-500">
+                  An invitation email will be sent to this address. They'll be able to create an account and join your team as a server.
+                </p>
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={() => setShowInviteModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    className="flex-1" 
+                    onClick={handleInviteServer}
+                    disabled={isInviting}
+                  >
+                    {isInviting ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      'Send Invitation'
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </header>
 
