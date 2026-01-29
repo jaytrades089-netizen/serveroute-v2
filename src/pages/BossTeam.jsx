@@ -39,7 +39,8 @@ export default function BossTeam() {
     queryKey: ['availableServers'],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.filter(u => !u.company_id && u.role === 'server');
+      // Show users without a company who are servers OR regular users (not bosses/admins)
+      return users.filter(u => !u.company_id && (u.role === 'server' || u.role === 'user' || !u.role));
     },
     enabled: !!user
   });
@@ -268,10 +269,9 @@ export default function BossTeam() {
         )}
 
         {/* Available Servers Section */}
-        {availableServers.length > 0 && (
-          <>
-            <h2 className="font-semibold text-lg mt-8 mb-4">Available Servers ({availableServers.length})</h2>
-            <p className="text-sm text-gray-500 mb-3">These servers don't have a team yet. Send them an invite to join yours.</p>
+        <h2 className="font-semibold text-lg mt-8 mb-4">Available Servers ({availableServers.length})</h2>
+        <p className="text-sm text-gray-500 mb-3">These servers don't have a team yet. Send them an invite to join yours.</p>
+        {availableServers.length > 0 ? (
             <div className="space-y-3">
               {availableServers.map((server) => (
                 <Card key={server.id}>
@@ -299,7 +299,14 @@ export default function BossTeam() {
                 </Card>
               ))}
             </div>
-          </>
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center">
+              <User className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-500 text-sm">No available servers found</p>
+              <p className="text-xs text-gray-400 mt-1">Use the Invite button above to invite new servers by email</p>
+            </CardContent>
+          </Card>
         )}
       </main>
 
