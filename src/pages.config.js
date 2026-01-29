@@ -47,7 +47,20 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AddAddress from './pages/AddAddress';
+import AddressImport from './pages/AddressImport';
+import AddressPool from './pages/AddressPool';
+import AssignRoute from './pages/AssignRoute';
+import BossDashboard from './pages/BossDashboard';
+import BossRoutes from './pages/BossRoutes';
+import BossSettings from './pages/BossSettings';
+import BossTeam from './pages/BossTeam';
+import CreateRoute from './pages/CreateRoute';
+import EditAddress from './pages/EditAddress';
 import Notifications from './pages/Notifications';
+import ReassignRoute from './pages/ReassignRoute';
+import RouteEditor from './pages/RouteEditor';
+import UnassignRoute from './pages/UnassignRoute';
 import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerHome from './pages/WorkerHome';
 import WorkerPayout from './pages/WorkerPayout';
@@ -55,24 +68,24 @@ import WorkerRouteDetail from './pages/WorkerRouteDetail';
 import WorkerRoutes from './pages/WorkerRoutes';
 import WorkerSettings from './pages/WorkerSettings';
 import Workers from './pages/Workers';
-import BossDashboard from './pages/BossDashboard';
-import AddressImport from './pages/AddressImport';
-import AddressPool from './pages/AddressPool';
-import AddAddress from './pages/AddAddress';
-import EditAddress from './pages/EditAddress';
-import CreateRoute from './pages/CreateRoute';
-import RouteEditor from './pages/RouteEditor';
-import BossRoutes from './pages/BossRoutes';
-import AssignRoute from './pages/AssignRoute';
-import UnassignRoute from './pages/UnassignRoute';
-import ReassignRoute from './pages/ReassignRoute';
-import BossTeam from './pages/BossTeam';
-import BossSettings from './pages/BossSettings';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AddAddress": AddAddress,
+    "AddressImport": AddressImport,
+    "AddressPool": AddressPool,
+    "AssignRoute": AssignRoute,
+    "BossDashboard": BossDashboard,
+    "BossRoutes": BossRoutes,
+    "BossSettings": BossSettings,
+    "BossTeam": BossTeam,
+    "CreateRoute": CreateRoute,
+    "EditAddress": EditAddress,
     "Notifications": Notifications,
+    "ReassignRoute": ReassignRoute,
+    "RouteEditor": RouteEditor,
+    "UnassignRoute": UnassignRoute,
     "WorkerAddresses": WorkerAddresses,
     "WorkerHome": WorkerHome,
     "WorkerPayout": WorkerPayout,
@@ -80,19 +93,6 @@ export const PAGES = {
     "WorkerRoutes": WorkerRoutes,
     "WorkerSettings": WorkerSettings,
     "Workers": Workers,
-    "BossDashboard": BossDashboard,
-    "AddressImport": AddressImport,
-    "AddressPool": AddressPool,
-    "AddAddress": AddAddress,
-    "EditAddress": EditAddress,
-    "CreateRoute": CreateRoute,
-    "RouteEditor": RouteEditor,
-    "BossRoutes": BossRoutes,
-    "AssignRoute": AssignRoute,
-    "UnassignRoute": UnassignRoute,
-    "ReassignRoute": ReassignRoute,
-    "BossTeam": BossTeam,
-    "BossSettings": BossSettings,
 }
 
 export const pagesConfig = {

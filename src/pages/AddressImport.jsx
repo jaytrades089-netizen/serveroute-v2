@@ -183,6 +183,11 @@ export default function AddressImport() {
   const importAddresses = async () => {
     if (!parsedData || !user) return;
     
+    if (!user.company_id) {
+      toast.error('Your account is not associated with a company. Please contact your administrator.');
+      return;
+    }
+    
     setStep('importing');
     setImportProgress(0);
     
