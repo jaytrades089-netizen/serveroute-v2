@@ -98,7 +98,7 @@ export default function AddressImport() {
   const [importProgress, setImportProgress] = useState(0);
   const [importResults, setImportResults] = useState(null);
 
-  const { data: user } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
@@ -450,8 +450,21 @@ export default function AddressImport() {
                 }}>
                   Cancel
                 </Button>
-                <Button onClick={importAddresses} className="flex-1">
-                  Import {parsedData.rows.length} Addresses
+                <Button 
+                  onClick={importAddresses} 
+                  className="flex-1"
+                  disabled={userLoading || !user?.company_id}
+                >
+                  {userLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : !user?.company_id ? (
+                    'No Company Assigned'
+                  ) : (
+                    `Import ${parsedData.rows.length} Addresses`
+                  )}
                 </Button>
               </div>
             </CardContent>
