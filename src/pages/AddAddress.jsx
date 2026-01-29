@@ -48,9 +48,10 @@ export default function AddAddress() {
   const createAddressMutation = useMutation({
     mutationFn: async (addressData) => {
       const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.state} ${addressData.zip}`;
+      const companyId = user.company_id || 'default';
       
       const newAddress = await base44.entities.Address.create({
-        company_id: user.company_id,
+        company_id: companyId,
         legal_address: fullAddress,
         normalized_address: fullAddress,
         city: addressData.city,
@@ -63,7 +64,7 @@ export default function AddAddress() {
       });
       
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: companyId,
         action_type: 'address_created',
         actor_id: user.id,
         actor_role: user.role || 'boss',
