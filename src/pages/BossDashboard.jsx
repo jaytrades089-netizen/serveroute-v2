@@ -1,7 +1,7 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { 
@@ -14,7 +14,8 @@ import {
   Package,
   FileEdit,
   CheckCircle,
-  Rocket
+  Rocket,
+  ArrowRightLeft
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,8 @@ import { Progress } from '@/components/ui/progress';
 import BossBottomNav from '../components/boss/BossBottomNav';
 
 export default function BossDashboard() {
+  const navigate = useNavigate();
+  
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
@@ -163,9 +166,20 @@ export default function BossDashboard() {
 
       <main className="px-4 py-6 max-w-4xl mx-auto">
         {/* Welcome */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
-          <p className="text-gray-500">{todayDate}</p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
+            <p className="text-gray-500">{todayDate}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => navigate(createPageUrl('WorkerHome'))}
+            className="flex items-center gap-2 text-xs"
+          >
+            <ArrowRightLeft className="w-3 h-3" />
+            Worker View
+          </Button>
         </div>
 
         {/* Quick Stats */}
