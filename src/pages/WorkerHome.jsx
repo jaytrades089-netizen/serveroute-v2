@@ -105,7 +105,8 @@ export default function WorkerHome() {
     );
   }
 
-  const activeRoutes = routes.filter(r => r.status === 'active');
+  // Show both assigned and active routes on home
+  const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned');
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
   
