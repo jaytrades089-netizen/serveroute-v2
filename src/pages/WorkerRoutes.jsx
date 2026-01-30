@@ -45,7 +45,7 @@ export default function WorkerRoutes() {
 
   const filteredRoutes = routes.filter(route => {
     if (filter === 'all') return true;
-    if (filter === 'active') return route.status === 'active';
+    if (filter === 'active') return route.status === 'active' || route.status === 'assigned';
     if (filter === 'completed') return route.status === 'completed';
     if (filter === 'due-soon') {
       return route.status !== 'completed' && 
@@ -114,6 +114,7 @@ export default function WorkerRoutes() {
                     <div className="text-right">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                         route.status === 'active' ? 'bg-blue-100 text-blue-700' :
+                        route.status === 'assigned' ? 'bg-yellow-100 text-yellow-700' :
                         route.status === 'completed' ? 'bg-green-100 text-green-700' :
                         route.status === 'stalled' ? 'bg-red-100 text-red-700' :
                         'bg-gray-100 text-gray-600'
