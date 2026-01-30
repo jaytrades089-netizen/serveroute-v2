@@ -23,10 +23,11 @@ export default function WorkerRoutes() {
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.Route.filter({ 
-        worker_id: user.id,
+      // Fetch all routes and filter by worker_id client-side
+      const allRoutes = await base44.entities.Route.filter({ 
         deleted_at: null 
       });
+      return allRoutes.filter(r => r.worker_id === user.id);
     },
     enabled: !!user?.id
   });
