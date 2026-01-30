@@ -30,7 +30,8 @@ export default function BossTeam() {
     queryKey: ['companyServers', companyId],
     queryFn: async () => {
       const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === companyId && u.role === 'server');
+      // Include users with role 'server' or 'user' (default role from invite)
+      return users.filter(u => u.company_id === companyId && (u.role === 'server' || u.role === 'user'));
     },
     enabled: !!user
   });
