@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -15,29 +15,54 @@ import {
   ArrowRightLeft,
   Settings,
   ChevronRight,
-  Users
+  Users,
+  Pause,
+  Play,
+  Wand2
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import BossBottomNav from '../components/boss/BossBottomNav';
 import DashboardOverview from '../components/boss/dashboard/DashboardOverview';
 import WorkerCard from '../components/boss/dashboard/WorkerCard';
-import UnassignedRouteCard from '../components/boss/dashboard/UnassignedRouteCard';
+import SmartAssignmentCard from '../components/boss/SmartAssignmentCard';
+import WorkerLocationMap from '../components/boss/WorkerLocationMap';
+import CapacityOverview from '../components/boss/CapacityOverview';
 import RecentActivityFeed from '../components/boss/dashboard/RecentActivityFeed';
 import NotificationBell from '../components/boss/NotificationBell';
 import MessageDialog from '../components/boss/MessageDialog';
+import { generateSuggestions, autoAssignAllRoutes } from '../components/services/SmartAssignmentService';
+import { buildAddressCountsMap } from '../components/services/MetricsService';
 import { toast } from 'sonner';
+
+// Polling configuration
+const POLLING_CONFIG = {
+  active: 5000,      // 5 seconds when tab active
+  background: 30000  // 30 seconds when tab hidden
+};
 
 export default function BossDashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
   const [messageRecipient, setMessageRecipient] = useState(null);
+  const [isPollingActive, setIsPollingActive] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
+  const [lastUpdate, setLastUpdate] = useState(null);
+  const [suggestions, setSuggestions] = useState({});
+  const [autoAssigning, setAutoAssigning] = useState(false);
   
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
+
+  // Handle tab visibility for polling
+  useEffect(() => {
+    const handleVisibility = () => setIsPollingActive(!document.hidden);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   const companyId = user?.company_id || 'default';
 
@@ -91,6 +116,52 @@ export default function BossDashboard() {
     },
     enabled: !!user
   });
+
+  // Get user settings for MapQuest API key
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
+  // Auto-refresh polling
+  useEffect(() => {
+    if (isPaused) return;
+
+    const interval = isPollingActive 
+      ? POLLING_CONFIG.active 
+      : POLLING_CONFIG.background;
+
+    const pollTimer = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['allAddresses'] });
+      setLastUpdate(new Date());
+    }, interval);
+
+    return () => clearInterval(pollTimer);
+  }, [isPaused, isPollingActive, queryClient]);
+
+  // Build address counts for capacity tracking
+  const addressCounts = buildAddressCountsMap(workers, routes, addresses);
+
+  // Load suggestions for unassigned routes
+  const loadSuggestions = useCallback(async (routeId) => {
+    const route = routes.find(r => r.id === routeId);
+    if (!route) return;
+
+    const routeSuggestions = await generateSuggestions(
+      route, 
+      workers, 
+      addresses, 
+      addressCounts
+    );
+    setSuggestions(prev => ({ ...prev, [routeId]: routeSuggestions }));
+  }, [routes, workers, addresses, addressCounts]);
 
   // Pause/Resume worker mutation
   const pauseResumeMutation = useMutation({
@@ -198,7 +269,42 @@ export default function BossDashboard() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await queryClient.invalidateQueries();
+    setLastUpdate(new Date());
     setTimeout(() => setRefreshing(false), 500);
+  };
+
+  // Auto-assign all unassigned routes
+  const handleAutoAssignAll = async () => {
+    if (unassignedRoutes.length === 0) return;
+    
+    setAutoAssigning(true);
+    try {
+      const results = await autoAssignAllRoutes(
+        unassignedRoutes,
+        workers,
+        addresses,
+        { ...addressCounts },
+        user.id,
+        companyId
+      );
+
+      const successCount = results.filter(r => r.success).length;
+      const failCount = results.filter(r => !r.success).length;
+
+      if (successCount > 0) {
+        toast.success(`Assigned ${successCount} routes`);
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} routes could not be assigned`);
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+    } catch (error) {
+      toast.error('Auto-assign failed');
+    } finally {
+      setAutoAssigning(false);
+    }
   };
 
   if (userLoading) {
@@ -247,6 +353,15 @@ export default function BossDashboard() {
   const unassignedRoutes = routes.filter(r => 
     r.status === 'ready' && !r.worker_id
   );
+
+  // Load suggestions when unassigned routes change
+  useEffect(() => {
+    unassignedRoutes.forEach(route => {
+      if (!suggestions[route.id]) {
+        loadSuggestions(route.id);
+      }
+    });
+  }, [unassignedRoutes.length]);
 
   // Get worker progress data
   const getWorkerProgress = (worker) => {
@@ -300,15 +415,34 @@ export default function BossDashboard() {
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
             <p className="text-gray-500">{todayDate}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Auto-refresh status */}
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <span className={`w-2 h-2 rounded-full ${isPaused ? 'bg-yellow-500' : isPollingActive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
+              <span className="hidden sm:inline">
+                {isPaused ? 'Paused' : isPollingActive ? 'Live' : 'Background'}
+              </span>
+              {lastUpdate && (
+                <span className="hidden md:inline ml-1">
+                  {format(lastUpdate, 'h:mm:ss a')}
+                </span>
+              )}
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsPaused(!isPaused)}
+              className="h-8 px-2"
+            >
+              {isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            </Button>
             <Button 
               variant="outline" 
               size="sm"
               onClick={handleRefresh}
               disabled={refreshing}
             >
-              <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
             <Button 
               variant="outline" 
@@ -316,7 +450,7 @@ export default function BossDashboard() {
               onClick={() => navigate(createPageUrl('WorkerHome'))}
             >
               <ArrowRightLeft className="w-4 h-4 mr-1" />
-              Worker View
+              Worker
             </Button>
           </div>
         </div>
@@ -366,31 +500,63 @@ export default function BossDashboard() {
           </CardContent>
         </Card>
 
-        {/* Unassigned Routes */}
+        {/* Unassigned Routes with Smart Assignment */}
         {unassignedRoutes.length > 0 && (
           <Card className="mb-6">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Unassigned Routes ({unassignedRoutes.length})</CardTitle>
-                <Link to={createPageUrl('BossRoutes')}>
-                  <Button variant="ghost" size="sm" className="text-blue-600">
-                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleAutoAssignAll}
+                    disabled={autoAssigning}
+                    className="text-green-600 border-green-200 hover:bg-green-50"
+                  >
+                    <Wand2 className={`w-4 h-4 mr-1 ${autoAssigning ? 'animate-spin' : ''}`} />
+                    Auto-Assign All
                   </Button>
-                </Link>
+                  <Link to={createPageUrl('BossRoutes')}>
+                    <Button variant="ghost" size="sm" className="text-blue-600">
+                      View All <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {unassignedRoutes.slice(0, 3).map((route) => (
-                <UnassignedRouteCard
+                <SmartAssignmentCard
                   key={route.id}
                   route={route}
-                  workers={workers.filter(w => w.worker_status !== 'paused')}
-                  onAssign={(routeId, workerId) => assignRouteMutation.mutate({ routeId, workerId })}
+                  suggestions={suggestions[route.id] || []}
+                  isLoading={!suggestions[route.id]}
+                  onAssign={(routeId, workerId) => {
+                    assignRouteMutation.mutate({ routeId, workerId });
+                    setSuggestions(prev => {
+                      const copy = { ...prev };
+                      delete copy[routeId];
+                      return copy;
+                    });
+                  }}
                 />
               ))}
             </CardContent>
           </Card>
         )}
+
+        {/* Worker Location & Capacity Row */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <WorkerLocationMap 
+            workers={workers} 
+            mapquestApiKey={userSettings?.mapquest_api_key}
+          />
+          <CapacityOverview 
+            workers={workers} 
+            addressCounts={addressCounts}
+          />
+        </div>
 
         {/* Recent Activity */}
         <RecentActivityFeed activities={auditLogs} />
