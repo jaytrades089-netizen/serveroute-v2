@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
@@ -11,11 +11,15 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight } from 'lucide-react';
+import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
+import PushPermissionDialog from '../components/notifications/PushPermissionDialog';
+import LocationPermissionDialog from '../components/notifications/LocationPermissionDialog';
 
 export default function WorkerSettings() {
   const queryClient = useQueryClient();
+  const [showPushDialog, setShowPushDialog] = useState(false);
+  const [showLocationDialog, setShowLocationDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -192,7 +196,65 @@ export default function WorkerSettings() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Bell className="w-5 h-5" /> Preferences
+              <Bell className="w-5 h-5" /> Notifications & Location
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Push Notifications</Label>
+                <p className="text-xs text-gray-500">Get alerts even when app is closed</p>
+              </div>
+              {user?.push_enabled ? (
+                <span className="text-xs text-green-600 font-medium">✓ Enabled</span>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowPushDialog(true)}
+                >
+                  Enable
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Location Sharing</Label>
+                <p className="text-xs text-gray-500">Share location while working</p>
+              </div>
+              {user?.location_permission ? (
+                <span className="text-xs text-green-600 font-medium">✓ Enabled</span>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowLocationDialog(true)}
+                >
+                  Enable
+                </Button>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>In-App Notifications</Label>
+                <p className="text-xs text-gray-500">Show notifications in app</p>
+              </div>
+              <Switch
+                checked={user?.notification_in_app !== false}
+                onCheckedChange={(checked) => {
+                  base44.auth.updateMe({ notification_in_app: checked });
+                  queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+                  toast.success('Setting updated');
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Navigation className="w-5 h-5" /> Preferences
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -224,6 +286,18 @@ export default function WorkerSettings() {
       </main>
 
       <BottomNav currentPage="WorkerSettings" />
+
+      {/* Permission Dialogs */}
+      <PushPermissionDialog 
+        open={showPushDialog} 
+        onOpenChange={setShowPushDialog}
+        user={user}
+      />
+      <LocationPermissionDialog 
+        open={showLocationDialog} 
+        onOpenChange={setShowLocationDialog}
+        user={user}
+      />
     </div>
   );
 }
