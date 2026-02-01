@@ -71,6 +71,9 @@ import Workers from './pages/Workers';
 import BossWorkers from './pages/BossWorkers';
 import WorkerDetail from './pages/WorkerDetail';
 import BossNotifications from './pages/BossNotifications';
+import RouteHandoff from './pages/RouteHandoff';
+import VacationRequests from './pages/VacationRequests';
+import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import __Layout from './Layout.jsx';
 
 
@@ -99,6 +102,9 @@ export const PAGES = {
     "BossWorkers": BossWorkers,
     "WorkerDetail": WorkerDetail,
     "BossNotifications": BossNotifications,
+    "RouteHandoff": RouteHandoff,
+    "VacationRequests": VacationRequests,
+    "WorkerVacationRequest": WorkerVacationRequest,
 }
 
 export const pagesConfig = {
