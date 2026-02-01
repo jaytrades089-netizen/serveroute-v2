@@ -11,7 +11,9 @@ const bossPages = [
   'BossDashboard',
   'BossRoutes', 
   'BossTeam',
+  'BossWorkers',
   'BossSettings',
+  'BossNotifications',
   'AddressImport',
   'AddressPool',
   'AddAddress',
@@ -20,7 +22,10 @@ const bossPages = [
   'RouteEditor',
   'AssignRoute',
   'UnassignRoute',
-  'ReassignRoute'
+  'ReassignRoute',
+  'RouteHandoff',
+  'VacationRequests',
+  'WorkerDetail'
 ];
 
 // Server/Worker pages
@@ -31,6 +36,8 @@ const workerPages = [
   'WorkerAddresses',
   'WorkerPayout',
   'WorkerSettings',
+  'WorkerStats',
+  'WorkerVacationRequest',
   'Workers',
   'Notifications'
 ];
