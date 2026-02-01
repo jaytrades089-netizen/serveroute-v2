@@ -36,13 +36,13 @@ const workerPages = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { data: user, isLoading } = useQuery({
+  const { data: user, isLoading, isError } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     retry: false
   });
 
-  // Show loading while checking auth
+  // Show loading while checking auth (with timeout fallback)
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -51,18 +51,24 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Redirect logic based on role and page
-  if (user) {
-    const isBoss = user.role === 'boss' || user.role === 'admin';
-    const isOnBossPage = bossPages.includes(currentPageName);
-    const isOnWorkerPage = workerPages.includes(currentPageName);
+  // If not logged in, redirect to login
+  if (isError || !user) {
+    base44.auth.redirectToLogin();
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
 
-    // Boss trying to access worker pages - allow (they might want to see worker view)
-    // Server trying to access boss pages - redirect to worker home
-    if (!isBoss && isOnBossPage) {
-      window.location.href = '/WorkerHome';
-      return null;
-    }
+  // Redirect logic based on role and page
+  const isBoss = user.role === 'boss' || user.role === 'admin';
+  const isOnBossPage = bossPages.includes(currentPageName);
+
+  // Server trying to access boss pages - redirect to worker home
+  if (!isBoss && isOnBossPage) {
+    window.location.href = '/WorkerHome';
+    return null;
   }
 
   return children;
