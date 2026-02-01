@@ -1,29 +1,38 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { 
   Loader2, 
   FileText, 
-  Bell, 
   Upload, 
   Plus, 
   ClipboardList,
   Package,
-  FileEdit,
-  CheckCircle,
-  Rocket,
-  ArrowRightLeft
+  RefreshCw,
+  ArrowRightLeft,
+  Settings,
+  ChevronRight,
+  Users
 } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import BossBottomNav from '../components/boss/BossBottomNav';
+import DashboardOverview from '../components/boss/dashboard/DashboardOverview';
+import WorkerCard from '../components/boss/dashboard/WorkerCard';
+import UnassignedRouteCard from '../components/boss/dashboard/UnassignedRouteCard';
+import RecentActivityFeed from '../components/boss/dashboard/RecentActivityFeed';
+import NotificationBell from '../components/boss/NotificationBell';
+import MessageDialog from '../components/boss/MessageDialog';
+import { toast } from 'sonner';
 
 export default function BossDashboard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
+  const [messageRecipient, setMessageRecipient] = useState(null);
   
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -32,18 +41,21 @@ export default function BossDashboard() {
 
   const companyId = user?.company_id || 'default';
 
-  const { data: addresses = [] } = useQuery({
-    queryKey: ['poolAddresses', companyId],
+  // Get all workers (servers) in company
+  const { data: workers = [] } = useQuery({
+    queryKey: ['companyWorkers', companyId],
     queryFn: async () => {
-      return base44.entities.Address.filter({
-        company_id: companyId,
-        route_id: null,
-        deleted_at: null
-      });
+      if (!companyId) return [];
+      const users = await base44.entities.User.list();
+      return users.filter(u => 
+        u.company_id === companyId && 
+        (u.role === 'server' || u.role === 'user')
+      );
     },
     enabled: !!user
   });
 
+  // Get all routes
   const { data: routes = [] } = useQuery({
     queryKey: ['allRoutes', companyId],
     queryFn: async () => {
@@ -55,39 +67,139 @@ export default function BossDashboard() {
     enabled: !!user
   });
 
-  const { data: servers = [] } = useQuery({
-    queryKey: ['companyServers', user?.company_id],
+  // Get all addresses for progress tracking
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['allAddresses', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
-      const users = await base44.entities.User.list();
-      return users.filter(u => u.company_id === user.company_id && u.role === 'server');
-    },
-    enabled: !!user?.company_id
-  });
-
-  const { data: notifications = [] } = useQuery({
-    queryKey: ['bossNotifications', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      return base44.entities.Notification.filter({
-        user_id: user.id,
-        read: false
+      return base44.entities.Address.filter({
+        company_id: companyId,
+        deleted_at: null
       });
     },
-    enabled: !!user?.id
+    enabled: !!user
   });
 
+  // Get recent audit logs
   const { data: auditLogs = [] } = useQuery({
-    queryKey: ['recentActivity', user?.company_id],
+    queryKey: ['recentActivity', companyId],
     queryFn: async () => {
-      if (!user?.company_id) return [];
+      if (!companyId) return [];
       const logs = await base44.entities.AuditLog.filter({
-        company_id: user.company_id
-      });
-      return logs.slice(0, 5);
+        company_id: companyId
+      }, '-timestamp', 20);
+      return logs;
     },
-    enabled: !!user?.company_id
+    enabled: !!user
   });
+
+  // Pause/Resume worker mutation
+  const pauseResumeMutation = useMutation({
+    mutationFn: async ({ worker, action }) => {
+      const newStatus = action === 'pause' ? 'paused' : 'active';
+      await base44.entities.User.update(worker.id, {
+        worker_status: newStatus
+      });
+
+      // Create audit log
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: action === 'pause' ? 'worker_paused' : 'worker_resumed',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'user',
+        target_id: worker.id,
+        details: { worker_name: worker.full_name },
+        timestamp: new Date().toISOString()
+      });
+
+      // Notify worker
+      await base44.entities.Notification.create({
+        user_id: worker.id,
+        company_id: companyId,
+        recipient_role: 'server',
+        type: 'message_received',
+        title: action === 'pause' ? 'Work Paused' : 'Work Resumed',
+        body: action === 'pause' 
+          ? 'Your work has been paused by admin'
+          : 'You can continue working on your routes',
+        priority: 'urgent'
+      });
+    },
+    onSuccess: (_, { action }) => {
+      toast.success(action === 'pause' ? 'Worker paused' : 'Worker resumed');
+      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update worker status');
+    }
+  });
+
+  // Assign route mutation
+  const assignRouteMutation = useMutation({
+    mutationFn: async ({ routeId, workerId }) => {
+      const worker = workers.find(w => w.id === workerId);
+      const route = routes.find(r => r.id === routeId);
+
+      await base44.entities.Route.update(routeId, {
+        worker_id: workerId,
+        status: 'assigned',
+        assigned_at: new Date().toISOString(),
+        assigned_by: user.id
+      });
+
+      // Update worker's current route
+      await base44.entities.User.update(workerId, {
+        current_route_id: routeId,
+        worker_status: 'active',
+        last_active_at: new Date().toISOString()
+      });
+
+      // Notify worker
+      await base44.entities.Notification.create({
+        user_id: workerId,
+        company_id: companyId,
+        recipient_role: 'server',
+        type: 'route_assigned',
+        title: 'New Route Assigned',
+        body: `${route.folder_name}: ${route.total_addresses || 0} addresses`,
+        data: { route_id: routeId },
+        action_url: `/WorkerRouteDetail?routeId=${routeId}`,
+        priority: 'normal'
+      });
+
+      // Audit log
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'route_assigned',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'route',
+        target_id: routeId,
+        details: { 
+          route_name: route.folder_name,
+          worker_name: worker?.full_name,
+          worker_id: workerId
+        },
+        timestamp: new Date().toISOString()
+      });
+    },
+    onSuccess: () => {
+      toast.success('Route assigned');
+      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to assign route');
+    }
+  });
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await queryClient.invalidateQueries();
+    setTimeout(() => setRefreshing(false), 500);
+  };
 
   if (userLoading) {
     return (
@@ -97,49 +209,70 @@ export default function BossDashboard() {
     );
   }
 
-  const draftRoutes = routes.filter(r => r.status === 'draft');
-  const readyRoutes = routes.filter(r => r.status === 'ready');
-  const assignedRoutes = routes.filter(r => ['assigned', 'active', 'stalled'].includes(r.status));
+  // Calculate dashboard stats
+  const today = new Date().toISOString().split('T')[0];
+  const todayRoutes = routes.filter(r => 
+    r.created_date?.startsWith(today) || r.started_at?.startsWith(today)
+  );
+  const completedRoutes = routes.filter(r => r.status === 'completed');
+  const todayCompletedRoutes = completedRoutes.filter(r => 
+    r.completed_at?.startsWith(today)
+  );
+  const activeWorkers = workers.filter(w => w.worker_status === 'active');
+  const servedAddresses = addresses.filter(a => a.served);
+  const todayServedAddresses = servedAddresses.filter(a => 
+    a.served_at?.startsWith(today)
+  );
 
-  const firstName = user?.full_name?.split(' ')[0] || 'Boss';
-  const todayDate = format(new Date(), 'EEEE, MMMM d, yyyy');
+  // Calculate on-time rate (routes completed before due date)
+  const routesWithDueDate = completedRoutes.filter(r => r.due_date);
+  const onTimeRoutes = routesWithDueDate.filter(r => 
+    r.completed_at && new Date(r.completed_at) <= new Date(r.due_date)
+  );
+  const onTimeRate = routesWithDueDate.length > 0 
+    ? Math.round((onTimeRoutes.length / routesWithDueDate.length) * 100)
+    : 100;
 
-  const stats = [
-    { id: 'pool', label: 'Address Pool', value: addresses.length, icon: Package, color: 'bg-blue-100 text-blue-600', link: 'AddressPool' },
-    { id: 'draft', label: 'Draft Routes', value: draftRoutes.length, icon: FileEdit, color: 'bg-orange-100 text-orange-600', link: 'BossRoutes' },
-    { id: 'ready', label: 'Ready', value: readyRoutes.length, icon: CheckCircle, color: 'bg-green-100 text-green-600', link: 'BossRoutes' },
-    { id: 'assigned', label: 'Assigned', value: assignedRoutes.length, icon: Rocket, color: 'bg-purple-100 text-purple-600', link: 'BossRoutes' }
-  ];
+  const dashboardStats = {
+    totalRoutes: routes.length,
+    completedRoutes: todayCompletedRoutes.length,
+    totalAddresses: addresses.length,
+    servedAddresses: todayServedAddresses.length,
+    activeWorkers: activeWorkers.length,
+    totalWorkers: workers.length,
+    onTimeRate
+  };
 
-  // Calculate server capacities
-  const serverCapacities = servers.map(server => {
-    const serverRoutes = routes.filter(r => 
-      r.worker_id === server.id && 
+  // Get unassigned routes (ready but no worker)
+  const unassignedRoutes = routes.filter(r => 
+    r.status === 'ready' && !r.worker_id
+  );
+
+  // Get worker progress data
+  const getWorkerProgress = (worker) => {
+    const workerRoute = routes.find(r => 
+      r.worker_id === worker.id && 
       ['assigned', 'active'].includes(r.status)
     );
-    const assignedMinutes = serverRoutes.reduce((sum, r) => sum + (r.estimated_time_minutes || 0), 0);
-    const assignedHours = Math.round(assignedMinutes / 60);
-    const targetHours = 40; // Default target
-    const percentage = Math.min(Math.round((assignedHours / targetHours) * 100), 100);
-    
-    return {
-      ...server,
-      assignedHours,
-      targetHours,
-      percentage
-    };
-  });
+    if (!workerRoute) return null;
 
-  const getActivityText = (log) => {
-    const actions = {
-      'route_created': 'Route created',
-      'assignment_created': 'Route assigned',
-      'addresses_imported': 'Addresses imported',
-      'route_completed': 'Route completed',
-      'route_started': 'Route started'
+    const routeAddresses = addresses.filter(a => a.route_id === workerRoute.id);
+    const served = routeAddresses.filter(a => a.served).length;
+    return {
+      total: routeAddresses.length || workerRoute.total_addresses || 0,
+      served
     };
-    return actions[log.action_type] || log.action_type;
   };
+
+  const getWorkerRoute = (worker) => {
+    return routes.find(r => 
+      r.worker_id === worker.id && 
+      ['assigned', 'active'].includes(r.status)
+    );
+  };
+
+  const firstName = user?.full_name?.split(' ')[0] || 'Boss';
+  const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -150,112 +283,120 @@ export default function BossDashboard() {
           <span className="font-bold text-lg">ServeRoute</span>
           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Boss</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link to={createPageUrl('Notifications')} className="relative">
-            <Bell className="w-6 h-6" />
-            {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {notifications.length > 9 ? '9+' : notifications.length}
-              </span>
-            )}
+        <div className="flex items-center gap-2">
+          <NotificationBell userId={user?.id} />
+          <Link to={createPageUrl('BossSettings')}>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-blue-600">
+              <Settings className="w-5 h-5" />
+            </Button>
           </Link>
-          <div className="w-9 h-9 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
-            {user?.full_name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'B'}
-          </div>
         </div>
       </header>
 
-      <main className="px-4 py-6 max-w-4xl mx-auto">
-        {/* Welcome */}
-        <div className="mb-6 flex items-start justify-between">
+      <main className="px-4 py-6 max-w-5xl mx-auto">
+        {/* Welcome + Actions */}
+        <div className="flex items-start justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Welcome back, {firstName}</h1>
             <p className="text-gray-500">{todayDate}</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => navigate(createPageUrl('WorkerHome'))}
-            className="flex items-center gap-2 text-xs"
-          >
-            <ArrowRightLeft className="w-3 h-3" />
-            Worker View
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-1 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate(createPageUrl('WorkerHome'))}
+            >
+              <ArrowRightLeft className="w-4 h-4 mr-1" />
+              Worker View
+            </Button>
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {stats.map(stat => {
-            const Icon = stat.icon;
-            return (
-              <Card 
-                key={stat.id} 
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                onClick={() => navigate(createPageUrl(stat.link))}
-              >
-                <CardContent className="p-4">
-                  <div className={`w-10 h-10 rounded-lg ${stat.color} flex items-center justify-center mb-2`}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <p className="text-2xl font-bold">{stat.value}</p>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
+        {/* Overview Stats */}
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-600 mb-3">TODAY'S OVERVIEW</h2>
+          <DashboardOverview stats={dashboardStats} />
         </div>
 
-        {/* Team Capacity */}
+        {/* Active Workers */}
         <Card className="mb-6">
-          <CardContent className="p-4">
-            <h2 className="font-semibold text-lg mb-4">Team Capacity This Week</h2>
-            {serverCapacities.length === 0 ? (
-              <p className="text-gray-500 text-sm">No servers in your team yet.</p>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Active Workers</CardTitle>
+              <Link to={createPageUrl('BossWorkers')}>
+                <Button variant="ghost" size="sm" className="text-blue-600">
+                  View All <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {workers.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No workers in your team yet</p>
+                <Link to={createPageUrl('BossTeam')}>
+                  <Button variant="link" size="sm">Invite workers</Button>
+                </Link>
+              </div>
             ) : (
-              <div className="space-y-4">
-                {serverCapacities.map(server => (
-                  <div key={server.id}>
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium">{server.full_name}</span>
-                      <span className="text-sm text-gray-500">
-                        {server.assignedHours}h / {server.targetHours}h
-                        {server.percentage >= 100 && (
-                          <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded">FULL</span>
-                        )}
-                      </span>
-                    </div>
-                    <Progress value={server.percentage} className="h-2" />
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {workers.slice(0, 6).map((worker) => (
+                  <WorkerCard
+                    key={worker.id}
+                    worker={worker}
+                    route={getWorkerRoute(worker)}
+                    progress={getWorkerProgress(worker)}
+                    onMessage={(w) => setMessageRecipient(w)}
+                    onPauseResume={(w, action) => pauseResumeMutation.mutate({ worker: w, action })}
+                    onAssign={(w) => navigate(createPageUrl('BossRoutes'))}
+                  />
                 ))}
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Unassigned Routes */}
+        {unassignedRoutes.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Unassigned Routes ({unassignedRoutes.length})</CardTitle>
+                <Link to={createPageUrl('BossRoutes')}>
+                  <Button variant="ghost" size="sm" className="text-blue-600">
+                    View All <ChevronRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {unassignedRoutes.slice(0, 3).map((route) => (
+                <UnassignedRouteCard
+                  key={route.id}
+                  route={route}
+                  workers={workers.filter(w => w.worker_status !== 'paused')}
+                  onAssign={(routeId, workerId) => assignRouteMutation.mutate({ routeId, workerId })}
+                />
+              ))}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Activity */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
-            <h2 className="font-semibold text-lg mb-4">Recent Activity</h2>
-            {auditLogs.length === 0 ? (
-              <p className="text-gray-500 text-sm">No recent activity.</p>
-            ) : (
-              <div className="space-y-3">
-                {auditLogs.map((log, idx) => (
-                  <div key={log.id || idx} className="flex items-center gap-3 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-blue-500" />
-                    <span className="text-gray-700">{getActivityText(log)}</span>
-                    {log.details?.route_name && (
-                      <span className="text-gray-500">- {log.details.route_name}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <RecentActivityFeed activities={auditLogs} />
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
           <Link to={createPageUrl('AddressPool')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Package className="w-5 h-5 text-blue-600" />
@@ -284,6 +425,15 @@ export default function BossDashboard() {
       </main>
 
       <BossBottomNav currentPage="BossDashboard" />
+
+      {/* Message Dialog */}
+      <MessageDialog
+        open={!!messageRecipient}
+        onOpenChange={(open) => !open && setMessageRecipient(null)}
+        recipient={messageRecipient}
+        sender={user}
+        companyId={companyId}
+      />
     </div>
   );
 }

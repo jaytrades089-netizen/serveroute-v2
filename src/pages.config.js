@@ -68,6 +68,9 @@ import WorkerRouteDetail from './pages/WorkerRouteDetail';
 import WorkerRoutes from './pages/WorkerRoutes';
 import WorkerSettings from './pages/WorkerSettings';
 import Workers from './pages/Workers';
+import BossWorkers from './pages/BossWorkers';
+import WorkerDetail from './pages/WorkerDetail';
+import BossNotifications from './pages/BossNotifications';
 import __Layout from './Layout.jsx';
 
 
@@ -93,6 +96,9 @@ export const PAGES = {
     "WorkerRoutes": WorkerRoutes,
     "WorkerSettings": WorkerSettings,
     "Workers": Workers,
+    "BossWorkers": BossWorkers,
+    "WorkerDetail": WorkerDetail,
+    "BossNotifications": BossNotifications,
 }
 
 export const pagesConfig = {
