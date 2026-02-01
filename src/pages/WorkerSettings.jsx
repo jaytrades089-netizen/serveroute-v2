@@ -1,6 +1,8 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { Button } from '@/components/ui/button';
@@ -9,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, MapPin, Bell, Key } from 'lucide-react';
+import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function WorkerSettings() {
@@ -62,6 +64,38 @@ export default function WorkerSettings() {
       
       <main className="px-4 py-6 max-w-lg mx-auto space-y-4">
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 gap-3">
+          <Link to={createPageUrl('WorkerVacationRequest')}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">Time Off</p>
+                  <p className="text-xs text-gray-500">Request vacation</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </CardContent>
+            </Card>
+          </Link>
+          <Link to={createPageUrl('WorkerStats')}>
+            <Card className="hover:shadow-md transition-shadow cursor-pointer h-full">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-sm">My Stats</p>
+                  <p className="text-xs text-gray-500">View performance</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-gray-400" />
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
 
         <Card>
           <CardHeader className="pb-3">
