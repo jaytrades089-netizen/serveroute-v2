@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
@@ -9,6 +9,7 @@ import BottomNav from '../components/layout/BottomNav';
 import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
+import LocationTracker from '../components/worker/LocationTracker';
 import { Loader2, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -33,6 +34,7 @@ function getCurrentPhase(timezone = 'America/Detroit') {
 
 export default function WorkerHome() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [currentPhase, setCurrentPhase] = useState('ntc');
 
   const { data: user, isLoading: userLoading, isError: userError } = useQuery({
@@ -46,6 +48,46 @@ export default function WorkerHome() {
       base44.auth.redirectToLogin();
     }
   }, [userLoading, userError, user]);
+
+  // Set worker status to active when page loads
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const setActive = async () => {
+      // Only update if not already active
+      if (user.worker_status !== 'active') {
+        await base44.auth.updateMe({
+          worker_status: 'active',
+          last_active_at: new Date().toISOString()
+        });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      }
+    };
+
+    setActive();
+
+    // Set to offline when leaving page
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Don't set offline immediately - let it timeout
+      } else {
+        // Coming back - set active again
+        setActive();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Heartbeat - update last_active_at every 2 minutes
+    const heartbeat = setInterval(() => {
+      base44.auth.updateMe({ last_active_at: new Date().toISOString() });
+    }, 2 * 60 * 1000);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(heartbeat);
+    };
+  }, [user?.id, user?.worker_status, queryClient]);
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
     queryKey: ['workerRoutes', user?.id],
@@ -158,6 +200,12 @@ export default function WorkerHome() {
       </main>
 
       <BottomNav currentPage="WorkerHome" />
+
+      {/* Location tracker - active when user has permission and has an active route */}
+      <LocationTracker 
+        user={user} 
+        enabled={user?.location_permission && activeRoutes.length > 0}
+      />
     </div>
   );
 }
