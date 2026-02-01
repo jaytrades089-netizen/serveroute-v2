@@ -1,11 +1,14 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, Key, Building } from 'lucide-react';
+import { Loader2, LogOut, User, Key, Building, Bell, Calendar, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import BossBottomNav from '../components/boss/BossBottomNav';
 
@@ -70,6 +73,24 @@ export default function BossSettings() {
       </header>
       
       <main className="px-4 py-6 max-w-lg mx-auto space-y-4">
+        {/* Quick Links */}
+        <Link to={createPageUrl('VacationRequests')}>
+          <Card className="hover:shadow-md transition-shadow cursor-pointer mb-4">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="font-medium">Vacation Requests</p>
+                  <p className="text-sm text-gray-500">Review time-off requests</p>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            </CardContent>
+          </Card>
+        </Link>
+
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -116,6 +137,42 @@ export default function BossSettings() {
               {userSettings?.mapquest_key_validated && (
                 <p className="text-xs text-green-600 mt-1">✓ Key validated</p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="w-5 h-5" /> Notifications
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Route Completed Alerts</Label>
+                <p className="text-xs text-gray-500">Get notified when workers complete routes</p>
+              </div>
+              <Switch
+                checked={user?.notification_in_app !== false}
+                onCheckedChange={(checked) => {
+                  base44.auth.updateMe({ notification_in_app: checked });
+                  toast.success('Setting updated');
+                }}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Email Notifications</Label>
+                <p className="text-xs text-gray-500">Receive daily digest via email</p>
+              </div>
+              <Switch
+                checked={user?.notification_email || false}
+                onCheckedChange={(checked) => {
+                  base44.auth.updateMe({ notification_email: checked });
+                  toast.success('Setting updated');
+                }}
+              />
             </div>
           </CardContent>
         </Card>
