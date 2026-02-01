@@ -6,7 +6,7 @@ import { LayoutDashboard, MapPin, Users, Settings } from 'lucide-react';
 const navItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, page: 'BossDashboard' },
   { id: 'routes', label: 'Routes', icon: MapPin, page: 'BossRoutes' },
-  { id: 'team', label: 'Team', icon: Users, page: 'BossTeam' },
+  { id: 'workers', label: 'Workers', icon: Users, page: 'BossWorkers' },
   { id: 'settings', label: 'Settings', icon: Settings, page: 'BossSettings' }
 ];
 
