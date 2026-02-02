@@ -74,7 +74,7 @@ export default function ScanDocumentType() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
         <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
@@ -85,7 +85,7 @@ export default function ScanDocumentType() {
         <h1 className="text-lg font-semibold">Scan Documents</h1>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="flex-1 p-4 max-w-lg mx-auto w-full">
         <p className="text-gray-600 mb-6 text-center">
           What type of document are you scanning?
         </p>
@@ -112,14 +112,15 @@ export default function ScanDocumentType() {
             </Card>
           ))}
         </div>
+      </div>
 
-        <div className="mt-6">
-          <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
-            <Button variant="outline" className="w-full">
-              Cancel
-            </Button>
-          </Link>
-        </div>
+      {/* Fixed Cancel Button at Bottom */}
+      <div className="bg-white border-t p-4 max-w-lg mx-auto w-full">
+        <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
+          <Button variant="outline" className="w-full">
+            Cancel
+          </Button>
+        </Link>
       </div>
 
       {/* Session Recovery Dialog */}
