@@ -1,22 +1,31 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   ArrowLeft, 
   Camera, 
-  Check, 
   Loader2, 
   X, 
   Upload, 
   AlertCircle,
-  Settings
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Pencil,
+  Save
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DOCUMENT_INFO,
   PAY_RATES,
@@ -37,12 +46,13 @@ export default function ScanCamera() {
   const fileInputRef = useRef(null);
   
   const [session, setSession] = useState(null);
-  const [cameraStatus, setCameraStatus] = useState('initializing'); // initializing, active, denied, error
+  const [documentType, setDocumentType] = useState('serve');
+  const [cameraStatus, setCameraStatus] = useState('initializing');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingText, setProcessingText] = useState('');
 
   const urlParams = new URLSearchParams(window.location.search);
-  const documentType = urlParams.get('type');
+  const initialType = urlParams.get('type');
   const sessionId = urlParams.get('sessionId');
 
   const { data: user } = useQuery({
@@ -58,19 +68,21 @@ export default function ScanCamera() {
       const existingSession = loadScanSession(sessionId);
       if (existingSession) {
         setSession(existingSession);
+        setDocumentType(existingSession.documentType);
         return;
       }
     }
 
-    if (documentType && ['serve', 'garnishment', 'posting'].includes(documentType)) {
-      const newSession = createNewSession(user.id, user.company_id, documentType);
+    const type = initialType || 'serve';
+    if (['serve', 'garnishment', 'posting'].includes(type)) {
+      setDocumentType(type);
+      const newSession = createNewSession(user.id, user.company_id, type);
       setSession(newSession);
       
-      // Create ScanSession in database
       base44.entities.ScanSession.create({
         user_id: user.id,
         company_id: user.company_id,
-        document_type: documentType,
+        document_type: type,
         status: 'active',
         started_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString()
@@ -79,10 +91,8 @@ export default function ScanCamera() {
         setSession(updatedSession);
         saveScanSession(updatedSession);
       });
-    } else {
-      navigate(createPageUrl('ScanDocumentType'));
     }
-  }, [user, documentType, sessionId, navigate]);
+  }, [user, initialType, sessionId]);
 
   // Start camera
   useEffect(() => {
@@ -115,9 +125,6 @@ export default function ScanCamera() {
         console.error('Camera error:', error);
         if (error.name === 'NotAllowedError') {
           setCameraStatus('denied');
-        } else if (error.name === 'NotFoundError') {
-          setCameraStatus('error');
-          toast.error(ERROR_MESSAGES.camera_not_found);
         } else {
           setCameraStatus('error');
         }
@@ -133,25 +140,19 @@ export default function ScanCamera() {
     };
   }, [session]);
 
-  // Auto-save session periodically
+  // Auto-save session
   useEffect(() => {
     if (!session) return;
     
-    const interval = setInterval(() => {
-      saveScanSession(session);
-    }, 5000);
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        saveScanSession(session);
-      }
+    const interval = setInterval(() => saveScanSession(session), 5000);
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') saveScanSession(session);
     };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     return () => {
       clearInterval(interval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [session]);
 
@@ -162,7 +163,6 @@ export default function ScanCamera() {
     setProcessingText('Processing image...');
 
     try {
-      // Check image quality
       const quality = await checkImageQuality(imageBase64);
       if (!quality.canProcess) {
         toast.error(quality.issues[0]?.message || 'Poor image quality');
@@ -172,7 +172,6 @@ export default function ScanCamera() {
 
       setProcessingText('Extracting address...');
 
-      // Call OCR backend function
       const response = await base44.functions.invoke('processOCR', {
         imageBase64,
         documentType: session.documentType,
@@ -211,7 +210,6 @@ export default function ScanCamera() {
       setSession(updatedSession);
       saveScanSession(updatedSession);
 
-      // Update database session
       if (session.dbSessionId) {
         base44.entities.ScanSession.update(session.dbSessionId, {
           address_count: updatedAddresses.length,
@@ -222,9 +220,9 @@ export default function ScanCamera() {
       }
 
       if (result.success) {
-        toast.success('Address extracted successfully');
+        toast.success('Address extracted');
       } else {
-        toast.warning('Could not extract address - will need manual entry');
+        toast.warning('Could not extract - needs manual entry');
       }
 
     } catch (error) {
@@ -238,7 +236,6 @@ export default function ScanCamera() {
 
   const handleCapture = async () => {
     if (!videoRef.current || isProcessing) return;
-
     const imageBase64 = captureAndCompressImage(videoRef.current);
     await processImage(imageBase64);
   };
@@ -256,21 +253,8 @@ export default function ScanCamera() {
     event.target.value = '';
   };
 
-  const handleDone = () => {
-    if (!session) return;
-    
-    const updatedSession = {
-      ...session,
-      currentStep: 'preview',
-      lastUpdated: new Date().toISOString()
-    };
-    saveScanSession(updatedSession);
-    navigate(createPageUrl(`ScanPreview?sessionId=${session.id}`));
-  };
-
   const handleRemoveAddress = (tempId) => {
     if (!session) return;
-    
     const updatedAddresses = session.addresses.filter(a => a.tempId !== tempId);
     const updatedSession = {
       ...session,
@@ -281,42 +265,72 @@ export default function ScanCamera() {
     saveScanSession(updatedSession);
   };
 
+  const handleSaveRoute = () => {
+    if (!session || session.addresses.length === 0) return;
+    
+    const updatedSession = {
+      ...session,
+      currentStep: 'route_setup',
+      lastUpdated: new Date().toISOString()
+    };
+    saveScanSession(updatedSession);
+    navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}`));
+  };
+
+  const handleDocTypeChange = (newType) => {
+    if (!session) return;
+    setDocumentType(newType);
+    const updatedSession = {
+      ...session,
+      documentType: newType,
+      lastUpdated: new Date().toISOString()
+    };
+    setSession(updatedSession);
+    saveScanSession(updatedSession);
+    
+    if (session.dbSessionId) {
+      base44.entities.ScanSession.update(session.dbSessionId, {
+        document_type: newType,
+        last_activity_at: new Date().toISOString()
+      });
+    }
+  };
+
+  const isBoss = user?.role === 'boss' || user?.role === 'admin';
+
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-white" />
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
 
-  const docInfo = DOCUMENT_INFO[session.documentType];
-  const successCount = session.addresses.filter(a => a.status === 'extracted').length;
-  const failedCount = session.addresses.filter(a => a.status === 'failed').length;
+  const docInfo = DOCUMENT_INFO[documentType];
+  const validCount = session.addresses.filter(a => a.status === 'extracted').length;
+
+  const getConfidenceDisplay = (confidence) => {
+    if (confidence >= 0.90) return { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', label: `${Math.round(confidence * 100)}%` };
+    if (confidence >= 0.75) return { icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-50', label: 'Tap to edit' };
+    return { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: 'Tap to fix' };
+  };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-gray-800 px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link to={createPageUrl('ScanDocumentType')}>
-            <Button variant="ghost" size="icon" className="text-white hover:bg-gray-700">
+          <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
+            <Button variant="ghost" size="icon">
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-white font-semibold">
-              Scanning: {docInfo?.name}
-            </h1>
-            <p className="text-gray-400 text-sm">${docInfo?.rate} each</p>
-          </div>
+          <h1 className="text-lg font-semibold">Scan Documents</h1>
         </div>
-        <Button variant="ghost" size="icon" className="text-white hover:bg-gray-700">
-          <Settings className="w-5 h-5" />
-        </Button>
       </div>
 
-      {/* Camera View */}
-      <div className="flex-1 relative">
+      {/* Camera View - 30% height */}
+      <div className="h-[30vh] bg-gray-900 relative">
         {cameraStatus === 'active' && (
           <>
             <video
@@ -325,11 +339,10 @@ export default function ScanCamera() {
               playsInline
               muted
             />
-            {/* Alignment Guide */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-white/50 rounded-lg w-4/5 h-1/3 flex items-center justify-center">
-                <p className="text-white/70 text-sm bg-black/30 px-3 py-1 rounded">
-                  Align address in this area
+              <div className="border-2 border-white/50 rounded-lg w-[90%] h-[70%] flex items-center justify-center">
+                <p className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded">
+                  Align address here
                 </p>
               </div>
             </div>
@@ -337,98 +350,44 @@ export default function ScanCamera() {
         )}
 
         {cameraStatus === 'denied' && (
-          <div className="absolute inset-0 flex items-center justify-center p-6">
-            <Card className="max-w-sm">
-              <CardContent className="p-6 text-center">
-                <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Camera Not Available</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Camera access was denied or unavailable.
-                </p>
-                <p className="text-gray-500 text-xs mb-4">
-                  {getCameraPermissionInstructions()}
-                </p>
-                <div className="border-t pt-4 mt-4">
-                  <p className="text-sm text-gray-600 mb-3">Or upload photos instead:</p>
-                  <Button 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Choose Photos from Gallery
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="text-center text-white">
+              <AlertCircle className="w-10 h-10 mx-auto mb-2 text-yellow-400" />
+              <p className="text-sm mb-2">Camera not available</p>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="text-white border-white"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Upload Photo
+              </Button>
+            </div>
           </div>
         )}
 
         {cameraStatus === 'error' && (
-          <div className="absolute inset-0 flex items-center justify-center p-6">
-            <Card className="max-w-sm">
-              <CardContent className="p-6 text-center">
-                <X className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <h3 className="font-semibold mb-2">Camera Error</h3>
-                <p className="text-gray-600 text-sm mb-4">
-                  Could not access camera. Please try uploading photos instead.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Choose Photos from Gallery
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="text-center text-white">
+              <X className="w-10 h-10 mx-auto mb-2 text-red-400" />
+              <p className="text-sm">Camera error</p>
+            </div>
           </div>
         )}
 
         {isProcessing && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
             <div className="text-center text-white">
-              <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4" />
-              <p>{processingText}</p>
+              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+              <p className="text-sm">{processingText}</p>
             </div>
           </div>
         )}
       </div>
 
-      {/* Scanned Addresses Preview */}
-      {session.addresses.length > 0 && (
-        <div className="bg-gray-800 px-4 py-3 max-h-32 overflow-y-auto">
-          <p className="text-white text-sm mb-2">
-            Scanned: {session.addresses.length} address{session.addresses.length !== 1 ? 'es' : ''}
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {session.addresses.map((addr) => {
-              const conf = categorizeConfidence(addr.confidence);
-              return (
-                <div 
-                  key={addr.tempId}
-                  className="flex items-center gap-1 bg-gray-700 rounded-full px-3 py-1"
-                >
-                  <span className={conf.color}>{conf.icon}</span>
-                  <span className="text-white text-xs truncate max-w-[120px]">
-                    {addr.extractedData?.street || 'Failed'}
-                  </span>
-                  <button 
-                    onClick={() => handleRemoveAddress(addr.tempId)}
-                    className="text-gray-400 hover:text-red-400 ml-1"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Controls */}
-      <div className="bg-gray-800 px-4 py-4 flex items-center justify-center gap-4">
+      {/* Capture Bar */}
+      <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-3">
         <input
           ref={fileInputRef}
           type="file"
@@ -437,40 +396,106 @@ export default function ScanCamera() {
           onChange={handleFileUpload}
         />
         
-        {cameraStatus === 'active' && (
+        {cameraStatus === 'active' ? (
           <Button
-            size="lg"
-            className="w-20 h-20 rounded-full bg-white hover:bg-gray-200 text-gray-900"
+            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
             onClick={handleCapture}
             disabled={isProcessing}
           >
-            <Camera className="w-8 h-8" />
+            <Camera className="w-5 h-5" />
+            Capture
           </Button>
-        )}
-
-        {(cameraStatus === 'denied' || cameraStatus === 'error') && (
+        ) : (
           <Button
-            size="lg"
-            className="px-8"
+            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
           >
-            <Upload className="w-5 h-5 mr-2" />
-            Upload Photo
+            <Upload className="w-5 h-5" />
+            Upload
           </Button>
         )}
 
-        {session.addresses.length > 0 && (
-          <Button
-            size="lg"
-            className="bg-green-600 hover:bg-green-700"
-            onClick={handleDone}
-            disabled={isProcessing}
-          >
-            <Check className="w-5 h-5 mr-2" />
-            Done ({session.addresses.length})
-          </Button>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-600">Type:</span>
+          <Select value={documentType} onValueChange={handleDocTypeChange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="serve">📄 Serve - $24</SelectItem>
+              <SelectItem value="garnishment">💰 Garnishment - $24</SelectItem>
+              <SelectItem value="posting">📌 Posting - $10</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Address List - Scrollable */}
+      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-3">
+        <p className="text-sm font-medium text-gray-700 mb-3">
+          SCANNED ADDRESSES ({session.addresses.length})
+        </p>
+
+        {session.addresses.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Camera className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+            <p className="text-sm">No addresses scanned yet</p>
+            <p className="text-xs">Capture or upload documents to begin</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {session.addresses.map((addr) => {
+              const conf = getConfidenceDisplay(addr.confidence || 0);
+              const ConfIcon = conf.icon;
+              
+              return (
+                <Card key={addr.tempId} className={`${conf.bg} border`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                        <ConfIcon className={`w-5 h-5 ${conf.color} flex-shrink-0 mt-0.5`} />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">
+                            {addr.extractedData?.fullAddress || addr.extractedData?.street || 'Failed to extract'}
+                          </p>
+                          <p className={`text-xs ${conf.color}`}>
+                            Confidence: {conf.label}
+                          </p>
+                          {addr.defendantName && (
+                            <p className="text-xs text-gray-500 truncate">
+                              {addr.defendantName}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-gray-400 hover:text-red-500"
+                        onClick={() => handleRemoveAddress(addr.tempId)}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         )}
+      </div>
+
+      {/* Save Route Button - Fixed Bottom */}
+      <div className="bg-white border-t p-4">
+        <Button
+          className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 text-base"
+          onClick={handleSaveRoute}
+          disabled={session.addresses.length === 0}
+        >
+          <Save className="w-5 h-5 mr-2" />
+          Save Route ({session.addresses.length} address{session.addresses.length !== 1 ? 'es' : ''})
+        </Button>
       </div>
     </div>
   );

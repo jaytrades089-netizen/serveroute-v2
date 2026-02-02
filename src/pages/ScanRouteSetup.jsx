@@ -1,28 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { 
   ArrowLeft, 
-  Calendar as CalendarIcon, 
   Check, 
   Loader2,
-  CheckCircle
+  Info,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format, addDays } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   DOCUMENT_INFO,
   PAY_RATES,
@@ -32,13 +34,21 @@ import {
   generateNormalizedKey
 } from '@/components/scanning/ScanningService';
 
+const ATTEMPT_OPTIONS = [3, 5, 7];
+const SPREAD_OPTIONS = [10, 14, 21];
+
 export default function ScanRouteSetup() {
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [routeName, setRouteName] = useState('');
   const [dueDate, setDueDate] = useState(null);
-  const [completionRule, setCompletionRule] = useState('14d');
+  const [requiredAttempts, setRequiredAttempts] = useState(3);
+  const [minimumDaysSpread, setMinimumDaysSpread] = useState(10);
   const [isCreating, setIsCreating] = useState(false);
+  const [showCustomAttempts, setShowCustomAttempts] = useState(false);
+  const [showCustomSpread, setShowCustomSpread] = useState(false);
+  const [customAttempts, setCustomAttempts] = useState(4);
+  const [customSpread, setCustomSpread] = useState(15);
 
   const urlParams = new URLSearchParams(window.location.search);
   const sessionId = urlParams.get('sessionId');
@@ -53,10 +63,13 @@ export default function ScanRouteSetup() {
       const existingSession = loadScanSession(sessionId);
       if (existingSession) {
         setSession(existingSession);
-        // Set default route name
-        const today = format(new Date(), 'MMMM d');
-        setRouteName(`Route - ${today}`);
-        // Set default due date (14 days from now)
+        // Generate auto-suggested route name
+        const today = format(new Date(), 'MMM d');
+        const cities = [...new Set(existingSession.addresses
+          .filter(a => a.extractedData?.city)
+          .map(a => a.extractedData.city))];
+        const cityPart = cities.length > 0 ? cities[0] : 'Route';
+        setRouteName(`${cityPart} - ${today}`);
         setDueDate(addDays(new Date(), 14));
       } else {
         navigate(createPageUrl('ScanDocumentType'));
@@ -65,6 +78,16 @@ export default function ScanRouteSetup() {
       navigate(createPageUrl('ScanDocumentType'));
     }
   }, [sessionId, navigate]);
+
+  // Calculate first attempt deadline
+  const firstAttemptDeadline = useMemo(() => {
+    if (!dueDate) return null;
+    return subDays(dueDate, minimumDaysSpread);
+  }, [dueDate, minimumDaysSpread]);
+
+  // Calculate qualifier vs flexible attempts
+  const qualifierAttempts = 3; // Always 3 (AM, PM, Weekend)
+  const flexibleAttempts = Math.max(0, requiredAttempts - qualifierAttempts);
 
   const handleCreateRoute = async () => {
     if (!session || !user) return;
@@ -93,18 +116,24 @@ export default function ScanRouteSetup() {
     try {
       const isBoss = user.role === 'boss' || user.role === 'admin';
 
-      // Create the route
       const routeData = {
         company_id: user.company_id,
         folder_name: routeName,
         due_date: format(dueDate, 'yyyy-MM-dd'),
-        completion_rule: completionRule,
         status: isBoss ? 'ready' : 'assigned',
         worker_id: isBoss ? null : user.id,
         total_addresses: validAddresses.length,
         served_count: 0,
-        total_distance_miles: 0,
-        estimated_time_minutes: 0
+        required_attempts: requiredAttempts,
+        qualifier_attempts: qualifierAttempts,
+        flexible_attempts: flexibleAttempts,
+        minimum_days_spread: minimumDaysSpread,
+        first_attempt_deadline: firstAttemptDeadline ? format(firstAttemptDeadline, 'yyyy-MM-dd') : null,
+        am_required: true,
+        pm_required: true,
+        weekend_required: true,
+        created_via: 'scan',
+        scan_session_id: session.dbSessionId || null
       };
 
       if (!isBoss) {
@@ -128,7 +157,6 @@ export default function ScanRouteSetup() {
           zip: addr.extractedData.zip,
           serve_type: session.documentType,
           pay_rate: PAY_RATES[session.documentType],
-          completion_rule: completionRule,
           status: 'pending',
           served: false,
           attempts_count: 0,
@@ -144,35 +172,9 @@ export default function ScanRouteSetup() {
           related_address_count: 0,
           geocode_status: 'pending'
         });
-
-        // Update or create AddressLink for duplicate tracking
-        if (normalizedKey) {
-          const existingLinks = await base44.entities.AddressLink.filter({
-            company_id: user.company_id,
-            normalized_key: normalizedKey
-          });
-
-          if (existingLinks.length > 0) {
-            const link = existingLinks[0];
-            const updatedIds = [...(link.address_ids || [])];
-            // Note: We'd need the new address ID here - this is simplified
-            await base44.entities.AddressLink.update(link.id, {
-              address_count: (link.address_count || 0) + 1,
-              last_updated: new Date().toISOString()
-            });
-          } else {
-            await base44.entities.AddressLink.create({
-              company_id: user.company_id,
-              normalized_key: normalizedKey,
-              address_ids: [],
-              address_count: 1,
-              last_updated: new Date().toISOString()
-            });
-          }
-        }
       }
 
-      // Update scan session in database
+      // Update scan session
       if (session.dbSessionId) {
         await base44.entities.ScanSession.update(session.dbSessionId, {
           status: 'completed',
@@ -181,7 +183,7 @@ export default function ScanRouteSetup() {
         });
       }
 
-      // Create audit log
+      // Audit log
       await base44.entities.AuditLog.create({
         company_id: user.company_id,
         action_type: 'route_created_from_scan',
@@ -194,17 +196,15 @@ export default function ScanRouteSetup() {
           address_count: validAddresses.length,
           document_type: session.documentType,
           total_earnings: validAddresses.length * PAY_RATES[session.documentType],
-          completion_rule: completionRule
+          required_attempts: requiredAttempts,
+          minimum_days_spread: minimumDaysSpread
         },
         timestamp: new Date().toISOString()
       });
 
-      // Clear local session
       clearScanSession(session.id);
-
       toast.success('Route created successfully!');
       
-      // Navigate to appropriate page
       if (isBoss) {
         navigate(createPageUrl('BossRoutes'));
       } else {
@@ -217,6 +217,16 @@ export default function ScanRouteSetup() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleConfirmCustomAttempts = () => {
+    setRequiredAttempts(customAttempts);
+    setShowCustomAttempts(false);
+  };
+
+  const handleConfirmCustomSpread = () => {
+    setMinimumDaysSpread(customSpread);
+    setShowCustomSpread(false);
   };
 
   if (!session) {
@@ -232,155 +242,277 @@ export default function ScanRouteSetup() {
     a => a.status === 'extracted' && a.extractedData?.street
   );
   const estimatedEarnings = validAddresses.length * PAY_RATES[session.documentType];
+  const isBoss = user?.role === 'boss' || user?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
-        <Link to={createPageUrl(`ScanPreview?sessionId=${session.id}`)}>
+        <Link to={createPageUrl(`ScanCamera?sessionId=${session.id}`)}>
           <Button variant="ghost" size="icon">
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="text-lg font-semibold">Create Route</h1>
+        <h1 className="text-lg font-semibold">Save Route</h1>
       </div>
 
       <div className="p-4 max-w-lg mx-auto space-y-6">
         {/* Route Name */}
         <div>
-          <Label>Route Name *</Label>
+          <Label className="text-sm font-medium">ROUTE NAME *</Label>
           <Input
             value={routeName}
             onChange={(e) => setRouteName(e.target.value)}
-            placeholder="Route A - January 31"
+            placeholder="Detroit East - Feb 2"
             className="mt-1"
           />
+          <p className="text-xs text-gray-500 mt-1">Auto-suggested based on addresses + date</p>
         </div>
 
-        {/* Due Date */}
+        {/* Due Date Calendar */}
         <div>
-          <Label>Due Date *</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full justify-start text-left font-normal mt-1"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dueDate ? format(dueDate, 'PPP') : 'Select due date'}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+          <Label className="text-sm font-medium">DUE DATE *</Label>
+          <Card className="mt-2">
+            <CardContent className="p-3">
               <Calendar
                 mode="single"
                 selected={dueDate}
                 onSelect={setDueDate}
                 disabled={(date) => date < new Date()}
-                initialFocus
+                className="mx-auto"
               />
-            </PopoverContent>
-          </Popover>
+              {dueDate && (
+                <p className="text-center text-sm text-gray-600 mt-2">
+                  Selected: {format(dueDate, 'MMMM d, yyyy')}
+                </p>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Completion Rule */}
+        {/* Required Attempts */}
         <div>
-          <Label>Completion Timeframe</Label>
-          <div className="flex gap-3 mt-2">
+          <Label className="text-sm font-medium">REQUIRED ATTEMPTS *</Label>
+          <p className="text-xs text-gray-500 mb-2">How many attempts before marking unable to serve?</p>
+          <div className="grid grid-cols-4 gap-2">
+            {ATTEMPT_OPTIONS.map((num) => (
+              <Button
+                key={num}
+                variant={requiredAttempts === num ? 'default' : 'outline'}
+                className={`h-16 flex flex-col ${requiredAttempts === num ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+                onClick={() => setRequiredAttempts(num)}
+              >
+                <span className="text-xl font-bold">{num}</span>
+                <span className="text-xs opacity-80">
+                  {num === 3 ? 'Standard' : num === 5 ? 'Standard' : 'Custom'}
+                </span>
+              </Button>
+            ))}
             <Button
-              variant={completionRule === '10d' ? 'default' : 'outline'}
-              className="flex-1"
-              onClick={() => setCompletionRule('10d')}
+              variant={!ATTEMPT_OPTIONS.includes(requiredAttempts) ? 'default' : 'outline'}
+              className={`h-16 flex flex-col ${!ATTEMPT_OPTIONS.includes(requiredAttempts) ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+              onClick={() => {
+                setCustomAttempts(requiredAttempts > 7 ? requiredAttempts : 4);
+                setShowCustomAttempts(true);
+              }}
             >
-              10 days
-            </Button>
-            <Button
-              variant={completionRule === '14d' ? 'default' : 'outline'}
-              className="flex-1"
-              onClick={() => setCompletionRule('14d')}
-            >
-              14 days
+              <Plus className="w-5 h-5" />
+              <span className="text-xs">Custom</span>
             </Button>
           </div>
+          <p className="text-xs text-gray-600 mt-2">Selected: {requiredAttempts} attempts</p>
         </div>
 
-        {/* Summary Card */}
-        <Card>
+        {/* Minimum Days Spread */}
+        <div>
+          <Label className="text-sm font-medium">MINIMUM DAYS SPREAD *</Label>
+          <p className="text-xs text-gray-500 mb-2">Days required between first and last attempt</p>
+          <div className="grid grid-cols-4 gap-2">
+            {SPREAD_OPTIONS.map((num) => (
+              <Button
+                key={num}
+                variant={minimumDaysSpread === num ? 'default' : 'outline'}
+                className={`h-16 flex flex-col ${minimumDaysSpread === num ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+                onClick={() => setMinimumDaysSpread(num)}
+              >
+                <span className="text-xl font-bold">{num}</span>
+                <span className="text-xs opacity-80">
+                  {num === 10 ? 'Default' : num === 14 ? 'Common' : 'Extended'}
+                </span>
+              </Button>
+            ))}
+            <Button
+              variant={!SPREAD_OPTIONS.includes(minimumDaysSpread) ? 'default' : 'outline'}
+              className={`h-16 flex flex-col ${!SPREAD_OPTIONS.includes(minimumDaysSpread) ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
+              onClick={() => {
+                setCustomSpread(minimumDaysSpread);
+                setShowCustomSpread(true);
+              }}
+            >
+              <Plus className="w-5 h-5" />
+              <span className="text-xs">Custom</span>
+            </Button>
+          </div>
+          <p className="text-xs text-gray-600 mt-2">Selected: {minimumDaysSpread} days</p>
+        </div>
+
+        {/* Info Box */}
+        <Card className="bg-blue-50 border-blue-200">
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">Summary</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Document Type:</span>
-                <span className="font-medium flex items-center gap-1">
-                  {docInfo?.icon} {docInfo?.name}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Addresses:</span>
-                <span className="font-medium">{validAddresses.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Attempts Required:</span>
-                <span className="font-medium">3 per address</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 mt-2">
-                <span className="text-gray-600">Estimated Earnings:</span>
-                <span className="font-semibold text-green-600">
-                  ${estimatedEarnings.toFixed(2)}
-                </span>
+            <div className="flex items-start gap-2">
+              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="font-medium text-blue-900 mb-2">Service Requirements:</p>
+                <ul className="space-y-1 text-blue-800">
+                  <li>• {requiredAttempts} attempts required{requiredAttempts > 3 ? '' : ' (AM, PM, Weekend)'}</li>
+                  {requiredAttempts > 3 && (
+                    <>
+                      <li>• First 3 must be qualifiers (AM, PM, Weekend)</li>
+                      <li>• Remaining {flexibleAttempts} can be any time (8am-9pm)</li>
+                    </>
+                  )}
+                  <li>• Minimum {minimumDaysSpread} days between first and last attempt</li>
+                  {dueDate && (
+                    <>
+                      <li>• Due date: {format(dueDate, 'MMM d, yyyy')}</li>
+                      <li>• First attempt must be by: <strong>{format(firstAttemptDeadline, 'MMM d, yyyy')}</strong></li>
+                    </>
+                  )}
+                </ul>
+                {requiredAttempts === 3 && (
+                  <p className="mt-2 text-blue-700">All qualifiers must be completed.</p>
+                )}
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Address List */}
-        <div>
-          <h3 className="font-semibold mb-3">Addresses ({validAddresses.length})</h3>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {validAddresses.map((addr, index) => (
-              <div 
-                key={addr.tempId}
-                className="flex items-center gap-2 p-2 bg-white rounded-lg border"
-              >
-                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                <span className="text-sm truncate flex-1">
-                  {addr.extractedData?.street}
-                </span>
-                {addr.defendantName && (
-                  <span className="text-xs text-gray-500 truncate max-w-[100px]">
-                    {addr.defendantName}
-                  </span>
-                )}
+        {/* Route Summary */}
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-3">ROUTE SUMMARY</h3>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Addresses:</span>
+                <span className="font-medium">{validAddresses.length}</span>
               </div>
-            ))}
-          </div>
-        </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Document Type:</span>
+                <span className="font-medium">{docInfo?.icon} {docInfo?.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Created by:</span>
+                <span className="font-medium">{user?.full_name} ({isBoss ? 'Boss' : 'Worker'})</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Assignment:</span>
+                <span className="font-medium">{isBoss ? 'Unassigned (Ready)' : 'Auto-assigned to me'}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span className="text-gray-600">Estimated Earnings:</span>
+                <span className="font-semibold text-green-600">${estimatedEarnings.toFixed(2)}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
-        <Link to={createPageUrl(`ScanPreview?sessionId=${session.id}`)} className="flex-1">
-          <Button variant="outline" className="w-full">
-            Cancel
-          </Button>
-        </Link>
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
         <Button
-          className="flex-1 bg-green-600 hover:bg-green-700"
+          className="w-full bg-green-600 hover:bg-green-700 h-12 text-base"
           onClick={handleCreateRoute}
           disabled={isCreating || !routeName.trim() || !dueDate}
         >
           {isCreating ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
               Creating...
             </>
           ) : (
             <>
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-5 h-5 mr-2" />
               Create Route
             </>
           )}
         </Button>
       </div>
+
+      {/* Custom Attempts Dialog */}
+      <Dialog open={showCustomAttempts} onOpenChange={setShowCustomAttempts}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Custom Attempt Count</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">Number of attempts required:</p>
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCustomAttempts(Math.max(3, customAttempts - 1))}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="text-3xl font-bold w-12 text-center">{customAttempts}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCustomAttempts(Math.min(10, customAttempts + 1))}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 text-center mt-2">Min: 3 &nbsp; Max: 10</p>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowCustomAttempts(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmCustomAttempts} className="flex-1">
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Spread Dialog */}
+      <Dialog open={showCustomSpread} onOpenChange={setShowCustomSpread}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Custom Days Spread</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">Minimum days between first and last attempt:</p>
+            <div className="flex items-center justify-center gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCustomSpread(Math.max(7, customSpread - 1))}
+              >
+                <Minus className="w-4 h-4" />
+              </Button>
+              <span className="text-3xl font-bold w-12 text-center">{customSpread}</span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setCustomSpread(Math.min(30, customSpread + 1))}
+              >
+                <Plus className="w-4 h-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-gray-500 text-center mt-2">Min: 7 &nbsp; Max: 30</p>
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowCustomSpread(false)} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmCustomSpread} className="flex-1">
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
