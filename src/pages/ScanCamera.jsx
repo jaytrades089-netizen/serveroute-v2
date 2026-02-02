@@ -356,37 +356,47 @@ export default function ScanCamera() {
 
       {/* Camera View - 30% height */}
       <div className="h-[30vh] bg-gray-900 relative">
+        {/* Always render video element so ref is available */}
+        <video
+          ref={videoRef}
+          className={`absolute inset-0 w-full h-full object-cover ${cameraStatus === 'active' ? '' : 'hidden'}`}
+          playsInline
+          muted
+          autoPlay
+        />
+        
         {cameraStatus === 'active' && (
-          <>
-            <video
-              ref={videoRef}
-              className="absolute inset-0 w-full h-full object-cover"
-              playsInline
-              muted
-            />
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="border-2 border-white/50 rounded-lg w-[90%] h-[70%] flex items-center justify-center">
-                <p className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded">
-                  Align address here
-                </p>
-              </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="border-2 border-white/50 rounded-lg w-[90%] h-[70%] flex items-center justify-center">
+              <p className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded">
+                Align address here
+              </p>
             </div>
-          </>
+          </div>
+        )}
+
+        {cameraStatus === 'initializing' && (
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="text-center text-white">
+              <Loader2 className="w-10 h-10 mx-auto mb-2 animate-spin text-orange-400" />
+              <p className="text-sm">Starting camera...</p>
+            </div>
+          </div>
         )}
 
         {cameraStatus === 'denied' && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="text-center text-white">
               <AlertCircle className="w-10 h-10 mx-auto mb-2 text-yellow-400" />
-              <p className="text-sm mb-2">Camera not available</p>
+              <p className="text-sm mb-2">Camera permission denied</p>
+              <p className="text-xs text-gray-400 mb-3">Enable camera in browser settings or use upload</p>
               <Button 
                 size="sm" 
-                variant="outline"
-                className="text-white border-white"
+                className="bg-orange-500 hover:bg-orange-600"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="w-4 h-4 mr-1" />
-                Upload Photo
+                Upload Photo Instead
               </Button>
             </div>
           </div>
@@ -396,7 +406,15 @@ export default function ScanCamera() {
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="text-center text-white">
               <X className="w-10 h-10 mx-auto mb-2 text-red-400" />
-              <p className="text-sm">Camera error</p>
+              <p className="text-sm mb-2">Camera unavailable</p>
+              <Button 
+                size="sm" 
+                className="bg-orange-500 hover:bg-orange-600"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Upload Photo Instead
+              </Button>
             </div>
           </div>
         )}
