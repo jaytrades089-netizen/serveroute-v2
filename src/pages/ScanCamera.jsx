@@ -410,13 +410,22 @@ export default function ScanCamera() {
         />
         
         {cameraStatus === 'active' && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="border-2 border-white/50 rounded-lg w-[90%] h-[70%] flex items-center justify-center">
+          <>
+            {/* Blur overlay - top */}
+            <div className="absolute top-0 left-0 right-0 h-[15%] backdrop-blur-sm bg-black/30" />
+            {/* Blur overlay - bottom */}
+            <div className="absolute bottom-0 left-0 right-0 h-[15%] backdrop-blur-sm bg-black/30" />
+            {/* Blur overlay - left */}
+            <div className="absolute top-[15%] left-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
+            {/* Blur overlay - right */}
+            <div className="absolute top-[15%] right-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
+            {/* Clear center box with border */}
+            <div className="absolute top-[15%] left-[5%] w-[90%] h-[70%] border-2 border-white/70 rounded-lg flex items-center justify-center pointer-events-none">
               <p className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded">
                 Align address here
               </p>
             </div>
-          </div>
+          </>
         )}
 
         {cameraStatus === 'initializing' && (
