@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight, Navigation } from 'lucide-react';
+import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight, Navigation, FileCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import PushPermissionDialog from '../components/notifications/PushPermissionDialog';
 import LocationPermissionDialog from '../components/notifications/LocationPermissionDialog';
@@ -100,6 +100,21 @@ export default function WorkerSettings() {
             </Card>
           </Link>
         </div>
+
+        <Link to={createPageUrl('WorkerReceipts')}>
+          <Card className="hover:shadow-md transition-shadow cursor-pointer">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <FileCheck className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm">My Receipts</p>
+                <p className="text-xs text-gray-500">View submitted receipts</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </CardContent>
+          </Card>
+        </Link>
 
         <Card>
           <CardHeader className="pb-3">
