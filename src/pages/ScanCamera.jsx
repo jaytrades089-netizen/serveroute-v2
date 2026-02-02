@@ -291,7 +291,9 @@ export default function ScanCamera() {
       if (result.success) {
         toast.success('Address extracted');
       } else {
-        toast.warning('Could not extract - needs manual entry');
+        toast.warning('Could not extract address - try again or adjust the document');
+        // Don't add failed scans to the list
+        return;
       }
 
     } catch (error) {
