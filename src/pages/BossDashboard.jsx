@@ -18,7 +18,8 @@ import {
   Users,
   Pause,
   Play,
-  Wand2
+  Wand2,
+  FileCheck
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -88,6 +89,16 @@ export default function BossDashboard() {
         company_id: companyId,
         deleted_at: null
       });
+    },
+    enabled: !!user
+  });
+
+  // Get pending receipts count
+  const { data: pendingReceipts = [] } = useQuery({
+    queryKey: ['pendingReceipts', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      return base44.entities.Receipt.filter({ company_id: companyId, status: 'pending' });
     },
     enabled: !!user
   });
@@ -563,6 +574,17 @@ export default function BossDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+          <Link to={createPageUrl('ReceiptQueue')}>
+            <Button variant="outline" className="w-full h-14 justify-start gap-3 relative">
+              <FileCheck className="w-5 h-5 text-green-600" />
+              <span>Receipts</span>
+              {pendingReceipts.length > 0 && (
+                <Badge className="absolute top-1 right-1 bg-orange-500 text-white text-xs px-1.5">
+                  {pendingReceipts.length}
+                </Badge>
+              )}
+            </Button>
+          </Link>
           <Link to={createPageUrl('AddressPool')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Package className="w-5 h-5 text-blue-600" />
@@ -579,12 +601,6 @@ export default function BossDashboard() {
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Plus className="w-5 h-5 text-green-600" />
               <span>Create Route</span>
-            </Button>
-          </Link>
-          <Link to={createPageUrl('BossRoutes')}>
-            <Button variant="outline" className="w-full h-14 justify-start gap-3">
-              <ClipboardList className="w-5 h-5 text-purple-600" />
-              <span>All Routes</span>
             </Button>
           </Link>
         </div>
