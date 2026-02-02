@@ -456,7 +456,7 @@ export default function ScanCamera() {
         {cameraStatus === 'error' && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="text-center text-white">
-              <X className="w-10 h-10 mx-auto mb-2 text-red-400" />
+              <AlertCircle className="w-10 h-10 mx-auto mb-2 text-red-400" />
               <p className="text-sm mb-2">Camera unavailable</p>
               <Button 
                 size="sm" 
