@@ -97,17 +97,16 @@ export default function ScanDocumentType() {
               className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300"
               onClick={() => handleSelectType(type)}
             >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className="text-4xl">{info.icon}</div>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{info.icon}</div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold">{info.name}</h3>
-                    <p className="text-2xl font-bold text-green-600">${info.rate}</p>
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">{info.name}</h3>
+                      <p className="text-lg font-bold text-green-600">${info.rate}</p>
+                    </div>
+                    <p className="text-xs text-gray-500">{info.schedule} • {info.description}</p>
                   </div>
-                </div>
-                <div className="mt-3 pt-3 border-t">
-                  <p className="text-sm text-gray-500">{info.schedule}</p>
-                  <p className="text-sm text-gray-600">{info.description}</p>
                 </div>
               </CardContent>
             </Card>
