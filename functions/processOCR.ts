@@ -116,43 +116,55 @@ function parseAddressComponents(addressText) {
 }
 
 function extractDefendantName(text) {
-  // First try specific patterns
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  // Strategy 1: Look for line AFTER "Defendant Name and Address" label
+  for (let i = 0; i < lines.length; i++) {
+    if (/defendant\s*name/i.test(lines[i]) || /name\s*and\s*address/i.test(lines[i])) {
+      // The actual name should be on the next line(s)
+      if (i + 1 < lines.length) {
+        let name = lines[i + 1];
+        // If next line includes R/A or additional info, combine intelligently
+        if (i + 2 < lines.length && /^(R\/A|C\/O|DBA|d\/b\/a)/i.test(lines[i + 2])) {
+          name = name + ' ' + lines[i + 2];
+        }
+        // Clean up and return if valid
+        name = name.replace(/[,\s]+$/, '').trim();
+        if (name.length >= 2 && !/^\d/.test(name)) {
+          return name;
+        }
+      }
+    }
+  }
+  
+  // Strategy 2: Look for business names with LLC/Inc/etc
+  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+?(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/i);
+  if (businessMatch) {
+    return businessMatch[1].trim();
+  }
+  
+  // Strategy 3: Try specific defendant patterns
   for (const pattern of DEFENDANT_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
       let name = match[1].trim();
       name = name.replace(/[,\s]+$/, '').trim();
-      if (name.length >= 3) {
+      // Skip if it's just a label like "Name and"
+      if (name.length >= 3 && !/^name\s*(and)?$/i.test(name)) {
         return name;
       }
     }
   }
   
-  // Fallback: Look for business names by finding LLC/Inc/etc anywhere in the text
-  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/i);
-  if (businessMatch) {
-    return businessMatch[1].trim();
-  }
-  
-  // Fallback: Look for "Name and Address" pattern - capture text BEFORE this label
-  // Documents often have "Name\nAddress" format where name is on line before
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  // Strategy 4: Find line before address that looks like a name
   for (let i = 0; i < lines.length; i++) {
-    // If we find a line that looks like the start of an address (starts with number)
-    // the previous non-empty line is likely the name
     if (/^\d+\s+\w/.test(lines[i]) && i > 0) {
       const potentialName = lines[i - 1];
-      // Make sure it's not a label like "Name and Address"
-      if (potentialName.length >= 3 && !/^(name|address|defendant)/i.test(potentialName)) {
+      if (potentialName.length >= 3 && 
+          !/^(name|address|defendant|serve)/i.test(potentialName) &&
+          !/name\s*and\s*address/i.test(potentialName)) {
         return potentialName;
       }
-    }
-  }
-  
-  // Last fallback: First line that's all caps and looks like a name (not an address)
-  for (const line of lines) {
-    if (line === line.toUpperCase() && line.length >= 3 && !/^\d/.test(line) && !/^(NAME|ADDRESS|SERVE|DEFENDANT)/i.test(line)) {
-      return line;
     }
   }
   
