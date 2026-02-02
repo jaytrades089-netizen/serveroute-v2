@@ -119,7 +119,13 @@ function extractDefendantName(text) {
   for (const pattern of DEFENDANT_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
-      return match[1].trim();
+      // Clean up the name - remove trailing punctuation and extra whitespace
+      let name = match[1].trim();
+      name = name.replace(/[,\s]+$/, '').trim();
+      // Don't return if it's just a single word less than 3 chars (likely partial match)
+      if (name.length >= 3) {
+        return name;
+      }
     }
   }
   return null;
