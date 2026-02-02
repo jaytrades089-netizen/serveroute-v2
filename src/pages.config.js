@@ -58,31 +58,35 @@ import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
 import BossWorkers from './pages/BossWorkers';
 import CreateRoute from './pages/CreateRoute';
+import DCNBatchDetail from './pages/DCNBatchDetail';
+import DCNMatching from './pages/DCNMatching';
+import DCNUpload from './pages/DCNUpload';
 import EditAddress from './pages/EditAddress';
 import Notifications from './pages/Notifications';
 import ReassignRoute from './pages/ReassignRoute';
+import ReceiptDetail from './pages/ReceiptDetail';
+import ReceiptQueue from './pages/ReceiptQueue';
+import ReceiptReview from './pages/ReceiptReview';
 import RouteEditor from './pages/RouteEditor';
 import RouteHandoff from './pages/RouteHandoff';
+import SubmitReceipt from './pages/SubmitReceipt';
 import UnassignRoute from './pages/UnassignRoute';
 import VacationRequests from './pages/VacationRequests';
 import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerDetail from './pages/WorkerDetail';
 import WorkerHome from './pages/WorkerHome';
 import WorkerPayout from './pages/WorkerPayout';
+import WorkerReceipts from './pages/WorkerReceipts';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
 import WorkerRoutes from './pages/WorkerRoutes';
 import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import SubmitReceipt from './pages/SubmitReceipt';
-import WorkerReceipts from './pages/WorkerReceipts';
-import ReceiptDetail from './pages/ReceiptDetail';
-import ReceiptQueue from './pages/ReceiptQueue';
-import ReceiptReview from './pages/ReceiptReview';
-import DCNUpload from './pages/DCNUpload';
-import DCNMatching from './pages/DCNMatching';
-import DCNBatchDetail from './pages/DCNBatchDetail';
+import ScanDocumentType from './pages/ScanDocumentType';
+import ScanCamera from './pages/ScanCamera';
+import ScanPreview from './pages/ScanPreview';
+import ScanRouteSetup from './pages/ScanRouteSetup';
 import __Layout from './Layout.jsx';
 
 
@@ -98,31 +102,35 @@ export const PAGES = {
     "BossTeam": BossTeam,
     "BossWorkers": BossWorkers,
     "CreateRoute": CreateRoute,
+    "DCNBatchDetail": DCNBatchDetail,
+    "DCNMatching": DCNMatching,
+    "DCNUpload": DCNUpload,
     "EditAddress": EditAddress,
     "Notifications": Notifications,
     "ReassignRoute": ReassignRoute,
+    "ReceiptDetail": ReceiptDetail,
+    "ReceiptQueue": ReceiptQueue,
+    "ReceiptReview": ReceiptReview,
     "RouteEditor": RouteEditor,
     "RouteHandoff": RouteHandoff,
+    "SubmitReceipt": SubmitReceipt,
     "UnassignRoute": UnassignRoute,
     "VacationRequests": VacationRequests,
     "WorkerAddresses": WorkerAddresses,
     "WorkerDetail": WorkerDetail,
     "WorkerHome": WorkerHome,
     "WorkerPayout": WorkerPayout,
+    "WorkerReceipts": WorkerReceipts,
     "WorkerRouteDetail": WorkerRouteDetail,
     "WorkerRoutes": WorkerRoutes,
     "WorkerSettings": WorkerSettings,
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "SubmitReceipt": SubmitReceipt,
-    "WorkerReceipts": WorkerReceipts,
-    "ReceiptDetail": ReceiptDetail,
-    "ReceiptQueue": ReceiptQueue,
-    "ReceiptReview": ReceiptReview,
-    "DCNUpload": DCNUpload,
-    "DCNMatching": DCNMatching,
-    "DCNBatchDetail": DCNBatchDetail,
+    "ScanDocumentType": ScanDocumentType,
+    "ScanCamera": ScanCamera,
+    "ScanPreview": ScanPreview,
+    "ScanRouteSetup": ScanRouteSetup,
 }
 
 export const pagesConfig = {
