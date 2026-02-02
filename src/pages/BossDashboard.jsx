@@ -34,9 +34,11 @@ import CapacityOverview from '../components/boss/CapacityOverview';
 import RecentActivityFeed from '../components/boss/dashboard/RecentActivityFeed';
 import NotificationBell from '../components/boss/NotificationBell';
 import MessageDialog from '../components/boss/MessageDialog';
+import AddressQuestionsCard from '../components/boss/AddressQuestionsCard';
 import { generateSuggestions, autoAssignAllRoutes } from '../components/services/SmartAssignmentService';
 import { buildAddressCountsMap } from '../components/services/MetricsService';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 
 // Polling configuration
 const POLLING_CONFIG = {
@@ -473,6 +475,9 @@ export default function BossDashboard() {
           <h2 className="text-sm font-semibold text-gray-600 mb-3">TODAY'S OVERVIEW</h2>
           <DashboardOverview stats={dashboardStats} />
         </div>
+
+        {/* Address Questions Alert */}
+        <AddressQuestionsCard companyId={companyId} />
 
         {/* Active Workers */}
         <Card className="mb-6">
