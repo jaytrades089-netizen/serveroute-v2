@@ -52,29 +52,32 @@ import AddressImport from './pages/AddressImport';
 import AddressPool from './pages/AddressPool';
 import AssignRoute from './pages/AssignRoute';
 import BossDashboard from './pages/BossDashboard';
+import BossNotifications from './pages/BossNotifications';
 import BossRoutes from './pages/BossRoutes';
 import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
+import BossWorkers from './pages/BossWorkers';
 import CreateRoute from './pages/CreateRoute';
 import EditAddress from './pages/EditAddress';
 import Notifications from './pages/Notifications';
 import ReassignRoute from './pages/ReassignRoute';
 import RouteEditor from './pages/RouteEditor';
+import RouteHandoff from './pages/RouteHandoff';
 import UnassignRoute from './pages/UnassignRoute';
+import VacationRequests from './pages/VacationRequests';
 import WorkerAddresses from './pages/WorkerAddresses';
+import WorkerDetail from './pages/WorkerDetail';
 import WorkerHome from './pages/WorkerHome';
 import WorkerPayout from './pages/WorkerPayout';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
 import WorkerRoutes from './pages/WorkerRoutes';
 import WorkerSettings from './pages/WorkerSettings';
-import Workers from './pages/Workers';
-import BossWorkers from './pages/BossWorkers';
-import WorkerDetail from './pages/WorkerDetail';
-import BossNotifications from './pages/BossNotifications';
-import RouteHandoff from './pages/RouteHandoff';
-import VacationRequests from './pages/VacationRequests';
-import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import WorkerStats from './pages/WorkerStats';
+import WorkerVacationRequest from './pages/WorkerVacationRequest';
+import Workers from './pages/Workers';
+import SubmitReceipt from './pages/SubmitReceipt';
+import WorkerReceipts from './pages/WorkerReceipts';
+import ReceiptDetail from './pages/ReceiptDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -84,29 +87,32 @@ export const PAGES = {
     "AddressPool": AddressPool,
     "AssignRoute": AssignRoute,
     "BossDashboard": BossDashboard,
+    "BossNotifications": BossNotifications,
     "BossRoutes": BossRoutes,
     "BossSettings": BossSettings,
     "BossTeam": BossTeam,
+    "BossWorkers": BossWorkers,
     "CreateRoute": CreateRoute,
     "EditAddress": EditAddress,
     "Notifications": Notifications,
     "ReassignRoute": ReassignRoute,
     "RouteEditor": RouteEditor,
+    "RouteHandoff": RouteHandoff,
     "UnassignRoute": UnassignRoute,
+    "VacationRequests": VacationRequests,
     "WorkerAddresses": WorkerAddresses,
+    "WorkerDetail": WorkerDetail,
     "WorkerHome": WorkerHome,
     "WorkerPayout": WorkerPayout,
     "WorkerRouteDetail": WorkerRouteDetail,
     "WorkerRoutes": WorkerRoutes,
     "WorkerSettings": WorkerSettings,
-    "Workers": Workers,
-    "BossWorkers": BossWorkers,
-    "WorkerDetail": WorkerDetail,
-    "BossNotifications": BossNotifications,
-    "RouteHandoff": RouteHandoff,
-    "VacationRequests": VacationRequests,
-    "WorkerVacationRequest": WorkerVacationRequest,
     "WorkerStats": WorkerStats,
+    "WorkerVacationRequest": WorkerVacationRequest,
+    "Workers": Workers,
+    "SubmitReceipt": SubmitReceipt,
+    "WorkerReceipts": WorkerReceipts,
+    "ReceiptDetail": ReceiptDetail,
 }
 
 export const pagesConfig = {
