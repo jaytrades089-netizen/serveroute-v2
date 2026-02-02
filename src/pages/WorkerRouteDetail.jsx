@@ -1,17 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import AddressCard from '@/components/address/AddressCard';
+import MessageBossDialog from '@/components/address/MessageBossDialog';
 
 export default function WorkerRouteDetail() {
+  const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const routeId = urlParams.get('id') || urlParams.get('routeId');
+  
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -55,6 +61,16 @@ export default function WorkerRouteDetail() {
 
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
+  
+  // Check if route was assigned by boss (worker_id set but not by self)
+  const isAssignedByBoss = route?.worker_id && route?.assigned_by && route.assigned_by !== route.worker_id;
+  const unverifiedCount = addresses.filter(a => a.verification_status === 'unverified').length;
+  const needsVerification = isAssignedByBoss && unverifiedCount > 0;
+  
+  const handleMessageBoss = (address) => {
+    setSelectedAddress(address);
+    setShowMessageDialog(true);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
@@ -116,7 +132,31 @@ export default function WorkerRouteDetail() {
           )}
         </div>
 
-        {route.status === 'assigned' && (
+        {/* Verification Banner */}
+        {needsVerification && (
+          <Card className="bg-yellow-50 border-yellow-200 mb-4">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-yellow-800">Documents Not Verified</p>
+                  <p className="text-sm text-yellow-700 mt-1">
+                    Scan received documents to confirm all {unverifiedCount} addresses
+                  </p>
+                  <Button
+                    className="mt-3 bg-yellow-600 hover:bg-yellow-700"
+                    onClick={() => navigate(createPageUrl(`ScanVerify?routeId=${routeId}`))}
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    Scan to Verify Documents
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {route.status === 'assigned' && !needsVerification && (
           <Button className="w-full bg-blue-500 hover:bg-blue-600 mb-4">
             <Play className="w-4 h-4 mr-2" /> Start Route
           </Button>
@@ -135,89 +175,27 @@ export default function WorkerRouteDetail() {
           </div>
         ) : (
           <div className="space-y-2">
-            {addresses.map((address, index) => {
-              const receiptStatus = address.receipt_status;
-              const needsReceipt = !address.served && receiptStatus === 'pending';
-              const receiptPending = receiptStatus === 'pending_review';
-              const receiptApproved = receiptStatus === 'approved';
-              const receiptNeedsRevision = receiptStatus === 'needs_revision';
-
-              return (
-                <div
-                  key={address.id}
-                  className={`bg-white border rounded-xl p-3 ${
-                    address.served ? 'border-green-200 bg-green-50' : 
-                    receiptNeedsRevision ? 'border-orange-200 bg-orange-50' :
-                    'border-gray-200'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      address.served ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {address.served ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-medium">{index + 1}</span>}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${address.served ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                        {address.normalized_address || address.legal_address}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                          {address.serve_type}
-                        </span>
-                        {address.attempts_count > 0 && (
-                          <span className="text-xs text-gray-500 flex items-center gap-1">
-                            <Clock className="w-3 h-3" /> {address.attempts_count}
-                          </span>
-                        )}
-                        {/* Receipt Status Badges */}
-                        {receiptPending && (
-                          <Badge className="bg-yellow-100 text-yellow-700 text-xs">
-                            <Clock className="w-3 h-3 mr-1" />
-                            Pending Review
-                          </Badge>
-                        )}
-                        {receiptApproved && (
-                          <Badge className="bg-green-100 text-green-700 text-xs">
-                            <FileCheck className="w-3 h-3 mr-1" />
-                            Approved
-                          </Badge>
-                        )}
-                        {receiptNeedsRevision && (
-                          <Badge className="bg-orange-100 text-orange-700 text-xs">
-                            <AlertCircle className="w-3 h-3 mr-1" />
-                            Needs Revision
-                          </Badge>
-                        )}
-                        {address.has_dcn && (
-                          <Badge className="bg-purple-100 text-purple-700 text-xs">
-                            <Tag className="w-3 h-3 mr-1" />
-                            DCN
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Submit Receipt Button */}
-                      {!address.served && (needsReceipt || receiptNeedsRevision) && (
-                        <div className="mt-2">
-                          <Link to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}${address.latest_receipt_id && receiptNeedsRevision ? `&parentReceiptId=${address.latest_receipt_id}` : ''}`)}>
-                            <Button 
-                              size="sm" 
-                              className={receiptNeedsRevision ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'}
-                            >
-                              <FileCheck className="w-3 h-3 mr-1" />
-                              {receiptNeedsRevision ? 'Resubmit Receipt' : 'Submit Receipt'}
-                            </Button>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {addresses.map((address, index) => (
+              <AddressCard
+                key={address.id}
+                address={address}
+                index={index}
+                routeId={routeId}
+                showActions={true}
+                onMessageBoss={handleMessageBoss}
+              />
+            ))}
           </div>
         )}
+        
+        {/* Message Boss Dialog */}
+        <MessageBossDialog
+          open={showMessageDialog}
+          onOpenChange={setShowMessageDialog}
+          address={selectedAddress}
+          route={route}
+          user={user}
+        />
       </main>
     </div>
   );
