@@ -90,10 +90,14 @@ function parseAddress(text, documentType) {
   // Fallback to generic pattern
   const genericMatch = text.match(GENERIC_ADDRESS_PATTERN);
   if (genericMatch) {
+    const rawCity = genericMatch[2].trim();
+    const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+    const formattedState = genericMatch[3].toUpperCase().replace(/MICHIGAN/i, 'MI').replace(/OHIO/i, 'OH');
+    
     return {
       street: genericMatch[1].trim(),
-      city: genericMatch[2].trim(),
-      state: genericMatch[3].trim(),
+      city: formattedCity,
+      state: formattedState,
       zip: genericMatch[4].trim()
     };
   }
