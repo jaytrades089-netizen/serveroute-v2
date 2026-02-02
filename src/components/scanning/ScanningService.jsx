@@ -179,27 +179,42 @@ export function clearScanSession(sessionId) {
   }
 }
 
-// Image processing
+// Image processing - crops to center 90% width x 70% height area (the clear box)
 export function captureAndCompressImage(videoElement) {
   const canvas = document.createElement('canvas');
   
+  const videoWidth = videoElement.videoWidth;
+  const videoHeight = videoElement.videoHeight;
+  
+  // Calculate the crop region (matching the visible box: 90% width, 70% height, centered)
+  const cropX = Math.round(videoWidth * 0.05);  // 5% from left
+  const cropY = Math.round(videoHeight * 0.15); // 15% from top
+  const cropWidth = Math.round(videoWidth * 0.90);  // 90% width
+  const cropHeight = Math.round(videoHeight * 0.70); // 70% height
+  
+  // Set max output dimensions
   const maxWidth = 1920;
   const maxHeight = 1080;
   
-  let width = videoElement.videoWidth;
-  let height = videoElement.videoHeight;
+  let outputWidth = cropWidth;
+  let outputHeight = cropHeight;
   
-  if (width > maxWidth || height > maxHeight) {
-    const ratio = Math.min(maxWidth / width, maxHeight / height);
-    width = Math.round(width * ratio);
-    height = Math.round(height * ratio);
+  if (outputWidth > maxWidth || outputHeight > maxHeight) {
+    const ratio = Math.min(maxWidth / outputWidth, maxHeight / outputHeight);
+    outputWidth = Math.round(outputWidth * ratio);
+    outputHeight = Math.round(outputHeight * ratio);
   }
   
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
   
   const ctx = canvas.getContext('2d');
-  ctx.drawImage(videoElement, 0, 0, width, height);
+  // Draw only the cropped region (inside the clear box)
+  ctx.drawImage(
+    videoElement, 
+    cropX, cropY, cropWidth, cropHeight,  // Source rectangle
+    0, 0, outputWidth, outputHeight        // Destination rectangle
+  );
   
   const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
   return dataUrl.split(',')[1];
