@@ -557,20 +557,14 @@ export default function ScanCamera() {
                         <div className="min-w-0 flex-1">
                           <p className="text-xs text-gray-500 mb-1">Defendant Name and Address</p>
                           <p className="font-semibold text-sm text-gray-900 break-words">
-                              {addr.defendantName || 'Unknown Defendant'}
-                            </p>
-                            <div>
-                              <p className="font-bold text-sm text-gray-700 break-words uppercase">
-                                {addr.extractedData?.street || 'Failed to extract address'}
-                              </p>
-                            </div>
-                            {addr.extractedData?.city && (
-                              <div>
-                                <p className="text-sm text-gray-600 break-words font-normal">
-                                  {addr.extractedData.city}, {addr.extractedData.state} {addr.extractedData.zip}
-                                </p>
-                              </div>
-                            )}
+                            {addr.defendantName || 'Unknown Defendant'}
+                          </p>
+                          <p className="font-bold text-sm text-gray-700 break-words uppercase">
+                            {addr.extractedData?.street || 'Failed to extract address'}
+                          </p>
+                          <p className="text-sm text-gray-600 break-words">
+                            {addr.extractedData?.city ? `${addr.extractedData.city}, ${addr.extractedData.state} ${addr.extractedData.zip}` : ''}
+                          </p>
                           <p className={`text-xs ${conf.color} mt-1`}>
                             Confidence: {conf.label}
                           </p>
