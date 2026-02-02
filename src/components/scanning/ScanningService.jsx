@@ -25,7 +25,7 @@ export const DOCUMENT_INFO = {
     name: 'Posting',
     icon: '📌',
     rate: 10.00,
-    schedule: 'Flexible (9am-9pm)',
+    schedule: 'Flexible (8am-9pm)',
     description: 'Post and photograph'
   }
 };
