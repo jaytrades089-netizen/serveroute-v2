@@ -11,7 +11,7 @@ export const DOCUMENT_INFO = {
     name: 'Serve',
     icon: '📋',
     rate: 24.00,
-    schedule: 'Time-sensitive (AM/PM)',
+    schedule: 'AM/PM + Weekends',
     description: 'Must attempt when people are home'
   },
   garnishment: {
