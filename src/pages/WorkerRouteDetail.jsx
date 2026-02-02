@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -187,6 +187,12 @@ export default function WorkerRouteDetail() {
                           <Badge className="bg-orange-100 text-orange-700 text-xs">
                             <AlertCircle className="w-3 h-3 mr-1" />
                             Needs Revision
+                          </Badge>
+                        )}
+                        {address.has_dcn && (
+                          <Badge className="bg-purple-100 text-purple-700 text-xs">
+                            <Tag className="w-3 h-3 mr-1" />
+                            DCN
                           </Badge>
                         )}
                       </div>
