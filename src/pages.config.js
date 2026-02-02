@@ -69,6 +69,10 @@ import ReceiptQueue from './pages/ReceiptQueue';
 import ReceiptReview from './pages/ReceiptReview';
 import RouteEditor from './pages/RouteEditor';
 import RouteHandoff from './pages/RouteHandoff';
+import ScanCamera from './pages/ScanCamera';
+import ScanDocumentType from './pages/ScanDocumentType';
+import ScanPreview from './pages/ScanPreview';
+import ScanRouteSetup from './pages/ScanRouteSetup';
 import SubmitReceipt from './pages/SubmitReceipt';
 import UnassignRoute from './pages/UnassignRoute';
 import VacationRequests from './pages/VacationRequests';
@@ -83,10 +87,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import ScanDocumentType from './pages/ScanDocumentType';
-import ScanCamera from './pages/ScanCamera';
-import ScanPreview from './pages/ScanPreview';
-import ScanRouteSetup from './pages/ScanRouteSetup';
 import __Layout from './Layout.jsx';
 
 
@@ -113,6 +113,10 @@ export const PAGES = {
     "ReceiptReview": ReceiptReview,
     "RouteEditor": RouteEditor,
     "RouteHandoff": RouteHandoff,
+    "ScanCamera": ScanCamera,
+    "ScanDocumentType": ScanDocumentType,
+    "ScanPreview": ScanPreview,
+    "ScanRouteSetup": ScanRouteSetup,
     "SubmitReceipt": SubmitReceipt,
     "UnassignRoute": UnassignRoute,
     "VacationRequests": VacationRequests,
@@ -127,10 +131,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "ScanDocumentType": ScanDocumentType,
-    "ScanCamera": ScanCamera,
-    "ScanPreview": ScanPreview,
-    "ScanRouteSetup": ScanRouteSetup,
 }
 
 export const pagesConfig = {

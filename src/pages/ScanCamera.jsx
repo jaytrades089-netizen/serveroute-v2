@@ -9,14 +9,15 @@ import {
   ArrowLeft, 
   Camera, 
   Loader2, 
-  X, 
   Upload, 
   AlertCircle,
   CheckCircle,
   AlertTriangle,
   XCircle,
+  Save,
+  MoreVertical,
   Pencil,
-  Save
+  Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -26,6 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   DOCUMENT_INFO,
   PAY_RATES,
@@ -531,32 +538,64 @@ export default function ScanCamera() {
               
               return (
                 <Card key={addr.tempId} className={`${conf.bg} border`}>
-                  <CardContent className="p-3">
+                  <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-2 flex-1 min-w-0">
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
                         <ConfIcon className={`w-5 h-5 ${conf.color} flex-shrink-0 mt-0.5`} />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm truncate">
-                            {addr.extractedData?.fullAddress || addr.extractedData?.street || 'Failed to extract'}
-                          </p>
-                          <p className={`text-xs ${conf.color}`}>
-                            Confidence: {conf.label}
-                          </p>
+                        <div className="min-w-0 flex-1 space-y-1">
                           {addr.defendantName && (
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="font-semibold text-sm text-gray-900">
                               {addr.defendantName}
                             </p>
                           )}
+                          <p className="text-sm text-gray-700">
+                            {addr.extractedData?.street || 'Failed to extract'}
+                          </p>
+                          {addr.extractedData?.city && (
+                            <p className="text-sm text-gray-600">
+                              {addr.extractedData.city}, {addr.extractedData.state} {addr.extractedData.zip}
+                            </p>
+                          )}
+                          <p className={`text-xs ${conf.color} pt-1`}>
+                            Confidence: {conf.label}
+                          </p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-500"
-                        onClick={() => handleRemoveAddress(addr.tempId)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem 
+                            onClick={() => {
+                              // Navigate to preview page for editing
+                              const updatedSession = {
+                                ...session,
+                                currentStep: 'route_setup',
+                                lastUpdated: new Date().toISOString()
+                              };
+                              saveScanSession(updatedSession);
+                              navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}&edit=${addr.tempId}`));
+                            }}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit Address
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600"
+                            onClick={() => handleRemoveAddress(addr.tempId)}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardContent>
                 </Card>
