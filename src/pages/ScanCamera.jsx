@@ -555,11 +555,11 @@ export default function ScanCamera() {
                             <p className="font-bold text-sm text-gray-700 break-words uppercase">
                               {addr.extractedData?.street || 'Failed to extract address'}
                             </p>
-                            <p className="text-sm text-gray-600 break-words">
-                              {addr.extractedData?.city && addr.extractedData?.state && addr.extractedData?.zip
-                                ? `${addr.extractedData.city.charAt(0).toUpperCase() + addr.extractedData.city.slice(1).toLowerCase()}, ${addr.extractedData.state.charAt(0).toUpperCase() + addr.extractedData.state.slice(1).toLowerCase()} ${addr.extractedData.zip}`
-                                : ''}
-                            </p>
+                            {addr.extractedData?.city && (
+                              <p className="text-sm text-gray-600 break-words">
+                                {`${addr.extractedData.city}, ${addr.extractedData.state} ${addr.extractedData.zip}`}
+                              </p>
+                            )}
                           <p className={`text-xs ${conf.color} mt-1`}>
                             Confidence: {conf.label}
                           </p>
