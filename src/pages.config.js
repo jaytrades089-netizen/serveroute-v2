@@ -78,6 +78,8 @@ import Workers from './pages/Workers';
 import SubmitReceipt from './pages/SubmitReceipt';
 import WorkerReceipts from './pages/WorkerReceipts';
 import ReceiptDetail from './pages/ReceiptDetail';
+import ReceiptQueue from './pages/ReceiptQueue';
+import ReceiptReview from './pages/ReceiptReview';
 import __Layout from './Layout.jsx';
 
 
@@ -113,6 +115,8 @@ export const PAGES = {
     "SubmitReceipt": SubmitReceipt,
     "WorkerReceipts": WorkerReceipts,
     "ReceiptDetail": ReceiptDetail,
+    "ReceiptQueue": ReceiptQueue,
+    "ReceiptReview": ReceiptReview,
 }
 
 export const pagesConfig = {
