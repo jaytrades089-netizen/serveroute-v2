@@ -10,7 +10,7 @@ import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
-import { Loader2, ArrowRightLeft, Camera } from 'lucide-react';
+import { Loader2, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 function getCurrentPhase(timezone = 'America/Detroit') {
@@ -176,26 +176,15 @@ export default function WorkerHome() {
                           </h1>
                           <p className="text-gray-500 mt-1">{todayDate}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(createPageUrl('ScanDocumentType'))}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <Camera className="w-3 h-3" />
-                            Scan
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => navigate(createPageUrl('BossDashboard'))}
-                            className="flex items-center gap-2 text-xs"
-                          >
-                            <ArrowRightLeft className="w-3 h-3" />
-                            Boss View
-                          </Button>
-                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(createPageUrl('BossDashboard'))}
+                          className="flex items-center gap-2 text-xs"
+                        >
+                          <ArrowRightLeft className="w-3 h-3" />
+                          Boss View
+                        </Button>
                       </div>
 
         <WorkPhaseBlocks currentPhase={currentPhase} />
