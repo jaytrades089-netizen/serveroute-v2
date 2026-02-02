@@ -90,7 +90,7 @@ function parseAddress(text, documentType) {
     if (/^\d+\s+\w/.test(streetLine)) {
       // Check if next line looks like City, State Zip
       // Pattern: "NOVI, MI 48377" or "NOVI MI 48377" or "NOVI,MI 48377"
-      const cityMatch = cityLine.match(/^([A-Za-z\s]+?),?\s*(MI|Michigan|OH|Ohio),?\s*(\d{5}(?:-\d{4})?)$/i);
+      const cityMatch = cityLine.match(/^([A-Za-z][A-Za-z\s]*?),?\s*(MI|Michigan|OH|Ohio),?\s*(\d{5}(?:-\d{4})?)$/i);
       if (cityMatch) {
         const rawCity = cityMatch[1].trim();
         const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
