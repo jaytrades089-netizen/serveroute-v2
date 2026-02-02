@@ -80,6 +80,9 @@ import WorkerReceipts from './pages/WorkerReceipts';
 import ReceiptDetail from './pages/ReceiptDetail';
 import ReceiptQueue from './pages/ReceiptQueue';
 import ReceiptReview from './pages/ReceiptReview';
+import DCNUpload from './pages/DCNUpload';
+import DCNMatching from './pages/DCNMatching';
+import DCNBatchDetail from './pages/DCNBatchDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -117,6 +120,9 @@ export const PAGES = {
     "ReceiptDetail": ReceiptDetail,
     "ReceiptQueue": ReceiptQueue,
     "ReceiptReview": ReceiptReview,
+    "DCNUpload": DCNUpload,
+    "DCNMatching": DCNMatching,
+    "DCNBatchDetail": DCNBatchDetail,
 }
 
 export const pagesConfig = {
