@@ -4,13 +4,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 export default function WorkerRouteDetail() {
   const urlParams = new URLSearchParams(window.location.search);
-  const routeId = urlParams.get('id');
+  const routeId = urlParams.get('id') || urlParams.get('routeId');
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -134,37 +135,81 @@ export default function WorkerRouteDetail() {
           </div>
         ) : (
           <div className="space-y-2">
-            {addresses.map((address, index) => (
-              <div
-                key={address.id}
-                className={`bg-white border rounded-xl p-3 ${
-                  address.served ? 'border-green-200 bg-green-50' : 'border-gray-200'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    address.served ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
-                  }`}>
-                    {address.served ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-medium">{index + 1}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm font-medium ${address.served ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
-                      {address.normalized_address || address.legal_address}
-                    </p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
-                        {address.serve_type}
-                      </span>
-                      {address.attempts_count > 0 && (
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> {address.attempts_count}
+            {addresses.map((address, index) => {
+              const receiptStatus = address.receipt_status;
+              const needsReceipt = !address.served && receiptStatus === 'pending';
+              const receiptPending = receiptStatus === 'pending_review';
+              const receiptApproved = receiptStatus === 'approved';
+              const receiptNeedsRevision = receiptStatus === 'needs_revision';
+
+              return (
+                <div
+                  key={address.id}
+                  className={`bg-white border rounded-xl p-3 ${
+                    address.served ? 'border-green-200 bg-green-50' : 
+                    receiptNeedsRevision ? 'border-orange-200 bg-orange-50' :
+                    'border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      address.served ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'
+                    }`}>
+                      {address.served ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-medium">{index + 1}</span>}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${address.served ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                        {address.normalized_address || address.legal_address}
+                      </p>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                          {address.serve_type}
                         </span>
+                        {address.attempts_count > 0 && (
+                          <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> {address.attempts_count}
+                          </span>
+                        )}
+                        {/* Receipt Status Badges */}
+                        {receiptPending && (
+                          <Badge className="bg-yellow-100 text-yellow-700 text-xs">
+                            <Clock className="w-3 h-3 mr-1" />
+                            Pending Review
+                          </Badge>
+                        )}
+                        {receiptApproved && (
+                          <Badge className="bg-green-100 text-green-700 text-xs">
+                            <FileCheck className="w-3 h-3 mr-1" />
+                            Approved
+                          </Badge>
+                        )}
+                        {receiptNeedsRevision && (
+                          <Badge className="bg-orange-100 text-orange-700 text-xs">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Needs Revision
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Submit Receipt Button */}
+                      {!address.served && (needsReceipt || receiptNeedsRevision) && (
+                        <div className="mt-2">
+                          <Link to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}${address.latest_receipt_id && receiptNeedsRevision ? `&parentReceiptId=${address.latest_receipt_id}` : ''}`)}>
+                            <Button 
+                              size="sm" 
+                              className={receiptNeedsRevision ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'}
+                            >
+                              <FileCheck className="w-3 h-3 mr-1" />
+                              {receiptNeedsRevision ? 'Resubmit Receipt' : 'Submit Receipt'}
+                            </Button>
+                          </Link>
+                        </div>
                       )}
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
