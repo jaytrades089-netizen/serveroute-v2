@@ -249,24 +249,29 @@ export default function ScanCamera() {
 
       const result = response.data;
 
+      // Only add successful extractions to the list
+      if (!result.success || !result.parsedAddress) {
+        return;
+      }
+
       const newAddress = {
         tempId: `temp_${Date.now()}`,
         imageBase64,
         ocrRawText: result.rawText,
-        extractedData: result.parsedAddress ? {
+        extractedData: {
           street: result.parsedAddress.street,
           city: result.parsedAddress.city,
           state: result.parsedAddress.state,
           zip: result.parsedAddress.zip,
           fullAddress: `${result.parsedAddress.street}, ${result.parsedAddress.city}, ${result.parsedAddress.state} ${result.parsedAddress.zip}`
-        } : null,
+        },
         defendantName: result.defendantName,
         confidence: result.confidence,
         normalizedKey: result.normalizedKey,
         needsReview: result.requiresReview,
         manuallyEdited: false,
-        status: result.success ? 'extracted' : 'failed',
-        error: result.success ? null : 'Could not extract address'
+        status: 'extracted',
+        error: null
       };
 
       const updatedAddresses = [...session.addresses, newAddress];
