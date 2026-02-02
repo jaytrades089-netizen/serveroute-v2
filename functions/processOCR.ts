@@ -139,10 +139,14 @@ function parseAddressComponents(addressText) {
   // Try to extract components from a full address string
   const match = addressText.match(/^(.+?),?\s*([A-Za-z\s]+),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)$/i);
   if (match) {
+    const rawCity = match[2].trim();
+    const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+    const formattedState = match[3].toUpperCase().replace(/MICHIGAN/i, 'MI').replace(/OHIO/i, 'OH');
+    
     return {
       street: match[1].trim(),
-      city: match[2].trim(),
-      state: match[3].trim(),
+      city: formattedCity,
+      state: formattedState,
       zip: match[4].trim()
     };
   }
