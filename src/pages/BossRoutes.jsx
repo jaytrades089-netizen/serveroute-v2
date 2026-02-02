@@ -197,7 +197,11 @@ export default function BossRoutes() {
             ) : (
               <div className="space-y-3">
                 {filteredRoutes.map((route) => (
-                  <Card key={route.id} className="overflow-hidden">
+                  <Card 
+                    key={route.id} 
+                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={() => navigate(createPageUrl(`RouteEditor?id=${route.id}`))}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -230,7 +234,11 @@ export default function BossRoutes() {
                         
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
