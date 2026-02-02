@@ -87,6 +87,7 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
+import Chat from './pages/Chat';
 import __Layout from './Layout.jsx';
 
 
@@ -131,6 +132,7 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
+    "Chat": Chat,
 }
 
 export const pagesConfig = {
