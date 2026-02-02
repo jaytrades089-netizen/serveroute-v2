@@ -109,13 +109,19 @@ function parseAddress(text, documentType) {
     
     // Check if this line looks like a street address (starts with number)
     if (/^\d+\s+\w/.test(streetLine)) {
-      // Check if next line looks like City, State Zip
-      const cityMatch = cityLine.match(/^([A-Za-z\s]+),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)$/i);
+      // Check if next line looks like City, State Zip (with comma or without)
+      // Pattern: "NOVI, MI 48377" or "NOVI MI 48377"
+      const cityMatch = cityLine.match(/^([A-Za-z\s]+?),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)$/i);
       if (cityMatch) {
+        // Capitalize city properly (first letter uppercase, rest lowercase)
+        const rawCity = cityMatch[1].trim();
+        const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+        const formattedState = cityMatch[2].toUpperCase().replace(/MICHIGAN/i, 'MI').replace(/OHIO/i, 'OH');
+        
         return {
           street: streetLine.trim(),
-          city: cityMatch[1].trim(),
-          state: cityMatch[2].trim(),
+          city: formattedCity,
+          state: formattedState,
           zip: cityMatch[3].trim()
         };
       }
