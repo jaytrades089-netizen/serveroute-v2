@@ -116,18 +116,33 @@ function parseAddressComponents(addressText) {
 }
 
 function extractDefendantName(text) {
+  // First try specific patterns
   for (const pattern of DEFENDANT_PATTERNS) {
     const match = text.match(pattern);
     if (match) {
-      // Clean up the name - remove trailing punctuation and extra whitespace
       let name = match[1].trim();
       name = name.replace(/[,\s]+$/, '').trim();
-      // Don't return if it's just a single word less than 3 chars (likely partial match)
       if (name.length >= 3) {
         return name;
       }
     }
   }
+  
+  // Fallback: Look for business names by finding LLC/Inc/etc anywhere in the text
+  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/);
+  if (businessMatch) {
+    return businessMatch[1].trim();
+  }
+  
+  // Fallback: Look for "Name and Address" pattern common in legal docs
+  const nameAddressMatch = text.match(/Name\s+and\s+Address[:\s]*\n?([^\n\d]+?)(?:\n|\d)/i);
+  if (nameAddressMatch) {
+    let name = nameAddressMatch[1].trim();
+    if (name.length >= 3) {
+      return name;
+    }
+  }
+  
   return null;
 }
 
