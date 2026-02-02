@@ -129,17 +129,30 @@ function extractDefendantName(text) {
   }
   
   // Fallback: Look for business names by finding LLC/Inc/etc anywhere in the text
-  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/);
+  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/i);
   if (businessMatch) {
     return businessMatch[1].trim();
   }
   
-  // Fallback: Look for "Name and Address" pattern common in legal docs
-  const nameAddressMatch = text.match(/Name\s+and\s+Address[:\s]*\n?([^\n\d]+?)(?:\n|\d)/i);
-  if (nameAddressMatch) {
-    let name = nameAddressMatch[1].trim();
-    if (name.length >= 3) {
-      return name;
+  // Fallback: Look for "Name and Address" pattern - capture text BEFORE this label
+  // Documents often have "Name\nAddress" format where name is on line before
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  for (let i = 0; i < lines.length; i++) {
+    // If we find a line that looks like the start of an address (starts with number)
+    // the previous non-empty line is likely the name
+    if (/^\d+\s+\w/.test(lines[i]) && i > 0) {
+      const potentialName = lines[i - 1];
+      // Make sure it's not a label like "Name and Address"
+      if (potentialName.length >= 3 && !/^(name|address|defendant)/i.test(potentialName)) {
+        return potentialName;
+      }
+    }
+  }
+  
+  // Last fallback: First line that's all caps and looks like a name (not an address)
+  for (const line of lines) {
+    if (line === line.toUpperCase() && line.length >= 3 && !/^\d/.test(line) && !/^(NAME|ADDRESS|SERVE|DEFENDANT)/i.test(line)) {
+      return line;
     }
   }
   
