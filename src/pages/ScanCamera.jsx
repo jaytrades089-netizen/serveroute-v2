@@ -549,13 +549,14 @@ export default function ScanCamera() {
                         <ConfIcon className={`w-5 h-5 ${conf.color} flex-shrink-0 mt-0.5`} />
                         <div className="min-w-0 flex-1">
                           <p className="text-xs text-gray-500 mb-1">Defendant Name and Address</p>
-                          <p className="font-semibold text-sm text-gray-900">
+                          <p className="font-semibold text-sm text-gray-900 break-words">
                             {addr.defendantName || 'Unknown Defendant'}
                           </p>
-                          <p className="text-sm text-gray-700">
-                            {addr.extractedData?.street 
-                              ? `${addr.extractedData.street}, ${addr.extractedData.city || ''}, ${addr.extractedData.state || ''} ${addr.extractedData.zip || ''}`.replace(/, ,/g, ',').trim()
-                              : 'Failed to extract address'}
+                          <p className="text-sm text-gray-700 break-words">
+                            {addr.extractedData?.fullAddress || 
+                              (addr.extractedData?.street 
+                                ? `${addr.extractedData.street}, ${addr.extractedData.city || ''}, ${addr.extractedData.state || ''} ${addr.extractedData.zip || ''}`.replace(/, ,/g, ',').trim()
+                                : 'Failed to extract address')}
                           </p>
                           <p className={`text-xs ${conf.color} mt-1`}>
                             Confidence: {conf.label}
