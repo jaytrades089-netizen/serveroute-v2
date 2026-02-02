@@ -38,12 +38,19 @@ const ADDRESS_PATTERNS = {
 // Generic fallback pattern
 const GENERIC_ADDRESS_PATTERN = /(\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Blvd|Boulevard|Dr|Drive|Rd|Road|Ln|Lane|Ct|Court|Pl|Place|Way|Cir|Circle)[\w\s,#\.]*),?\s*([A-Za-z\s]+),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)/i;
 
-// Defendant name patterns
+// Defendant name patterns - supports both personal names and business names
 const DEFENDANT_PATTERNS = [
-  /Defendant[:\s]+([A-Za-z\s,\.]+?)(?:,|\n|Address|$)/i,
-  /SERVE[:\s]+([A-Za-z\s,\.]+?)(?:\s+at|\s+@|\n)/i,
-  /vs\.?\s+([A-Za-z\s,\.]+?)(?:,|\n|$)/i,
-  /TO[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/
+  // Business patterns (check these first as they're more specific)
+  /Defendant[:\s]+([A-Za-z0-9\s,\.\-&']+?(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC|DBA|d\/b\/a)[A-Za-z0-9\s,\.\-&']*)(?:\n|Address|$)/i,
+  /SERVE[:\s]+([A-Za-z0-9\s,\.\-&']+?(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC|DBA|d\/b\/a)[A-Za-z0-9\s,\.\-&']*)(?:\s+at|\s+@|\n)/i,
+  /vs\.?\s+([A-Za-z0-9\s,\.\-&']+?(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC|DBA|d\/b\/a)[A-Za-z0-9\s,\.\-&']*)(?:,|\n|$)/i,
+  // General defendant patterns (captures full line until address keywords or newline)
+  /Defendant[:\s]+([A-Za-z0-9\s,\.\-&']+?)(?:\n|Address|Residence|Service|$)/i,
+  /SERVE[:\s]+([A-Za-z0-9\s,\.\-&']+?)(?:\s+at|\s+@|\n|Address)/i,
+  /vs\.?\s+([A-Za-z0-9\s,\.\-&']+?)(?:,\s*(?:a|an|Defendant)|\n|$)/i,
+  /TO[:\s]+([A-Za-z0-9\s,\.\-&']+?)(?:\n|$)/i,
+  // Garnishment specific
+  /Garnishee[:\s]+([A-Za-z0-9\s,\.\-&']+?)(?:\n|Address|$)/i
 ];
 
 function generateNormalizedKey(street, city, state, zip) {
