@@ -20,13 +20,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -260,10 +254,11 @@ export default function ScanCamera() {
         ocrRawText: result.rawText,
         extractedData: {
           street: result.parsedAddress.street,
-          city: result.parsedAddress.city,
-          state: result.parsedAddress.state,
-          zip: result.parsedAddress.zip,
-          fullAddress: `${result.parsedAddress.street}, ${result.parsedAddress.city}, ${result.parsedAddress.state} ${result.parsedAddress.zip}`
+                  city: result.parsedAddress.city,
+                  state: result.parsedAddress.state,
+                  zip: result.parsedAddress.zip,
+                  fullAddress: `${result.parsedAddress.street}, ${result.parsedAddress.city}, ${result.parsedAddress.state} ${result.parsedAddress.zip}`,
+                  documentType: session.documentType
         },
         defendantName: result.defendantName,
         confidence: result.confidence,
@@ -515,18 +510,31 @@ export default function ScanCamera() {
           </Button>
         )}
 
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-600">Type:</span>
-          <Select value={documentType} onValueChange={handleDocTypeChange}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="serve">📄 Serve - $24</SelectItem>
-              <SelectItem value="garnishment">💰 Garnishment - $24</SelectItem>
-              <SelectItem value="posting">📌 Posting - $10</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-1">
+          <Button
+            variant={documentType === 'serve' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleDocTypeChange('serve')}
+            className={documentType === 'serve' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+          >
+            Serve
+          </Button>
+          <Button
+            variant={documentType === 'garnishment' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleDocTypeChange('garnishment')}
+            className={documentType === 'garnishment' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+          >
+            Garnishment
+          </Button>
+          <Button
+            variant={documentType === 'posting' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => handleDocTypeChange('posting')}
+            className={documentType === 'posting' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+          >
+            Posting
+          </Button>
         </div>
       </div>
 
@@ -555,19 +563,27 @@ export default function ScanCamera() {
                       <div className="flex items-start gap-3 flex-1 min-w-0">
                         <ConfIcon className={`w-5 h-5 ${conf.color} flex-shrink-0 mt-0.5`} />
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs text-gray-500 mb-1">Defendant Name and Address</p>
                           <p className="font-semibold text-sm text-gray-900 break-words">
                             {addr.defendantName || 'Unknown Defendant'}
                           </p>
-                          <p className="font-bold text-sm text-gray-700 break-words uppercase">
-                            {addr.extractedData?.street || 'Failed to extract address'}
+                          <p className="font-bold text-sm text-gray-900 break-words">
+                            {addr.extractedData?.street?.toUpperCase() || 'FAILED TO EXTRACT ADDRESS'}
                           </p>
-                          <p className="text-sm text-gray-600 break-words">
-                            {addr.extractedData?.city ? `${addr.extractedData.city}, ${addr.extractedData.state} ${addr.extractedData.zip}` : ''}
+                          <p className="text-sm text-gray-900 break-words">
+                            {addr.extractedData?.city ? `${addr.extractedData.city.toUpperCase()}, ${addr.extractedData.state.toUpperCase()} ${addr.extractedData.zip}` : ''}
                           </p>
-                          <p className={`text-xs ${conf.color} mt-1`}>
-                            Confidence: {conf.label}
-                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              addr.extractedData?.documentType === 'garnishment' ? 'bg-purple-100 text-purple-700' :
+                              addr.extractedData?.documentType === 'posting' ? 'bg-green-100 text-green-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {(addr.extractedData?.documentType || documentType).charAt(0).toUpperCase() + (addr.extractedData?.documentType || documentType).slice(1)}
+                            </span>
+                            <span className={`text-xs ${conf.color}`}>
+                              {conf.label}
+                            </span>
+                          </div>
                         </div>
                       </div>
                       <DropdownMenu>
