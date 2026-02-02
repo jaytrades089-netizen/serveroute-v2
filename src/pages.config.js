@@ -88,6 +88,7 @@ import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
 import Chat from './pages/Chat';
+import ScanVerify from './pages/ScanVerify';
 import __Layout from './Layout.jsx';
 
 
@@ -133,6 +134,7 @@ export const PAGES = {
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
     "Chat": Chat,
+    "ScanVerify": ScanVerify,
 }
 
 export const pagesConfig = {
