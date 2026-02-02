@@ -98,6 +98,30 @@ function parseAddress(text, documentType) {
     };
   }
   
+  // Strategy: Look for multi-line address pattern
+  // Line 1: Street (starts with number)
+  // Line 2: City, State Zip
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  for (let i = 0; i < lines.length - 1; i++) {
+    const streetLine = lines[i];
+    const cityLine = lines[i + 1];
+    
+    // Check if this line looks like a street address (starts with number)
+    if (/^\d+\s+\w/.test(streetLine)) {
+      // Check if next line looks like City, State Zip
+      const cityMatch = cityLine.match(/^([A-Za-z\s]+),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)$/i);
+      if (cityMatch) {
+        return {
+          street: streetLine.trim(),
+          city: cityMatch[1].trim(),
+          state: cityMatch[2].trim(),
+          zip: cityMatch[3].trim()
+        };
+      }
+    }
+  }
+  
   return null;
 }
 
