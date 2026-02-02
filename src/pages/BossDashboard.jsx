@@ -20,7 +20,8 @@ import {
   Play,
   Wand2,
   FileCheck,
-  FileUp
+  FileUp,
+  Camera
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -575,6 +576,12 @@ export default function BossDashboard() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
+          <Link to={createPageUrl('ScanDocumentType')}>
+            <Button variant="outline" className="w-full h-14 justify-start gap-3">
+              <Camera className="w-5 h-5 text-indigo-600" />
+              <span>Scan Docs</span>
+            </Button>
+          </Link>
           <Link to={createPageUrl('ReceiptQueue')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3 relative">
               <FileCheck className="w-5 h-5 text-green-600" />
@@ -596,12 +603,6 @@ export default function BossDashboard() {
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Package className="w-5 h-5 text-blue-600" />
               <span>Address Pool</span>
-            </Button>
-          </Link>
-          <Link to={createPageUrl('AddressImport')}>
-            <Button variant="outline" className="w-full h-14 justify-start gap-3">
-              <Upload className="w-5 h-5 text-orange-600" />
-              <span>Import</span>
             </Button>
           </Link>
         </div>
