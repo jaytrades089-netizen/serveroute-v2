@@ -419,12 +419,14 @@ export default function ScanCamera() {
             <div className="absolute top-[15%] left-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
             {/* Blur overlay - right */}
             <div className="absolute top-[15%] right-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
-            {/* Clear center box with border */}
-            <div className="absolute top-[15%] left-[5%] w-[90%] h-[70%] border-2 border-white/70 rounded-lg flex items-center justify-center pointer-events-none">
+            {/* Label above the box */}
+            <div className="absolute top-[10%] left-0 right-0 flex justify-center pointer-events-none">
               <p className="text-white/70 text-xs bg-black/40 px-2 py-1 rounded">
-                Align address here
+                Align address in box
               </p>
             </div>
+            {/* Clear center box with border */}
+            <div className="absolute top-[15%] left-[5%] w-[90%] h-[70%] border-2 border-white/70 rounded-lg pointer-events-none" />
           </>
         )}
 
