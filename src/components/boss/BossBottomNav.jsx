@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { LayoutDashboard, MapPin, Users, Settings, Camera } from 'lucide-react';
+import { LayoutDashboard, MapPin, Users, Camera, MessageCircle } from 'lucide-react';
 
 const leftNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, page: 'BossDashboard' },
@@ -9,8 +9,8 @@ const leftNavItems = [
 ];
 
 const rightNavItems = [
-  { id: 'workers', label: 'Workers', icon: Users, page: 'BossWorkers' },
-  { id: 'settings', label: 'Settings', icon: Settings, page: 'BossSettings' }
+  { id: 'chat', label: 'Chat', icon: MessageCircle, page: 'Chat' },
+  { id: 'workers', label: 'Workers', icon: Users, page: 'BossWorkers' }
 ];
 
 export default function BossBottomNav({ currentPage }) {

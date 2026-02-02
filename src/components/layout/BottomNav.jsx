@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, MapPin, Users, Settings, Camera } from 'lucide-react';
+import { Home, MapPin, Settings, Camera, MessageCircle } from 'lucide-react';
 
 const leftNavItems = [
   { id: 'home', label: 'Dashboard', icon: Home, page: 'WorkerHome' },
@@ -9,7 +9,7 @@ const leftNavItems = [
 ];
 
 const rightNavItems = [
-  { id: 'workers', label: 'Workers', icon: Users, page: 'Workers' },
+  { id: 'chat', label: 'Chat', icon: MessageCircle, page: 'Chat' },
   { id: 'settings', label: 'Settings', icon: Settings, page: 'WorkerSettings' }
 ];
 
