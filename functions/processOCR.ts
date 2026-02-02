@@ -219,9 +219,16 @@ Deno.serve(async (req) => {
     const fullText = ocrResult.fullTextAnnotation?.text || '';
     const confidence = ocrResult.fullTextAnnotation?.pages?.[0]?.confidence || 0;
     
+    // Log raw OCR text for debugging
+    console.log('=== RAW OCR TEXT ===');
+    console.log(fullText);
+    console.log('=== END OCR TEXT ===');
+    
     // Parse address from OCR text
     const parsedAddress = parseAddress(fullText, documentType);
     const defendantName = extractDefendantName(fullText);
+    
+    console.log('Extracted defendant name:', defendantName);
     
     const processingTime = Date.now() - startTime;
     
