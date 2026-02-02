@@ -118,29 +118,45 @@ function parseAddressComponents(addressText) {
 function extractDefendantName(text) {
   const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
   
-  // Strategy 1: Look for line AFTER "Defendant Name and Address" label
+  // Strategy 1: Look for lines AFTER "Defendant Name and Address" label until we hit an address
   for (let i = 0; i < lines.length; i++) {
     if (/defendant\s*name/i.test(lines[i]) || /name\s*and\s*address/i.test(lines[i])) {
-      // The actual name should be on the next line(s)
-      if (i + 1 < lines.length) {
-        let name = lines[i + 1];
-        // If next line includes R/A or additional info, combine intelligently
-        if (i + 2 < lines.length && /^(R\/A|C\/O|DBA|d\/b\/a)/i.test(lines[i + 2])) {
-          name = name + ' ' + lines[i + 2];
+      // Collect all name lines until we hit an address (starts with number)
+      let nameLines = [];
+      for (let j = i + 1; j < lines.length; j++) {
+        const line = lines[j];
+        // Stop if we hit an address line (starts with number followed by words)
+        if (/^\d+\s+\w/.test(line)) {
+          break;
         }
-        // Clean up and return if valid
-        name = name.replace(/[,\s]+$/, '').trim();
-        if (name.length >= 2 && !/^\d/.test(name)) {
+        // Skip empty or very short lines
+        if (line.length >= 2) {
+          nameLines.push(line);
+        }
+        // Don't collect more than 3 lines
+        if (nameLines.length >= 3) break;
+      }
+      
+      if (nameLines.length > 0) {
+        const name = nameLines.join(' ').replace(/[,\s]+$/, '').trim();
+        if (name.length >= 2) {
           return name;
         }
       }
     }
   }
   
-  // Strategy 2: Look for business names with LLC/Inc/etc
-  const businessMatch = text.match(/([A-Z][A-Za-z0-9\s,\.\-&']+?(?:LLC|Inc|Corp|Corporation|Company|Co|Ltd|LLP|PC|PLLC))/i);
-  if (businessMatch) {
-    return businessMatch[1].trim();
+  // Strategy 2: Look for business names with LLC/Inc/etc (multi-line aware)
+  // First try to find the full name by looking for lines around LLC/Inc markers
+  for (let i = 0; i < lines.length; i++) {
+    if (/LLC|Inc|Corp|Corporation|Company|Ltd|LLP|PC|PLLC/i.test(lines[i])) {
+      let name = lines[i];
+      // Check if previous line is part of the name (doesn't start with number, not a label)
+      if (i > 0 && !/^\d/.test(lines[i-1]) && !/defendant|name|address|serve/i.test(lines[i-1])) {
+        name = lines[i-1] + ' ' + name;
+      }
+      return name.trim();
+    }
   }
   
   // Strategy 3: Try specific defendant patterns
@@ -149,21 +165,28 @@ function extractDefendantName(text) {
     if (match) {
       let name = match[1].trim();
       name = name.replace(/[,\s]+$/, '').trim();
-      // Skip if it's just a label like "Name and"
       if (name.length >= 3 && !/^name\s*(and)?$/i.test(name)) {
         return name;
       }
     }
   }
   
-  // Strategy 4: Find line before address that looks like a name
+  // Strategy 4: Find lines before address that look like a name
   for (let i = 0; i < lines.length; i++) {
     if (/^\d+\s+\w/.test(lines[i]) && i > 0) {
-      const potentialName = lines[i - 1];
-      if (potentialName.length >= 3 && 
-          !/^(name|address|defendant|serve)/i.test(potentialName) &&
-          !/name\s*and\s*address/i.test(potentialName)) {
-        return potentialName;
+      // Collect name lines going backwards until we hit a label
+      let nameLines = [];
+      for (let j = i - 1; j >= 0 && nameLines.length < 3; j--) {
+        const line = lines[j];
+        if (/defendant|name\s*and\s*address|serve|address/i.test(line)) {
+          break;
+        }
+        if (line.length >= 2 && !/^\d/.test(line)) {
+          nameLines.unshift(line);
+        }
+      }
+      if (nameLines.length > 0) {
+        return nameLines.join(' ').trim();
       }
     }
   }
