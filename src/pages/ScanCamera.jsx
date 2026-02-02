@@ -562,9 +562,13 @@ export default function ScanCamera() {
                             <p className="font-bold text-sm text-gray-700 break-words uppercase">
                               {addr.extractedData?.street || 'Failed to extract address'}
                             </p>
-                            {addr.extractedData?.city && (
-                              <p className="text-sm text-gray-600 break-words">
-                                {`${addr.extractedData.city}, ${addr.extractedData.state} ${addr.extractedData.zip}`}
+                            {(addr.extractedData?.city || addr.extractedData?.state || addr.extractedData?.zip) && (
+                              <p className="text-sm text-gray-600 break-words font-normal">
+                                {[
+                                  addr.extractedData?.city,
+                                  addr.extractedData?.state,
+                                  addr.extractedData?.zip
+                                ].filter(Boolean).join(', ').replace(/, ([A-Z]{2})/, ', $1 ').replace(/, (\d)/, ' $1')}
                               </p>
                             )}
                           <p className={`text-xs ${conf.color} mt-1`}>
