@@ -14,7 +14,8 @@ import {
   Edit,
   CheckSquare,
   Square,
-  AlertCircle
+  AlertCircle,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -284,12 +285,18 @@ export default function AddressPool() {
                     <p className="font-medium truncate">
                       {address.normalized_address || address.legal_address}
                     </p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <Badge className={getTypeColor(address.serve_type)}>
                         {address.serve_type}
                       </Badge>
                       <span className="text-sm text-gray-500">${address.pay_rate}</span>
                       {getStatusIcon(address.geocode_status)}
+                      {address.has_dcn && (
+                        <Badge className="bg-purple-100 text-purple-700 text-xs">
+                          <Tag className="w-3 h-3 mr-1" />
+                          DCN
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
