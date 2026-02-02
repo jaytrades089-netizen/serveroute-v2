@@ -410,19 +410,19 @@ export default function ScanCamera() {
         />
         
         {cameraStatus === 'active' && (
-          <>
-            {/* Blur overlay - top */}
-            <div className="absolute top-0 left-0 right-0 h-[15%] backdrop-blur-sm bg-black/30" />
-            {/* Blur overlay - bottom */}
-            <div className="absolute bottom-0 left-0 right-0 h-[15%] backdrop-blur-sm bg-black/30" />
-            {/* Blur overlay - left */}
-            <div className="absolute top-[15%] left-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
-            {/* Blur overlay - right */}
-            <div className="absolute top-[15%] right-0 w-[5%] h-[70%] backdrop-blur-sm bg-black/30" />
-            {/* Clear center box with border */}
-            <div className="absolute top-[15%] left-[5%] w-[90%] h-[70%] border-2 border-white/70 rounded-lg pointer-events-none" />
-          </>
-        )}
+                        <>
+                          {/* Blur overlay - top */}
+                          <div className="absolute top-0 left-0 right-0 h-[7.5%] backdrop-blur-sm bg-black/30" />
+                          {/* Blur overlay - bottom */}
+                          <div className="absolute bottom-0 left-0 right-0 h-[7.5%] backdrop-blur-sm bg-black/30" />
+                          {/* Blur overlay - left */}
+                          <div className="absolute top-[7.5%] left-0 w-[5%] h-[85%] backdrop-blur-sm bg-black/30" />
+                          {/* Blur overlay - right */}
+                          <div className="absolute top-[7.5%] right-0 w-[5%] h-[85%] backdrop-blur-sm bg-black/30" />
+                          {/* Clear center box with border */}
+                          <div className="absolute top-[7.5%] left-[5%] w-[90%] h-[85%] border-2 border-white/70 rounded-lg pointer-events-none" />
+                        </>
+                      )}
 
         {cameraStatus === 'initializing' && (
           <div className="absolute inset-0 flex items-center justify-center p-4">

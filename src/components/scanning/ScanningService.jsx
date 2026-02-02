@@ -179,18 +179,18 @@ export function clearScanSession(sessionId) {
   }
 }
 
-// Image processing - crops to center 90% width x 70% height area (the clear box)
+// Image processing - crops to center 90% width x 85% height area (the clear box)
 export function captureAndCompressImage(videoElement) {
   const canvas = document.createElement('canvas');
   
   const videoWidth = videoElement.videoWidth;
   const videoHeight = videoElement.videoHeight;
   
-  // Calculate the crop region (matching the visible box: 90% width, 70% height, centered)
+  // Calculate the crop region (matching the visible box: 90% width, 85% height, centered)
   const cropX = Math.round(videoWidth * 0.05);  // 5% from left
-  const cropY = Math.round(videoHeight * 0.15); // 15% from top
+  const cropY = Math.round(videoHeight * 0.075); // 7.5% from top
   const cropWidth = Math.round(videoWidth * 0.90);  // 90% width
-  const cropHeight = Math.round(videoHeight * 0.70); // 70% height
+  const cropHeight = Math.round(videoHeight * 0.85); // 85% height
   
   // Set max output dimensions
   const maxWidth = 1920;
