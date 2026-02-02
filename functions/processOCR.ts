@@ -16,19 +16,22 @@ const PAY_RATES = {
 // Document-specific address patterns
 const ADDRESS_PATTERNS = {
   serve: [
-    /SERVE\s*AT[:\s]+(.+)/i,
-    /Defendant\s*Address[:\s]+(.+)/i,
-    /Service\s*Address[:\s]+(.+)/i
+    /SERVE\s*AT[:\s]+(.+?)(?:\n|$)/i,
+    /Defendant.*?Address[:\s]+(.+?)(?:\n|$)/i,
+    /Service\s*Address[:\s]+(.+?)(?:\n|$)/i,
+    /Residence[:\s]+(.+?)(?:\n|$)/i
   ],
   garnishment: [
-    /Garnishee\s*Address[:\s]+(.+)/i,
-    /Third\s*Party\s*Address[:\s]+(.+)/i,
-    /Employer\s*Address[:\s]+(.+)/i
+    /Garnishee.*?Address[:\s]+(.+?)(?:\n|$)/i,
+    /GARNISHMENT.*?(?:serve|mail).*?to[:\s]+(.+?)(?:\n|$)/i,
+    /Third\s*Party.*?Address[:\s]+(.+?)(?:\n|$)/i,
+    /Employer.*?Address[:\s]+(.+?)(?:\n|$)/i
   ],
   posting: [
-    /POST\s*AT[:\s]+(.+)/i,
-    /Property\s*Address[:\s]+(.+)/i,
-    /Premises[:\s]+(.+)/i
+    /POST\s*AT[:\s]+(.+?)(?:\n|$)/i,
+    /Posting\s*Address[:\s]+(.+?)(?:\n|$)/i,
+    /Property\s*Address[:\s]+(.+?)(?:\n|$)/i,
+    /Premises[:\s]+(.+?)(?:\n|$)/i
   ]
 };
 
@@ -37,8 +40,9 @@ const GENERIC_ADDRESS_PATTERN = /(\d+\s+[\w\s]+(?:St|Street|Ave|Avenue|Blvd|Boul
 
 // Defendant name patterns
 const DEFENDANT_PATTERNS = [
-  /Defendant[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/,
-  /vs\.?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/i,
+  /Defendant[:\s]+([A-Za-z\s,\.]+?)(?:,|\n|Address|$)/i,
+  /SERVE[:\s]+([A-Za-z\s,\.]+?)(?:\s+at|\s+@|\n)/i,
+  /vs\.?\s+([A-Za-z\s,\.]+?)(?:,|\n|$)/i,
   /TO[:\s]+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)/
 ];
 
