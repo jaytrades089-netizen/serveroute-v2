@@ -19,7 +19,8 @@ import {
   Pause,
   Play,
   Wand2,
-  FileCheck
+  FileCheck,
+  FileUp
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -585,6 +586,12 @@ export default function BossDashboard() {
               )}
             </Button>
           </Link>
+          <Link to={createPageUrl('DCNUpload')}>
+            <Button variant="outline" className="w-full h-14 justify-start gap-3">
+              <FileUp className="w-5 h-5 text-purple-600" />
+              <span>DCN Upload</span>
+            </Button>
+          </Link>
           <Link to={createPageUrl('AddressPool')}>
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Package className="w-5 h-5 text-blue-600" />
@@ -595,12 +602,6 @@ export default function BossDashboard() {
             <Button variant="outline" className="w-full h-14 justify-start gap-3">
               <Upload className="w-5 h-5 text-orange-600" />
               <span>Import</span>
-            </Button>
-          </Link>
-          <Link to={createPageUrl('CreateRoute')}>
-            <Button variant="outline" className="w-full h-14 justify-start gap-3">
-              <Plus className="w-5 h-5 text-green-600" />
-              <span>Create Route</span>
             </Button>
           </Link>
         </div>
