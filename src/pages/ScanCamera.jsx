@@ -106,27 +106,52 @@ export default function ScanCamera() {
       }
 
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: 'environment',
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        });
+        // Try rear camera first, fallback to any camera
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { exact: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          });
+        } catch (e) {
+          // Fallback: try without exact constraint
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            },
+            audio: false
+          });
+        }
 
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          await videoRef.current.play();
+          // Wait for video to be ready before playing
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().then(() => {
+              setCameraStatus('active');
+            }).catch(err => {
+              console.error('Play error:', err);
+              setCameraStatus('error');
+            });
+          };
         }
-        setCameraStatus('active');
       } catch (error) {
         console.error('Camera error:', error);
-        if (error.name === 'NotAllowedError') {
+        if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
           setCameraStatus('denied');
+        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+          setCameraStatus('error');
+          toast.error('No camera found on device');
         } else {
           setCameraStatus('error');
+          toast.error('Camera error: ' + error.message);
         }
       }
     }
