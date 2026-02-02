@@ -155,7 +155,7 @@ export default function ScanRouteSetup() {
           city: addr.extractedData.city,
           state: addr.extractedData.state,
           zip: addr.extractedData.zip,
-          serve_type: session.documentType,
+          serve_type: addr.extractedData?.documentType || session.documentType,
           pay_rate: PAY_RATES[session.documentType],
           status: 'pending',
           served: false,
