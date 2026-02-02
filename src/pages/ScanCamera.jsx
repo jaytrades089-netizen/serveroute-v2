@@ -98,60 +98,96 @@ export default function ScanCamera() {
   useEffect(() => {
     if (!session) return;
 
+    let mounted = true;
+
     async function startCamera() {
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      // Check if mediaDevices API is available
+      if (!navigator.mediaDevices) {
+        console.error('mediaDevices API not available');
         setCameraStatus('error');
-        toast.error(ERROR_MESSAGES.camera_not_supported);
         return;
       }
 
+      // Small delay to ensure video element is mounted
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!mounted) return;
+
       try {
-        // Try rear camera first, fallback to any camera
-        let stream;
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { exact: 'environment' },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
-            },
-            audio: false
-          });
-        } catch (e) {
-          // Fallback: try without exact constraint
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            },
-            audio: false
-          });
+        let stream = null;
+        
+        // Try multiple fallback strategies for Android compatibility
+        const constraints = [
+          // Strategy 1: Exact rear camera
+          { video: { facingMode: { exact: 'environment' } }, audio: false },
+          // Strategy 2: Preferred rear camera
+          { video: { facingMode: 'environment' }, audio: false },
+          // Strategy 3: Any camera
+          { video: true, audio: false }
+        ];
+
+        for (const constraint of constraints) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraint);
+            console.log('Camera started with constraint:', constraint);
+            break;
+          } catch (e) {
+            console.log('Failed constraint:', constraint, e.name);
+            continue;
+          }
+        }
+
+        if (!stream) {
+          throw new Error('Could not access any camera');
+        }
+
+        if (!mounted) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
         }
 
         streamRef.current = stream;
+        
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          // Wait for video to be ready before playing
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play().then(() => {
-              setCameraStatus('active');
-            }).catch(err => {
-              console.error('Play error:', err);
-              setCameraStatus('error');
-            });
+          
+          // Use both event listener and direct play for compatibility
+          const playVideo = async () => {
+            try {
+              await videoRef.current.play();
+              if (mounted) {
+                setCameraStatus('active');
+              }
+            } catch (playErr) {
+              console.error('Video play error:', playErr);
+              // On some devices, muted autoplay works better
+              if (mounted) {
+                setCameraStatus('active'); // Still mark as active, video might be playing
+              }
+            }
           };
+
+          if (videoRef.current.readyState >= 2) {
+            // Video already has enough data
+            playVideo();
+          } else {
+            videoRef.current.onloadeddata = playVideo;
+            // Fallback timeout
+            setTimeout(() => {
+              if (mounted && cameraStatus === 'initializing') {
+                playVideo();
+              }
+            }, 1000);
+          }
         }
       } catch (error) {
         console.error('Camera error:', error);
+        if (!mounted) return;
+        
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
           setCameraStatus('denied');
-        } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
-          setCameraStatus('error');
-          toast.error('No camera found on device');
         } else {
           setCameraStatus('error');
-          toast.error('Camera error: ' + error.message);
         }
       }
     }
@@ -159,6 +195,7 @@ export default function ScanCamera() {
     startCamera();
 
     return () => {
+      mounted = false;
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
