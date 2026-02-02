@@ -75,7 +75,40 @@ function generateNormalizedKey(street, city, state, zip) {
 }
 
 function parseAddress(text, documentType) {
-  // Try document-specific patterns first
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  console.log('Parsing lines:', lines);
+  
+  // Strategy 1: Look for multi-line address pattern (most reliable for scanned docs)
+  // Line 1: Street (starts with number)
+  // Line 2: City, State Zip
+  for (let i = 0; i < lines.length - 1; i++) {
+    const streetLine = lines[i];
+    const cityLine = lines[i + 1];
+    
+    // Check if this line looks like a street address (starts with number)
+    if (/^\d+\s+\w/.test(streetLine)) {
+      // Check if next line looks like City, State Zip
+      // Pattern: "NOVI, MI 48377" or "NOVI MI 48377" or "NOVI,MI 48377"
+      const cityMatch = cityLine.match(/^([A-Za-z\s]+?),?\s*(MI|Michigan|OH|Ohio),?\s*(\d{5}(?:-\d{4})?)$/i);
+      if (cityMatch) {
+        const rawCity = cityMatch[1].trim();
+        const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
+        const formattedState = cityMatch[2].toUpperCase().replace(/MICHIGAN/i, 'MI').replace(/OHIO/i, 'OH');
+        
+        console.log('Parsed address:', { street: streetLine, city: formattedCity, state: formattedState, zip: cityMatch[3] });
+        
+        return {
+          street: streetLine.trim(),
+          city: formattedCity,
+          state: formattedState,
+          zip: cityMatch[3].trim()
+        };
+      }
+    }
+  }
+  
+  // Strategy 2: Try document-specific patterns
   const patterns = ADDRESS_PATTERNS[documentType] || [];
   
   for (const pattern of patterns) {
@@ -87,7 +120,7 @@ function parseAddress(text, documentType) {
     }
   }
   
-  // Fallback to generic pattern
+  // Strategy 3: Fallback to generic single-line pattern
   const genericMatch = text.match(GENERIC_ADDRESS_PATTERN);
   if (genericMatch) {
     const rawCity = genericMatch[2].trim();
@@ -100,36 +133,6 @@ function parseAddress(text, documentType) {
       state: formattedState,
       zip: genericMatch[4].trim()
     };
-  }
-  
-  // Strategy: Look for multi-line address pattern
-  // Line 1: Street (starts with number)
-  // Line 2: City, State Zip
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  
-  for (let i = 0; i < lines.length - 1; i++) {
-    const streetLine = lines[i];
-    const cityLine = lines[i + 1];
-    
-    // Check if this line looks like a street address (starts with number)
-    if (/^\d+\s+\w/.test(streetLine)) {
-      // Check if next line looks like City, State Zip (with comma or without)
-      // Pattern: "NOVI, MI 48377" or "NOVI MI 48377"
-      const cityMatch = cityLine.match(/^([A-Za-z\s]+?),?\s*(MI|Michigan|OH|Ohio)\s*(\d{5}(?:-\d{4})?)$/i);
-      if (cityMatch) {
-        // Capitalize city properly (first letter uppercase, rest lowercase)
-        const rawCity = cityMatch[1].trim();
-        const formattedCity = rawCity.charAt(0).toUpperCase() + rawCity.slice(1).toLowerCase();
-        const formattedState = cityMatch[2].toUpperCase().replace(/MICHIGAN/i, 'MI').replace(/OHIO/i, 'OH');
-        
-        return {
-          street: streetLine.trim(),
-          city: formattedCity,
-          state: formattedState,
-          zip: cityMatch[3].trim()
-        };
-      }
-    }
   }
   
   return null;
