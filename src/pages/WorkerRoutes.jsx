@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import { Loader2, MapPin, ChevronRight, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RouteSkeleton } from '@/components/ui/skeletons';
+import EmptyState from '@/components/ui/empty-state';
 
 export default function WorkerRoutes() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -85,14 +87,18 @@ export default function WorkerRoutes() {
         </div>
 
         {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <RouteSkeleton key={i} />)}
           </div>
         ) : filteredRoutes.length === 0 ? (
-          <div className="bg-gray-100 rounded-xl p-8 text-center">
-            <MapPin className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-gray-500">No routes found</p>
-          </div>
+          <EmptyState 
+            type="routes" 
+            title={filter === 'all' ? 'No routes yet' : `No ${filter} routes`}
+            description={filter === 'all' 
+              ? "You'll see your assigned routes here."
+              : `No routes match the "${filter}" filter.`
+            }
+          />
         ) : (
           <div className="space-y-3">
             {filteredRoutes.map((route) => (

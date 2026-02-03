@@ -47,9 +47,12 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import ActivityLog from './pages/ActivityLog';
 import AddAddress from './pages/AddAddress';
 import AddressImport from './pages/AddressImport';
 import AddressPool from './pages/AddressPool';
+import AddressQuestionDetail from './pages/AddressQuestionDetail';
+import Analytics from './pages/Analytics';
 import AssignRoute from './pages/AssignRoute';
 import BossDashboard from './pages/BossDashboard';
 import BossNotifications from './pages/BossNotifications';
@@ -57,6 +60,7 @@ import BossRoutes from './pages/BossRoutes';
 import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
 import BossWorkers from './pages/BossWorkers';
+import Chat from './pages/Chat';
 import CreateRoute from './pages/CreateRoute';
 import DCNBatchDetail from './pages/DCNBatchDetail';
 import DCNMatching from './pages/DCNMatching';
@@ -73,12 +77,14 @@ import ScanCamera from './pages/ScanCamera';
 import ScanDocumentType from './pages/ScanDocumentType';
 import ScanPreview from './pages/ScanPreview';
 import ScanRouteSetup from './pages/ScanRouteSetup';
+import ScanVerify from './pages/ScanVerify';
 import SubmitReceipt from './pages/SubmitReceipt';
 import UnassignRoute from './pages/UnassignRoute';
 import VacationRequests from './pages/VacationRequests';
 import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerDetail from './pages/WorkerDetail';
 import WorkerHome from './pages/WorkerHome';
+import WorkerMap from './pages/WorkerMap';
 import WorkerPayout from './pages/WorkerPayout';
 import WorkerReceipts from './pages/WorkerReceipts';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
@@ -87,19 +93,16 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import Chat from './pages/Chat';
-import ScanVerify from './pages/ScanVerify';
-import AddressQuestionDetail from './pages/AddressQuestionDetail';
-import Analytics from './pages/Analytics';
-import WorkerMap from './pages/WorkerMap';
-import ActivityLog from './pages/ActivityLog';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "ActivityLog": ActivityLog,
     "AddAddress": AddAddress,
     "AddressImport": AddressImport,
     "AddressPool": AddressPool,
+    "AddressQuestionDetail": AddressQuestionDetail,
+    "Analytics": Analytics,
     "AssignRoute": AssignRoute,
     "BossDashboard": BossDashboard,
     "BossNotifications": BossNotifications,
@@ -107,6 +110,7 @@ export const PAGES = {
     "BossSettings": BossSettings,
     "BossTeam": BossTeam,
     "BossWorkers": BossWorkers,
+    "Chat": Chat,
     "CreateRoute": CreateRoute,
     "DCNBatchDetail": DCNBatchDetail,
     "DCNMatching": DCNMatching,
@@ -123,12 +127,14 @@ export const PAGES = {
     "ScanDocumentType": ScanDocumentType,
     "ScanPreview": ScanPreview,
     "ScanRouteSetup": ScanRouteSetup,
+    "ScanVerify": ScanVerify,
     "SubmitReceipt": SubmitReceipt,
     "UnassignRoute": UnassignRoute,
     "VacationRequests": VacationRequests,
     "WorkerAddresses": WorkerAddresses,
     "WorkerDetail": WorkerDetail,
     "WorkerHome": WorkerHome,
+    "WorkerMap": WorkerMap,
     "WorkerPayout": WorkerPayout,
     "WorkerReceipts": WorkerReceipts,
     "WorkerRouteDetail": WorkerRouteDetail,
@@ -137,12 +143,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "Chat": Chat,
-    "ScanVerify": ScanVerify,
-    "AddressQuestionDetail": AddressQuestionDetail,
-    "Analytics": Analytics,
-    "WorkerMap": WorkerMap,
-    "ActivityLog": ActivityLog,
 }
 
 export const pagesConfig = {

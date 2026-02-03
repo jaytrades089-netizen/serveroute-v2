@@ -12,6 +12,8 @@ import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
 import { Loader2, ArrowRightLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
+import EmptyState from '@/components/ui/empty-state';
 
 function getCurrentPhase(timezone = 'America/Detroit') {
   const now = new Date();
@@ -142,8 +144,21 @@ export default function WorkerHome() {
 
   if (userLoading || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-blue-500 h-14" />
+        <main className="px-4 py-6 max-w-lg mx-auto">
+          <div className="animate-pulse mb-6">
+            <div className="h-8 bg-gray-200 rounded w-3/4 mb-2" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {[1, 2, 3, 4].map(i => <StatSkeleton key={i} />)}
+          </div>
+          <div className="space-y-3">
+            {[1, 2].map(i => <RouteSkeleton key={i} />)}
+          </div>
+        </main>
+        <BottomNav currentPage="WorkerHome" />
       </div>
     );
   }

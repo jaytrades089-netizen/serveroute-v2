@@ -10,6 +10,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import BossBottomNav from '../components/boss/BossBottomNav';
+import { ReceiptSkeleton } from '@/components/ui/skeletons';
+import EmptyState from '@/components/ui/empty-state';
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending', icon: Clock, color: 'bg-yellow-100 text-yellow-700' },
@@ -91,8 +93,23 @@ export default function ReceiptQueue() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="min-h-screen bg-gray-50 pb-24">
+        <header className="bg-white border-b sticky top-0 z-10">
+          <div className="px-4 py-3 flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate(createPageUrl('BossDashboard'))}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1">
+              <h1 className="text-lg font-semibold">Receipt Review</h1>
+            </div>
+          </div>
+        </header>
+        <main className="px-4 py-4 max-w-2xl mx-auto">
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map(i => <ReceiptSkeleton key={i} />)}
+          </div>
+        </main>
+        <BossBottomNav currentPage="BossDashboard" />
       </div>
     );
   }
@@ -156,12 +173,14 @@ export default function ReceiptQueue() {
 
         {/* Receipts List */}
         {filteredReceipts.length === 0 ? (
-          <div className="text-center py-12">
-            <FileCheck className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500">
-              {statusFilter === 'pending' ? 'No receipts pending review' : 'No receipts found'}
-            </p>
-          </div>
+          <EmptyState 
+            type="receipts"
+            title={statusFilter === 'pending' ? 'No receipts pending' : 'No receipts found'}
+            description={statusFilter === 'pending' 
+              ? "You're all caught up! When workers submit receipts, they'll appear here."
+              : `No receipts match the "${statusFilter}" filter.`
+            }
+          />
         ) : (
           <div className="space-y-3">
             {filteredReceipts.map((receipt) => {
