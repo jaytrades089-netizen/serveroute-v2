@@ -612,6 +612,28 @@ export default function BossDashboard() {
             </Button>
           </Link>
         </div>
+
+        {/* Phase 6: Analytics & Reports */}
+        <div className="grid grid-cols-3 gap-3 mt-4">
+          <Link to={createPageUrl('Analytics')}>
+            <Button variant="outline" className="w-full h-12 justify-start gap-2">
+              <BarChart3 className="w-5 h-5 text-orange-500" />
+              <span className="text-sm">Analytics</span>
+            </Button>
+          </Link>
+          <Link to={createPageUrl('WorkerMap')}>
+            <Button variant="outline" className="w-full h-12 justify-start gap-2">
+              <Map className="w-5 h-5 text-green-500" />
+              <span className="text-sm">Worker Map</span>
+            </Button>
+          </Link>
+          <Link to={createPageUrl('ActivityLog')}>
+            <Button variant="outline" className="w-full h-12 justify-start gap-2">
+              <ScrollText className="w-5 h-5 text-blue-500" />
+              <span className="text-sm">Activity</span>
+            </Button>
+          </Link>
+        </div>
       </main>
 
       <BossBottomNav currentPage="BossDashboard" />
