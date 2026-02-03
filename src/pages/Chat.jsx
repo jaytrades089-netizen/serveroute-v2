@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/dialog";
 import BossBottomNav from '@/components/boss/BossBottomNav';
 import BottomNav from '@/components/layout/BottomNav';
+import { ChatSkeleton } from '@/components/ui/skeletons';
+import EmptyState from '@/components/ui/empty-state';
 
 export default function Chat() {
   const navigate = useNavigate();
@@ -248,17 +250,14 @@ export default function Chat() {
 
         <div className="p-4 max-w-lg mx-auto">
           {conversationsLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            <div className="space-y-2">
+              {[1, 2, 3].map(i => <ChatSkeleton key={i} />)}
             </div>
           ) : conversations.length === 0 ? (
-            <div className="text-center py-12">
-              <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No conversations yet</p>
-              <Button className="mt-4" onClick={() => setShowNewChat(true)}>
-                Start a Chat
-              </Button>
-            </div>
+            <EmptyState 
+              type="messages"
+              onAction={() => setShowNewChat(true)}
+            />
           ) : (
             <div className="space-y-2">
               {conversations.map((convo) => {

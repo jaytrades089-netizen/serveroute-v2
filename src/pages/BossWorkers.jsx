@@ -32,6 +32,8 @@ import {
 import BossBottomNav from '../components/boss/BossBottomNav';
 import MessageDialog from '../components/boss/MessageDialog';
 import { toast } from 'sonner';
+import { WorkerSkeleton } from '@/components/ui/skeletons';
+import EmptyState from '@/components/ui/empty-state';
 
 const statusConfig = {
   active: { color: 'bg-green-100 text-green-700', label: 'Active' },
@@ -129,8 +131,21 @@ export default function BossWorkers() {
 
   if (userLoading || workersLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <header className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Link to={createPageUrl('BossDashboard')}>
+              <ChevronLeft className="w-6 h-6" />
+            </Link>
+            <span className="font-bold text-lg">Workers</span>
+          </div>
+        </header>
+        <main className="px-4 py-6 max-w-4xl mx-auto">
+          <div className="space-y-3">
+            {[1, 2, 3].map(i => <WorkerSkeleton key={i} />)}
+          </div>
+        </main>
+        <BossBottomNav currentPage="BossTeam" />
       </div>
     );
   }
@@ -231,12 +246,16 @@ export default function BossWorkers() {
 
         {/* Workers List */}
         {filteredWorkers.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <User className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500">No workers found</p>
-            </CardContent>
-          </Card>
+          <EmptyState 
+            type="workers"
+            title={search ? 'No workers found' : 'No workers yet'}
+            description={search 
+              ? 'Try adjusting your search or filters.'
+              : 'Invite workers to join your team.'
+            }
+            actionLabel="Invite Worker"
+            onAction={() => navigate(createPageUrl('BossTeam'))}
+          />
         ) : (
           <div className="space-y-3">
             {filteredWorkers.map((worker) => {
