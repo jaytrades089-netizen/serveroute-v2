@@ -90,6 +90,9 @@ import Workers from './pages/Workers';
 import Chat from './pages/Chat';
 import ScanVerify from './pages/ScanVerify';
 import AddressQuestionDetail from './pages/AddressQuestionDetail';
+import Analytics from './pages/Analytics';
+import WorkerMap from './pages/WorkerMap';
+import ActivityLog from './pages/ActivityLog';
 import __Layout from './Layout.jsx';
 
 
@@ -137,6 +140,9 @@ export const PAGES = {
     "Chat": Chat,
     "ScanVerify": ScanVerify,
     "AddressQuestionDetail": AddressQuestionDetail,
+    "Analytics": Analytics,
+    "WorkerMap": WorkerMap,
+    "ActivityLog": ActivityLog,
 }
 
 export const pagesConfig = {
