@@ -191,6 +191,7 @@ export default function BossRoutes() {
                       workerName={route.worker_id ? getServerName(route.worker_id) : null}
                       showActions={true}
                       isBossView={true}
+                      linkTo={`BossRouteDetail?id=${route.id}`}
                       onMenuClick={(r) => setSelectedRoute(r)}
                     />
                     
