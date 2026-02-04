@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +11,8 @@ import {
   CheckCircle,
   AlertCircle,
   Tag,
-  Navigation
+  Navigation,
+  ChevronRight
 } from 'lucide-react';
 
 // Format address in required 2-line ALL CAPS format
@@ -32,8 +33,10 @@ export default function AddressCard({
   index, 
   routeId,
   showActions = true,
-  onMessageBoss 
+  onMessageBoss,
+  onClick
 }) {
+  const navigate = useNavigate();
   const formatted = formatAddress(address);
   const receiptStatus = address.receipt_status;
   const needsReceipt = !address.served && receiptStatus === 'pending';
@@ -61,9 +64,18 @@ export default function AddressCard({
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, '_blank');
   };
 
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick(address);
+    } else {
+      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+    }
+  };
+
   return (
     <div
-      className={`bg-white border rounded-xl p-3 ${
+      onClick={handleCardClick}
+      className={`relative bg-white border rounded-xl p-3 pr-8 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] ${
         address.served ? 'border-green-200 bg-green-50' : 
         receiptNeedsRevision ? 'border-orange-200 bg-orange-50' :
         'border-gray-200'
@@ -138,14 +150,17 @@ export default function AddressCard({
                 size="sm"
                 variant="outline"
                 className="h-8 text-xs"
-                onClick={handleNavigate}
+                onClick={(e) => { e.stopPropagation(); handleNavigate(); }}
               >
                 <Navigation className="w-3 h-3 mr-1" />
                 Navigate
               </Button>
               
               {(needsReceipt || receiptNeedsRevision) && (
-                <Link to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}${address.latest_receipt_id && receiptNeedsRevision ? `&parentReceiptId=${address.latest_receipt_id}` : ''}`)}>
+                <Link 
+                  to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}${address.latest_receipt_id && receiptNeedsRevision ? `&parentReceiptId=${address.latest_receipt_id}` : ''}`)}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button 
                     size="sm" 
                     className={`h-8 text-xs ${receiptNeedsRevision ? 'bg-orange-500 hover:bg-orange-600' : 'bg-blue-500 hover:bg-blue-600'}`}
@@ -161,13 +176,18 @@ export default function AddressCard({
                   size="sm"
                   variant="outline"
                   className="h-8 text-xs"
-                  onClick={() => onMessageBoss(address)}
+                  onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }}
                 >
                   <MessageCircle className="w-3 h-3 mr-1" />
                   Message Boss
                 </Button>
               )}
             </div>
+          )}
+
+          {/* Chevron indicator for clickable cards */}
+          {showActions && (
+            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" />
           )}
         </div>
       </div>
