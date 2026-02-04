@@ -53,7 +53,8 @@ export default function AddressCard({
   showActions = true,
   onMessageBoss,
   onClick,
-  lastAttempt
+  lastAttempt,
+  allAttempts = [] // Array of all attempts for this address
 }) {
   const navigate = useNavigate();
   const formatted = formatAddress(address);
@@ -64,6 +65,14 @@ export default function AddressCard({
   const receiptNeedsRevision = receiptStatus === 'needs_revision';
   const attemptCount = address.attempts_count || 0;
   const isVerified = address.verification_status === 'verified';
+  
+  // Tab state - 0 = home/summary, 1-5 = attempt details
+  const [activeTab, setActiveTab] = useState(0);
+  
+  // Sort attempts by date for consistent ordering
+  const sortedAttempts = [...allAttempts].sort((a, b) => 
+    new Date(a.attempt_time) - new Date(b.attempt_time)
+  );
 
   const handleNavigate = (e) => {
     e.stopPropagation();
