@@ -28,11 +28,15 @@ import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { 
   calculateDistanceFeet, 
-  getTimeBadge, 
-  getQualifierDisplayLabel,
   getCurrentPosition,
   formatDistance 
 } from '@/components/services/GeoService';
+import { 
+  getQualifiers, 
+  getQualifierStorageFields,
+  getNeededQualifiers 
+} from '@/components/services/QualifierService';
+import { QualifierBadges, QualifierBox } from '@/components/qualifier/QualifierBadge';
 import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
@@ -141,12 +145,13 @@ export default function AddressCard({
         address.lng
       );
       
-      // 3. Get timestamp and qualifier
+      // 3. Get timestamp and qualifier data
       const now = new Date();
-      const qualifier = getTimeBadge(now);
+      const qualifierData = getQualifiers(now);
+      const qualifierFields = getQualifierStorageFields(qualifierData);
       const attemptNumber = attemptCount + 1;
       
-      // 4. Create Attempt record
+      // 4. Create Attempt record with full qualifier data
       const newAttempt = await base44.entities.Attempt.create({
         address_id: address.id,
         route_id: routeId,
@@ -155,7 +160,7 @@ export default function AddressCard({
         attempt_number: attemptNumber,
         attempt_time: now.toISOString(),
         attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        qualifier: qualifier,
+        ...qualifierFields,
         outcome: 'no_answer',
         user_latitude: position.latitude,
         user_longitude: position.longitude,
@@ -179,9 +184,15 @@ export default function AddressCard({
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       
-      // 8. Show success message with distance
+      // 8. Show success message with qualifier info
       const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : 'unknown distance';
-      toast.success(`Attempt ${attemptNumber} logged - ${distanceDisplay} from address`);
+      if (qualifierData.isNTC) {
+        toast.warning(`Attempt ${attemptNumber} logged - NTC (No Time Covered) - ${distanceDisplay}`);
+      } else if (qualifierData.isOutsideHours) {
+        toast.warning(`Attempt ${attemptNumber} logged - Outside Service Hours - ${distanceDisplay}`);
+      } else {
+        toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display} qualifier earned! ${distanceDisplay}`);
+      }
       
     } catch (error) {
       console.error('Failed to log attempt:', error);
