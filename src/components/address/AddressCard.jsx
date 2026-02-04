@@ -113,8 +113,9 @@ export default function AddressCard({
   const handleCardClick = () => {
     if (onClick) {
       onClick(address);
+    } else {
+      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
     }
-    // No navigation - everything is handled in-place on the card
   };
 
   // LOG ATTEMPT - Logs attempt in-place without navigation
@@ -280,7 +281,8 @@ export default function AddressCard({
   return (
     <>
       <div
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200"
+        onClick={handleCardClick}
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
       >
         {/* Attempt Tabs - Only show if there are attempts */}
         {attemptCount > 0 && (
