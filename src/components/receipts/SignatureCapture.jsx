@@ -73,6 +73,16 @@ export default function SignatureCapture({ onSignature, required = false, existi
 
   const stopDrawing = () => {
     setIsDrawing(false);
+    // Auto-save signature when user lifts finger/mouse
+    if (hasSignature || isDrawing) {
+      const canvas = canvasRef.current;
+      canvas.toBlob((blob) => {
+        if (blob) {
+          onSignature(blob);
+          setIsSaved(true);
+        }
+      }, 'image/png');
+    }
   };
 
   const clear = () => {
