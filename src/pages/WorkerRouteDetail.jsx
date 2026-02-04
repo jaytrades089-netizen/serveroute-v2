@@ -82,43 +82,7 @@ export default function WorkerRouteDetail() {
     return map;
   }, [attempts]);
 
-  // Check if all addresses are complete (served OR have all required qualifiers)
-  const checkRouteCompletion = React.useMemo(() => {
-    if (addresses.length === 0) return { isComplete: false, incompleteCount: 0, reason: 'No addresses' };
-    
-    let incompleteAddresses = [];
-    
-    addresses.forEach(addr => {
-      // If served, it's complete
-      if (addr.served) return;
-      
-      // Check qualifier completion for this address
-      const addrAttempts = allAttemptsMap[addr.id] || [];
-      
-      // Need AM, PM, and WEEKEND qualifiers
-      const hasAM = addrAttempts.some(a => a.has_am);
-      const hasPM = addrAttempts.some(a => a.has_pm);
-      const hasWeekend = addrAttempts.some(a => a.has_weekend);
-      
-      // If not served and missing qualifiers, it's incomplete
-      if (!hasAM || !hasPM || !hasWeekend) {
-        incompleteAddresses.push({
-          address: addr,
-          missingQualifiers: [
-            !hasAM && 'AM',
-            !hasPM && 'PM', 
-            !hasWeekend && 'WEEKEND'
-          ].filter(Boolean)
-        });
-      }
-    });
-    
-    return {
-      isComplete: incompleteAddresses.length === 0,
-      incompleteCount: incompleteAddresses.length,
-      incompleteAddresses
-    };
-  }, [addresses, allAttemptsMap]);
+
 
   if (routeLoading) {
     return (
@@ -245,12 +209,6 @@ export default function WorkerRouteDetail() {
         {route.status === 'active' && (
           <Button 
             onClick={async () => {
-              // Check if all addresses are complete before allowing completion
-              if (!checkRouteCompletion.isComplete) {
-                toast.error(`${checkRouteCompletion.incompleteCount} address(es) still need attempts or qualifiers`);
-                return;
-              }
-              
               try {
                 await base44.entities.Route.update(routeId, {
                   status: 'completed',
@@ -267,20 +225,6 @@ export default function WorkerRouteDetail() {
           >
             <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
           </Button>
-        )}
-
-        {/* Show warning if route is active but incomplete */}
-        {route.status === 'active' && !checkRouteCompletion.isComplete && (
-          <Card className="bg-amber-50 border-amber-200 mb-4">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 text-amber-700">
-                <AlertTriangle className="w-4 h-4" />
-                <span className="text-sm font-medium">
-                  {checkRouteCompletion.incompleteCount} address(es) still need qualifiers (AM/PM/Weekend) or to be served
-                </span>
-              </div>
-            </CardContent>
-          </Card>
         )}
 
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>

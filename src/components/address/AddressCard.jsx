@@ -22,7 +22,8 @@ import {
   Check,
   Loader2,
   Image as ImageIcon,
-  MessageSquare
+  MessageSquare,
+  FileText
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -114,12 +115,12 @@ export default function AddressCard({
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, '_blank');
   };
 
+  // Card click only triggers if custom onClick is provided
   const handleCardClick = () => {
     if (onClick) {
       onClick(address);
-    } else {
-      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
     }
+    // Otherwise do nothing - buttons inside handle navigation
   };
 
   // LOG ATTEMPT - Logs attempt in-place without navigation
@@ -292,8 +293,7 @@ export default function AddressCard({
   return (
     <>
       <div
-        onClick={handleCardClick}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200"
       >
         {/* Attempt Tabs - Only show if there are attempts */}
         {attemptCount > 0 && (
@@ -626,26 +626,36 @@ export default function AddressCard({
               )}
             </Button>
 
-            {/* Secondary Actions Row */}
-            <div className="flex gap-2">
+            {/* Secondary Actions Row - 3 buttons */}
+            <div className="grid grid-cols-3 gap-2">
               <Button 
                 onClick={handleCaptureEvidence}
-                className="flex-1 h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
               >
                 <Camera className="w-5 h-5" />
-                <span>CAPTURE EVIDENCE</span>
+                <span>EVIDENCE</span>
+              </Button>
+              
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                }}
+                className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+              >
+                <FileText className="w-5 h-5" />
+                <span>DETAILS</span>
               </Button>
               
               <Link 
                 to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&finalize=true`)}
                 onClick={(e) => e.stopPropagation()}
-                className="flex-1"
               >
                 <Button 
                   className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
                 >
                   <Shield className="w-5 h-5" />
-                  <span>FINALIZE SERVICE</span>
+                  <span>FINALIZE</span>
                 </Button>
               </Link>
             </div>

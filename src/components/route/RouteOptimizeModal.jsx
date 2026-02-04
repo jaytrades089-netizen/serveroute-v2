@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
@@ -27,10 +29,23 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     queryKey: ['savedLocations', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.SavedLocation.filter({ user_id: user.id });
+      const locations = await base44.entities.SavedLocation.filter({ user_id: user.id });
+      // Sort by last_used to get most recently used first
+      return locations.sort((a, b) => {
+        const aTime = a.last_used ? new Date(a.last_used) : new Date(a.created_date || 0);
+        const bTime = b.last_used ? new Date(b.last_used) : new Date(b.created_date || 0);
+        return bTime - aTime;
+      });
     },
     enabled: !!user?.id
   });
+
+  // Auto-select the most recently used location
+  useEffect(() => {
+    if (savedLocations.length > 0 && !selectedEndLocation) {
+      setSelectedEndLocation(savedLocations[0].id);
+    }
+  }, [savedLocations, selectedEndLocation]);
 
   // Fetch user settings for MapQuest API key
   const { data: userSettings } = useQuery({
@@ -344,9 +359,14 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
         await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
 
+        // Update last_used on the selected location
+        await base44.entities.SavedLocation.update(selectedEndLocation, {
+          last_used: new Date().toISOString()
+        });
+
         toast.success('Route optimized! Addresses reordered.');
         console.log('=== OPTIMIZATION COMPLETE ===');
-        
+
         // Call onOptimized callback after a brief delay
         setTimeout(() => {
           if (onOptimized) {
