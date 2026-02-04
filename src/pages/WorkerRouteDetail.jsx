@@ -217,6 +217,7 @@ export default function WorkerRouteDetail() {
                 showActions={true}
                 onMessageBoss={handleMessageBoss}
                 lastAttempt={lastAttemptMap[address.id]}
+                allAttempts={allAttemptsMap[address.id] || []}
               />
             ))}
           </div>
