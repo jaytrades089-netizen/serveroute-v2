@@ -46,10 +46,12 @@ export default function Layout({ children, currentPageName }) {
   const { data: user, isLoading, isError } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    retry: false
+    retry: false,
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent refetching
+    refetchOnWindowFocus: false // Don't refetch on window focus
   });
 
-  // Show loading while checking auth (with timeout fallback)
+  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -58,16 +60,25 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If not logged in, redirect to login
+  // If not logged in, redirect to login - but only once to avoid loops
   if (isError || !user) {
-    // Use Base44's built-in login redirect
-    base44.auth.redirectToLogin(window.location.pathname + window.location.search);
+    // Check if we're already redirecting to prevent loops
+    const isAlreadyRedirecting = sessionStorage.getItem('redirectingToLogin');
+    if (!isAlreadyRedirecting) {
+      sessionStorage.setItem('redirectingToLogin', 'true');
+      // Clear the flag after a short delay in case redirect fails
+      setTimeout(() => sessionStorage.removeItem('redirectingToLogin'), 5000);
+      base44.auth.redirectToLogin(window.location.pathname + window.location.search);
+    }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
+  
+  // Clear redirect flag on successful auth
+  sessionStorage.removeItem('redirectingToLogin');
 
   // Redirect logic based on role and page
   const isBoss = user.role === 'boss' || user.role === 'admin';
