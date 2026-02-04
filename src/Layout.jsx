@@ -43,12 +43,18 @@ const workerPages = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const { data: user, isLoading, isError } = useQuery({
+  const { data: user, isLoading, isError, error } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
+    queryFn: async () => {
+      const isAuthenticated = await base44.auth.isAuthenticated();
+      if (!isAuthenticated) {
+        return null;
+      }
+      return base44.auth.me();
+    },
     retry: false,
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes to prevent refetching
-    refetchOnWindowFocus: false // Don't refetch on window focus
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
 
   // Show loading while checking auth
@@ -60,16 +66,18 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If not logged in, redirect to login - but only once to avoid loops
-  if (isError || !user) {
-    // Check if we're already redirecting to prevent loops
-    const isAlreadyRedirecting = sessionStorage.getItem('redirectingToLogin');
-    if (!isAlreadyRedirecting) {
-      sessionStorage.setItem('redirectingToLogin', 'true');
-      // Clear the flag after a short delay in case redirect fails
-      setTimeout(() => sessionStorage.removeItem('redirectingToLogin'), 5000);
+  // If not logged in, redirect to login
+  if (!user) {
+    // Use React effect pattern to avoid redirect loops
+    const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
+    const now = Date.now();
+    
+    // Only redirect if we haven't redirected in the last 3 seconds
+    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 3000) {
+      sessionStorage.setItem('lastLoginRedirect', now.toString());
       base44.auth.redirectToLogin(window.location.pathname + window.location.search);
     }
+    
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -77,8 +85,8 @@ export default function Layout({ children, currentPageName }) {
     );
   }
   
-  // Clear redirect flag on successful auth
-  sessionStorage.removeItem('redirectingToLogin');
+  // Clear redirect tracking on successful auth
+  sessionStorage.removeItem('lastLoginRedirect');
 
   // Redirect logic based on role and page
   const isBoss = user.role === 'boss' || user.role === 'admin';
