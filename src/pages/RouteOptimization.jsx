@@ -305,6 +305,18 @@ export default function RouteOptimization() {
     );
   }
 
+  if (!route && !routeLoading) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => navigate(-1)} />
+        <div className="relative bg-white rounded-xl p-6 max-w-sm mx-4 text-center">
+          <p className="text-gray-600 mb-4">Route not found</p>
+          <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
       {/* Slide-up animation styles */}
