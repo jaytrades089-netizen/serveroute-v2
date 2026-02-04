@@ -401,9 +401,10 @@ export default function AddressCard({
                       {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <Badge className="bg-orange-100 text-orange-600 border-0 text-[9px] px-1.5 py-0">
-                        {getQualifierDisplayLabel(attempt.qualifier)}
-                      </Badge>
+                      <QualifierBadges 
+                        badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
+                        size="small" 
+                      />
                       <span className="text-[10px] text-gray-500 capitalize">
                         {attempt.outcome?.replace('_', ' ')}
                       </span>
@@ -419,6 +420,28 @@ export default function AddressCard({
                   )}
                 </div>
               ))}
+            </div>
+
+            {/* What's Earned / What's Needed Summary */}
+            <div className="grid grid-cols-2 gap-2 mt-3">
+              <QualifierBox 
+                label="EARNED" 
+                badges={(() => {
+                  const { earnedBadges } = getNeededQualifiers(sortedAttempts);
+                  return earnedBadges;
+                })()}
+                emptyText="None yet"
+                variant="success"
+              />
+              <QualifierBox 
+                label="STILL NEED" 
+                badges={(() => {
+                  const { needed, isComplete } = getNeededQualifiers(sortedAttempts);
+                  return isComplete ? [] : needed;
+                })()}
+                emptyText="✓ Complete!"
+                variant="warning"
+              />
             </div>
 
             {/* Status Badges */}
@@ -440,20 +463,15 @@ export default function AddressCard({
         {/* ATTEMPT TAB - Individual attempt details */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && (
           <div className="px-4 py-3 border-t border-gray-100">
-            {/* Header with qualifier badge */}
+            {/* Header with qualifier badges */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-gray-500">
                 ATTEMPT {activeTab} DETAILS
               </h3>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                selectedAttempt.qualifier?.includes('weekend') 
-                  ? 'bg-purple-100 text-purple-700'
-                  : selectedAttempt.qualifier === 'am'
-                  ? 'bg-yellow-100 text-yellow-700'
-                  : 'bg-blue-100 text-blue-700'
-              }`}>
-                {getQualifierDisplayLabel(selectedAttempt.qualifier)}
-              </span>
+              <QualifierBadges 
+                badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} 
+                size="default" 
+              />
             </div>
 
             {/* Date & Time */}
