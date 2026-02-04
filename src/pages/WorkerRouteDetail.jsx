@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -207,24 +207,50 @@ export default function WorkerRouteDetail() {
         )}
 
         {route.status === 'active' && (
-          <Button 
-            onClick={async () => {
-              try {
-                await base44.entities.Route.update(routeId, {
-                  status: 'completed',
-                  completed_at: new Date().toISOString()
-                });
-                queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-                toast.success('Route completed!');
-              } catch (error) {
-                toast.error('Failed to complete route');
-              }
-            }}
-            className="w-full bg-green-500 hover:bg-green-600 mb-4"
-          >
-            <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
-          </Button>
+          <div className="flex gap-2 mb-4">
+            {/* Stop/Pause Route - always available */}
+            <Button 
+              onClick={async () => {
+                try {
+                  await base44.entities.Route.update(routeId, {
+                    status: 'ready'
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                  queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+                  toast.info('Route stopped - you can start it again later');
+                  navigate(createPageUrl('WorkerRoutes'));
+                } catch (error) {
+                  toast.error('Failed to stop route');
+                }
+              }}
+              className="flex-1 bg-gray-500 hover:bg-gray-600"
+            >
+              <Pause className="w-4 h-4 mr-2" /> Stop Route
+            </Button>
+            
+            {/* Complete Route - only if all served */}
+            {pendingAddresses.length === 0 && (
+              <Button 
+                onClick={async () => {
+                  try {
+                    await base44.entities.Route.update(routeId, {
+                      status: 'completed',
+                      completed_at: new Date().toISOString()
+                    });
+                    queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+                    toast.success('Route completed! All addresses served.');
+                    navigate(createPageUrl('WorkerRoutes'));
+                  } catch (error) {
+                    toast.error('Failed to complete route');
+                  }
+                }}
+                className="flex-1 bg-green-500 hover:bg-green-600"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" /> Complete
+              </Button>
+            )}
+          </div>
         )}
 
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>
