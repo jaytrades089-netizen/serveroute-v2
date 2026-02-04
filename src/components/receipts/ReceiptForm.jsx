@@ -439,7 +439,7 @@ export default function ReceiptForm({
 
       {/* Location Status */}
       {locationError && (
-        <p className="text-xs text-orange-600 text-center">{locationError}</p>
+        <p className="text-xs text-gray-400 text-center">{locationError} (optional)</p>
       )}
       {location && (
         <p className="text-xs text-green-600 text-center flex items-center justify-center gap-1">
