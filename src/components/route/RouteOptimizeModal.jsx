@@ -198,39 +198,63 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         // DEBUG: Log the sequence
         console.log('=== MAPQUEST OPTIMIZATION RESULTS ===');
         console.log('Raw locationSequence from MapQuest:', sequence);
-        console.log('Sequence explanation:');
-        console.log('  - Index 0 = starting point (your current location)');
-        console.log('  - Index 1 to N-1 = addresses in optimized order');
-        console.log('  - Index N = ending point (selected end location)');
+        console.log('Number of locations sent:', locations.length);
+        console.log('Locations breakdown:');
+        console.log('  - locations[0] = start (current position)');
+        console.log('  - locations[1..' + validAddresses.length + '] = addresses');
+        console.log('  - locations[' + (validAddresses.length + 1) + '] = end location');
         
-        // The sequence contains indices into the original locations array
-        // locations[0] = current position (start)
-        // locations[1..N] = addresses
-        // locations[N+1] = end location
-        // So sequence[i] tells us which location comes at position i
+        // MapQuest locationSequence is an array where:
+        // - sequence[i] = the index in the ORIGINAL locations array that should be visited at stop i
+        // - sequence[0] should be 0 (start)
+        // - sequence[last] should be locations.length-1 (end)
+        // - The middle values are the address indices in optimized order
         
         console.log('\nBEFORE optimization - addresses as sent to MapQuest:');
         validAddresses.forEach((addr, i) => {
-          console.log(`  MapQuest index ${i + 1}: ${addr.normalized_address || addr.legal_address} (id: ${addr.id})`);
+          console.log(`  locations[${i + 1}]: ${addr.normalized_address || addr.legal_address} (id: ${addr.id})`);
         });
         
-        console.log('\nAFTER optimization - new order from MapQuest:');
-        const addressUpdates = [];
+        console.log('\nMapQuest returned sequence:', sequence);
+        console.log('This means visit order is:');
+        sequence.forEach((locIdx, stopNum) => {
+          if (locIdx === 0) {
+            console.log(`  Stop ${stopNum}: START (current location)`);
+          } else if (locIdx === locations.length - 1) {
+            console.log(`  Stop ${stopNum}: END (${endLocation.label})`);
+          } else {
+            const addr = validAddresses[locIdx - 1];
+            console.log(`  Stop ${stopNum}: ${addr?.normalized_address || addr?.legal_address || 'UNKNOWN'}`);
+          }
+        });
         
-        // sequence[0] is start, sequence[last] is end
-        // sequence[1] through sequence[length-2] are the addresses in optimized order
-        for (let newPosition = 1; newPosition < sequence.length - 1; newPosition++) {
-          const mapQuestIndex = sequence[newPosition]; // This is the index in the locations array
-          const addressArrayIndex = mapQuestIndex - 1; // Subtract 1 because locations[0] was start point
+        // Build the new order for addresses
+        // We need to find all the address indices in the sequence (skip start=0 and end=lastIndex)
+        const addressUpdates = [];
+        let newOrderPosition = 1;
+        
+        for (let i = 0; i < sequence.length; i++) {
+          const locationIndex = sequence[i];
+          
+          // Skip start (0) and end (last index)
+          if (locationIndex === 0 || locationIndex === locations.length - 1) {
+            continue;
+          }
+          
+          // This is an address - locationIndex maps to validAddresses[locationIndex - 1]
+          const addressArrayIndex = locationIndex - 1;
           const address = validAddresses[addressArrayIndex];
           
           if (address) {
-            console.log(`  Position ${newPosition}: ${address.normalized_address || address.legal_address} (was at MapQuest index ${mapQuestIndex}, array index ${addressArrayIndex})`);
-            addressUpdates.push({ address, newOrder: newPosition });
+            console.log(`  New position ${newOrderPosition}: ${address.normalized_address || address.legal_address}`);
+            addressUpdates.push({ address, newOrder: newOrderPosition });
+            newOrderPosition++;
           } else {
-            console.error(`  Position ${newPosition}: ERROR - no address found at index ${addressArrayIndex}`);
+            console.error(`  ERROR: No address at index ${addressArrayIndex}`);
           }
         }
+        
+        console.log('\nTotal addresses to update:', addressUpdates.length);
 
         // Deactivate other active routes
         const activeRoutes = await base44.entities.Route.filter({ 
