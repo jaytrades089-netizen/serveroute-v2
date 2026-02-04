@@ -57,6 +57,20 @@ export default function WorkerRouteDetail() {
     enabled: !!routeId
   });
 
+  // Subscribe to real-time address updates (e.g., receipt approval)
+  React.useEffect(() => {
+    if (!routeId) return;
+    
+    const unsubscribe = base44.entities.Address.subscribe((event) => {
+      // Only care about updates to addresses in this route
+      if (event.type === 'update' && event.data?.route_id === routeId) {
+        queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      }
+    });
+    
+    return unsubscribe;
+  }, [routeId, queryClient]);
+
   // Fetch attempts for all addresses in the route
   const { data: attempts = [] } = useQuery({
     queryKey: ['routeAttempts', routeId],
