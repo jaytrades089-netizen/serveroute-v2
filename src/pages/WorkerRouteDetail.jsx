@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import AddressCard from '@/components/address/AddressCard';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
 import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
+import DesktopWarningBanner from '@/components/common/DesktopWarningBanner';
 
 export default function WorkerRouteDetail() {
   const navigate = useNavigate();
@@ -253,6 +254,8 @@ export default function WorkerRouteDetail() {
           </div>
         )}
 
+        <DesktopWarningBanner />
+        
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>
 
         {addressesLoading ? (

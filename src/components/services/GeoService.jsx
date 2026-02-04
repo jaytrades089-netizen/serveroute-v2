@@ -49,15 +49,25 @@ export function getQualifierDisplayLabel(qualifier) {
 }
 
 /**
+ * Check if user is on mobile device
+ */
+export function isMobileDevice() {
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+}
+
+/**
  * Get current GPS position
  * Returns Promise with {latitude, longitude, accuracy}
+ * Enhanced for PC browser compatibility with better error messages
  */
 export function getCurrentPosition(options = {}) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error('Geolocation not supported'));
+      reject(new Error('Geolocation not supported by this browser. Please use Chrome or Firefox.'));
       return;
     }
+    
+    const isMobile = isMobileDevice();
     
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -68,16 +78,32 @@ export function getCurrentPosition(options = {}) {
         });
       },
       (error) => {
+        console.error('Geolocation error:', error.code, error.message);
+        
         let message = 'Failed to get location';
-        if (error.code === 1) message = 'Location permission denied';
-        if (error.code === 2) message = 'Location unavailable';
-        if (error.code === 3) message = 'Location request timed out';
+        switch (error.code) {
+          case 1: // PERMISSION_DENIED
+            message = 'Location permission denied. Please enable location access in your browser settings.';
+            break;
+          case 2: // POSITION_UNAVAILABLE
+            message = isMobile 
+              ? 'Location unavailable. Please ensure GPS is enabled.'
+              : 'Location unavailable on this device. For best experience, use the mobile app.';
+            break;
+          case 3: // TIMEOUT
+            message = isMobile
+              ? 'Location request timed out. Please try again.'
+              : 'Location request timed out. Desktop browsers may have limited GPS support.';
+            break;
+          default:
+            message = 'Could not get location. Please try again.';
+        }
         reject(new Error(message));
       },
       {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
+        enableHighAccuracy: !isMobile, // High accuracy more important on desktop
+        timeout: isMobile ? 10000 : 20000, // Longer timeout for PC
+        maximumAge: isMobile ? 0 : 60000, // Allow cached position on PC (up to 1 minute)
         ...options
       }
     );
