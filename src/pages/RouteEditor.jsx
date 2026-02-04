@@ -80,6 +80,15 @@ export default function RouteEditor() {
     }
   });
 
+  // Create a map of address_id to all attempts (for tabbed view)
+  const allAttemptsMap = {};
+  attempts.forEach(attempt => {
+    if (!allAttemptsMap[attempt.address_id]) {
+      allAttemptsMap[attempt.address_id] = [];
+    }
+    allAttemptsMap[attempt.address_id].push(attempt);
+  });
+
   const companyId = user?.company_id || 'default';
 
   const { data: poolAddresses = [], isLoading: poolLoading } = useQuery({
