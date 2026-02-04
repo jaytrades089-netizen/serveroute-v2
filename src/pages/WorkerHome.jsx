@@ -10,8 +10,8 @@ import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
-import { Loader2, ArrowRightLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Loader2 } from 'lucide-react';
+
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 
