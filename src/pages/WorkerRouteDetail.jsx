@@ -203,6 +203,27 @@ export default function WorkerRouteDetail() {
           </Button>
         )}
 
+        {route.status === 'active' && (
+          <Button 
+            onClick={async () => {
+              try {
+                await base44.entities.Route.update(routeId, {
+                  status: 'completed',
+                  completed_at: new Date().toISOString()
+                });
+                queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+                toast.success('Route completed!');
+              } catch (error) {
+                toast.error('Failed to complete route');
+              }
+            }}
+            className="w-full bg-green-500 hover:bg-green-600 mb-4"
+          >
+            <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
+          </Button>
+        )}
+
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>
 
         {addressesLoading ? (
