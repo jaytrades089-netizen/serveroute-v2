@@ -107,3 +107,47 @@ export function PageSkeleton() {
     </div>
   );
 }
+
+export function AddressDetailSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden mx-4 my-4 animate-pulse">
+      {/* Tab Navigation */}
+      <div className="flex gap-1 p-3 bg-gray-50">
+        {[1, 2, 3].map(i => (
+          <div key={i} className="h-10 w-12 bg-gray-200 rounded-lg" />
+        ))}
+      </div>
+      
+      {/* Address Header */}
+      <div className="flex items-start gap-4 p-4 border-b border-gray-200">
+        <div className="w-12 h-12 rounded-xl bg-gray-200" />
+        <div className="flex-1">
+          <div className="h-6 bg-gray-200 rounded w-3/4 mb-2" />
+          <div className="h-4 bg-gray-200 rounded w-1/2" />
+        </div>
+      </div>
+      
+      {/* Details Section */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="h-4 bg-gray-200 rounded w-1/3 mb-4" />
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-lg bg-gray-200" />
+          <div>
+            <div className="h-3 bg-gray-200 rounded w-20 mb-1" />
+            <div className="h-5 bg-gray-200 rounded w-40" />
+          </div>
+        </div>
+      </div>
+      
+      {/* Action Buttons */}
+      <div className="p-4 space-y-3">
+        <div className="h-14 bg-gray-200 rounded-xl" />
+        <div className="flex gap-3">
+          <div className="flex-1 h-14 bg-gray-200 rounded-xl" />
+          <div className="flex-1 h-14 bg-gray-200 rounded-xl" />
+        </div>
+        <div className="h-12 bg-gray-200 rounded-xl" />
+      </div>
+    </div>
+  );
+}
