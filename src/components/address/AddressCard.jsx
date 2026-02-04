@@ -136,27 +136,40 @@ export default function AddressCard({
       return;
     }
     
+    if (!address?.id) {
+      toast.error('Invalid address');
+      return;
+    }
+    
     setLoggingAttempt(true);
     
     try {
-      // 1. Get user's current GPS location
-      const position = await getCurrentPosition();
+      // 1. Try to get GPS location, but continue even if it fails
+      let userLat = null;
+      let userLon = null;
+      let distanceFeet = null;
       
-      // 2. Calculate distance from address
-      const distanceFeet = calculateDistanceFeet(
-        position.latitude,
-        position.longitude,
-        address.lat,
-        address.lng
-      );
+      try {
+        const position = await getCurrentPosition();
+        userLat = position.latitude;
+        userLon = position.longitude;
+        
+        // Only calculate distance if address has coordinates
+        if (address.lat && address.lng) {
+          distanceFeet = calculateDistanceFeet(userLat, userLon, address.lat, address.lng);
+        }
+      } catch (geoError) {
+        console.warn('Geolocation failed, continuing without location:', geoError.message);
+        // Continue anyway - don't block attempt logging
+      }
       
-      // 3. Get timestamp and qualifier data
+      // 2. Get timestamp and qualifier data
       const now = new Date();
       const qualifierData = getQualifiers(now);
       const qualifierFields = getQualifierStorageFields(qualifierData);
       const attemptNumber = attemptCount + 1;
       
-      // 4. Create Attempt record with full qualifier data
+      // 3. Create Attempt record with full qualifier data
       const newAttempt = await base44.entities.Attempt.create({
         address_id: address.id,
         route_id: routeId,
@@ -167,50 +180,48 @@ export default function AddressCard({
         attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         ...qualifierFields,
         outcome: 'no_answer',
-        user_latitude: position.latitude,
-        user_longitude: position.longitude,
+        user_latitude: userLat,
+        user_longitude: userLon,
         distance_feet: distanceFeet,
         notes: '',
         photo_urls: []
       });
       
-      // 5. Update address attempts count
+      // 4. Update address attempts count
       await base44.entities.Address.update(address.id, {
         attempts_count: attemptNumber,
         status: attemptNumber === 1 ? 'attempted' : address.status
       });
       
-      // 6. Update local state to show new tab immediately
+      // 5. Update local state to show new tab immediately
       const updatedAttempts = [...localAttempts, newAttempt];
       setLocalAttempts(updatedAttempts);
-      setActiveTab(attemptNumber); // Switch to new attempt tab
+      setActiveTab(attemptNumber);
       
-      // 7. Invalidate queries to refresh data
+      // 6. Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       
-      // 8. Show success message with qualifier info
-      const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : 'unknown distance';
+      // 7. Show success message
+      const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : '';
+      const distanceText = distanceDisplay ? ` - ${distanceDisplay}` : '';
+      
       if (qualifierData.isNTC) {
-        toast.warning(`Attempt ${attemptNumber} logged - NTC (No Time Covered) - ${distanceDisplay}`);
+        toast.warning(`Attempt ${attemptNumber} logged - NTC${distanceText}`);
       } else if (qualifierData.isOutsideHours) {
-        toast.warning(`Attempt ${attemptNumber} logged - Outside Service Hours - ${distanceDisplay}`);
+        toast.warning(`Attempt ${attemptNumber} logged - Outside Hours${distanceText}`);
       } else {
-        toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display} qualifier earned! ${distanceDisplay}`);
+        toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display}${distanceText}`);
       }
 
-      // 9. Trigger animation callback
+      // 8. Trigger animation callback after small delay to let state update
       if (onAttemptLogged) {
-        onAttemptLogged();
+        setTimeout(() => onAttemptLogged(), 100);
       }
 
-      } catch (error) {
+    } catch (error) {
       console.error('Failed to log attempt:', error);
-      if (error.message.includes('permission')) {
-        toast.error('Please enable location services to log attempts');
-      } else {
-        toast.error('Failed to log attempt: ' + error.message);
-      }
+      toast.error('Failed to log attempt: ' + (error.message || 'Unknown error'));
     } finally {
       setLoggingAttempt(false);
     }

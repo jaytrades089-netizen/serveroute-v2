@@ -4,11 +4,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import AddressCard from '@/components/address/AddressCard';
 import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
@@ -115,16 +121,80 @@ export default function WorkerRouteDetail() {
     setShowMessageDialog(true);
   };
 
+  // Reset all attempts for testing
+  const handleResetAllAttempts = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete ALL attempts for this route? This will reset all addresses to pending. This cannot be undone.'
+    );
+    
+    if (!confirmed) return;
+    
+    try {
+      toast.info('Resetting route...');
+      
+      // Delete all attempts for this route
+      for (const attempt of attempts) {
+        await base44.entities.Attempt.delete(attempt.id);
+      }
+      
+      // Reset all addresses in this route
+      for (const addr of addresses) {
+        await base44.entities.Address.update(addr.id, {
+          status: 'pending',
+          served: false,
+          served_at: null,
+          attempts_count: 0,
+          receipt_status: 'pending'
+        });
+      }
+      
+      // Reset route
+      await base44.entities.Route.update(routeId, {
+        status: 'ready',
+        started_at: null,
+        completed_at: null,
+        served_count: 0
+      });
+      
+      toast.success('Route reset successfully!');
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      
+    } catch (error) {
+      console.error('Reset failed:', error);
+      toast.error('Failed to reset: ' + error.message);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
       <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3">
         <Link to={createPageUrl('WorkerRoutes')}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
-        <div>
+        <div className="flex-1">
           <h1 className="font-bold text-lg">{route.folder_name}</h1>
           <p className="text-sm text-blue-100">{route.description || 'No description'}</p>
         </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-2 hover:bg-blue-600 rounded-full transition-colors">
+              <MoreVertical className="w-5 h-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+              onClick={handleResetAllAttempts} 
+              className="text-red-600 focus:text-red-600"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset All Attempts
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">

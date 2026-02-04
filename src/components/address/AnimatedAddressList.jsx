@@ -55,28 +55,44 @@ export default function AnimatedAddressList({
 
   // Handle when an attempt is logged (card moves to "attempted today")
   const handleAttemptLogged = async (addressId) => {
-    // Trigger slide-out animation
-    setAnimatingCardId(addressId);
-    
-    // Find cards below this one that need to slide up
-    const currentIndex = activeAddresses.findIndex(a => a.id === addressId);
-    if (currentIndex >= 0) {
-      const cardsBelow = activeAddresses.slice(currentIndex + 1).map(a => a.id);
-      setSlidingUpCards(cardsBelow);
+    if (!addressId) {
+      console.warn('handleAttemptLogged called without addressId');
+      return;
     }
     
-    // Wait for animation to complete
-    await new Promise(resolve => setTimeout(resolve, 400));
+    // Find the card in active addresses
+    const currentIndex = activeAddresses.findIndex(a => a.id === addressId);
     
-    // Mark as recently moved for slide-in animation
-    setRecentlyMovedId(addressId);
+    if (currentIndex === -1) {
+      // Card not in active list - might already be in attempted today
+      console.log('Address not in active list, skipping animation');
+      return;
+    }
     
-    // Reset animation states
-    setAnimatingCardId(null);
-    setSlidingUpCards([]);
-    
-    // Clear recently moved after animation
-    setTimeout(() => setRecentlyMovedId(null), 500);
+    try {
+      // Trigger slide-out animation
+      setAnimatingCardId(addressId);
+      
+      // Find cards below this one that need to slide up
+      const cardsBelow = activeAddresses.slice(currentIndex + 1).map(a => a.id);
+      setSlidingUpCards(cardsBelow);
+      
+      // Wait for animation to complete
+      await new Promise(resolve => setTimeout(resolve, 400));
+      
+      // Mark as recently moved for slide-in animation
+      setRecentlyMovedId(addressId);
+      
+    } catch (error) {
+      console.error('Animation error:', error);
+    } finally {
+      // Always reset animation states
+      setAnimatingCardId(null);
+      setSlidingUpCards([]);
+      
+      // Clear recently moved after animation
+      setTimeout(() => setRecentlyMovedId(null), 500);
+    }
   };
 
   // Handle when an address is served/finalized
