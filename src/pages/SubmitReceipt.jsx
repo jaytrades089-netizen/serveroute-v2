@@ -98,8 +98,9 @@ export default function SubmitReceipt() {
   }
 
   const handleSuccess = (receipt) => {
-    // Navigate back to route detail or address list
-    navigate(createPageUrl(`WorkerRouteDetail?routeId=${routeId}`));
+    // Navigate back to route detail - the AnimatedAddressList will detect the served status
+    // and animate the card to the completed section
+    navigate(createPageUrl(`WorkerRouteDetail?routeId=${routeId}&justServed=${addressId}`));
   };
 
   const handleCancel = () => {

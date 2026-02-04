@@ -164,14 +164,32 @@ export default function ReceiptForm({
         });
       }
 
-      // Update address
+      // Update address - also mark as served if outcome is served
       const receiptCount = await base44.entities.Receipt.filter({ address_id: address.id });
-      await base44.entities.Address.update(address.id, {
+      const addressUpdate = {
         receipt_status: 'pending_review',
         latest_receipt_id: receipt.id,
         receipt_count: receiptCount.length,
         receipt_submitted_at: new Date().toISOString()
-      });
+      };
+      
+      // Mark address as served if outcome is served or partially_served
+      if (outcome === 'served' || outcome === 'partially_served') {
+        addressUpdate.served = true;
+        addressUpdate.served_at = new Date().toISOString();
+        addressUpdate.status = 'served';
+      }
+      
+      await base44.entities.Address.update(address.id, addressUpdate);
+      
+      // Update route served count if address was served
+      if (outcome === 'served' || outcome === 'partially_served') {
+        const routeAddresses = await base44.entities.Address.filter({ route_id: route.id });
+        const servedCount = routeAddresses.filter(a => a.served || a.id === address.id).length;
+        await base44.entities.Route.update(route.id, {
+          served_count: servedCount
+        });
+      }
 
       // Notify bosses
       const bosses = await base44.entities.User.filter({ 
