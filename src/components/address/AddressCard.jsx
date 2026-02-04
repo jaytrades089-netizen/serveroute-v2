@@ -377,11 +377,18 @@ export default function AddressCard({
             
             <div className="flex-1 min-w-0">
               {/* Address Display - 2 lines, ALL CAPS, Bold */}
-              <p className={`text-lg font-bold leading-tight ${
-                isServed ? 'text-gray-500' : 'text-gray-900'
-              }`}>
-                {formatted.line1}
-              </p>
+              <div className="flex items-start justify-between gap-2">
+                <p className={`text-lg font-bold leading-tight ${
+                  isServed ? 'text-gray-500' : 'text-gray-900'
+                }`}>
+                  {formatted.line1}
+                </p>
+                {address.defendant_name && (
+                  <p className="text-xs text-gray-400 italic whitespace-nowrap">
+                    {address.defendant_name}
+                  </p>
+                )}
+              </div>
               <p className={`text-sm ${isServed ? 'text-gray-400' : 'text-gray-500'}`}>
                 {formatted.line2}
               </p>
