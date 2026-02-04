@@ -95,6 +95,7 @@ import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
 import BossRouteDetail from './pages/BossRouteDetail';
+import RouteOptimization from './pages/RouteOptimization';
 import __Layout from './Layout.jsx';
 
 
@@ -147,6 +148,7 @@ export const PAGES = {
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
     "BossRouteDetail": BossRouteDetail,
+    "RouteOptimization": RouteOptimization,
 }
 
 export const pagesConfig = {

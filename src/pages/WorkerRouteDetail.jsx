@@ -190,7 +190,10 @@ export default function WorkerRouteDetail() {
         )}
 
         {route.status === 'assigned' && !needsVerification && (
-          <Button className="w-full bg-blue-500 hover:bg-blue-600 mb-4">
+          <Button 
+            onClick={() => navigate(createPageUrl(`RouteOptimization?routeId=${routeId}`))}
+            className="w-full bg-orange-500 hover:bg-orange-600 mb-4"
+          >
             <Play className="w-4 h-4 mr-2" /> Start Route
           </Button>
         )}
