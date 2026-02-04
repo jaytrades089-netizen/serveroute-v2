@@ -245,6 +245,12 @@ export default function WorkerRouteDetail() {
         {route.status === 'active' && (
           <Button 
             onClick={async () => {
+              // Check if all addresses are complete before allowing completion
+              if (!checkRouteCompletion.isComplete) {
+                toast.error(`${checkRouteCompletion.incompleteCount} address(es) still need attempts or qualifiers`);
+                return;
+              }
+              
               try {
                 await base44.entities.Route.update(routeId, {
                   status: 'completed',
@@ -261,6 +267,20 @@ export default function WorkerRouteDetail() {
           >
             <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
           </Button>
+        )}
+
+        {/* Show warning if route is active but incomplete */}
+        {route.status === 'active' && !checkRouteCompletion.isComplete && (
+          <Card className="bg-amber-50 border-amber-200 mb-4">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 text-amber-700">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-sm font-medium">
+                  {checkRouteCompletion.incompleteCount} address(es) still need qualifiers (AM/PM/Weekend) or to be served
+                </span>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>
