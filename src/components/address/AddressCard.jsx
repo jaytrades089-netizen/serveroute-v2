@@ -199,12 +199,12 @@ export default function AddressCard({
         </div>
       </div>
 
-      {/* Attempt Details Section */}
-      {attemptCount > 0 && !isServed && (
+      {/* HOME TAB - Summary with all qualifiers/times */}
+      {attemptCount > 0 && !isServed && activeTab === 0 && (
         <div className="px-4 py-3 border-t border-gray-100">
           <div className="flex items-center justify-between mb-3">
             <span className="text-xs font-bold text-gray-700 tracking-wide">
-              ATTEMPT {attemptCount} DETAILS
+              ATTEMPTS SUMMARY
             </span>
             {isPriority && (
               <Badge className="bg-orange-500 text-white text-[10px] px-2 py-0.5">
@@ -213,46 +213,37 @@ export default function AddressCard({
             )}
           </div>
 
-          {/* Date & Time Row */}
-          {lastAttempt?.attempt_time && (
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-500" />
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-500 font-medium">DATE & TIME</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {format(new Date(lastAttempt.attempt_time), "EEE, M/d/yy 'at' h:mm a")}
+          {/* Attempt Timeline */}
+          <div className="space-y-2">
+            {sortedAttempts.map((attempt, idx) => (
+              <div 
+                key={attempt.id} 
+                className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
+              >
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-600">
+                  A{idx + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-gray-900">
+                    {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Badge className="bg-orange-100 text-orange-600 border-0 text-[9px] px-1.5 py-0">
+                      {getQualifierLabel(attempt.qualifier)}
+                    </Badge>
+                    <span className="text-[10px] text-gray-500 capitalize">{attempt.outcome}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Status Note Row */}
-          {lastAttempt?.notes && (
-            <div className="flex items-start gap-3 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <Info className="w-5 h-5 text-blue-500" />
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-500 font-medium">STATUS NOTE</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {lastAttempt.notes}
-                </div>
-              </div>
-            </div>
-          )}
+            ))}
+          </div>
 
           {/* Status Badges */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap mt-3">
             {isVerified && (
               <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
                 VERIFIED
-              </Badge>
-            )}
-            {lastAttempt?.qualifier && (
-              <Badge className="bg-orange-100 text-orange-600 border border-orange-200 text-[10px] font-bold px-2.5 py-1">
-                {getQualifierLabel(lastAttempt.qualifier)}
               </Badge>
             )}
             {address.has_dcn && (
@@ -261,6 +252,82 @@ export default function AddressCard({
               </Badge>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ATTEMPT TAB - Individual attempt details */}
+      {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && (
+        <div className="px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-bold text-gray-700 tracking-wide">
+              ATTEMPT {activeTab} DETAILS
+            </span>
+            <Badge className={`text-[10px] px-2 py-0.5 ${
+              selectedAttempt.outcome === 'served' ? 'bg-green-500 text-white' :
+              selectedAttempt.outcome === 'not_home' ? 'bg-yellow-500 text-white' :
+              'bg-gray-500 text-white'
+            }`}>
+              {selectedAttempt.outcome?.toUpperCase().replace('_', ' ')}
+            </Badge>
+          </div>
+
+          {/* Date & Time Row */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-orange-500" />
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 font-medium">DATE & TIME</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {format(new Date(selectedAttempt.attempt_time), "EEE, M/d/yy 'at' h:mm a")}
+              </div>
+            </div>
+          </div>
+
+          {/* Qualifier Row */}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
+              <Clock className="w-5 h-5 text-indigo-500" />
+            </div>
+            <div>
+              <div className="text-[10px] text-gray-500 font-medium">QUALIFIER</div>
+              <div className="text-sm font-semibold text-gray-900">
+                {getQualifierLabel(selectedAttempt.qualifier)}
+              </div>
+            </div>
+          </div>
+
+          {/* Status Note Row */}
+          {selectedAttempt.notes && (
+            <div className="flex items-start gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <Info className="w-5 h-5 text-blue-500" />
+              </div>
+              <div>
+                <div className="text-[10px] text-gray-500 font-medium">STATUS NOTE</div>
+                <div className="text-sm font-semibold text-gray-900">
+                  {selectedAttempt.notes}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Photos if any */}
+          {selectedAttempt.photo_urls?.length > 0 && (
+            <div className="mt-3">
+              <div className="text-[10px] text-gray-500 font-medium mb-2">PHOTOS</div>
+              <div className="flex gap-2 overflow-x-auto">
+                {selectedAttempt.photo_urls.map((url, i) => (
+                  <img 
+                    key={i} 
+                    src={url} 
+                    alt={`Attempt ${activeTab} photo ${i + 1}`}
+                    className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
