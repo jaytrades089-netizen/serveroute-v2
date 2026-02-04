@@ -81,5 +81,23 @@ export default function Layout({ children, currentPageName }) {
     return null;
   }
 
+  // Boss/Admin trying to access worker pages - redirect to boss equivalent
+  if (isBoss && isOnWorkerPage) {
+    const workerToBossMap = {
+      'WorkerHome': 'BossDashboard',
+      'WorkerRoutes': 'BossRoutes',
+      'WorkerSettings': 'BossSettings',
+      'Notifications': 'BossNotifications',
+      'Workers': 'BossWorkers',
+      'Chat': 'Chat' // Chat is shared, no redirect needed
+    };
+
+    const bossPage = workerToBossMap[currentPageName];
+    if (bossPage && bossPage !== currentPageName) {
+      window.location.href = '/' + bossPage;
+      return null;
+    }
+  }
+
   return children;
 }
