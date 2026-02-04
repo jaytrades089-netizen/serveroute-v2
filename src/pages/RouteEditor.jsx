@@ -441,39 +441,43 @@ export default function RouteEditor() {
           <DragDropContext onDragEnd={handleDragEnd}>
             <Droppable droppableId="addresses">
               {(provided) => (
-                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-4">
                   {routeAddresses.map((address, index) => (
                     <Draggable key={address.id} draggableId={address.id} index={index}>
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.draggableProps}
-                          className={`bg-white rounded-lg border p-3 flex items-center gap-3 ${
-                            snapshot.isDragging ? 'shadow-lg' : ''
-                          }`}
+                          className={`relative ${snapshot.isDragging ? 'z-50' : ''}`}
                         >
-                          <div {...provided.dragHandleProps} className="cursor-grab">
+                          {/* Drag handle overlay */}
+                          <div 
+                            {...provided.dragHandleProps} 
+                            className="absolute left-0 top-0 bottom-0 w-10 flex items-center justify-center cursor-grab z-10 bg-gradient-to-r from-gray-100/80 to-transparent rounded-l-2xl"
+                          >
                             <GripVertical className="w-5 h-5 text-gray-400" />
                           </div>
-                          <span className="text-sm text-gray-400 w-6">{index + 1}.</span>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">
-                              {address.normalized_address || address.legal_address}
-                            </p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge className={`${getTypeColor(address.serve_type)} text-xs`}>
-                                {address.serve_type}
-                              </Badge>
-                              <span className="text-xs text-gray-500">${address.pay_rate}</span>
-                            </div>
-                          </div>
+                          
+                          {/* Remove button overlay */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeAddressMutation.mutate(address.id)}
+                            className="absolute right-2 top-2 z-10 bg-white/80 hover:bg-red-50"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              removeAddressMutation.mutate(address.id);
+                            }}
                           >
-                            <X className="w-4 h-4 text-gray-400" />
+                            <X className="w-4 h-4 text-gray-400 hover:text-red-500" />
                           </Button>
+                          
+                          <AddressCard
+                            address={address}
+                            index={index}
+                            routeId={routeId}
+                            showActions={false}
+                            lastAttempt={lastAttemptMap[address.id]}
+                          />
                         </div>
                       )}
                     </Draggable>
