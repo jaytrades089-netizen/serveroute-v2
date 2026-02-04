@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Navigation, Plus, Loader2, ChevronLeft, X, Home, Building, Briefcase } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, ChevronLeft, X, Home, Building, Briefcase, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RouteOptimization() {
@@ -301,13 +301,33 @@ export default function RouteOptimization() {
         {/* Route Info */}
         <Card className="mb-4">
           <CardContent className="p-4">
-            <h2 className="font-semibold text-gray-900 mb-1">{route?.folder_name || 'Route'}</h2>
-            <p className="text-sm text-gray-500">{addresses.length} addresses to serve</p>
-            {route?.due_date && (
-              <p className="text-xs text-orange-600 mt-1">
-                Due: {new Date(route.due_date).toLocaleDateString()}
-              </p>
-            )}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900 mb-1">{route?.folder_name || 'Route'}</h2>
+                <p className="text-sm text-gray-500">{addresses.length} addresses to serve</p>
+                {route?.due_date && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    Due: {new Date(route.due_date).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  const shuffled = [...addresses].sort(() => Math.random() - 0.5);
+                  for (let i = 0; i < shuffled.length; i++) {
+                    await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
+                  }
+                  queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+                  toast.success('Addresses shuffled!');
+                }}
+                className="text-xs"
+              >
+                <Shuffle className="w-3 h-3 mr-1" />
+                Shuffle
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
