@@ -113,9 +113,8 @@ export default function AddressCard({
   const handleCardClick = () => {
     if (onClick) {
       onClick(address);
-    } else {
-      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
     }
+    // Don't navigate - the full card with tabs is displayed inline
   };
 
   // LOG ATTEMPT - Logs attempt in-place without navigation
