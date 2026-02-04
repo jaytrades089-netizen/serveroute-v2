@@ -153,7 +153,7 @@ export default function WorkerRouteDetail() {
               route.status === 'stalled' ? 'text-red-600' :
               'text-gray-600'
             }`}>
-              {route.status.toUpperCase()}
+              {route.status?.toUpperCase() || 'UNKNOWN'}
             </span>
           </div>
           <div className="text-right">
