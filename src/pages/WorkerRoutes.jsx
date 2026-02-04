@@ -34,6 +34,26 @@ export default function WorkerRoutes() {
     enabled: !!user?.id
   });
 
+  // Fetch attempts for all user's routes
+  const { data: allAttempts = [] } = useQuery({
+    queryKey: ['workerAttempts', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return base44.entities.Attempt.filter({ server_id: user.id });
+    },
+    enabled: !!user?.id
+  });
+
+  // Group attempts by route_id
+  const attemptsByRoute = React.useMemo(() => {
+    const map = {};
+    allAttempts.forEach(att => {
+      if (!map[att.route_id]) map[att.route_id] = [];
+      map[att.route_id].push(att);
+    });
+    return map;
+  }, [allAttempts]);
+
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
@@ -106,6 +126,7 @@ export default function WorkerRoutes() {
                 key={route.id}
                 route={route}
                 isBossView={false}
+                attempts={attemptsByRoute[route.id] || []}
               />
             ))}
           </div>
