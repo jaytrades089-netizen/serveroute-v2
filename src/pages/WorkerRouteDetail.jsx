@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
@@ -10,14 +10,17 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AddressCard from '@/components/address/AddressCard';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
+import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
 
 export default function WorkerRouteDetail() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const routeId = urlParams.get('id') || urlParams.get('routeId');
   
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -193,7 +196,7 @@ export default function WorkerRouteDetail() {
 
         {(route.status === 'assigned' || route.status === 'ready') && !needsVerification && (
           <Button 
-            onClick={() => navigate(createPageUrl(`RouteOptimization?routeId=${routeId}`))}
+            onClick={() => setShowOptimizeModal(true)}
             className="w-full bg-orange-500 hover:bg-orange-600 mb-4"
           >
             <Play className="w-4 h-4 mr-2" /> Start Route
@@ -242,6 +245,21 @@ export default function WorkerRouteDetail() {
           user={user}
         />
       </main>
+
+      {/* Route Optimize Modal */}
+      {showOptimizeModal && (
+        <RouteOptimizeModal
+          routeId={routeId}
+          route={route}
+          addresses={addresses}
+          onClose={() => setShowOptimizeModal(false)}
+          onOptimized={() => {
+            setShowOptimizeModal(false);
+            queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+            queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+          }}
+        />
+      )}
     </div>
   );
 }
