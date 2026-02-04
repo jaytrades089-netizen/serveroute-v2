@@ -16,6 +16,8 @@ import {
   Play,
   MoreVertical
 } from 'lucide-react';
+import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
+import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
 const STATUS_CONFIG = {
   draft: { label: 'DRAFT', color: 'bg-gray-100 text-gray-700 border-gray-200' },
@@ -61,7 +63,8 @@ export default function RouteCard({
   showActions = false,
   onMenuClick,
   isBossView = false,
-  className = ''
+  className = '',
+  attempts = []
 }) {
   const navigate = useNavigate();
   const progress = route.total_addresses > 0 
@@ -200,32 +203,59 @@ export default function RouteCard({
         {/* Progress Bar */}
         <ProgressBar served={route.served_count || 0} total={route.total_addresses || 0} />
 
-        {/* Info Row */}
-        <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-3 text-sm text-gray-600">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4 text-gray-400" />
-              {route.total_addresses || 0}
-            </span>
-            {route.due_date && (
-              <span className={`flex items-center gap-1 ${
-                isOverdue ? 'text-red-600 font-medium' :
-                isDueSoon ? 'text-orange-600 font-medium' :
-                ''
+        {/* HAS / DUE / NEEDS Boxes */}
+        {(() => {
+          const qualifierInfo = getNeededQualifiers(attempts);
+          const spreadDate = route.first_attempt_date 
+            ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
+            : null;
+          const isSpreadPassed = spreadDate && new Date() > spreadDate;
+          
+          return (
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {/* HAS Box */}
+              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                <p className="text-[10px] font-semibold text-green-700 mb-1">HAS</p>
+                {qualifierInfo.earnedBadges.length > 0 ? (
+                  <QualifierBadges badges={qualifierInfo.earnedBadges} size="small" />
+                ) : (
+                  <p className="text-[10px] text-gray-400">None yet</p>
+                )}
+              </div>
+              
+              {/* DUE Box */}
+              <div className={`rounded-lg p-2 border ${
+                isOverdue 
+                  ? 'bg-red-50 border-red-300' 
+                  : 'bg-blue-50 border-blue-200'
               }`}>
-                <Calendar className="w-4 h-4" />
-                {isOverdue ? 'Overdue' : `Due ${format(new Date(route.due_date), 'MMM d')}`}
-              </span>
-            )}
-          </div>
-
-          {/* Qualifier Badges */}
-          <div className="flex gap-1">
-            <QualifierBadge type="AM" done={route.am_completed} />
-            <QualifierBadge type="PM" done={route.pm_completed} />
-            <QualifierBadge type="WK" done={route.weekend_completed} />
-          </div>
-        </div>
+                <p className={`text-[10px] font-semibold mb-1 ${
+                  isOverdue ? 'text-red-700' : 'text-blue-700'
+                }`}>DUE</p>
+                <p className={`text-xs font-bold ${
+                  isOverdue ? 'text-red-600' : 'text-blue-600'
+                }`}>
+                  {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
+                </p>
+              </div>
+              
+              {/* NEEDS Box */}
+              <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
+                <p className="text-[10px] font-semibold text-amber-700 mb-1">NEEDS</p>
+                {qualifierInfo.needed.length > 0 ? (
+                  <QualifierBadges badges={qualifierInfo.needed} size="small" />
+                ) : (
+                  <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
+                )}
+                {spreadDate && (
+                  <p className={`text-[9px] mt-1 ${isSpreadPassed ? 'text-green-600' : 'text-amber-600'}`}>
+                    Spread: {format(spreadDate, 'MMM d')}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Action Button (for active routes) */}
