@@ -38,7 +38,9 @@ export default function WorkerRouteDetail() {
     queryKey: ['routeAddresses', routeId],
     queryFn: async () => {
       if (!routeId) return [];
-      return base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
+      const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
+      // Sort by order_index so optimized routes show in correct order
+      return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
     enabled: !!routeId
   });
@@ -212,16 +214,21 @@ export default function WorkerRouteDetail() {
         ) : (
           <div className="space-y-4">
             {addresses.map((address, index) => (
-              <AddressCard
-                key={address.id}
-                address={address}
-                index={index}
-                routeId={routeId}
-                showActions={true}
-                onMessageBoss={handleMessageBoss}
-                lastAttempt={lastAttemptMap[address.id]}
-                allAttempts={allAttemptsMap[address.id] || []}
-              />
+              <div key={address.id} className="relative">
+                {/* Order number badge */}
+                <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                  {address.order_index || index + 1}
+                </div>
+                <AddressCard
+                  address={address}
+                  index={index}
+                  routeId={routeId}
+                  showActions={true}
+                  onMessageBoss={handleMessageBoss}
+                  lastAttempt={lastAttemptMap[address.id]}
+                  allAttempts={allAttemptsMap[address.id] || []}
+                />
+              </div>
             ))}
           </div>
         )}

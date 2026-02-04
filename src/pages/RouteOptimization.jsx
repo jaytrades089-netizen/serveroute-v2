@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
-import { MapPin, Navigation, Plus, Loader2, ChevronLeft, X, Home, Building, Briefcase, Shuffle } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RouteOptimization() {
@@ -206,7 +204,21 @@ export default function RouteOptimization() {
       }
 
       if (result.route?.locationSequence) {
-        console.log('Optimized sequence:', result.route.locationSequence);
+        const sequence = result.route.locationSequence;
+        
+        // DEBUG: Log before/after order
+        console.log('BEFORE optimization - address order:');
+        validAddresses.forEach((addr, i) => {
+          console.log(`  ${i + 1}. ${addr.normalized_address || addr.legal_address} (current order_index: ${addr.order_index})`);
+        });
+        
+        console.log('MapQuest sequence:', sequence);
+        console.log('AFTER optimization - new order:');
+        for (let i = 1; i < sequence.length - 1; i++) {
+          const originalIndex = sequence[i] - 1;
+          const address = validAddresses[originalIndex];
+          console.log(`  New position ${i}: ${address?.normalized_address || address?.legal_address} (was index ${originalIndex})`);
+        }
 
         // DEACTIVATE any other active routes for this user first
         const activeRoutes = await base44.entities.Route.filter({ 
@@ -226,13 +238,12 @@ export default function RouteOptimization() {
         }
 
         // Update address order
-        const sequence = result.route.locationSequence;
         for (let i = 1; i < sequence.length - 1; i++) {
           const originalIndex = sequence[i] - 1;
           const address = validAddresses[originalIndex];
           if (address) {
             await base44.entities.Address.update(address.id, { order_index: i });
-            console.log(`Address ${address.id} set to order ${i}`);
+            console.log(`Address ${address.id} set to order_index ${i}`);
           }
         }
 
@@ -255,8 +266,14 @@ export default function RouteOptimization() {
         queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
         queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
 
-        toast.success('Route optimized!');
-        navigate(createPageUrl(`WorkerRouteDetail?routeId=${routeId}`));
+        toast.success('Route optimized! Addresses reordered.');
+        setIsOptimizing(false);
+        
+        // Small delay to let user see the result, then navigate
+        setTimeout(() => {
+          navigate(createPageUrl(`WorkerRouteDetail?routeId=${routeId}`));
+        }, 500);
+        return;
 
       } else {
         console.error('No location sequence in response');
@@ -281,175 +298,167 @@ export default function RouteOptimization() {
 
   if (routeLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        <Loader2 className="w-8 h-8 animate-spin text-white relative z-10" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)}>
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-        <h1 className="font-bold text-lg">Optimize Route</h1>
-      </header>
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      {/* Slide-up animation styles */}
+      <style>{`
+        @keyframes slide-up {
+          from {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
 
-      <main className="px-4 py-6 max-w-lg mx-auto">
-        {/* Route Info */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="font-semibold text-gray-900 mb-1">{route?.folder_name || 'Route'}</h2>
-                <p className="text-sm text-gray-500">{addresses.length} addresses to serve</p>
-                {route?.due_date && (
-                  <p className="text-xs text-orange-600 mt-1">
-                    Due: {new Date(route.due_date).toLocaleDateString()}
-                  </p>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  const shuffled = [...addresses].sort(() => Math.random() - 0.5);
-                  for (let i = 0; i < shuffled.length; i++) {
-                    await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
-                  }
-                  queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-                  toast.success('Addresses shuffled!');
+      {/* Dark transparent backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={() => navigate(-1)}
+      />
+      
+      {/* Bottom sheet style panel */}
+      <div className="relative bg-white rounded-t-3xl w-full max-w-lg p-6 pb-8 shadow-2xl animate-slide-up max-h-[85vh] overflow-y-auto">
+        {/* Header with drag handle */}
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+        
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">Optimize Route</h2>
+          <button 
+            onClick={() => navigate(-1)}
+            className="p-2 rounded-full hover:bg-gray-100"
+          >
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        {/* Route info */}
+        <div className="bg-gray-50 rounded-xl p-3 mb-4 flex items-center justify-between">
+          <div>
+            <p className="font-semibold">{route?.folder_name || 'Route'}</p>
+            <p className="text-sm text-gray-500">{addresses.length} addresses</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={async () => {
+              const shuffled = [...addresses].sort(() => Math.random() - 0.5);
+              for (let i = 0; i < shuffled.length; i++) {
+                await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
+              }
+              queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+              toast.success('Addresses shuffled!');
+            }}
+            className="text-xs"
+          >
+            <Shuffle className="w-3 h-3 mr-1" />
+            Shuffle
+          </Button>
+        </div>
+        
+        {/* End location dropdown */}
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          End Location
+        </label>
+        <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
+          <SelectTrigger className="w-full mb-3">
+            <SelectValue placeholder="Select where to end" />
+          </SelectTrigger>
+          <SelectContent>
+            {savedLocations.map(loc => (
+              <SelectItem key={loc.id} value={loc.id}>
+                <div className="flex items-center gap-2">
+                  {getLocationIcon(loc.label)}
+                  <span className="font-medium">{loc.label}</span>
+                  <span className="text-gray-400 text-sm truncate max-w-[150px]">
+                    - {loc.address}
+                  </span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        
+        {/* Add location button */}
+        {!showAddLocation && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full mb-4"
+            onClick={() => setShowAddLocation(true)}
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add End Location
+          </Button>
+        )}
+        
+        {/* Add location form (if showing) */}
+        {showAddLocation && (
+          <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
+            <Input
+              placeholder="Label (Home, Office, etc.)"
+              value={newLocationLabel}
+              onChange={(e) => setNewLocationLabel(e.target.value)}
+              className="mb-2"
+            />
+            <Input
+              placeholder="Full address"
+              value={newLocationAddress}
+              onChange={(e) => setNewLocationAddress(e.target.value)}
+              className="mb-2"
+            />
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="flex-1" 
+                onClick={() => {
+                  setShowAddLocation(false);
+                  setNewLocationLabel('');
+                  setNewLocationAddress('');
                 }}
-                className="text-xs"
               >
-                <Shuffle className="w-3 h-3 mr-1" />
-                Shuffle
+                Cancel
+              </Button>
+              <Button 
+                size="sm" 
+                className="flex-1 bg-orange-500 hover:bg-orange-600" 
+                onClick={handleAddLocation}
+                disabled={savingLocation}
+              >
+                {savingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* End Location Selection */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <Label className="block text-sm font-medium text-gray-700 mb-2">
-              Where do you want to end?
-            </Label>
-
-            <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select end location" />
-              </SelectTrigger>
-              <SelectContent>
-                {savedLocations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    <div className="flex items-center gap-2">
-                      {getLocationIcon(loc.label)}
-                      <span className="font-medium">{loc.label}</span>
-                      <span className="text-gray-400 text-sm truncate max-w-[150px]">
-                        - {loc.address}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {savedLocations.length === 0 && !showAddLocation && (
-              <p className="text-sm text-gray-500 mt-2">
-                No saved locations yet. Add one below.
-              </p>
-            )}
-
-            {/* Add New Location Button */}
-            {!showAddLocation && (
-              <Button
-                variant="outline"
-                className="w-full mt-3"
-                onClick={() => setShowAddLocation(true)}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add New End Location
-              </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Add Location Form */}
-        {showAddLocation && (
-          <Card className="mb-4 border-2 border-orange-200">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Add New Location</h3>
-                <button 
-                  onClick={() => {
-                    setShowAddLocation(false);
-                    setNewLocationLabel('');
-                    setNewLocationAddress('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <div>
-                  <Label className="text-sm text-gray-600">Label</Label>
-                  <Input
-                    placeholder="e.g. Home, Office, Courthouse"
-                    value={newLocationLabel}
-                    onChange={(e) => setNewLocationLabel(e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-sm text-gray-600">Full Address</Label>
-                  <Input
-                    placeholder="123 Main St, Detroit, MI 48201"
-                    value={newLocationAddress}
-                    onChange={(e) => setNewLocationAddress(e.target.value)}
-                  />
-                </div>
-
-                <Button
-                  className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                  onClick={handleAddLocation}
-                  disabled={savingLocation}
-                >
-                  {savingLocation ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Location'
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         )}
 
         {/* API Key Warning */}
         {!userSettings?.mapquest_api_key && (
-          <Card className="mb-4 bg-yellow-50 border-yellow-200">
-            <CardContent className="p-4">
-              <p className="text-sm text-yellow-800">
-                <strong>Note:</strong> MapQuest API key required for route optimization.
-                Add it in Settings → API Keys.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
+            <p className="text-sm text-yellow-800">
+              <strong>Note:</strong> MapQuest API key required. Add it in Settings.
+            </p>
+          </div>
         )}
-
-        {/* Optimize Button */}
+        
+        {/* Optimize button */}
         <Button
           onClick={handleOptimizeRoute}
           disabled={!selectedEndLocation || isOptimizing}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-6 text-lg"
+          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4"
         >
           {isOptimizing ? (
             <>
@@ -463,11 +472,7 @@ export default function RouteOptimization() {
             </>
           )}
         </Button>
-
-        <p className="text-center text-sm text-gray-500 mt-3">
-          Addresses will be reordered for the fastest route from your current location to your selected end point.
-        </p>
-      </main>
+      </div>
     </div>
   );
 }
