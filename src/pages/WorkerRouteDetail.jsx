@@ -64,6 +64,18 @@ export default function WorkerRouteDetail() {
     return map;
   }, [attempts]);
 
+  // Create a map of address_id to all attempts (for tabbed view)
+  const allAttemptsMap = React.useMemo(() => {
+    const map = {};
+    attempts.forEach(attempt => {
+      if (!map[attempt.address_id]) {
+        map[attempt.address_id] = [];
+      }
+      map[attempt.address_id].push(attempt);
+    });
+    return map;
+  }, [attempts]);
+
   if (routeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
