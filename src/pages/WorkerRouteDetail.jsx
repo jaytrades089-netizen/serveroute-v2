@@ -82,6 +82,44 @@ export default function WorkerRouteDetail() {
     return map;
   }, [attempts]);
 
+  // Check if all addresses are complete (served OR have all required qualifiers)
+  const checkRouteCompletion = React.useMemo(() => {
+    if (addresses.length === 0) return { isComplete: false, incompleteCount: 0, reason: 'No addresses' };
+    
+    let incompleteAddresses = [];
+    
+    addresses.forEach(addr => {
+      // If served, it's complete
+      if (addr.served) return;
+      
+      // Check qualifier completion for this address
+      const addrAttempts = allAttemptsMap[addr.id] || [];
+      
+      // Need AM, PM, and WEEKEND qualifiers
+      const hasAM = addrAttempts.some(a => a.has_am);
+      const hasPM = addrAttempts.some(a => a.has_pm);
+      const hasWeekend = addrAttempts.some(a => a.has_weekend);
+      
+      // If not served and missing qualifiers, it's incomplete
+      if (!hasAM || !hasPM || !hasWeekend) {
+        incompleteAddresses.push({
+          address: addr,
+          missingQualifiers: [
+            !hasAM && 'AM',
+            !hasPM && 'PM', 
+            !hasWeekend && 'WEEKEND'
+          ].filter(Boolean)
+        });
+      }
+    });
+    
+    return {
+      isComplete: incompleteAddresses.length === 0,
+      incompleteCount: incompleteAddresses.length,
+      incompleteAddresses
+    };
+  }, [addresses, allAttemptsMap]);
+
   if (routeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
