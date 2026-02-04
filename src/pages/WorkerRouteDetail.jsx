@@ -189,7 +189,7 @@ export default function WorkerRouteDetail() {
           </Card>
         )}
 
-        {route.status === 'assigned' && !needsVerification && (
+        {(route.status === 'assigned' || route.status === 'ready') && !needsVerification && (
           <Button 
             onClick={() => navigate(createPageUrl(`RouteOptimization?routeId=${routeId}`))}
             className="w-full bg-orange-500 hover:bg-orange-600 mb-4"

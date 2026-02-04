@@ -57,6 +57,7 @@ import Analytics from './pages/Analytics';
 import AssignRoute from './pages/AssignRoute';
 import BossDashboard from './pages/BossDashboard';
 import BossNotifications from './pages/BossNotifications';
+import BossRouteDetail from './pages/BossRouteDetail';
 import BossRoutes from './pages/BossRoutes';
 import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
@@ -94,7 +95,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import BossRouteDetail from './pages/BossRouteDetail';
 import RouteOptimization from './pages/RouteOptimization';
 import __Layout from './Layout.jsx';
 
@@ -110,6 +110,7 @@ export const PAGES = {
     "AssignRoute": AssignRoute,
     "BossDashboard": BossDashboard,
     "BossNotifications": BossNotifications,
+    "BossRouteDetail": BossRouteDetail,
     "BossRoutes": BossRoutes,
     "BossSettings": BossSettings,
     "BossTeam": BossTeam,
@@ -147,7 +148,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "BossRouteDetail": BossRouteDetail,
     "RouteOptimization": RouteOptimization,
 }
 
