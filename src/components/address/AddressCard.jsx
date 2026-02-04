@@ -616,12 +616,22 @@ export default function AddressCard({
               <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
                 SERVED
               </Badge>
-              {receiptApproved && (
+              {receiptApproved ? (
                 <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
                   <FileCheck className="w-3 h-3 mr-1" />
                   RECEIPT APPROVED
                 </Badge>
-              )}
+              ) : receiptPending ? (
+                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-2.5 py-1">
+                  <Clock className="w-3 h-3 mr-1" />
+                  PENDING REVIEW
+                </Badge>
+              ) : receiptNeedsRevision ? (
+                <Badge className="bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-bold px-2.5 py-1">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  NEEDS REVISION
+                </Badge>
+              ) : null}
               {address.served_at && (
                 <span className="text-xs text-gray-500 ml-auto">
                   {format(new Date(address.served_at), "M/d/yy 'at' h:mm a")}
