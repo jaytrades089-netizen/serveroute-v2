@@ -79,9 +79,11 @@ export default function RouteCard({
     if (onClick) {
       onClick(route);
     } else if (linkTo) {
-      navigate(createPageUrl(linkTo));
+      // Check if linkTo already has query params
+      const url = linkTo.includes('?') ? linkTo : linkTo;
+      navigate(createPageUrl(url));
     } else if (isBossView) {
-      navigate(createPageUrl(`RouteEditor?id=${route.id}`));
+      navigate(createPageUrl(`BossRouteDetail?id=${route.id}`));
     } else {
       navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}`));
     }
