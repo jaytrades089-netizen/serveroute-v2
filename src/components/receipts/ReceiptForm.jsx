@@ -191,10 +191,10 @@ export default function ReceiptForm({
         });
       }
 
-      // Notify bosses
+      // Notify bosses/admins
       const bosses = await base44.entities.User.filter({ 
         company_id: user.company_id, 
-        role: 'boss' 
+        role: 'admin' 
       });
 
       for (const boss of bosses) {
