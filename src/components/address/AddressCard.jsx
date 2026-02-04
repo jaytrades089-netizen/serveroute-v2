@@ -93,11 +93,57 @@ export default function AddressCard({
   const isServed = address.served;
   const isPriority = attemptCount >= 2 && !isServed;
 
+  // Get selected attempt data
+  const selectedAttempt = activeTab > 0 ? sortedAttempts[activeTab - 1] : null;
+
   return (
     <div
       onClick={handleCardClick}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
     >
+      {/* Attempt Tabs - Only show if there are attempts */}
+      {attemptCount > 0 && (
+        <div className="flex border-b border-gray-100">
+          {/* Home/Summary Tab */}
+          <button
+            onClick={(e) => { e.stopPropagation(); setActiveTab(0); }}
+            className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
+              activeTab === 0
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            <Check className="w-4 h-4 mx-auto" />
+          </button>
+          
+          {/* Attempt Tabs A1-A5 */}
+          {[1, 2, 3, 4, 5].map((num) => {
+            const hasAttempt = sortedAttempts[num - 1];
+            const isActive = activeTab === num;
+            
+            return (
+              <button
+                key={num}
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  if (hasAttempt) setActiveTab(num); 
+                }}
+                disabled={!hasAttempt}
+                className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
+                  isActive
+                    ? 'bg-indigo-600 text-white'
+                    : hasAttempt
+                      ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                }`}
+              >
+                A{num}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Header Section with Gradient */}
       <div className={`px-4 py-4 ${
         isServed ? 'bg-gradient-to-r from-green-50 to-emerald-50' : 
