@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import RouteCard from '../components/common/RouteCard';
-import { Loader2, MapPin } from 'lucide-react';
+import { Loader2, MapPin, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
@@ -104,6 +104,15 @@ export default function WorkerRoutes() {
               {f.label}
             </Button>
           ))}
+          <Link to={createPageUrl('ComboRouteSelection')}>
+            <Button
+              size="sm"
+              className="bg-purple-500 hover:bg-purple-600 text-white"
+            >
+              <Shuffle className="w-4 h-4 mr-1" />
+              Combo
+            </Button>
+          </Link>
         </div>
 
         {isLoading ? (
