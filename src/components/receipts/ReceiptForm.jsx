@@ -230,12 +230,15 @@ export default function ReceiptForm({
       });
 
       toast.success('Receipt submitted successfully');
-      onSuccess?.(receipt);
+      
+      // Navigate immediately after success
+      if (onSuccess) {
+        onSuccess(receipt);
+      }
 
     } catch (error) {
       console.error('Failed to submit receipt:', error);
       toast.error(error.message || 'Failed to submit receipt');
-    } finally {
       setSubmitting(false);
     }
   };
