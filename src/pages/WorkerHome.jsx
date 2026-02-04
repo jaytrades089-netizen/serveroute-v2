@@ -184,23 +184,12 @@ export default function WorkerHome() {
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
-        <div className="mb-6 flex items-start justify-between">
-                        <div>
-                          <h1 className="text-3xl font-extrabold text-gray-900">
-                            Welcome back, {firstName}
-                          </h1>
-                          <p className="text-gray-500 mt-1">{todayDate}</p>
-                        </div>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => navigate(createPageUrl('BossDashboard'))}
-                          className="flex items-center gap-2 text-xs"
-                        >
-                          <ArrowRightLeft className="w-3 h-3" />
-                          Boss View
-                        </Button>
-                      </div>
+        <div className="mb-6">
+          <h1 className="text-3xl font-extrabold text-gray-900">
+            Welcome back, {firstName}
+          </h1>
+          <p className="text-gray-500 mt-1">{todayDate}</p>
+        </div>
 
         <WorkPhaseBlocks currentPhase={currentPhase} />
         

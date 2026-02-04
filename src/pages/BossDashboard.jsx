@@ -460,14 +460,7 @@ export default function BossDashboard() {
             >
               <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => navigate(createPageUrl('WorkerHome'))}
-            >
-              <ArrowRightLeft className="w-4 h-4 mr-1" />
-              Worker
-            </Button>
+
           </div>
         </div>
 
