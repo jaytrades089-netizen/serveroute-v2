@@ -114,22 +114,12 @@ export default function BossRoutes() {
     }
   });
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'draft': return 'bg-gray-100 text-gray-700';
-      case 'ready': return 'bg-blue-100 text-blue-700';
-      case 'assigned': return 'bg-purple-100 text-purple-700';
-      case 'active': return 'bg-green-100 text-green-700';
-      case 'stalled': return 'bg-amber-100 text-amber-700';
-      case 'completed': return 'bg-emerald-100 text-emerald-700';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const getServerName = (workerId) => {
     const server = servers.find(s => s.id === workerId);
     return server?.full_name || 'Unassigned';
   };
+
+  const [selectedRoute, setSelectedRoute] = useState(null);
 
   const filteredRoutes = routes.filter(route => {
     if (activeTab === 'all') return true;
