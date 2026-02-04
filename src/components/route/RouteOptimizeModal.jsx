@@ -99,13 +99,20 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     }
   };
 
+  const [isShuffling, setIsShuffling] = useState(false);
+
   const handleShuffle = async () => {
-    const shuffled = [...addresses].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < shuffled.length; i++) {
-      await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
+    setIsShuffling(true);
+    try {
+      const shuffled = [...addresses].sort(() => Math.random() - 0.5);
+      for (let i = 0; i < shuffled.length; i++) {
+        await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
+      }
+      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      toast.success('Addresses shuffled!');
+    } finally {
+      setIsShuffling(false);
     }
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-    toast.success('Addresses shuffled!');
   };
 
   const handleOptimizeRoute = async () => {
@@ -188,13 +195,41 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       if (result.route?.locationSequence) {
         const sequence = result.route.locationSequence;
         
-        // DEBUG: Log after order
-        console.log('MapQuest sequence:', sequence);
-        console.log('AFTER optimization - new order:');
-        for (let i = 1; i < sequence.length - 1; i++) {
-          const originalIndex = sequence[i] - 1;
-          const address = validAddresses[originalIndex];
-          console.log(`  New position ${i}: ${address?.normalized_address || address?.legal_address} (was index ${originalIndex})`);
+        // DEBUG: Log the sequence
+        console.log('=== MAPQUEST OPTIMIZATION RESULTS ===');
+        console.log('Raw locationSequence from MapQuest:', sequence);
+        console.log('Sequence explanation:');
+        console.log('  - Index 0 = starting point (your current location)');
+        console.log('  - Index 1 to N-1 = addresses in optimized order');
+        console.log('  - Index N = ending point (selected end location)');
+        
+        // The sequence contains indices into the original locations array
+        // locations[0] = current position (start)
+        // locations[1..N] = addresses
+        // locations[N+1] = end location
+        // So sequence[i] tells us which location comes at position i
+        
+        console.log('\nBEFORE optimization - addresses as sent to MapQuest:');
+        validAddresses.forEach((addr, i) => {
+          console.log(`  MapQuest index ${i + 1}: ${addr.normalized_address || addr.legal_address} (id: ${addr.id})`);
+        });
+        
+        console.log('\nAFTER optimization - new order from MapQuest:');
+        const addressUpdates = [];
+        
+        // sequence[0] is start, sequence[last] is end
+        // sequence[1] through sequence[length-2] are the addresses in optimized order
+        for (let newPosition = 1; newPosition < sequence.length - 1; newPosition++) {
+          const mapQuestIndex = sequence[newPosition]; // This is the index in the locations array
+          const addressArrayIndex = mapQuestIndex - 1; // Subtract 1 because locations[0] was start point
+          const address = validAddresses[addressArrayIndex];
+          
+          if (address) {
+            console.log(`  Position ${newPosition}: ${address.normalized_address || address.legal_address} (was at MapQuest index ${mapQuestIndex}, array index ${addressArrayIndex})`);
+            addressUpdates.push({ address, newOrder: newPosition });
+          } else {
+            console.error(`  Position ${newPosition}: ERROR - no address found at index ${addressArrayIndex}`);
+          }
         }
 
         // Deactivate other active routes
@@ -208,19 +243,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           }
         }
 
-        // Update address order
-        const newOrder = [];
-        for (let i = 1; i < sequence.length - 1; i++) {
-          const originalIndex = sequence[i] - 1;
-          const address = validAddresses[originalIndex];
-          if (address) {
-            await base44.entities.Address.update(address.id, { order_index: i });
-            newOrder.push({ ...address, order_index: i });
-          }
+        // Update address order in database
+        console.log('\nUpdating addresses in database:');
+        for (const { address, newOrder } of addressUpdates) {
+          console.log(`  Setting ${address.id} order_index to ${newOrder}`);
+          await base44.entities.Address.update(address.id, { order_index: newOrder });
         }
-
-        // Sort by new order
-        newOrder.sort((a, b) => a.order_index - b.order_index);
 
         // Set route to active
         await base44.entities.Route.update(routeId, {
@@ -236,19 +264,22 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           }
         });
 
-        // Invalidate queries
-        queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-        queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+        // Invalidate queries to refresh the UI
+        console.log('\nInvalidating queries to refresh UI...');
+        await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+        await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+        await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
 
         toast.success('Route optimized! Addresses reordered.');
+        console.log('=== OPTIMIZATION COMPLETE ===');
         
-        // Call onOptimized callback with new order
+        // Call onOptimized callback
         if (onOptimized) {
-          onOptimized(newOrder);
+          onOptimized();
         }
 
       } else {
+        console.error('No locationSequence in MapQuest response:', result);
         toast.error('Could not optimize route - no sequence returned');
       }
 
@@ -306,10 +337,15 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             variant="outline"
             size="sm"
             onClick={handleShuffle}
+            disabled={isShuffling}
             className="text-xs"
           >
-            <Shuffle className="w-3 h-3 mr-1" />
-            Shuffle
+            {isShuffling ? (
+              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+            ) : (
+              <Shuffle className="w-3 h-3 mr-1" />
+            )}
+            {isShuffling ? 'Shuffling...' : 'Shuffle'}
           </Button>
         </div>
         
