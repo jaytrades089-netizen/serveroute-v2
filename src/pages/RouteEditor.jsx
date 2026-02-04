@@ -486,6 +486,7 @@ export default function RouteEditor() {
                             routeId={routeId}
                             showActions={false}
                             lastAttempt={lastAttemptMap[address.id]}
+                            allAttempts={allAttemptsMap[address.id] || []}
                           />
                         </div>
                       )}
