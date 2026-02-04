@@ -356,29 +356,7 @@ export default function AddressCard({
               </p>
             </div>
 
-            {/* Level/Quest Badge */}
-            <div className="flex-shrink-0">
-              <div className={`px-3 py-1.5 rounded-lg border-2 text-center ${
-                isServed ? 'border-green-300 bg-green-50' :
-                isPriority ? 'border-orange-300 bg-orange-50' :
-                'border-indigo-300 bg-white'
-              }`}>
-                <div className={`text-[10px] font-semibold ${
-                  isServed ? 'text-green-600' :
-                  isPriority ? 'text-orange-600' :
-                  'text-indigo-600'
-                }`}>
-                  {isServed ? 'SERVED' : `LVL ${attemptCount + 1}`}
-                </div>
-                <div className={`text-xs font-bold ${
-                  isServed ? 'text-green-700' :
-                  isPriority ? 'text-orange-700' :
-                  'text-indigo-700'
-                }`}>
-                  {isServed ? '✓' : 'QUEST'}
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
 
