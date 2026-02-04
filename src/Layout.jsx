@@ -60,7 +60,8 @@ export default function Layout({ children, currentPageName }) {
 
   // If not logged in, redirect to login
   if (isError || !user) {
-    base44.auth.redirectToLogin();
+    // Use Base44's built-in login redirect
+    base44.auth.redirectToLogin(window.location.pathname + window.location.search);
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
