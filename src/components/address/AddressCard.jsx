@@ -280,8 +280,7 @@ export default function AddressCard({
   return (
     <>
       <div
-        onClick={handleCardClick}
-        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]"
+        className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200"
       >
         {/* Attempt Tabs - Only show if there are attempts */}
         {attemptCount > 0 && (
