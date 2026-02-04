@@ -269,10 +269,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
         // Update address order in database
         console.log('\nUpdating addresses in database:');
-        for (const { address, newOrder } of addressUpdates) {
+        const updatePromises = addressUpdates.map(({ address, newOrder }) => {
           console.log(`  Setting ${address.id} order_index to ${newOrder}`);
-          await base44.entities.Address.update(address.id, { order_index: newOrder });
-        }
+          return base44.entities.Address.update(address.id, { order_index: newOrder });
+        });
+        await Promise.all(updatePromises);
+        console.log('All address updates completed');
 
         // Set route to active
         await base44.entities.Route.update(routeId, {
@@ -288,6 +290,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           }
         });
 
+        // Small delay to ensure database updates are committed
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Invalidate queries to refresh the UI
         console.log('\nInvalidating queries to refresh UI...');
         await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
@@ -297,10 +302,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         toast.success('Route optimized! Addresses reordered.');
         console.log('=== OPTIMIZATION COMPLETE ===');
         
-        // Call onOptimized callback
-        if (onOptimized) {
-          onOptimized();
-        }
+        // Call onOptimized callback after a brief delay
+        setTimeout(() => {
+          if (onOptimized) {
+            onOptimized();
+          }
+        }, 300);
 
       } else {
         console.error('No locationSequence in MapQuest response:', result);
