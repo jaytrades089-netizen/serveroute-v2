@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle } from 'lucide-react';
 import { toast } from 'sonner';
+import { optimizeWithHybrid } from '@/components/services/OptimizationService';
 
 export default function RouteOptimizeModal({ routeId, route, addresses, onClose, onOptimized }) {
   const queryClient = useQueryClient();
@@ -136,6 +137,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       return;
     }
 
+    const apiKey = userSettings?.mapquest_api_key;
+    if (!apiKey) {
+      toast.error('MapQuest API key not configured. Go to Settings to add it.');
+      return;
+    }
+
     setIsOptimizing(true);
 
     try {
@@ -145,7 +152,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: true,
-          timeout: 10000
+          timeout: 15000
         });
       });
       console.log('Position:', position.coords.latitude, position.coords.longitude);
@@ -157,25 +164,15 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
-      // Filter addresses with valid coordinates
-      let validAddresses = addresses.filter(a => a.lat && a.lng);
-      console.log('Addresses with coordinates:', validAddresses.length);
-      console.log('Total addresses:', addresses.length);
+      // Geocode addresses that don't have coordinates
+      let validAddresses = [...addresses];
+      const needsGeocoding = validAddresses.filter(a => !a.lat || !a.lng);
       
-      // If no addresses have coordinates, geocode them first
-      if (validAddresses.length === 0 && addresses.length > 0) {
-        console.log('No addresses have coordinates - geocoding them now...');
-        toast.info('Geocoding addresses...');
+      if (needsGeocoding.length > 0) {
+        console.log(`Geocoding ${needsGeocoding.length} addresses...`);
+        toast.info(`Geocoding ${needsGeocoding.length} addresses...`);
         
-        const apiKey = userSettings?.mapquest_api_key;
-        if (!apiKey) {
-          toast.error('MapQuest API key required for geocoding');
-          setIsOptimizing(false);
-          return;
-        }
-        
-        // Geocode each address
-        for (const addr of addresses) {
+        for (const addr of needsGeocoding) {
           const fullAddress = addr.normalized_address || addr.legal_address;
           const geocodeUrl = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(fullAddress)}`;
           
@@ -192,192 +189,80 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
               });
               addr.lat = loc.latLng.lat;
               addr.lng = loc.latLng.lng;
-              console.log(`Geocoded: ${fullAddress} -> ${loc.latLng.lat}, ${loc.latLng.lng}`);
-            } else {
-              console.error(`Could not geocode: ${fullAddress}`);
             }
           } catch (geoErr) {
             console.error('Geocode error for', fullAddress, geoErr);
           }
         }
-        
-        // Re-filter after geocoding
-        validAddresses = addresses.filter(a => a.lat && a.lng);
-        console.log('After geocoding, valid addresses:', validAddresses.length);
       }
       
+      // Filter to only addresses with coordinates
+      validAddresses = validAddresses.filter(a => a.lat && a.lng);
+      
       if (validAddresses.length === 0) {
-        toast.error('Could not geocode any addresses');
+        toast.error('No addresses could be geocoded');
         setIsOptimizing(false);
         return;
       }
 
-      // DEBUG: Log before order
-      console.log('BEFORE optimization - address order:');
-      validAddresses.forEach((addr, i) => {
-        console.log(`  ${i + 1}. ${addr.normalized_address || addr.legal_address} (order_index: ${addr.order_index})`);
+      console.log(`Optimizing ${validAddresses.length} addresses using hybrid algorithm...`);
+
+      // Use the hybrid optimization (handles large routes automatically)
+      const optimizedAddresses = await optimizeWithHybrid(
+        validAddresses,
+        position.coords.latitude,
+        position.coords.longitude,
+        endLocation.latitude,
+        endLocation.longitude,
+        apiKey
+      );
+
+      // Deactivate other active routes
+      const activeRoutes = await base44.entities.Route.filter({ 
+        worker_id: user.id, 
+        status: 'active' 
+      });
+      for (const activeRoute of activeRoutes) {
+        if (activeRoute.id !== routeId) {
+          await base44.entities.Route.update(activeRoute.id, { status: 'ready' });
+        }
+      }
+
+      // Update address order in database
+      console.log('Updating address order in database...');
+      for (let i = 0; i < optimizedAddresses.length; i++) {
+        await base44.entities.Address.update(optimizedAddresses[i].id, { order_index: i + 1 });
+      }
+
+      // Set route to active
+      await base44.entities.Route.update(routeId, {
+        status: 'active',
+        started_at: new Date().toISOString(),
+        optimized: true,
+        ending_point: {
+          address: endLocation.address,
+          lat: endLocation.latitude,
+          lng: endLocation.longitude
+        }
       });
 
-      // Build locations array for MapQuest
-      const locations = [
-        `${position.coords.latitude},${position.coords.longitude}`,
-        ...validAddresses.map(addr => `${addr.lat},${addr.lng}`),
-        `${endLocation.latitude},${endLocation.longitude}`
-      ];
+      // Invalidate queries
+      await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
 
-      const apiKey = userSettings?.mapquest_api_key;
-      if (!apiKey) {
-        toast.error('MapQuest API key not configured.');
-        setIsOptimizing(false);
-        return;
-      }
-
-      // Call MapQuest
-      const url = `https://www.mapquestapi.com/directions/v2/optimizedroute?key=${apiKey}`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locations: locations,
-          options: { allToAll: false, manyToOne: false }
-        })
+      // Update last_used on the selected location
+      await base44.entities.SavedLocation.update(selectedEndLocation, {
+        last_used: new Date().toISOString()
       });
 
-      const result = await response.json();
-      console.log('MapQuest response:', result);
+      toast.success(`Route optimized! ${optimizedAddresses.length} addresses reordered.`);
 
-      if (result.info?.statuscode !== 0) {
-        toast.error('MapQuest API error: ' + (result.info?.messages?.[0] || 'Unknown error'));
-        setIsOptimizing(false);
-        return;
-      }
-
-      if (result.route?.locationSequence) {
-        const sequence = result.route.locationSequence;
-        
-        // DEBUG: Log the sequence
-        console.log('=== MAPQUEST OPTIMIZATION RESULTS ===');
-        console.log('Raw locationSequence from MapQuest:', sequence);
-        console.log('Number of locations sent:', locations.length);
-        console.log('Locations breakdown:');
-        console.log('  - locations[0] = start (current position)');
-        console.log('  - locations[1..' + validAddresses.length + '] = addresses');
-        console.log('  - locations[' + (validAddresses.length + 1) + '] = end location');
-        
-        // MapQuest locationSequence is an array where:
-        // - sequence[i] = the index in the ORIGINAL locations array that should be visited at stop i
-        // - sequence[0] should be 0 (start)
-        // - sequence[last] should be locations.length-1 (end)
-        // - The middle values are the address indices in optimized order
-        
-        console.log('\nBEFORE optimization - addresses as sent to MapQuest:');
-        validAddresses.forEach((addr, i) => {
-          console.log(`  locations[${i + 1}]: ${addr.normalized_address || addr.legal_address} (id: ${addr.id})`);
-        });
-        
-        console.log('\nMapQuest returned sequence:', sequence);
-        console.log('This means visit order is:');
-        sequence.forEach((locIdx, stopNum) => {
-          if (locIdx === 0) {
-            console.log(`  Stop ${stopNum}: START (current location)`);
-          } else if (locIdx === locations.length - 1) {
-            console.log(`  Stop ${stopNum}: END (${endLocation.label})`);
-          } else {
-            const addr = validAddresses[locIdx - 1];
-            console.log(`  Stop ${stopNum}: ${addr?.normalized_address || addr?.legal_address || 'UNKNOWN'}`);
-          }
-        });
-        
-        // Build the new order for addresses
-        // We need to find all the address indices in the sequence (skip start=0 and end=lastIndex)
-        const addressUpdates = [];
-        let newOrderPosition = 1;
-        
-        for (let i = 0; i < sequence.length; i++) {
-          const locationIndex = sequence[i];
-          
-          // Skip start (0) and end (last index)
-          if (locationIndex === 0 || locationIndex === locations.length - 1) {
-            continue;
-          }
-          
-          // This is an address - locationIndex maps to validAddresses[locationIndex - 1]
-          const addressArrayIndex = locationIndex - 1;
-          const address = validAddresses[addressArrayIndex];
-          
-          if (address) {
-            console.log(`  New position ${newOrderPosition}: ${address.normalized_address || address.legal_address}`);
-            addressUpdates.push({ address, newOrder: newOrderPosition });
-            newOrderPosition++;
-          } else {
-            console.error(`  ERROR: No address at index ${addressArrayIndex}`);
-          }
+      setTimeout(() => {
+        if (onOptimized) {
+          onOptimized();
         }
-        
-        console.log('\nTotal addresses to update:', addressUpdates.length);
-
-        // Deactivate other active routes
-        const activeRoutes = await base44.entities.Route.filter({ 
-          worker_id: user.id, 
-          status: 'active' 
-        });
-        for (const activeRoute of activeRoutes) {
-          if (activeRoute.id !== routeId) {
-            await base44.entities.Route.update(activeRoute.id, { status: 'paused' });
-          }
-        }
-
-        // Update address order in database
-        console.log('\nUpdating addresses in database:');
-        const updatePromises = addressUpdates.map(({ address, newOrder }) => {
-          console.log(`  Setting ${address.id} order_index to ${newOrder}`);
-          return base44.entities.Address.update(address.id, { order_index: newOrder });
-        });
-        await Promise.all(updatePromises);
-        console.log('All address updates completed');
-
-        // Set route to active
-        await base44.entities.Route.update(routeId, {
-          status: 'active',
-          started_at: new Date().toISOString(),
-          optimized: true,
-          total_distance_miles: result.route.distance || null,
-          estimated_time_minutes: result.route.time ? Math.round(result.route.time / 60) : null,
-          ending_point: {
-            address: endLocation.address,
-            lat: endLocation.latitude,
-            lng: endLocation.longitude
-          }
-        });
-
-        // Small delay to ensure database updates are committed
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Invalidate queries to refresh the UI
-        console.log('\nInvalidating queries to refresh UI...');
-        await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-        await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-        await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-
-        // Update last_used on the selected location
-        await base44.entities.SavedLocation.update(selectedEndLocation, {
-          last_used: new Date().toISOString()
-        });
-
-        toast.success('Route optimized! Addresses reordered.');
-        console.log('=== OPTIMIZATION COMPLETE ===');
-
-        // Call onOptimized callback after a brief delay
-        setTimeout(() => {
-          if (onOptimized) {
-            onOptimized();
-          }
-        }, 300);
-
-      } else {
-        console.error('No locationSequence in MapQuest response:', result);
-        toast.error('Could not optimize route - no sequence returned');
-      }
+      }, 300);
 
     } catch (error) {
       console.error('Optimization failed:', error);
