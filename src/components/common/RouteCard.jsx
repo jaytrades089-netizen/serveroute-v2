@@ -42,17 +42,7 @@ function ProgressBar({ served, total }) {
   );
 }
 
-function QualifierBadge({ type, done }) {
-  return (
-    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-colors ${
-      done 
-        ? 'bg-green-100 text-green-700 border border-green-200' 
-        : 'bg-gray-100 text-gray-500 border border-gray-200'
-    }`}>
-      {type} {done && '✓'}
-    </span>
-  );
-}
+
 
 export default function RouteCard({ 
   route, 
