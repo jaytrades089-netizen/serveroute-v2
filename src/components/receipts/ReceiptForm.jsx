@@ -231,14 +231,14 @@ export default function ReceiptForm({
 
       toast.success('Receipt submitted successfully');
       
-      // Navigate immediately after success
-      if (onSuccess) {
-        onSuccess(receipt);
-      }
+      // Navigate immediately after success - call onSuccess and return to prevent further code execution
+      onSuccess?.(receipt);
+      return;
 
     } catch (error) {
       console.error('Failed to submit receipt:', error);
       toast.error(error.message || 'Failed to submit receipt');
+    } finally {
       setSubmitting(false);
     }
   };
