@@ -66,18 +66,29 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If not logged in, redirect to login
+  // If not logged in, redirect to Base44's login
   if (!user) {
+    // Avoid redirect loops - don't redirect if we're already on the login flow
+    const currentPath = window.location.pathname;
+    if (currentPath === '/login' || currentPath.includes('auth')) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      );
+    }
+
     // Use React effect pattern to avoid redirect loops
     const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
     const now = Date.now();
-    
+
     // Only redirect if we haven't redirected in the last 3 seconds
     if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 3000) {
       sessionStorage.setItem('lastLoginRedirect', now.toString());
-      base44.auth.redirectToLogin(window.location.pathname + window.location.search);
+      // Use Base44's built-in login - pass current location for redirect back
+      base44.auth.redirectToLogin(currentPath + window.location.search);
     }
-    
+
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
