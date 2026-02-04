@@ -45,11 +45,7 @@ export default function WorkerHome() {
     retry: false
   });
 
-  useEffect(() => {
-    if (!userLoading && (userError || !user)) {
-      base44.auth.redirectToLogin();
-    }
-  }, [userLoading, userError, user]);
+  // Auth is handled by Layout - no redirect needed here
 
   // Set worker status to active when page loads
   useEffect(() => {
