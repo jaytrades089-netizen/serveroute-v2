@@ -451,81 +451,96 @@ export default function AddressCard({
         {/* ATTEMPT TAB - Individual attempt details */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && (
           <div className="px-4 py-3 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-gray-700 tracking-wide">
+            {/* Header with qualifier badge */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-500">
                 ATTEMPT {activeTab} DETAILS
-              </span>
-              <Badge className={`text-[10px] px-2 py-0.5 ${
-                selectedAttempt.outcome === 'served' ? 'bg-green-500 text-white' :
-                selectedAttempt.outcome === 'no_answer' ? 'bg-yellow-500 text-white' :
-                'bg-gray-500 text-white'
+              </h3>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                selectedAttempt.qualifier?.includes('weekend') 
+                  ? 'bg-purple-100 text-purple-700'
+                  : selectedAttempt.qualifier === 'am'
+                  ? 'bg-yellow-100 text-yellow-700'
+                  : 'bg-blue-100 text-blue-700'
               }`}>
-                {selectedAttempt.outcome?.toUpperCase().replace('_', ' ')}
-              </Badge>
+                {getQualifierDisplayLabel(selectedAttempt.qualifier)}
+              </span>
             </div>
 
-            {/* Date & Time Row */}
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-orange-500" />
+            {/* Date & Time */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <div className="text-[10px] text-gray-500 font-medium">DATE & TIME</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {format(new Date(selectedAttempt.attempt_time), "EEE, M/d/yy 'at' h:mm a")}
-                </div>
+                <p className="text-xs text-gray-500 font-medium">DATE & TIME</p>
+                <p className="text-base font-semibold">
+                  {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
+                    weekday: 'short',
+                    month: 'numeric',
+                    day: 'numeric',
+                    year: '2-digit',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </p>
               </div>
             </div>
 
-            {/* Qualifier Row */}
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-indigo-100 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-indigo-500" />
-              </div>
-              <div>
-                <div className="text-[10px] text-gray-500 font-medium">QUALIFIER</div>
-                <div className="text-sm font-semibold text-gray-900">
-                  {getQualifierDisplayLabel(selectedAttempt.qualifier)}
-                </div>
-              </div>
-            </div>
-
-            {/* Distance Row */}
-            {selectedAttempt.distance_feet && (
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-blue-500" />
+            {/* Coordinates */}
+            {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <div className="text-[10px] text-gray-500 font-medium">DISTANCE</div>
-                  <div className="text-sm font-semibold text-gray-900">
-                    {formatDistance(selectedAttempt.distance_feet)} from address
-                  </div>
+                  <p className="text-xs text-gray-500 font-medium">COORDINATES</p>
+                  <p className="text-base font-semibold">
+                    {selectedAttempt.user_latitude?.toFixed(6)}, {selectedAttempt.user_longitude?.toFixed(6)}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Notes Row */}
+            {/* Distance */}
+            {selectedAttempt.distance_feet != null && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <Navigation className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">DISTANCE</p>
+                  <p className="text-base font-semibold">
+                    {selectedAttempt.distance_feet?.toLocaleString()} feet from address
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Notes (editable) */}
             {selectedAttempt.notes && (
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-5 h-5 text-purple-500" />
+              <div 
+                onClick={(e) => { e.stopPropagation(); /* TODO: handleEditNotes */ }}
+                className="bg-gray-50 rounded-xl p-4 mb-4 cursor-pointer hover:bg-gray-100 transition"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs text-gray-500 font-medium">NOTES</span>
                 </div>
-                <div className="flex-1">
-                  <div className="text-[10px] text-gray-500 font-medium">NOTES</div>
-                  <div className="text-sm text-gray-900 whitespace-pre-wrap bg-gray-50 rounded-lg p-2 mt-1">
-                    {selectedAttempt.notes}
-                  </div>
-                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {selectedAttempt.notes}
+                </p>
+                <p className="text-xs text-blue-500 mt-2">Tap to edit</p>
               </div>
             )}
 
-            {/* Photos Button */}
+            {/* View Photos Button */}
             {selectedAttempt.photo_urls?.length > 0 && (
               <Button
                 variant="outline"
                 onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }}
-                className="w-full mb-2"
+                className="w-full"
               >
                 <Camera className="w-4 h-4 mr-2" />
                 View Evidence Photos ({selectedAttempt.photo_urls.length})
