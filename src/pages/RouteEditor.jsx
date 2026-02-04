@@ -62,6 +62,24 @@ export default function RouteEditor() {
     enabled: !!routeId
   });
 
+  // Fetch attempts for all addresses in route
+  const { data: attempts = [] } = useQuery({
+    queryKey: ['routeAttempts', routeId],
+    queryFn: async () => {
+      return base44.entities.Attempt.filter({ route_id: routeId });
+    },
+    enabled: !!routeId
+  });
+
+  // Create a map of latest attempt per address
+  const lastAttemptMap = {};
+  attempts.forEach(attempt => {
+    const existing = lastAttemptMap[attempt.address_id];
+    if (!existing || new Date(attempt.attempt_time) > new Date(existing.attempt_time)) {
+      lastAttemptMap[attempt.address_id] = attempt;
+    }
+  });
+
   const companyId = user?.company_id || 'default';
 
   const { data: poolAddresses = [], isLoading: poolLoading } = useQuery({
