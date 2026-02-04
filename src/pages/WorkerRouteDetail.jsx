@@ -195,7 +195,7 @@ export default function WorkerRouteDetail() {
             <p className="text-gray-500 text-sm">No addresses in this route</p>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             {addresses.map((address, index) => (
               <AddressCard
                 key={address.id}
@@ -204,6 +204,7 @@ export default function WorkerRouteDetail() {
                 routeId={routeId}
                 showActions={true}
                 onMessageBoss={handleMessageBoss}
+                lastAttempt={lastAttemptMap[address.id]}
               />
             ))}
           </div>
