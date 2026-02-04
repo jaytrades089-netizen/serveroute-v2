@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ArrowLeft, MapPin, User, Clock, Camera, PenTool, CheckCircle, XCircle, AlertCircle, History } from 'lucide-react';
+import { Loader2, ArrowLeft, MapPin, User, Clock, Camera, PenTool, CheckCircle, XCircle, AlertCircle, History, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,7 @@ export default function ReceiptReview() {
   const [revisionDialogOpen, setRevisionDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [revisionInstructions, setRevisionInstructions] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -254,6 +255,45 @@ export default function ReceiptReview() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to request revision');
+    }
+  });
+
+  // Delete mutation (for testing/duplicates)
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      // Delete the receipt
+      await base44.entities.Receipt.delete(receiptId);
+
+      // Reset address receipt status if no other receipts exist
+      const remainingReceipts = await base44.entities.Receipt.filter({ address_id: receipt.address_id });
+      const otherReceipts = remainingReceipts.filter(r => r.id !== receiptId);
+      
+      if (otherReceipts.length === 0) {
+        await base44.entities.Address.update(receipt.address_id, {
+          receipt_status: 'pending',
+          latest_receipt_id: null,
+          receipt_count: 0,
+          receipt_submitted_at: null
+        });
+      } else {
+        // Update to latest remaining receipt
+        const latestReceipt = otherReceipts[0];
+        await base44.entities.Address.update(receipt.address_id, {
+          latest_receipt_id: latestReceipt.id,
+          receipt_count: otherReceipts.length,
+          receipt_status: latestReceipt.status === 'approved' ? 'approved' : 'pending_review'
+        });
+      }
+    },
+    onSuccess: () => {
+      toast.success('Receipt deleted');
+      setDeleteDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['receipt'] });
+      queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+      navigate(createPageUrl('ReceiptQueue'));
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete');
     }
   });
 
@@ -491,6 +531,20 @@ export default function ReceiptReview() {
             </CardContent>
           </Card>
         )}
+
+        {/* Delete Button (for testing/duplicates) */}
+        <Card className="border-gray-200">
+          <CardContent className="pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(true)}
+              className="w-full border-red-300 text-red-600 hover:bg-red-50"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Receipt (Testing)
+            </Button>
+          </CardContent>
+        </Card>
       </main>
 
       <BossBottomNav currentPage="BossDashboard" />
@@ -597,6 +651,35 @@ export default function ReceiptReview() {
               className="bg-orange-600 hover:bg-orange-700"
             >
               {revisionMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Request Revision'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Receipt</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Are you sure you want to delete this receipt? This action cannot be undone.
+            </p>
+            <p className="text-xs text-red-600">
+              ⚠️ This is intended for removing duplicates or testing purposes only.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => deleteMutation.mutate()}
+              disabled={deleteMutation.isPending}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {deleteMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Delete Receipt'}
             </Button>
           </DialogFooter>
         </DialogContent>
