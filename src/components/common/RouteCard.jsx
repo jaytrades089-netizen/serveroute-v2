@@ -89,11 +89,30 @@ export default function RouteCard({
     }
   };
 
+  const isActiveRoute = route.status === 'active';
+
   return (
     <div
       onClick={handleCardClick}
-      className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${className}`}
+      className={`rounded-2xl shadow-sm border overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
+        isActiveRoute 
+          ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-orange-50 border-orange-200' 
+          : 'bg-white border-gray-100'
+      } ${className}`}
     >
+      {/* Active Route Indicator */}
+      {isActiveRoute && (
+        <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+            </span>
+            <span className="text-xs font-bold text-orange-600 uppercase tracking-wide">Active Route</span>
+          </div>
+        </div>
+      )}
+
       {/* Header Section with Gradient */}
       <div className={`px-4 py-4 ${
         isCompleted ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
