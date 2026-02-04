@@ -182,91 +182,62 @@ export default function BossRoutes() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {filteredRoutes.map((route) => (
-                  <Card 
-                    key={route.id} 
-                    className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => navigate(createPageUrl(`RouteEditor?id=${route.id}`))}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold">{route.folder_name}</h3>
-                            <Badge className={getStatusColor(route.status)}>
-                              {route.status}
-                            </Badge>
-                          </div>
-                          
-                          <div className="flex flex-wrap gap-3 text-sm text-gray-600">
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span>{route.total_addresses || 0} addresses</span>
-                            </div>
-                            {route.due_date && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>Due {format(new Date(route.due_date), 'MMM d')}</span>
-                              </div>
-                            )}
-                            {route.worker_id && (
-                              <div className="flex items-center gap-1">
-                                <User className="w-4 h-4" />
-                                <span>{getServerName(route.worker_id)}</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={(e) => e.stopPropagation()}
+                  <div key={route.id} className="relative">
+                    <RouteCard
+                      route={route}
+                      showWorker={!!route.worker_id}
+                      workerName={route.worker_id ? getServerName(route.worker_id) : null}
+                      showActions={true}
+                      isBossView={true}
+                      onMenuClick={(r) => setSelectedRoute(r)}
+                    />
+                    
+                    {/* Dropdown Menu for selected route */}
+                    {selectedRoute?.id === route.id && (
+                      <DropdownMenu open={true} onOpenChange={(open) => !open && setSelectedRoute(null)}>
+                        <DropdownMenuTrigger asChild>
+                          <span className="sr-only">Menu</span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="absolute right-4 top-16 z-50">
+                          {route.status === 'draft' && (
+                            <DropdownMenuItem onClick={() => navigate(createPageUrl(`RouteEditor?id=${route.id}`))}>
+                              <Edit className="w-4 h-4 mr-2" /> Edit
+                            </DropdownMenuItem>
+                          )}
+                          {route.status === 'ready' && (
+                            <DropdownMenuItem onClick={() => navigate(createPageUrl(`AssignRoute?id=${route.id}`))}>
+                              <UserPlus className="w-4 h-4 mr-2" /> Assign
+                            </DropdownMenuItem>
+                          )}
+                          {['assigned', 'stalled'].includes(route.status) && (
+                            <>
+                              <DropdownMenuItem onClick={() => navigate(createPageUrl(`ReassignRoute?id=${route.id}`))}>
+                                <UserPlus className="w-4 h-4 mr-2" /> Reassign
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => navigate(createPageUrl(`UnassignRoute?id=${route.id}`))}>
+                                <User className="w-4 h-4 mr-2" /> Unassign
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {['draft', 'ready'].includes(route.status) && (
+                            <DropdownMenuItem 
+                              className="text-red-600"
+                              onClick={() => {
+                                if (confirm('Delete this route? Addresses will return to the pool.')) {
+                                  deleteRouteMutation.mutate(route.id);
+                                }
+                                setSelectedRoute(null);
+                              }}
                             >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            {route.status === 'draft' && (
-                              <DropdownMenuItem onClick={() => navigate(createPageUrl(`RouteEditor?id=${route.id}`))}>
-                                <Edit className="w-4 h-4 mr-2" /> Edit
-                              </DropdownMenuItem>
-                            )}
-                            {route.status === 'ready' && (
-                              <DropdownMenuItem onClick={() => navigate(createPageUrl(`AssignRoute?id=${route.id}`))}>
-                                <UserPlus className="w-4 h-4 mr-2" /> Assign
-                              </DropdownMenuItem>
-                            )}
-                            {['assigned', 'stalled'].includes(route.status) && (
-                              <>
-                                <DropdownMenuItem onClick={() => navigate(createPageUrl(`ReassignRoute?id=${route.id}`))}>
-                                  <UserPlus className="w-4 h-4 mr-2" /> Reassign
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => navigate(createPageUrl(`UnassignRoute?id=${route.id}`))}>
-                                  <User className="w-4 h-4 mr-2" /> Unassign
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {['draft', 'ready'].includes(route.status) && (
-                              <DropdownMenuItem 
-                                className="text-red-600"
-                                onClick={() => {
-                                  if (confirm('Delete this route? Addresses will return to the pool.')) {
-                                    deleteRouteMutation.mutate(route.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" /> Delete
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardContent>
-                  </Card>
+                              <Trash2 className="w-4 h-4 mr-2" /> Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
