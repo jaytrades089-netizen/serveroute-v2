@@ -71,10 +71,12 @@ export default function Layout({ children, currentPageName }) {
 
   // Redirect logic based on role and page
   const isBoss = user.role === 'boss' || user.role === 'admin';
+  const isWorker = user.role === 'server';
   const isOnBossPage = bossPages.includes(currentPageName);
+  const isOnWorkerPage = workerPages.includes(currentPageName);
 
   // Server trying to access boss pages - redirect to worker home
-  if (!isBoss && isOnBossPage) {
+  if (isWorker && isOnBossPage) {
     window.location.href = '/WorkerHome';
     return null;
   }
