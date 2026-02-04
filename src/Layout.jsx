@@ -68,9 +68,20 @@ export default function Layout({ children, currentPageName }) {
 
   // If not logged in, redirect to Base44's login
   if (!user) {
-    // Avoid redirect loops - don't redirect if we're already on the login flow
     const currentPath = window.location.pathname;
-    if (currentPath === '/login' || currentPath.includes('auth')) {
+    
+    // If user is on /login (which doesn't exist), redirect to home path for proper auth
+    if (currentPath === '/login') {
+      window.location.href = '/';
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      );
+    }
+    
+    // Don't redirect if already in auth flow
+    if (currentPath.includes('auth')) {
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
