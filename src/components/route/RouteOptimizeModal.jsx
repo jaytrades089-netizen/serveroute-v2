@@ -143,11 +143,56 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       }
 
       // Filter addresses with valid coordinates
-      const validAddresses = addresses.filter(a => a.lat && a.lng);
-      console.log('Valid addresses:', validAddresses.length);
+      let validAddresses = addresses.filter(a => a.lat && a.lng);
+      console.log('Addresses with coordinates:', validAddresses.length);
+      console.log('Total addresses:', addresses.length);
+      
+      // If no addresses have coordinates, geocode them first
+      if (validAddresses.length === 0 && addresses.length > 0) {
+        console.log('No addresses have coordinates - geocoding them now...');
+        toast.info('Geocoding addresses...');
+        
+        const apiKey = userSettings?.mapquest_api_key;
+        if (!apiKey) {
+          toast.error('MapQuest API key required for geocoding');
+          setIsOptimizing(false);
+          return;
+        }
+        
+        // Geocode each address
+        for (const addr of addresses) {
+          const fullAddress = addr.normalized_address || addr.legal_address;
+          const geocodeUrl = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(fullAddress)}`;
+          
+          try {
+            const geoResponse = await fetch(geocodeUrl);
+            const geoData = await geoResponse.json();
+            
+            if (geoData.results?.[0]?.locations?.[0]) {
+              const loc = geoData.results[0].locations[0];
+              await base44.entities.Address.update(addr.id, {
+                lat: loc.latLng.lat,
+                lng: loc.latLng.lng,
+                geocode_status: 'exact'
+              });
+              addr.lat = loc.latLng.lat;
+              addr.lng = loc.latLng.lng;
+              console.log(`Geocoded: ${fullAddress} -> ${loc.latLng.lat}, ${loc.latLng.lng}`);
+            } else {
+              console.error(`Could not geocode: ${fullAddress}`);
+            }
+          } catch (geoErr) {
+            console.error('Geocode error for', fullAddress, geoErr);
+          }
+        }
+        
+        // Re-filter after geocoding
+        validAddresses = addresses.filter(a => a.lat && a.lng);
+        console.log('After geocoding, valid addresses:', validAddresses.length);
+      }
       
       if (validAddresses.length === 0) {
-        toast.error('No addresses with coordinates to optimize');
+        toast.error('Could not geocode any addresses');
         setIsOptimizing(false);
         return;
       }
