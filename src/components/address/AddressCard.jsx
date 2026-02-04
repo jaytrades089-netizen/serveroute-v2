@@ -63,7 +63,11 @@ export default function AddressCard({
   onMessageBoss,
   onClick,
   lastAttempt,
-  allAttempts = []
+  allAttempts = [],
+  onAttemptLogged,
+  onServed,
+  isAttemptedToday = false,
+  isCompleted = false
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -194,8 +198,13 @@ export default function AddressCard({
       } else {
         toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display} qualifier earned! ${distanceDisplay}`);
       }
-      
-    } catch (error) {
+
+      // 9. Trigger animation callback
+      if (onAttemptLogged) {
+        onAttemptLogged();
+      }
+
+      } catch (error) {
       console.error('Failed to log attempt:', error);
       if (error.message.includes('permission')) {
         toast.error('Please enable location services to log attempts');

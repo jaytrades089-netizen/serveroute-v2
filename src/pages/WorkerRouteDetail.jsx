@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import AddressCard from '@/components/address/AddressCard';
+import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
 import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
 import DesktopWarningBanner from '@/components/common/DesktopWarningBanner';
@@ -255,38 +256,20 @@ export default function WorkerRouteDetail() {
         )}
 
         <DesktopWarningBanner />
-        
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Addresses</h2>
 
         {addressesLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
           </div>
-        ) : addresses.length === 0 ? (
-          <div className="bg-gray-100 rounded-xl p-6 text-center">
-            <MapPin className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-gray-500 text-sm">No addresses in this route</p>
-          </div>
         ) : (
-          <div className="space-y-4">
-            {addresses.map((address, index) => (
-              <div key={address.id} className="relative">
-                {/* Order number badge */}
-                <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
-                  {address.order_index || index + 1}
-                </div>
-                <AddressCard
-                  address={address}
-                  index={index}
-                  routeId={routeId}
-                  showActions={true}
-                  onMessageBoss={handleMessageBoss}
-                  lastAttempt={lastAttemptMap[address.id]}
-                  allAttempts={allAttemptsMap[address.id] || []}
-                />
-              </div>
-            ))}
-          </div>
+          <AnimatedAddressList
+            addresses={addresses}
+            attempts={attempts}
+            routeId={routeId}
+            onMessageBoss={handleMessageBoss}
+            lastAttemptMap={lastAttemptMap}
+            allAttemptsMap={allAttemptsMap}
+          />
         )}
         
         {/* Message Boss Dialog */}
