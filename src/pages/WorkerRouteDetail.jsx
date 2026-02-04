@@ -43,6 +43,27 @@ export default function WorkerRouteDetail() {
     enabled: !!routeId
   });
 
+  // Fetch attempts for all addresses in the route
+  const { data: attempts = [] } = useQuery({
+    queryKey: ['routeAttempts', routeId],
+    queryFn: async () => {
+      if (!routeId) return [];
+      return base44.entities.Attempt.filter({ route_id: routeId }, '-attempt_time');
+    },
+    enabled: !!routeId
+  });
+
+  // Create a map of address_id to latest attempt
+  const lastAttemptMap = React.useMemo(() => {
+    const map = {};
+    attempts.forEach(attempt => {
+      if (!map[attempt.address_id]) {
+        map[attempt.address_id] = attempt;
+      }
+    });
+    return map;
+  }, [attempts]);
+
   if (routeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
