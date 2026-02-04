@@ -264,29 +264,29 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     <div className="fixed inset-0 z-50">
       {/* Slide-up animation styles */}
       <style>{`
-        @keyframes slide-up {
+        @keyframes slide-down {
           from {
-            transform: translateY(100%);
+            transform: translateY(-100%);
           }
           to {
             transform: translateY(0);
           }
         }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
+        .animate-slide-down {
+          animation: slide-down 0.3s ease-out;
         }
       `}</style>
-
-      {/* Transparent backdrop - can see addresses behind */}
+      
+      {/* Semi-transparent backdrop - tap to close */}
       <div 
-        className="absolute inset-0 bg-black/30 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-black/20"
         onClick={onClose}
       />
-      
-      {/* Bottom sheet */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 pb-8 shadow-2xl animate-slide-up max-h-[80vh] overflow-y-auto">
-        {/* Drag handle */}
-        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4" />
+
+      {/* Top sheet - no backdrop so you can see cards below */}
+      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl p-4 pb-6 shadow-2xl animate-slide-down z-50 max-h-[50vh] overflow-y-auto">
+        {/* Drag handle at bottom */}
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
         
         {/* Header */}
         <div className="flex justify-between items-center mb-4">
