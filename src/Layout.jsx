@@ -70,9 +70,10 @@ export default function Layout({ children, currentPageName }) {
   if (!user) {
     const currentPath = window.location.pathname;
     
-    // If user is on /login (which doesn't exist), redirect to home path for proper auth
-    if (currentPath === '/login') {
-      window.location.href = '/';
+    // If user is on /login (which doesn't exist), clear session and redirect to home
+    if (currentPath === '/login' || currentPath === '/Login') {
+      sessionStorage.removeItem('lastLoginRedirect');
+      window.location.replace('/WorkerHome');
       return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
@@ -93,8 +94,8 @@ export default function Layout({ children, currentPageName }) {
     const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
     const now = Date.now();
 
-    // Only redirect if we haven't redirected in the last 3 seconds
-    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 3000) {
+    // Only redirect if we haven't redirected in the last 5 seconds
+    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000) {
       sessionStorage.setItem('lastLoginRedirect', now.toString());
       // Use Base44's built-in login - pass current location for redirect back
       base44.auth.redirectToLogin(currentPath + window.location.search);
