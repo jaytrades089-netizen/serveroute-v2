@@ -80,7 +80,6 @@ export default function WorkerRoutes() {
 
   const filters = [
     { id: 'all', label: 'All' },
-    { id: 'active', label: 'Active' },
     { id: 'due-soon', label: 'Due Soon' },
     { id: 'completed', label: 'Completed' }
   ];
