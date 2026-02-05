@@ -111,6 +111,58 @@ export default function WorkerRouteDetail() {
     return { total, completed, percentage };
   }, [addresses]);
 
+  // Calculate remaining miles based on completed addresses
+  const calculateRemainingMiles = useMemo(() => {
+    if (!route?.total_miles) return 0;
+    
+    const totalAddresses = addresses.length;
+    const completedCount = addresses.filter(a => a.served).length;
+    
+    if (totalAddresses === 0) return route.total_miles;
+    
+    // Calculate remaining as percentage of total
+    const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
+    return route.total_miles * remainingPercentage;
+  }, [route?.total_miles, addresses]);
+
+  // Calculate total route duration (start time to est completion)
+  const calculateRouteDuration = useMemo(() => {
+    if (!route?.started_at || !route?.est_completion_time) return null;
+    
+    const start = new Date(route.started_at);
+    const end = new Date(route.est_completion_time);
+    const durationMinutes = Math.round((end - start) / 60000);
+    
+    const hours = Math.floor(durationMinutes / 60);
+    const minutes = durationMinutes % 60;
+    
+    if (hours === 0) {
+      return `${minutes}m`;
+    } else if (minutes === 0) {
+      return `${hours}h`;
+    } else {
+      return `${hours}h ${minutes}m`;
+    }
+  }, [route?.started_at, route?.est_completion_time]);
+
+  // Calculate remaining time until est completion
+  const calculateRemainingTime = useMemo(() => {
+    if (!route?.est_completion_time) return null;
+    
+    const now = new Date();
+    const end = new Date(route.est_completion_time);
+    const remainingMinutes = Math.max(0, Math.round((end - now) / 60000));
+    
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = remainingMinutes % 60;
+    
+    if (hours === 0) {
+      return `${minutes}m left`;
+    } else {
+      return `${hours}h ${minutes}m left`;
+    }
+  }, [route?.est_completion_time]);
+
   // Get updated est completion based on progress
   const getUpdatedEstCompletion = useMemo(() => {
     if (!route?.started_at || !route?.total_drive_time_minutes) return null;
@@ -279,7 +331,7 @@ export default function WorkerRouteDetail() {
             <div className="grid grid-cols-3 gap-2 mb-4">
               {/* Start Time */}
               <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
-                <p className="text-lg font-bold text-blue-600">
+                <p className="text-xl font-bold text-blue-600">
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
@@ -289,17 +341,28 @@ export default function WorkerRouteDetail() {
                 <p className="text-xs text-blue-500 font-medium">Started</p>
               </div>
               
-              {/* Miles */}
-              <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-200">
-                <p className="text-lg font-bold text-purple-600">
-                  {route.total_miles?.toFixed(1) || '0'} mi
-                </p>
-                <p className="text-xs text-purple-500 font-medium">Total Miles</p>
+              {/* Miles + Duration (SPLIT BOX) */}
+              <div className="bg-purple-50 rounded-xl overflow-hidden border border-purple-200">
+                {/* Top Half - Remaining Miles */}
+                <div className="p-2 text-center border-b border-purple-200">
+                  <p className="text-xl font-bold text-purple-600">
+                    {calculateRemainingMiles.toFixed(1)}
+                    <span className="text-sm ml-0.5">mi</span>
+                  </p>
+                  <p className="text-xs text-purple-400">remaining</p>
+                </div>
+                {/* Bottom Half - Total Duration */}
+                <div className="p-1.5 text-center bg-purple-100/50">
+                  <p className="text-sm font-bold text-purple-700">
+                    {calculateRouteDuration || '--'}
+                  </p>
+                  <p className="text-xs text-purple-500">total</p>
+                </div>
               </div>
               
               {/* Est Completion */}
               <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-xl font-bold text-green-600">
                   {getUpdatedEstCompletion?.estCompletion 
                     ? getUpdatedEstCompletion.estCompletion.toLocaleTimeString('en-US', {
                         hour: 'numeric',
@@ -319,17 +382,23 @@ export default function WorkerRouteDetail() {
               </div>
             </div>
 
-            {/* Progress Bar */}
+            {/* Progress Bar with miles remaining */}
             <div className="mb-4">
               <div className="flex justify-between text-xs text-gray-500 mb-1">
                 <span>{calculateProgress.completed} of {calculateProgress.total} complete</span>
-                <span>{calculateProgress.percentage}%</span>
+                <span className="text-purple-600 font-medium">
+                  {calculateRemainingMiles.toFixed(1)} mi left
+                </span>
               </div>
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-green-500 transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
                   style={{ width: `${calculateProgress.percentage}%` }}
                 />
+              </div>
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>{calculateProgress.percentage}% done</span>
+                <span>{calculateRemainingTime}</span>
               </div>
             </div>
           </>

@@ -522,29 +522,31 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             
             {/* 3 Metric Boxes */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              {/* Total Miles */}
-              <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
-                <p className="text-2xl font-bold text-blue-600">
-                  {routeMetrics.totalMiles.toFixed(1)}
-                </p>
-                <p className="text-xs text-blue-500 font-medium">Miles</p>
-              </div>
-              
-              {/* Total Drive Time */}
-              <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-200">
-                <p className="text-2xl font-bold text-purple-600">
-                  {routeMetrics.totalTimeMinutes >= 60 
-                    ? `${Math.floor(routeMetrics.totalTimeMinutes / 60)}h ${routeMetrics.totalTimeMinutes % 60}m`
-                    : `${routeMetrics.totalTimeMinutes}m`
-                  }
-                </p>
-                <p className="text-xs text-purple-500 font-medium">Drive Time</p>
+              {/* Miles + Duration (SPLIT BOX) */}
+              <div className="bg-purple-50 rounded-xl overflow-hidden border border-purple-200">
+                {/* Top Half - Total Miles */}
+                <div className="p-2 text-center border-b border-purple-200">
+                  <p className="text-2xl font-bold text-purple-600">
+                    {routeMetrics.totalMiles.toFixed(1)}
+                    <span className="text-sm ml-0.5">mi</span>
+                  </p>
+                </div>
+                {/* Bottom Half - Drive Time */}
+                <div className="p-2 text-center bg-purple-100/50">
+                  <p className="text-lg font-bold text-purple-700">
+                    {routeMetrics.totalTimeMinutes >= 60 
+                      ? `${Math.floor(routeMetrics.totalTimeMinutes / 60)}h ${routeMetrics.totalTimeMinutes % 60}m`
+                      : `${routeMetrics.totalTimeMinutes}m`
+                    }
+                  </p>
+                  <p className="text-xs text-purple-500">drive time</p>
+                </div>
               </div>
               
               {/* Time at Address Selector */}
               <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
                 <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
-                  <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-xl p-0 h-auto justify-center">
+                  <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-2xl p-0 h-auto justify-center">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -555,40 +557,42 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-amber-500 font-medium">Per Address</p>
+                <p className="text-xs text-amber-500 font-medium mt-1">per address</p>
               </div>
-            </div>
-            
-            {/* Estimated Completion */}
-            {(() => {
-              const est = calculateEstCompletion();
-              if (!est) return null;
               
-              return (
-                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="text-sm text-green-700 font-medium">Est. Completion Time</p>
-                      <p className="text-xs text-green-600">
-                        {est.driveTime} min drive + {est.addressTime} min at addresses
-                      </p>
-                    </div>
-                    <div className="text-right">
+              {/* Est Completion */}
+              <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
+                {(() => {
+                  const est = calculateEstCompletion();
+                  return (
+                    <>
                       <p className="text-2xl font-bold text-green-600">
-                        {est.completionTime.toLocaleTimeString('en-US', { 
+                        {est?.completionTime.toLocaleTimeString('en-US', { 
                           hour: 'numeric', 
                           minute: '2-digit',
                           hour12: true 
-                        })}
+                        }) || '--:--'}
                       </p>
-                      <p className="text-xs text-green-500">
-                        ~{Math.floor(est.totalMinutes / 60)}h {est.totalMinutes % 60}m total
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+                      <p className="text-xs text-green-500 font-medium">est. done</p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+            
+            {/* Total Route Summary */}
+            <div className="bg-gray-100 rounded-lg p-3 text-center">
+              <p className="text-sm text-gray-600">
+                {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses • 
+                {(() => {
+                  const est = calculateEstCompletion();
+                  if (!est) return ' --';
+                  const hours = Math.floor(est.totalMinutes / 60);
+                  const mins = est.totalMinutes % 60;
+                  return ` ${hours}h ${mins}m total`;
+                })()}
+              </p>
+            </div>
           </div>
         )}
         
