@@ -180,12 +180,78 @@ export default function RouteCard({
 
       {/* Progress Section */}
       <div className="px-4 py-3 border-t border-gray-100">
-        {/* ACTIVE ROUTE WITH METRICS: Show optimization info */}
-        {isActiveRoute && route.total_miles && route.started_at ? (
-          <>
-            {/* 3 Metric Boxes */}
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {/* Start Time */}
+        {/* Progress Stats */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs font-bold text-gray-700 tracking-wide">
+            PROGRESS
+          </span>
+          <span className="text-sm font-bold text-gray-900">
+            {route.served_count || 0} / {route.total_addresses || 0}
+          </span>
+        </div>
+
+        {/* Progress Bar */}
+        <ProgressBar served={route.served_count || 0} total={route.total_addresses || 0} />
+
+        {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
+        {(() => {
+          const qualifierInfo = getNeededQualifiers(attempts);
+          const spreadDate = route.first_attempt_date 
+            ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
+            : null;
+          const isSpreadPassed = spreadDate && new Date() > spreadDate;
+          
+          return (
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {/* HAS Box */}
+              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
+                <p className="text-[10px] font-semibold text-green-700 mb-1">HAS</p>
+                {qualifierInfo.earnedBadges.length > 0 ? (
+                  <QualifierBadges badges={qualifierInfo.earnedBadges} size="small" />
+                ) : (
+                  <p className="text-[10px] text-gray-400">None yet</p>
+                )}
+              </div>
+              
+              {/* DUE Box */}
+              <div className={`rounded-lg p-2 border ${
+                isOverdue 
+                  ? 'bg-red-50 border-red-300' 
+                  : 'bg-blue-50 border-blue-200'
+              }`}>
+                <p className={`text-[10px] font-semibold mb-1 ${
+                  isOverdue ? 'text-red-700' : 'text-blue-700'
+                }`}>DUE</p>
+                <p className={`text-xs font-bold ${
+                  isOverdue ? 'text-red-600' : 'text-blue-600'
+                }`}>
+                  {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
+                </p>
+              </div>
+              
+              {/* NEEDS Box */}
+              <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
+                <p className="text-[10px] font-semibold text-amber-700 mb-1">NEEDS</p>
+                {qualifierInfo.needed.length > 0 ? (
+                  <QualifierBadges badges={qualifierInfo.needed} size="small" />
+                ) : (
+                  <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
+                )}
+                {spreadDate && (
+                  <p className={`text-[9px] mt-1 ${isSpreadPassed ? 'text-green-600' : 'text-amber-600'}`}>
+                    Spread: {format(spreadDate, 'MMM d')}
+                  </p>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* OPTIMIZATION METRICS - SHOW IF ROUTE HAS BEEN OPTIMIZED */}
+        {route.total_miles != null && (
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {/* Start Time (if started) or Total Miles (if not started) */}
+            {route.started_at ? (
               <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
                 <p className="text-lg font-bold text-blue-600">
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
@@ -196,160 +262,96 @@ export default function RouteCard({
                 </p>
                 <p className="text-[10px] text-blue-500 font-medium">Started</p>
               </div>
-              
-              {/* Miles + Duration (SPLIT) */}
-              <div className="bg-purple-50 rounded-lg overflow-hidden border border-purple-200">
-                <div className="p-1.5 text-center border-b border-purple-200">
-                  <p className="text-lg font-bold text-purple-600">
-                    {(() => {
-                      const totalAddresses = route.total_addresses || 0;
-                      const completedCount = route.served_count || 0;
-                      if (totalAddresses === 0) return route.total_miles?.toFixed(1) || '0';
-                      const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
-                      return (route.total_miles * remainingPercentage).toFixed(1);
-                    })()}
-                    <span className="text-xs ml-0.5">mi</span>
-                  </p>
-                </div>
-                <div className="p-1 text-center bg-purple-100/50">
-                  <p className="text-sm font-semibold text-purple-700">
-                    {(() => {
-                      if (!route.started_at || !route.est_completion_time) return '--';
-                      const start = new Date(route.started_at);
-                      const end = new Date(route.est_completion_time);
-                      const durationMinutes = Math.round((end - start) / 60000);
-                      const hours = Math.floor(durationMinutes / 60);
-                      const minutes = durationMinutes % 60;
-                      if (hours === 0) return `${minutes}m`;
-                      if (minutes === 0) return `${hours}h`;
-                      return `${hours}h ${minutes}m`;
-                    })()}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Est Completion */}
-              <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-                <p className="text-lg font-bold text-green-600">
-                  {route.est_completion_time 
-                    ? new Date(route.est_completion_time).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
-                      })
-                    : '--:--'
-                  }
+            ) : (
+              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+                <p className="text-lg font-bold text-blue-600">
+                  {route.total_miles?.toFixed(1)}
                 </p>
-                <p className="text-[10px] text-green-500 font-medium">Est. Done</p>
+                <p className="text-[10px] text-blue-500 font-medium">Total Mi</p>
               </div>
-            </div>
+            )}
             
-            {/* Progress Bar with miles */}
-            <div>
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
-                <span>{route.served_count || 0}/{route.total_addresses || 0} served</span>
-                <span className="text-purple-600 font-medium">
+            {/* Miles Remaining + Duration (SPLIT BOX) */}
+            <div className="bg-purple-50 rounded-lg overflow-hidden border border-purple-200">
+              <div className="p-1.5 text-center border-b border-purple-200">
+                <p className="text-lg font-bold text-purple-600">
                   {(() => {
+                    if (!route.started_at) return route.total_miles?.toFixed(1) || '0';
                     const totalAddresses = route.total_addresses || 0;
                     const completedCount = route.served_count || 0;
                     if (totalAddresses === 0) return route.total_miles?.toFixed(1) || '0';
                     const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
                     return (route.total_miles * remainingPercentage).toFixed(1);
-                  })()} mi left
-                </span>
-              </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
-                <span>{progress}% done</span>
-                <span>
-                  {(() => {
-                    if (!route.est_completion_time) return '';
-                    const now = new Date();
-                    const end = new Date(route.est_completion_time);
-                    const remainingMinutes = Math.max(0, Math.round((end - now) / 60000));
-                    const hours = Math.floor(remainingMinutes / 60);
-                    const minutes = remainingMinutes % 60;
-                    if (hours === 0) return `${minutes}m left`;
-                    return `${hours}h ${minutes}m left`;
                   })()}
-                </span>
+                  <span className="text-xs ml-0.5">mi</span>
+                </p>
+                {route.started_at && (
+                  <p className="text-[9px] text-purple-400">remaining</p>
+                )}
+              </div>
+              <div className="p-1 text-center bg-purple-100/50">
+                <p className="text-sm font-semibold text-purple-700">
+                  {(() => {
+                    const totalMinutes = route.est_total_minutes || route.total_drive_time_minutes || 0;
+                    if (!totalMinutes) return '--';
+                    const hours = Math.floor(totalMinutes / 60);
+                    const minutes = totalMinutes % 60;
+                    if (hours === 0) return `${minutes}m`;
+                    if (minutes === 0) return `${hours}h`;
+                    return `${hours}h ${minutes}m`;
+                  })()}
+                </p>
               </div>
             </div>
-          </>
-        ) : (
-          <>
-            {/* Progress Stats */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-gray-700 tracking-wide">
-                PROGRESS
-              </span>
-              <span className="text-sm font-bold text-gray-900">
-                {route.served_count || 0} / {route.total_addresses || 0}
+            
+            {/* Est Completion */}
+            <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+              <p className="text-lg font-bold text-green-600">
+                {route.est_completion_time 
+                  ? new Date(route.est_completion_time).toLocaleTimeString('en-US', {
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })
+                  : '--:--'
+                }
+              </p>
+              <p className="text-[10px] text-green-500 font-medium">
+                {route.started_at ? 'Est. Done' : 'Est. Time'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE ROUTE EXTRA PROGRESS INFO */}
+        {isActiveRoute && route.total_miles != null && (
+          <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="flex justify-between text-xs text-gray-500 mb-1">
+              <span>{progress}% complete</span>
+              <span className="text-purple-600 font-medium">
+                {(() => {
+                  const totalAddresses = route.total_addresses || 0;
+                  const completedCount = route.served_count || 0;
+                  if (totalAddresses === 0) return route.total_miles?.toFixed(1) || '0';
+                  const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
+                  return (route.total_miles * remainingPercentage).toFixed(1);
+                })()} mi left
               </span>
             </div>
-
-            {/* Progress Bar */}
-            <ProgressBar served={route.served_count || 0} total={route.total_addresses || 0} />
-
-            {/* HAS / DUE / NEEDS Boxes */}
-            {(() => {
-              const qualifierInfo = getNeededQualifiers(attempts);
-              const spreadDate = route.first_attempt_date 
-                ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
-                : null;
-              const isSpreadPassed = spreadDate && new Date() > spreadDate;
-              
-              return (
-                <div className="grid grid-cols-3 gap-2 mt-3">
-                  {/* HAS Box */}
-                  <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                    <p className="text-[10px] font-semibold text-green-700 mb-1">HAS</p>
-                    {qualifierInfo.earnedBadges.length > 0 ? (
-                      <QualifierBadges badges={qualifierInfo.earnedBadges} size="small" />
-                    ) : (
-                      <p className="text-[10px] text-gray-400">None yet</p>
-                    )}
-                  </div>
-                  
-                  {/* DUE Box */}
-                  <div className={`rounded-lg p-2 border ${
-                    isOverdue 
-                      ? 'bg-red-50 border-red-300' 
-                      : 'bg-blue-50 border-blue-200'
-                  }`}>
-                    <p className={`text-[10px] font-semibold mb-1 ${
-                      isOverdue ? 'text-red-700' : 'text-blue-700'
-                    }`}>DUE</p>
-                    <p className={`text-xs font-bold ${
-                      isOverdue ? 'text-red-600' : 'text-blue-600'
-                    }`}>
-                      {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
-                    </p>
-                  </div>
-                  
-                  {/* NEEDS Box */}
-                  <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                    <p className="text-[10px] font-semibold text-amber-700 mb-1">NEEDS</p>
-                    {qualifierInfo.needed.length > 0 ? (
-                      <QualifierBadges badges={qualifierInfo.needed} size="small" />
-                    ) : (
-                      <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
-                    )}
-                    {spreadDate && (
-                      <p className={`text-[9px] mt-1 ${isSpreadPassed ? 'text-green-600' : 'text-amber-600'}`}>
-                        Spread: {format(spreadDate, 'MMM d')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              );
-            })()}
-          </>
+            {route.est_completion_time && (
+              <p className="text-xs text-gray-400 text-right">
+                {(() => {
+                  const now = new Date();
+                  const end = new Date(route.est_completion_time);
+                  const remainingMinutes = Math.max(0, Math.round((end - now) / 60000));
+                  const hours = Math.floor(remainingMinutes / 60);
+                  const minutes = remainingMinutes % 60;
+                  if (hours === 0) return `${minutes}m remaining`;
+                  return `${hours}h ${minutes}m remaining`;
+                })()}
+              </p>
+            )}
+          </div>
         )}
       </div>
 
