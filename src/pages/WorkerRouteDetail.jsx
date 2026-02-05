@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ export default function WorkerRouteDetail() {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
+  const [lastMilestoneChecked, setLastMilestoneChecked] = useState(0);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -51,18 +52,16 @@ export default function WorkerRouteDetail() {
     queryFn: async () => {
       if (!routeId) return [];
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
-      // Sort by order_index so optimized routes show in correct order
       return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
     enabled: !!routeId
   });
 
   // Subscribe to real-time address updates (e.g., receipt approval)
-  React.useEffect(() => {
+  useEffect(() => {
     if (!routeId) return;
     
     const unsubscribe = base44.entities.Address.subscribe((event) => {
-      // Only care about updates to addresses in this route
       if (event.type === 'update' && event.data?.route_id === routeId) {
         queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       }
@@ -82,7 +81,7 @@ export default function WorkerRouteDetail() {
   });
 
   // Create a map of address_id to latest attempt
-  const lastAttemptMap = React.useMemo(() => {
+  const lastAttemptMap = useMemo(() => {
     const map = {};
     attempts.forEach(attempt => {
       if (!map[attempt.address_id]) {
@@ -92,8 +91,8 @@ export default function WorkerRouteDetail() {
     return map;
   }, [attempts]);
 
-  // Create a map of address_id to all attempts (for tabbed view)
-  const allAttemptsMap = React.useMemo(() => {
+  // Create a map of address_id to all attempts
+  const allAttemptsMap = useMemo(() => {
     const map = {};
     attempts.forEach(attempt => {
       if (!map[attempt.address_id]) {
@@ -104,7 +103,68 @@ export default function WorkerRouteDetail() {
     return map;
   }, [attempts]);
 
+  // Calculate progress
+  const calculateProgress = useMemo(() => {
+    const total = addresses.length;
+    const completed = addresses.filter(a => a.served).length;
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return { total, completed, percentage };
+  }, [addresses]);
 
+  // Get updated est completion based on progress
+  const getUpdatedEstCompletion = useMemo(() => {
+    if (!route?.started_at || !route?.total_drive_time_minutes) return null;
+    
+    const progress = calculateProgress;
+    const startTime = new Date(route.started_at);
+    const now = new Date();
+    const elapsedMinutes = Math.round((now - startTime) / 60000);
+    
+    const remainingAddresses = progress.total - progress.completed;
+    const timeAtAddress = route.time_at_address_minutes || 2;
+    
+    // Estimate remaining drive time proportionally
+    const totalDriveTime = route.total_drive_time_minutes || 0;
+    const remainingDriveTime = progress.total > 0 
+      ? totalDriveTime * (remainingAddresses / progress.total) 
+      : 0;
+    const remainingAddressTime = remainingAddresses * timeAtAddress;
+    const remainingMinutes = Math.round(remainingDriveTime + remainingAddressTime);
+    
+    const estCompletion = new Date(now.getTime() + remainingMinutes * 60000);
+    
+    return {
+      startTime,
+      elapsedMinutes,
+      remainingMinutes,
+      estCompletion,
+      progress: progress.percentage
+    };
+  }, [route, calculateProgress]);
+
+  // Update est completion at milestones (25%, 50%, 75%, 100%)
+  useEffect(() => {
+    const progress = calculateProgress;
+    const milestones = [25, 50, 75, 100];
+    
+    // Check if we hit a new milestone
+    const currentMilestone = milestones.find(m => progress.percentage >= m && m > lastMilestoneChecked);
+    
+    if (currentMilestone && route?.id && route?.status === 'active') {
+      setLastMilestoneChecked(currentMilestone);
+      
+      // Update route with new est completion
+      const updateEstCompletion = async () => {
+        const updated = getUpdatedEstCompletion;
+        if (updated) {
+          await base44.entities.Route.update(route.id, {
+            est_completion_time: updated.estCompletion.toISOString()
+          });
+        }
+      };
+      updateEstCompletion();
+    }
+  }, [calculateProgress.percentage, lastMilestoneChecked, route?.id, route?.status, getUpdatedEstCompletion]);
 
   if (routeLoading) {
     return (
@@ -125,7 +185,6 @@ export default function WorkerRouteDetail() {
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
   
-  // Check if route was assigned by boss (worker_id set but not by self)
   const isAssignedByBoss = route?.worker_id && route?.assigned_by && route.assigned_by !== route.worker_id;
   const unverifiedCount = addresses.filter(a => a.verification_status === 'unverified').length;
   const needsVerification = isAssignedByBoss && unverifiedCount > 0;
@@ -135,7 +194,6 @@ export default function WorkerRouteDetail() {
     setShowMessageDialog(true);
   };
 
-  // Reset all attempts for testing
   const handleResetAllAttempts = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to delete ALL attempts for this route? This will reset all addresses to pending. This cannot be undone.'
@@ -146,12 +204,10 @@ export default function WorkerRouteDetail() {
     try {
       toast.info('Resetting route...');
       
-      // Delete all attempts for this route
       for (const attempt of attempts) {
         await base44.entities.Attempt.delete(attempt.id);
       }
       
-      // Reset all addresses in this route
       for (const addr of addresses) {
         await base44.entities.Address.update(addr.id, {
           status: 'pending',
@@ -162,17 +218,21 @@ export default function WorkerRouteDetail() {
         });
       }
       
-      // Reset route
       await base44.entities.Route.update(routeId, {
         status: 'ready',
         started_at: null,
         completed_at: null,
-        served_count: 0
+        served_count: 0,
+        total_miles: null,
+        total_drive_time_minutes: null,
+        time_at_address_minutes: null,
+        est_completion_time: null,
+        est_total_minutes: null
       });
       
+      setLastMilestoneChecked(0);
       toast.success('Route reset successfully!');
       
-      // Refresh data
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
@@ -212,52 +272,119 @@ export default function WorkerRouteDetail() {
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
-        <div className="grid grid-cols-3 gap-3 mb-4">
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-gray-900">{addresses.length}</p>
-              <p className="text-xs text-gray-500">Total</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-green-600">{servedAddresses.length}</p>
-              <p className="text-xs text-gray-500">Served</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-3 text-center">
-              <p className="text-2xl font-bold text-orange-600">{pendingAddresses.length}</p>
-              <p className="text-xs text-gray-500">Pending</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-gray-200 mb-4">
-          <div>
-            <p className="text-sm text-gray-500">Status</p>
-            <span className={`text-sm font-semibold ${
-              route.status === 'active' ? 'text-blue-600' :
-              route.status === 'completed' ? 'text-green-600' :
-              route.status === 'stalled' ? 'text-red-600' :
-              'text-gray-600'
-            }`}>
-              {route.status?.toUpperCase() || 'UNKNOWN'}
-            </span>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Due Date</p>
-            <p className="font-medium">
-              {route.due_date ? format(new Date(route.due_date), 'MMM d, yyyy') : 'Not set'}
-            </p>
-          </div>
-          {route.locked && (
-            <div className="flex items-center gap-1 text-red-500">
-              <Lock className="w-4 h-4" />
-              <span className="text-xs">Locked</span>
+        {/* Route Metrics Header */}
+        {route?.status === 'active' && route?.started_at ? (
+          // ACTIVE ROUTE: Show 3 metric boxes
+          <>
+            <div className="grid grid-cols-3 gap-2 mb-4">
+              {/* Start Time */}
+              <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
+                <p className="text-lg font-bold text-blue-600">
+                  {new Date(route.started_at).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                  })}
+                </p>
+                <p className="text-xs text-blue-500 font-medium">Started</p>
+              </div>
+              
+              {/* Miles */}
+              <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-200">
+                <p className="text-lg font-bold text-purple-600">
+                  {route.total_miles?.toFixed(1) || '0'} mi
+                </p>
+                <p className="text-xs text-purple-500 font-medium">Total Miles</p>
+              </div>
+              
+              {/* Est Completion */}
+              <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
+                <p className="text-lg font-bold text-green-600">
+                  {getUpdatedEstCompletion?.estCompletion 
+                    ? getUpdatedEstCompletion.estCompletion.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })
+                    : route.est_completion_time
+                      ? new Date(route.est_completion_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true
+                        })
+                      : '--:--'
+                  }
+                </p>
+                <p className="text-xs text-green-500 font-medium">Est. Done</p>
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="flex justify-between text-xs text-gray-500 mb-1">
+                <span>{calculateProgress.completed} of {calculateProgress.total} complete</span>
+                <span>{calculateProgress.percentage}%</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-green-500 transition-all duration-500"
+                  style={{ width: `${calculateProgress.percentage}%` }}
+                />
+              </div>
+            </div>
+          </>
+        ) : (
+          // NOT ACTIVE: Show regular stats (Total, Served, Pending)
+          <div className="grid grid-cols-3 gap-3 mb-4">
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-gray-900">{addresses.length}</p>
+                <p className="text-xs text-gray-500">Total</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-green-600">{servedAddresses.length}</p>
+                <p className="text-xs text-gray-500">Served</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-3 text-center">
+                <p className="text-2xl font-bold text-orange-600">{pendingAddresses.length}</p>
+                <p className="text-xs text-gray-500">Pending</p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Status/Due Date bar - only show for non-active routes */}
+        {route.status !== 'active' && (
+          <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-gray-200 mb-4">
+            <div>
+              <p className="text-sm text-gray-500">Status</p>
+              <span className={`text-sm font-semibold ${
+                route.status === 'active' ? 'text-blue-600' :
+                route.status === 'completed' ? 'text-green-600' :
+                route.status === 'stalled' ? 'text-red-600' :
+                'text-gray-600'
+              }`}>
+                {route.status?.toUpperCase() || 'UNKNOWN'}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Due Date</p>
+              <p className="font-medium">
+                {route.due_date ? format(new Date(route.due_date), 'MMM d, yyyy') : 'Not set'}
+              </p>
+            </div>
+            {route.locked && (
+              <div className="flex items-center gap-1 text-red-500">
+                <Lock className="w-4 h-4" />
+                <span className="text-xs">Locked</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Verification Banner */}
         {needsVerification && (
@@ -294,7 +421,6 @@ export default function WorkerRouteDetail() {
 
         {route.status === 'active' && (
           <div className="flex gap-2 mb-4">
-            {/* Stop/Pause Route - always available */}
             <Button 
               onClick={async () => {
                 try {
@@ -314,7 +440,6 @@ export default function WorkerRouteDetail() {
               <Pause className="w-4 h-4 mr-2" /> Stop Route
             </Button>
             
-            {/* Complete Route - only if all served */}
             {pendingAddresses.length === 0 && (
               <Button 
                 onClick={async () => {
@@ -356,7 +481,6 @@ export default function WorkerRouteDetail() {
           />
         )}
         
-        {/* Message Boss Dialog */}
         <MessageBossDialog
           open={showMessageDialog}
           onOpenChange={setShowMessageDialog}
@@ -366,7 +490,6 @@ export default function WorkerRouteDetail() {
         />
       </main>
 
-      {/* Route Optimize Modal */}
       {showOptimizeModal && (
         <RouteOptimizeModal
           routeId={routeId}

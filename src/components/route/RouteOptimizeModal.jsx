@@ -6,9 +6,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { optimizeWithHybrid } from '@/components/services/OptimizationService';
+
+const TIME_AT_ADDRESS_OPTIONS = [
+  { label: '1 min', value: 1 },
+  { label: '2 mins', value: 2 },
+  { label: '3 mins', value: 3 },
+  { label: '5 mins', value: 5 },
+  { label: '10 mins', value: 10 },
+];
 
 export default function RouteOptimizeModal({ routeId, route, addresses, onClose, onOptimized }) {
   const queryClient = useQueryClient();
@@ -18,6 +26,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [newLocationLabel, setNewLocationLabel] = useState('');
   const [newLocationAddress, setNewLocationAddress] = useState('');
   const [savingLocation, setSavingLocation] = useState(false);
+  
+  // Route metrics state
+  const [routeMetrics, setRouteMetrics] = useState(null);
+  const [timeAtAddress, setTimeAtAddress] = useState(2);
+  const [isOptimized, setIsOptimized] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
 
   // Fetch current user
   const { data: user } = useQuery({
@@ -31,7 +45,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     queryFn: async () => {
       if (!user?.id) return [];
       const locations = await base44.entities.SavedLocation.filter({ user_id: user.id });
-      // Sort by last_used to get most recently used first
       return locations.sort((a, b) => {
         const aTime = a.last_used ? new Date(a.last_used) : new Date(a.created_date || 0);
         const bTime = b.last_used ? new Date(b.last_used) : new Date(b.created_date || 0);
@@ -125,10 +138,31 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
       }
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      setIsOptimized(false);
+      setRouteMetrics(null);
       toast.success('Addresses shuffled!');
     } finally {
       setIsShuffling(false);
     }
+  };
+
+  // Calculate estimated completion time
+  const calculateEstCompletion = () => {
+    if (!routeMetrics) return null;
+    
+    const driveTimeMinutes = routeMetrics.totalTimeMinutes;
+    const addressTimeMinutes = timeAtAddress * addresses.length;
+    const totalMinutes = driveTimeMinutes + addressTimeMinutes;
+    
+    const now = new Date();
+    const completionTime = new Date(now.getTime() + totalMinutes * 60000);
+    
+    return {
+      totalMinutes,
+      completionTime,
+      driveTime: routeMetrics.totalTimeMinutes,
+      addressTime: addressTimeMinutes
+    };
   };
 
   const handleOptimizeRoute = async () => {
@@ -217,6 +251,89 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         apiKey
       );
 
+      // Calculate route metrics using MapQuest directions API
+      const locations = [
+        `${position.coords.latitude},${position.coords.longitude}`,
+        ...optimizedAddresses.map(a => `${a.lat},${a.lng}`),
+        `${endLocation.latitude},${endLocation.longitude}`
+      ];
+
+      const directionsUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
+      const directionsResponse = await fetch(directionsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locations: locations,
+          options: { routeType: 'fastest', unit: 'm' }
+        })
+      });
+      
+      const directionsData = await directionsResponse.json();
+      console.log('Directions response:', directionsData);
+
+      let metrics = { totalMiles: 0, totalTimeMinutes: 0 };
+      
+      if (directionsData.route) {
+        metrics = {
+          totalMiles: directionsData.route.distance || 0,
+          totalTimeMinutes: Math.round((directionsData.route.time || 0) / 60),
+          totalTimeFormatted: directionsData.route.formattedTime || '0:00',
+          fuelUsed: directionsData.route.fuelUsed || 0
+        };
+      }
+
+      setRouteMetrics(metrics);
+      setIsOptimized(true);
+
+      // Update address order in database
+      console.log('Updating address order in database...');
+      for (let i = 0; i < optimizedAddresses.length; i++) {
+        await base44.entities.Address.update(optimizedAddresses[i].id, { order_index: i + 1 });
+      }
+
+      // Update route with optimization data (but don't start yet)
+      await base44.entities.Route.update(routeId, {
+        optimized: true,
+        ending_point: {
+          address: endLocation.address,
+          lat: endLocation.latitude,
+          lng: endLocation.longitude
+        },
+        starting_point: {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        }
+      });
+
+      // Update last_used on the selected location
+      await base44.entities.SavedLocation.update(selectedEndLocation, {
+        last_used: new Date().toISOString()
+      });
+
+      // Invalidate queries to refresh address list
+      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+
+      toast.success('Route optimized! Review metrics below.');
+
+    } catch (error) {
+      console.error('Optimization failed:', error);
+      toast.error('Failed to optimize: ' + error.message);
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  const handleStartRoute = async () => {
+    if (!isOptimized) {
+      toast.error('Please optimize the route first');
+      return;
+    }
+
+    setIsStarting(true);
+
+    try {
+      const estCompletion = calculateEstCompletion();
+
       // Deactivate other active routes
       const activeRoutes = await base44.entities.Route.filter({ 
         worker_id: user.id, 
@@ -228,22 +345,15 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         }
       }
 
-      // Update address order in database
-      console.log('Updating address order in database...');
-      for (let i = 0; i < optimizedAddresses.length; i++) {
-        await base44.entities.Address.update(optimizedAddresses[i].id, { order_index: i + 1 });
-      }
-
-      // Set route to active
+      // Start this route with metrics
       await base44.entities.Route.update(routeId, {
         status: 'active',
         started_at: new Date().toISOString(),
-        optimized: true,
-        ending_point: {
-          address: endLocation.address,
-          lat: endLocation.latitude,
-          lng: endLocation.longitude
-        }
+        total_miles: routeMetrics.totalMiles,
+        total_drive_time_minutes: routeMetrics.totalTimeMinutes,
+        time_at_address_minutes: timeAtAddress,
+        est_completion_time: estCompletion.completionTime.toISOString(),
+        est_total_minutes: estCompletion.totalMinutes
       });
 
       // Invalidate queries
@@ -251,24 +361,17 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
 
-      // Update last_used on the selected location
-      await base44.entities.SavedLocation.update(selectedEndLocation, {
-        last_used: new Date().toISOString()
-      });
-
-      toast.success(`Route optimized! ${optimizedAddresses.length} addresses reordered.`);
-
-      setTimeout(() => {
-        if (onOptimized) {
-          onOptimized();
-        }
-      }, 300);
+      toast.success('Route started!');
+      
+      if (onOptimized) {
+        onOptimized();
+      }
 
     } catch (error) {
-      console.error('Optimization failed:', error);
-      toast.error('Failed to optimize: ' + error.message);
+      console.error('Failed to start route:', error);
+      toast.error('Failed to start route');
     } finally {
-      setIsOptimizing(false);
+      setIsStarting(false);
     }
   };
 
@@ -295,8 +398,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         onClick={onClose}
       />
 
-      {/* Top sheet - no backdrop so you can see cards below */}
-      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl p-4 pb-6 shadow-2xl animate-slide-down z-50 max-h-[50vh] overflow-y-auto">
+      {/* Top sheet */}
+      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl p-4 pb-6 shadow-2xl animate-slide-down z-50 max-h-[85vh] overflow-y-auto">
         {/* Drag handle at bottom */}
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
         
@@ -411,25 +514,120 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             </p>
           </div>
         )}
+
+        {/* Route Metrics - Show after optimization */}
+        {isOptimized && routeMetrics && (
+          <div className="bg-white rounded-xl p-4 shadow-sm mb-4 border border-gray-200 animate-fade-in">
+            <h3 className="text-sm font-semibold text-gray-500 mb-3">ROUTE SUMMARY</h3>
+            
+            {/* 3 Metric Boxes */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {/* Total Miles */}
+              <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
+                <p className="text-2xl font-bold text-blue-600">
+                  {routeMetrics.totalMiles.toFixed(1)}
+                </p>
+                <p className="text-xs text-blue-500 font-medium">Miles</p>
+              </div>
+              
+              {/* Total Drive Time */}
+              <div className="bg-purple-50 rounded-xl p-3 text-center border border-purple-200">
+                <p className="text-2xl font-bold text-purple-600">
+                  {routeMetrics.totalTimeMinutes >= 60 
+                    ? `${Math.floor(routeMetrics.totalTimeMinutes / 60)}h ${routeMetrics.totalTimeMinutes % 60}m`
+                    : `${routeMetrics.totalTimeMinutes}m`
+                  }
+                </p>
+                <p className="text-xs text-purple-500 font-medium">Drive Time</p>
+              </div>
+              
+              {/* Time at Address Selector */}
+              <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
+                <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
+                  <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-xl p-0 h-auto justify-center">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIME_AT_ADDRESS_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={opt.value.toString()}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-amber-500 font-medium">Per Address</p>
+              </div>
+            </div>
+            
+            {/* Estimated Completion */}
+            {(() => {
+              const est = calculateEstCompletion();
+              if (!est) return null;
+              
+              return (
+                <div className="bg-green-50 rounded-xl p-4 border border-green-200">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-green-700 font-medium">Est. Completion Time</p>
+                      <p className="text-xs text-green-600">
+                        {est.driveTime} min drive + {est.addressTime} min at addresses
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-green-600">
+                        {est.completionTime.toLocaleTimeString('en-US', { 
+                          hour: 'numeric', 
+                          minute: '2-digit',
+                          hour12: true 
+                        })}
+                      </p>
+                      <p className="text-xs text-green-500">
+                        ~{Math.floor(est.totalMinutes / 60)}h {est.totalMinutes % 60}m total
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
         
-        {/* Optimize button */}
-        <Button
-          onClick={handleOptimizeRoute}
-          disabled={!selectedEndLocation || isOptimizing}
-          className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4"
-        >
-          {isOptimizing ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Optimizing...
-            </>
-          ) : (
-            <>
-              <Navigation className="w-5 h-5 mr-2" />
-              Optimize & Start Route
-            </>
+        {/* Buttons */}
+        <div className="space-y-3">
+          {/* Optimize Button */}
+          <Button
+            onClick={handleOptimizeRoute}
+            disabled={!selectedEndLocation || isOptimizing}
+            className={`w-full font-bold py-4 ${
+              isOptimized 
+                ? 'bg-gray-400 hover:bg-gray-500' 
+                : 'bg-orange-500 hover:bg-orange-600'
+            } text-white`}
+          >
+            {isOptimizing ? (
+              <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimizing...</>
+            ) : isOptimized ? (
+              <><RefreshCw className="w-5 h-5 mr-2" /> Re-Optimize Route</>
+            ) : (
+              <><Navigation className="w-5 h-5 mr-2" /> Optimize Route</>
+            )}
+          </Button>
+          
+          {/* Start Button - Only show after optimization */}
+          {isOptimized && (
+            <Button
+              onClick={handleStartRoute}
+              disabled={isStarting}
+              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4"
+            >
+              {isStarting ? (
+                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
+              ) : (
+                <><Play className="w-5 h-5 mr-2" /> Start Route</>
+              )}
+            </Button>
           )}
-        </Button>
+        </div>
       </div>
     </div>
   );
