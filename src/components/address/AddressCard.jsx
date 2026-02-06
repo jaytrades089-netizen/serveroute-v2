@@ -215,7 +215,7 @@ export default function AddressCard({
         // 2. Get company_id
         const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
         
-        // 3. Create Attempt record in database
+        // 3. Create Attempt record in database (must be first - need the ID)
         const newAttempt = await base44.entities.Attempt.create({
           address_id: address.id,
           route_id: routeId,
@@ -257,34 +257,34 @@ export default function AddressCard({
         const existingSummary = address.attempts_summary || [];
         const updatedSummary = [...existingSummary, newAttemptSummary];
         
-        // 6. Update Address record
-        await base44.entities.Address.update(address.id, {
-          attempts_count: attemptNumber,
-          attempts_summary: updatedSummary,
-          status: 'attempted'
-        });
+        // 6. PARALLEL: Update Address, create AuditLog (no dependencies between them)
+        await Promise.all([
+          base44.entities.Address.update(address.id, {
+            attempts_count: attemptNumber,
+            attempts_summary: updatedSummary,
+            status: 'attempted'
+          }),
+          base44.entities.AuditLog.create({
+            company_id: companyId,
+            action_type: 'attempt_logged',
+            actor_id: user.id,
+            actor_role: user.role || 'server',
+            target_type: 'address',
+            target_id: address.id,
+            details: {
+              attempt_id: newAttempt.id,
+              attempt_number: attemptNumber,
+              qualifier: qualifierFields.qualifier,
+              qualifier_badges: qualifierFields.qualifier_badges,
+              outcome: 'no_answer',
+              route_id: routeId,
+              distance_feet: distanceFeet
+            },
+            timestamp: now.toISOString()
+          })
+        ]);
         
-        // 7. Create AuditLog entry
-        await base44.entities.AuditLog.create({
-          company_id: companyId,
-          action_type: 'attempt_logged',
-          actor_id: user.id,
-          actor_role: user.role || 'server',
-          target_type: 'address',
-          target_id: address.id,
-          details: {
-            attempt_id: newAttempt.id,
-            attempt_number: attemptNumber,
-            qualifier: qualifierFields.qualifier,
-            qualifier_badges: qualifierFields.qualifier_badges,
-            outcome: 'no_answer',
-            route_id: routeId,
-            distance_feet: distanceFeet
-          },
-          timestamp: now.toISOString()
-        });
-        
-        // 8. Invalidate queries to sync
+        // 7. Invalidate queries to sync
         queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
         queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
         queryClient.invalidateQueries({ queryKey: ['address', address.id] });
