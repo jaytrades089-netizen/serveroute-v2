@@ -98,8 +98,7 @@ export default function SubmitReceipt() {
   }
 
   const handleSuccess = (receipt) => {
-    // Navigate back to route detail immediately
-    window.location.href = `/WorkerRouteDetail?routeId=${routeId}&justServed=${addressId}`;
+    navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
   };
 
   const handleCancel = () => {
