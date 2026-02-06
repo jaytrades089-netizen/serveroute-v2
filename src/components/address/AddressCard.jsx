@@ -307,15 +307,9 @@ export default function AddressCard({
     })();
   };
 
-  // CAPTURE EVIDENCE - Opens camera
+  // CAPTURE EVIDENCE - Opens camera (works even with 0 attempts)
   const handleCaptureEvidence = (e) => {
     e.stopPropagation();
-    
-    if (attemptCount === 0) {
-      toast.error('Please log an attempt first');
-      return;
-    }
-    
     setShowCamera(true);
   };
 
@@ -342,33 +336,40 @@ export default function AddressCard({
       const currentAttemptIndex = activeTab > 0 ? activeTab - 1 : sortedAttempts.length - 1;
       const currentAttempt = sortedAttempts[currentAttemptIndex];
       
-      if (!currentAttempt) {
-        toast.error('No attempt found');
-        return;
+      if (currentAttempt) {
+        // Has attempt - attach photo to attempt
+        const existingPhotos = currentAttempt.photo_urls || [];
+        const existingNotes = currentAttempt.notes || '';
+        const newNotes = existingNotes 
+          ? `${existingNotes}\n\n${comment}` 
+          : comment;
+        
+        await base44.entities.Attempt.update(currentAttempt.id, {
+          photo_urls: [...existingPhotos, file_url],
+          notes: newNotes
+        });
+        
+        // Update local state
+        const updatedAttempts = localAttempts.map(a => 
+          a.id === currentAttempt.id 
+            ? { ...a, photo_urls: [...existingPhotos, file_url], notes: newNotes }
+            : a
+        );
+        setLocalAttempts(updatedAttempts);
+        
+        // Invalidate queries
+        queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      } else {
+        // No attempt yet - save photo directly on Address
+        const existingEvidencePhotos = address.evidence_photos || [];
+        await base44.entities.Address.update(address.id, {
+          evidence_photos: [...existingEvidencePhotos, file_url]
+        });
+        
+        // Invalidate address queries
+        queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+        queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       }
-      
-      // Update attempt with photo and notes
-      const existingPhotos = currentAttempt.photo_urls || [];
-      const existingNotes = currentAttempt.notes || '';
-      const newNotes = existingNotes 
-        ? `${existingNotes}\n\n${comment}` 
-        : comment;
-      
-      await base44.entities.Attempt.update(currentAttempt.id, {
-        photo_urls: [...existingPhotos, file_url],
-        notes: newNotes
-      });
-      
-      // Update local state
-      const updatedAttempts = localAttempts.map(a => 
-        a.id === currentAttempt.id 
-          ? { ...a, photo_urls: [...existingPhotos, file_url], notes: newNotes }
-          : a
-      );
-      setLocalAttempts(updatedAttempts);
-      
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       
       // Reset state
       setCapturedPhoto(null);

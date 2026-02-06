@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Camera, X, Loader2, RotateCcw, Upload } from 'lucide-react';
 
@@ -135,7 +135,8 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden bg-black">
+      <DialogContent className="max-w-lg p-0 overflow-hidden bg-black" aria-describedby={undefined}>
+        <DialogTitle className="sr-only">Capture Evidence</DialogTitle>
         {/* Hidden file input for upload fallback */}
         <input 
           type="file" 
