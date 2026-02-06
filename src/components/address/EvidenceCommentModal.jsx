@@ -9,14 +9,20 @@ export default function EvidenceCommentModal({
   onClose, 
   onSave, 
   photoPreview,
-  saving = false 
+  saving = false,
+  requireComment = true
 }) {
   const [comment, setComment] = useState('');
 
   const handleSave = () => {
+    if (requireComment && !comment.trim()) {
+      return; // Don't save if comment is required but empty
+    }
     onSave(comment);
     setComment('');
   };
+  
+  const canSave = !requireComment || comment.trim().length > 0;
 
   const handleClose = () => {
     setComment('');
@@ -46,15 +52,22 @@ export default function EvidenceCommentModal({
 
         <p className="text-sm text-gray-500 mb-2">
           Describe what you observed (vehicles, occupants, house details, license plates, etc.)
+          {requireComment && <span className="text-red-500 font-bold"> *Required</span>}
         </p>
         
         <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
           placeholder="No answer at door. Blue Honda Civic in driveway, plate ABC-1234. House appears occupied, lights on inside."
-          className="h-32 resize-none"
+          className={`h-32 resize-none ${requireComment && !comment.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
           autoFocus
         />
+        
+        {requireComment && !comment.trim() && (
+          <p className="text-xs text-red-500 mt-1">
+            A description is required before saving evidence
+          </p>
+        )}
 
         <div className="flex gap-3 mt-4">
           <Button 
@@ -66,9 +79,9 @@ export default function EvidenceCommentModal({
             Cancel
           </Button>
           <Button 
-            className="flex-1 bg-green-500 hover:bg-green-600"
+            className={`flex-1 ${canSave ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
             onClick={handleSave}
-            disabled={saving}
+            disabled={saving || !canSave}
           >
             {saving ? (
               <>
