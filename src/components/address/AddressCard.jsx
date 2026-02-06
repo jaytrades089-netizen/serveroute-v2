@@ -141,6 +141,11 @@ export default function AddressCard({
       return;
     }
     
+    if (!routeId) {
+      toast.error('Route ID missing');
+      return;
+    }
+    
     setLoggingAttempt(true);
     
     try {
@@ -174,7 +179,7 @@ export default function AddressCard({
         address_id: address.id,
         route_id: routeId,
         server_id: user.id,
-        company_id: user.company_id,
+        company_id: user.company_id || 'default',
         attempt_number: attemptNumber,
         attempt_time: now.toISOString(),
         attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -184,25 +189,74 @@ export default function AddressCard({
         user_longitude: userLon,
         distance_feet: distanceFeet,
         notes: '',
-        photo_urls: []
+        photo_urls: [],
+        synced_at: now.toISOString()
       });
       
-      // 4. Update address attempts count
-      await base44.entities.Address.update(address.id, {
+      // 4. Build attempts summary for the address
+      const newAttemptSummary = {
+        id: newAttempt.id,
+        attempt_number: attemptNumber,
+        attempt_time: now.toISOString(),
+        qualifier: qualifierFields.qualifier,
+        qualifier_badges: qualifierFields.qualifier_badges,
+        outcome: 'no_answer',
+        has_am: qualifierFields.has_am,
+        has_pm: qualifierFields.has_pm,
+        has_weekend: qualifierFields.has_weekend
+      };
+      
+      const existingSummary = address.attempts_summary || [];
+      const updatedSummary = [...existingSummary, newAttemptSummary];
+      
+      // 5. Update address with attempt data and accumulated qualifiers
+      const addressUpdates = {
         attempts_count: attemptNumber,
-        status: attemptNumber === 1 ? 'attempted' : address.status
+        attempts_summary: updatedSummary,
+        status: 'attempted'
+      };
+      
+      // Update qualifier flags on address (cumulative across all attempts)
+      const allAttempts = [...localAttempts, newAttempt];
+      const hasAnyAM = allAttempts.some(a => a.has_am);
+      const hasAnyPM = allAttempts.some(a => a.has_pm);
+      const hasAnyWeekend = allAttempts.some(a => a.has_weekend);
+      
+      // These fields don't exist on Address but we track them via attempts_summary
+      
+      await base44.entities.Address.update(address.id, addressUpdates);
+      
+      // 6. Create AuditLog entry
+      await base44.entities.AuditLog.create({
+        company_id: user.company_id || 'default',
+        action_type: 'attempt_logged',
+        actor_id: user.id,
+        actor_role: user.role || 'server',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          attempt_id: newAttempt.id,
+          attempt_number: attemptNumber,
+          qualifier: qualifierFields.qualifier,
+          qualifier_badges: qualifierFields.qualifier_badges,
+          outcome: 'no_answer',
+          route_id: routeId,
+          distance_feet: distanceFeet
+        },
+        timestamp: now.toISOString()
       });
       
-      // 5. Update local state to show new tab immediately
+      // 7. Update local state to show new tab immediately
       const updatedAttempts = [...localAttempts, newAttempt];
       setLocalAttempts(updatedAttempts);
       setActiveTab(attemptNumber);
       
-      // 6. Invalidate queries to refresh data
+      // 8. Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
-      // 7. Show success message
+      // 9. Show success message
       const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : '';
       const distanceText = distanceDisplay ? ` - ${distanceDisplay}` : '';
       
@@ -214,7 +268,7 @@ export default function AddressCard({
         toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display}${distanceText}`);
       }
 
-      // 8. Trigger animation callback after small delay to let state update
+      // 10. Trigger animation callback after small delay to let state update
       if (onAttemptLogged) {
         setTimeout(() => onAttemptLogged(), 100);
       }
