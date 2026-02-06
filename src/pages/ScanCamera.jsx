@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -77,12 +78,12 @@ export default function ScanCamera() {
     const type = initialType || 'serve';
     if (['serve', 'garnishment', 'posting'].includes(type)) {
       setDocumentType(type);
-      const newSession = createNewSession(user.id, user.company_id, type);
+      const newSession = createNewSession(user.id, getCompanyId(user), type);
       setSession(newSession);
       
       base44.entities.ScanSession.create({
         user_id: user.id,
-        company_id: user.company_id,
+        company_id: getCompanyId(user),
         document_type: type,
         status: 'active',
         started_at: new Date().toISOString(),

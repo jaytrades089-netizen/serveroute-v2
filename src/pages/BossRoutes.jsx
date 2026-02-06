@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { 
   Loader2, 
   Plus, 
@@ -37,7 +38,7 @@ export default function BossRoutes() {
     queryFn: () => base44.auth.me()
   });
 
-  const companyId = user?.company_id || 'default';
+  const companyId = getCompanyId(user);
 
   const { data: routes = [], isLoading } = useQuery({
     queryKey: ['allRoutes', companyId],

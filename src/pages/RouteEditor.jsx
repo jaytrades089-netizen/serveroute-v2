@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { format } from 'date-fns';
 import { 
@@ -89,7 +90,7 @@ export default function RouteEditor() {
     allAttemptsMap[attempt.address_id].push(attempt);
   });
 
-  const companyId = user?.company_id || 'default';
+  const companyId = getCompanyId(user);
 
   const { data: poolAddresses = [], isLoading: poolLoading } = useQuery({
     queryKey: ['poolAddresses', companyId],

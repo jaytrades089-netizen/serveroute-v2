@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -117,7 +118,7 @@ export default function ScanRouteSetup() {
       const isBoss = user.role === 'boss' || user.role === 'admin';
 
       const routeData = {
-        company_id: user.company_id,
+        company_id: getCompanyId(user),
         folder_name: routeName,
         due_date: format(dueDate, 'yyyy-MM-dd'),
         status: isBoss ? 'ready' : 'assigned',
@@ -148,7 +149,7 @@ export default function ScanRouteSetup() {
         const normalizedKey = generateNormalizedKey(addr.extractedData);
         
         await base44.entities.Address.create({
-          company_id: user.company_id,
+          company_id: getCompanyId(user),
           route_id: route.id,
           legal_address: addr.ocrRawText || addr.extractedData.fullAddress,
           normalized_address: addr.extractedData.fullAddress,
@@ -185,7 +186,7 @@ export default function ScanRouteSetup() {
 
       // Audit log
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: getCompanyId(user),
         action_type: 'route_created_from_scan',
         actor_id: user.id,
         actor_role: user.role,

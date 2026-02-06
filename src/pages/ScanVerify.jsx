@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -237,7 +238,7 @@ export default function ScanVerify() {
     try {
       // Get boss users
       const bosses = await base44.entities.User.filter({ 
-        company_id: user.company_id, 
+        company_id: getCompanyId(user), 
         role: 'boss' 
       });
 
@@ -249,7 +250,7 @@ export default function ScanVerify() {
       for (const boss of bosses) {
         await base44.entities.Notification.create({
           user_id: boss.id,
-          company_id: user.company_id,
+          company_id: getCompanyId(user),
           recipient_role: 'boss',
           type: 'address_flagged',
           title: 'Missing Documents Reported',

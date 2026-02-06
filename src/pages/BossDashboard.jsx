@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, Map, ScrollText } from 'lucide-react';
 import { createPageUrl } from '@/utils';
+import { getCompanyId } from '@/lib/utils';
 import { format } from 'date-fns';
 import { 
   Loader2, 
@@ -70,7 +71,7 @@ export default function BossDashboard() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
-  const companyId = user?.company_id || 'default';
+  const companyId = getCompanyId(user);
 
   // Get all workers (servers) in company
   const { data: workers = [] } = useQuery({

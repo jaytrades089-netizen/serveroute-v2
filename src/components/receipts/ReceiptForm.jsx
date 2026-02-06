@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDistanceFeet } from '@/components/services/GeoService';
+import { getCompanyId } from '@/lib/utils';
 
 const RELATIONSHIP_OPTIONS = [
   { value: 'defendant', label: 'Defendant' },
@@ -363,7 +364,7 @@ export default function ReceiptForm({
 
       // Create receipt
       const receipt = await base44.entities.Receipt.create({
-        company_id: user.company_id,
+        company_id: getCompanyId(user),
         address_id: address.id,
         route_id: route.id,
         worker_id: user.id,
@@ -422,13 +423,13 @@ export default function ReceiptForm({
 
       // Notify bosses/admins
       const bosses = await base44.entities.User.filter({ 
-        company_id: user.company_id, 
+        company_id: getCompanyId(user), 
         role: 'admin' 
       });
 
       for (const boss of bosses) {
         await base44.entities.Notification.create({
-          company_id: user.company_id,
+          company_id: getCompanyId(user),
           user_id: boss.id,
           recipient_role: 'boss',
           type: 'receipt_submitted',
@@ -442,7 +443,7 @@ export default function ReceiptForm({
 
       // Audit log
       await base44.entities.AuditLog.create({
-        company_id: user.company_id,
+        company_id: getCompanyId(user),
         action_type: isResubmission ? 'receipt_resubmitted' : 'receipt_submitted',
         actor_id: user.id,
         actor_role: 'server',
