@@ -127,7 +127,7 @@ export default function AddressCard({
     // Otherwise do nothing - buttons inside handle navigation
   };
 
-  // LOG ATTEMPT - Logs attempt in-place without navigation
+  // LOG ATTEMPT - Optimistic UI update with background database save
   const handleLogAttempt = async (e) => {
     e.stopPropagation();
     
@@ -146,132 +146,166 @@ export default function AddressCard({
       return;
     }
     
-    setLoggingAttempt(true);
+    // Capture previous state for rollback
+    const previousAttempts = [...localAttempts];
+    const previousTab = activeTab;
     
-    try {
-      // 1. Try to get GPS location, but continue even if it fails
-      let userLat = null;
-      let userLon = null;
-      let distanceFeet = null;
-      
+    // Get timestamp and qualifier data FIRST (instant)
+    const now = new Date();
+    const qualifierData = getQualifiers(now);
+    const qualifierFields = getQualifierStorageFields(qualifierData);
+    const attemptNumber = attemptCount + 1;
+    
+    // Create optimistic attempt object (temporary ID until DB returns real one)
+    const optimisticAttempt = {
+      id: `temp-${Date.now()}`,
+      address_id: address.id,
+      route_id: routeId,
+      server_id: user.id,
+      attempt_number: attemptNumber,
+      attempt_time: now.toISOString(),
+      attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ...qualifierFields,
+      outcome: 'no_answer',
+      user_latitude: null,
+      user_longitude: null,
+      distance_feet: null,
+      notes: '',
+      photo_urls: []
+    };
+    
+    // OPTIMISTIC UPDATE - Instant UI feedback
+    const updatedAttempts = [...localAttempts, optimisticAttempt];
+    setLocalAttempts(updatedAttempts);
+    setActiveTab(attemptNumber);
+    
+    // Show success toast immediately
+    if (qualifierData.isNTC) {
+      toast.warning(`Attempt ${attemptNumber} logged - NTC`);
+    } else if (qualifierData.isOutsideHours) {
+      toast.warning(`Attempt ${attemptNumber} logged - Outside Hours`);
+    } else {
+      toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display}`);
+    }
+    
+    // Trigger animation callback immediately
+    if (onAttemptLogged) {
+      setTimeout(() => onAttemptLogged(), 100);
+    }
+    
+    // BACKGROUND SAVE - No await blocking UI
+    (async () => {
       try {
-        const position = await getCurrentPosition();
-        userLat = position.latitude;
-        userLon = position.longitude;
+        // 1. Try to get GPS location (non-blocking)
+        let userLat = null;
+        let userLon = null;
+        let distanceFeet = null;
         
-        // Only calculate distance if address has coordinates
-        if (address.lat && address.lng) {
-          distanceFeet = calculateDistanceFeet(userLat, userLon, address.lat, address.lng);
+        try {
+          const position = await getCurrentPosition();
+          userLat = position.latitude;
+          userLon = position.longitude;
+          
+          if (address.lat && address.lng) {
+            distanceFeet = calculateDistanceFeet(userLat, userLon, address.lat, address.lng);
+          }
+        } catch (geoError) {
+          console.warn('Geolocation failed, continuing without location:', geoError.message);
         }
-      } catch (geoError) {
-        console.warn('Geolocation failed, continuing without location:', geoError.message);
-        // Continue anyway - don't block attempt logging
-      }
-      
-      // 2. Get timestamp and qualifier data
-      const now = new Date();
-      const qualifierData = getQualifiers(now);
-      const qualifierFields = getQualifierStorageFields(qualifierData);
-      const attemptNumber = attemptCount + 1;
-      
-      // 3. Get company_id from user (check both direct and nested data)
-      const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
-      
-      // 4. Create Attempt record with full qualifier data
-      const newAttempt = await base44.entities.Attempt.create({
-        address_id: address.id,
-        route_id: routeId,
-        server_id: user.id,
-        company_id: companyId,
-        attempt_number: attemptNumber,
-        attempt_time: now.toISOString(),
-        attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        ...qualifierFields,
-        outcome: 'no_answer',
-        user_latitude: userLat,
-        user_longitude: userLon,
-        distance_feet: distanceFeet,
-        notes: '',
-        photo_urls: [],
-        synced_at: now.toISOString()
-      });
-      
-      // 5. Build attempts summary for the address (stringify each entry)
-      const newAttemptSummary = JSON.stringify({
-        id: newAttempt.id,
-        attempt_number: attemptNumber,
-        attempt_time: now.toISOString(),
-        qualifier: qualifierFields.qualifier,
-        qualifier_badges: qualifierFields.qualifier_badges,
-        outcome: 'no_answer',
-        has_am: qualifierFields.has_am,
-        has_pm: qualifierFields.has_pm,
-        has_weekend: qualifierFields.has_weekend
-      });
-      
-      const existingSummary = address.attempts_summary || [];
-      const updatedSummary = [...existingSummary, newAttemptSummary];
-      
-      // 6. Update address with attempt data
-      await base44.entities.Address.update(address.id, {
-        attempts_count: attemptNumber,
-        attempts_summary: updatedSummary,
-        status: 'attempted'
-      });
-      
-      // 7. Create AuditLog entry
-      await base44.entities.AuditLog.create({
-        company_id: companyId,
-        action_type: 'attempt_logged',
-        actor_id: user.id,
-        actor_role: user.role || 'server',
-        target_type: 'address',
-        target_id: address.id,
-        details: {
-          attempt_id: newAttempt.id,
+        
+        // 2. Get company_id
+        const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
+        
+        // 3. Create Attempt record in database
+        const newAttempt = await base44.entities.Attempt.create({
+          address_id: address.id,
+          route_id: routeId,
+          server_id: user.id,
+          company_id: companyId,
           attempt_number: attemptNumber,
+          attempt_time: now.toISOString(),
+          attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...qualifierFields,
+          outcome: 'no_answer',
+          user_latitude: userLat,
+          user_longitude: userLon,
+          distance_feet: distanceFeet,
+          notes: '',
+          photo_urls: [],
+          synced_at: new Date().toISOString()
+        });
+        
+        // 4. Update local state with real ID and location data
+        setLocalAttempts(prev => prev.map(a => 
+          a.id === optimisticAttempt.id 
+            ? { ...newAttempt } 
+            : a
+        ));
+        
+        // 5. Build attempts summary (stringify each entry)
+        const newAttemptSummary = JSON.stringify({
+          id: newAttempt.id,
+          attempt_number: attemptNumber,
+          attempt_time: now.toISOString(),
           qualifier: qualifierFields.qualifier,
           qualifier_badges: qualifierFields.qualifier_badges,
           outcome: 'no_answer',
-          route_id: routeId,
-          distance_feet: distanceFeet
-        },
-        timestamp: now.toISOString()
-      });
-      
-      // 8. Update local state to show new tab immediately
-      const updatedAttempts = [...localAttempts, newAttempt];
-      setLocalAttempts(updatedAttempts);
-      setActiveTab(attemptNumber);
-      
-      // 9. Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
-      
-      // 10. Show success message
-      const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : '';
-      const distanceText = distanceDisplay ? ` - ${distanceDisplay}` : '';
-      
-      if (qualifierData.isNTC) {
-        toast.warning(`Attempt ${attemptNumber} logged - NTC${distanceText}`);
-      } else if (qualifierData.isOutsideHours) {
-        toast.warning(`Attempt ${attemptNumber} logged - Outside Hours${distanceText}`);
-      } else {
-        toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display}${distanceText}`);
+          has_am: qualifierFields.has_am,
+          has_pm: qualifierFields.has_pm,
+          has_weekend: qualifierFields.has_weekend
+        });
+        
+        const existingSummary = address.attempts_summary || [];
+        const updatedSummary = [...existingSummary, newAttemptSummary];
+        
+        // 6. Update Address record
+        await base44.entities.Address.update(address.id, {
+          attempts_count: attemptNumber,
+          attempts_summary: updatedSummary,
+          status: 'attempted'
+        });
+        
+        // 7. Create AuditLog entry
+        await base44.entities.AuditLog.create({
+          company_id: companyId,
+          action_type: 'attempt_logged',
+          actor_id: user.id,
+          actor_role: user.role || 'server',
+          target_type: 'address',
+          target_id: address.id,
+          details: {
+            attempt_id: newAttempt.id,
+            attempt_number: attemptNumber,
+            qualifier: qualifierFields.qualifier,
+            qualifier_badges: qualifierFields.qualifier_badges,
+            outcome: 'no_answer',
+            route_id: routeId,
+            distance_feet: distanceFeet
+          },
+          timestamp: now.toISOString()
+        });
+        
+        // 8. Invalidate queries to sync
+        queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+        queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+        queryClient.invalidateQueries({ queryKey: ['address', address.id] });
+        
+        // Show distance in a follow-up toast if we got it
+        if (distanceFeet !== null) {
+          const distanceDisplay = formatDistance(distanceFeet);
+          toast.info(`📍 ${distanceDisplay} from address`);
+        }
+        
+      } catch (error) {
+        console.error('Background save failed:', error);
+        
+        // ROLLBACK - Revert UI to previous state
+        setLocalAttempts(previousAttempts);
+        setActiveTab(previousTab);
+        
+        toast.error('Failed to save attempt - please try again');
       }
-
-      // 11. Trigger animation callback after small delay to let state update
-      if (onAttemptLogged) {
-        setTimeout(() => onAttemptLogged(), 100);
-      }
-
-    } catch (error) {
-      console.error('Failed to log attempt:', error);
-      toast.error('Failed to log attempt: ' + (error.message || 'Unknown error'));
-    } finally {
-      setLoggingAttempt(false);
-    }
+    })();
   };
 
   // CAPTURE EVIDENCE - Opens camera
