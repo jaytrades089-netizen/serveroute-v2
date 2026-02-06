@@ -29,13 +29,13 @@ export default function AnimatedAddressList({
       if (addr.served || addr.status === 'served' || addr.receipt_status === 'approved') {
         served.push(addr);
       } else {
-        // Check if attempted today (but not served)
+        // Check if has a COMPLETED attempt today (not in_progress)
         const addressAttempts = attempts.filter(a => a.address_id === addr.id);
-        const attemptedTodayCheck = addressAttempts.some(a => 
-          new Date(a.attempt_time).toDateString() === today
+        const hasCompletedAttemptToday = addressAttempts.some(a => 
+          a.status === 'completed' && new Date(a.attempt_time).toDateString() === today
         );
         
-        if (attemptedTodayCheck) {
+        if (hasCompletedAttemptToday) {
           attemptedToday.push(addr);
         } else {
           active.push(addr);

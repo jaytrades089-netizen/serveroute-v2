@@ -233,10 +233,11 @@ export default function AddressCard({
           synced_at: new Date().toISOString()
         });
         
-        // Update local state
+        // Update local state and auto-switch to new tab
         setLocalAttempts(prev => [...prev, newAttempt]);
-        setActiveTab(attemptNumber);
-        
+        // Auto-switch to the new attempt tab immediately
+        setTimeout(() => setActiveTab(attemptNumber), 50);
+
         // Update Address attempts_count
         await base44.entities.Address.update(address.id, {
           attempts_count: attemptNumber,
