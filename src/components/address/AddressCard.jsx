@@ -196,8 +196,8 @@ export default function AddressCard({
         synced_at: now.toISOString()
       });
       
-      // 5. Build attempts summary for the address
-      const newAttemptSummary = {
+      // 5. Build attempts summary for the address (stringify each entry)
+      const newAttemptSummary = JSON.stringify({
         id: newAttempt.id,
         attempt_number: attemptNumber,
         attempt_time: now.toISOString(),
@@ -207,7 +207,7 @@ export default function AddressCard({
         has_am: qualifierFields.has_am,
         has_pm: qualifierFields.has_pm,
         has_weekend: qualifierFields.has_weekend
-      };
+      });
       
       const existingSummary = address.attempts_summary || [];
       const updatedSummary = [...existingSummary, newAttemptSummary];
