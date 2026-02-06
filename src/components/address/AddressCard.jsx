@@ -970,8 +970,6 @@ export default function AddressCard({
                     <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
                   </button>
                 </div>
-              </>
-            )}
           </div>
         )}
 
