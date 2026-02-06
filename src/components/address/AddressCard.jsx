@@ -174,12 +174,15 @@ export default function AddressCard({
       const qualifierFields = getQualifierStorageFields(qualifierData);
       const attemptNumber = attemptCount + 1;
       
-      // 3. Create Attempt record with full qualifier data
+      // 3. Get company_id from user (check both direct and nested data)
+      const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
+      
+      // 4. Create Attempt record with full qualifier data
       const newAttempt = await base44.entities.Attempt.create({
         address_id: address.id,
         route_id: routeId,
         server_id: user.id,
-        company_id: user.company_id || 'default',
+        company_id: companyId,
         attempt_number: attemptNumber,
         attempt_time: now.toISOString(),
         attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -226,9 +229,9 @@ export default function AddressCard({
       
       await base44.entities.Address.update(address.id, addressUpdates);
       
-      // 6. Create AuditLog entry
+      // 7. Create AuditLog entry
       await base44.entities.AuditLog.create({
-        company_id: user.company_id || 'default',
+        company_id: companyId,
         action_type: 'attempt_logged',
         actor_id: user.id,
         actor_role: user.role || 'server',
