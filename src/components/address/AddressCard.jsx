@@ -355,14 +355,14 @@ export default function AddressCard({
           details: {
             attempt_id: inProgressAttempt.id,
             attempt_number: inProgressAttempt.attempt_number,
-            qualifier: qualifierFields.qualifier,
-            qualifier_badges: qualifierFields.qualifier_badges,
+            qualifier: inProgressAttempt.qualifier,
+            qualifier_badges: inProgressAttempt.qualifier_badges,
             outcome: outcome,
             route_id: routeId,
             distance_feet: inProgressAttempt.distance_feet
           },
           timestamp: now.toISOString()
-          });
+      });
       
       // Invalidate queries in background
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
