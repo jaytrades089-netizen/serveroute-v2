@@ -362,8 +362,7 @@ export default function AddressCard({
             distance_feet: inProgressAttempt.distance_feet
           },
           timestamp: now.toISOString()
-        })
-      ]);
+          });
       
       // Invalidate queries in background
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
