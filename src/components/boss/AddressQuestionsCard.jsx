@@ -62,7 +62,7 @@ export default function AddressQuestionsCard({ companyId }) {
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             Address Questions ({questions.length})
           </CardTitle>
-          <Link to={createPageUrl('AddressQuestions')}>
+          <Link to={createPageUrl('BossDashboard')}>
             <Button variant="ghost" size="sm" className="text-orange-600">
               View All <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
