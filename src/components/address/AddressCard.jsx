@@ -95,9 +95,12 @@ export default function AddressCard({
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   
-  // Outcome selector state (inline, not modal)
-  const [showOutcomeSelector, setShowOutcomeSelector] = useState(false);
+  // Attempt logging state
   const [finalizingAttempt, setFinalizingAttempt] = useState(false);
+  
+  // Edit notes state
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [editedNotesText, setEditedNotesText] = useState('');
 
   // Get current user
   const { data: user } = useQuery({
@@ -149,6 +152,7 @@ export default function AddressCard({
   };
 
   // Save evidence with comment - THIS CREATES THE DRAFT ATTEMPT
+  // OPTIMISTIC UI: Close modal immediately, save in background
   const handleSaveEvidence = async (comment) => {
     if (!capturedPhoto) return;
     
@@ -158,12 +162,19 @@ export default function AddressCard({
       return;
     }
     
-    setSavingEvidence(true);
+    // OPTIMISTIC: Close modal immediately for instant feedback
+    const photoToUpload = capturedPhoto;
+    setCapturedPhoto(null);
+    setShowCommentModal(false);
     
+    // Show instant feedback
+    toast.success('Saving evidence...', { duration: 1500 });
+    
+    // Continue upload in background
     try {
-      // Upload photo first
+      // Upload photo
       const { file_url } = await base44.integrations.Core.UploadFile({ 
-        file: capturedPhoto.file 
+        file: photoToUpload.file 
       });
       
       if (hasInProgressAttempt) {
@@ -187,7 +198,7 @@ export default function AddressCard({
         );
         setLocalAttempts(updatedAttempts);
         
-        toast.success('Photo added to attempt');
+        toast.success('Photo added!');
       } else {
         // CREATE NEW IN_PROGRESS ATTEMPT
         const now = new Date();
@@ -196,7 +207,27 @@ export default function AddressCard({
         const attemptNumber = attemptCount + 1;
         const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
         
-        // Get GPS location
+        // OPTIMISTIC: Create local attempt immediately
+        const tempAttempt = {
+          id: 'temp_' + Date.now(),
+          address_id: address.id,
+          route_id: routeId,
+          server_id: user.id,
+          company_id: companyId,
+          attempt_number: attemptNumber,
+          status: 'in_progress',
+          attempt_time: now.toISOString(),
+          attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...qualifierFields,
+          notes: comment,
+          photo_urls: [photoToUpload.dataUrl], // Use dataUrl temporarily
+        };
+        
+        // Update local state immediately
+        setLocalAttempts(prev => [...prev, tempAttempt]);
+        setTimeout(() => setActiveTab(attemptNumber), 50);
+        
+        // Get GPS location (don't block)
         let userLat = null;
         let userLon = null;
         let distanceFeet = null;
@@ -213,7 +244,7 @@ export default function AddressCard({
           console.warn('Geolocation failed:', geoError.message);
         }
         
-        // Create the attempt with status = in_progress
+        // Create the real attempt in database
         const newAttempt = await base44.entities.Attempt.create({
           address_id: address.id,
           route_id: routeId,
@@ -224,7 +255,6 @@ export default function AddressCard({
           attempt_time: now.toISOString(),
           attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...qualifierFields,
-          // outcome is null/undefined - not set until finalized
           user_latitude: userLat,
           user_longitude: userLon,
           distance_feet: distanceFeet,
@@ -233,10 +263,10 @@ export default function AddressCard({
           synced_at: new Date().toISOString()
         });
         
-        // Update local state and auto-switch to new tab
-        setLocalAttempts(prev => [...prev, newAttempt]);
-        // Auto-switch to the new attempt tab immediately
-        setTimeout(() => setActiveTab(attemptNumber), 50);
+        // Replace temp attempt with real one
+        setLocalAttempts(prev => prev.map(a => 
+          a.id === tempAttempt.id ? newAttempt : a
+        ));
 
         // Update Address attempts_count
         await base44.entities.Address.update(address.id, {
@@ -244,27 +274,20 @@ export default function AddressCard({
           status: address.status === 'pending' ? 'attempted' : address.status
         });
         
-        // Show brief toast - no animation yet, card stays at top
         toast.success(`Evidence saved - ${qualifierData.display}`);
       }
       
-      // Invalidate queries
+      // Invalidate queries in background
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       
-      // Reset state
-      setCapturedPhoto(null);
-      setShowCommentModal(false);
-      
     } catch (error) {
       console.error('Failed to save evidence:', error);
-      toast.error('Failed to save evidence');
-    } finally {
-      setSavingEvidence(false);
+      toast.error('Failed to save - please try again');
     }
   };
 
-  // LOG ATTEMPT - Finalizes an in_progress attempt by selecting outcome
+  // LOG ATTEMPT - Directly logs with "no_answer" outcome, NO additional screens
   const handleLogAttempt = async (e) => {
     e.stopPropagation();
     
@@ -291,33 +314,35 @@ export default function AddressCard({
       return;
     }
     
-    // Show inline outcome selector
-    setShowOutcomeSelector(true);
-  };
-
-  // Finalize attempt with selected outcome
-  const handleFinalizeAttempt = async (outcome) => {
-    if (!inProgressAttempt) return;
-    
+    // DIRECTLY log attempt with "no_answer" - NO dialogs
     setFinalizingAttempt(true);
+    
+    const outcome = 'no_answer';
     
     try {
       const now = new Date();
       const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
       
-      // Update the attempt to completed
-      await base44.entities.Attempt.update(inProgressAttempt.id, {
-        status: 'completed',
-        outcome: outcome
-      });
-      
-      // Update local state
+      // OPTIMISTIC: Update local state immediately for instant feedback
       const updatedAttempts = localAttempts.map(a => 
         a.id === inProgressAttempt.id 
           ? { ...a, status: 'completed', outcome }
           : a
       );
       setLocalAttempts(updatedAttempts);
+      
+      // Trigger animation to move card to bottom IMMEDIATELY
+      if (onAttemptLogged) {
+        onAttemptLogged();
+      }
+      
+      toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
+      
+      // Update the attempt to completed in background
+      await base44.entities.Attempt.update(inProgressAttempt.id, {
+        status: 'completed',
+        outcome: outcome
+      });
       
       // Build attempts summary
       const qualifierFields = {
@@ -343,18 +368,10 @@ export default function AddressCard({
       const existingSummary = address.attempts_summary || [];
       const updatedSummary = [...existingSummary, newAttemptSummary];
       
-      // Handle served outcome
-      const isServedOutcome = outcome === 'served';
-      
       // PARALLEL: Update Address and create AuditLog
       await Promise.all([
         base44.entities.Address.update(address.id, {
-          attempts_summary: updatedSummary,
-          ...(isServedOutcome && {
-            served: true,
-            served_at: now.toISOString(),
-            status: 'served'
-          })
+          attempts_summary: updatedSummary
         }),
         base44.entities.AuditLog.create({
           company_id: companyId,
@@ -376,28 +393,52 @@ export default function AddressCard({
         })
       ]);
       
-      // Invalidate queries
+      // Invalidate queries in background
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
-      setShowOutcomeSelector(false);
-      
-      // Trigger animation to move card to bottom
-      if (onAttemptLogged) {
-        setTimeout(() => onAttemptLogged(), 100);
-      }
-      
-      // If served, trigger callback
-      if (isServedOutcome && onServed) {
-        onServed();
-      }
-      
     } catch (error) {
-      console.error('Failed to finalize attempt:', error);
+      console.error('Failed to log attempt:', error);
       toast.error('Failed to log attempt');
     } finally {
       setFinalizingAttempt(false);
+    }
+  };
+
+  // Edit notes handler
+  const handleEditNotes = (e) => {
+    e.stopPropagation();
+    if (selectedAttempt) {
+      setEditedNotesText(selectedAttempt.notes || '');
+      setEditingNotes(true);
+    }
+  };
+
+  // Save edited notes
+  const handleSaveNotes = async () => {
+    if (!selectedAttempt) return;
+    
+    try {
+      await base44.entities.Attempt.update(selectedAttempt.id, {
+        notes: editedNotesText
+      });
+      
+      // Update local state
+      const updatedAttempts = localAttempts.map(a => 
+        a.id === selectedAttempt.id 
+          ? { ...a, notes: editedNotesText }
+          : a
+      );
+      setLocalAttempts(updatedAttempts);
+      
+      setEditingNotes(false);
+      toast.success('Notes updated');
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+    } catch (error) {
+      console.error('Failed to save notes:', error);
+      toast.error('Failed to save notes');
     }
   };
 
@@ -707,9 +748,41 @@ export default function AddressCard({
             )}
 
             {/* Notes (editable) */}
-            {selectedAttempt.notes && (
+            {editingNotes ? (
+              <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs text-blue-600 font-medium">EDIT NOTES</span>
+                </div>
+                <textarea
+                  value={editedNotesText}
+                  onChange={(e) => setEditedNotesText(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={4}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); setEditingNotes(false); }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleSaveNotes(); }}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            ) : selectedAttempt.notes ? (
               <div 
-                onClick={(e) => { e.stopPropagation(); /* TODO: handleEditNotes */ }}
+                onClick={handleEditNotes}
                 className="bg-gray-50 rounded-xl p-4 mb-4 cursor-pointer hover:bg-gray-100 transition"
               >
                 <div className="flex items-center gap-2 mb-2">
@@ -721,7 +794,7 @@ export default function AddressCard({
                 </p>
                 <p className="text-xs text-blue-500 mt-2">Tap to edit</p>
               </div>
-            )}
+            ) : null}
 
             {/* View Photos Button */}
             {selectedAttempt.photo_urls?.length > 0 && (
@@ -810,45 +883,20 @@ export default function AddressCard({
         {/* Action Buttons */}
         {showActions && !isServed && (
           <div className="px-4 py-3 space-y-2">
-            {/* Inline Outcome Selector - shows when logging attempt */}
-            {showOutcomeSelector && hasInProgressAttempt ? (
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500 text-center font-medium">What happened?</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    { value: 'no_answer', label: 'No Answer', color: 'bg-gray-500' },
-                    { value: 'not_home', label: 'Not Home', color: 'bg-blue-500' },
-                    { value: 'refused', label: 'Refused', color: 'bg-red-500' },
-                    { value: 'served', label: 'Served', color: 'bg-green-500' },
-                  ].map((outcome) => (
-                    <Button
-                      key={outcome.value}
-                      onClick={(e) => { e.stopPropagation(); handleFinalizeAttempt(outcome.value); }}
-                      disabled={finalizingAttempt}
-                      className={`h-12 ${outcome.color} hover:opacity-90 text-white font-bold text-sm rounded-xl`}
-                    >
-                      {finalizingAttempt ? <Loader2 className="w-4 h-4 animate-spin" /> : outcome.label}
-                    </Button>
-                  ))}
-                </div>
-                <Button
-                  variant="ghost"
-                  onClick={(e) => { e.stopPropagation(); setShowOutcomeSelector(false); }}
-                  className="w-full text-gray-500"
-                  disabled={finalizingAttempt}
-                >
-                  Cancel
-                </Button>
-              </div>
-            ) : (
-              <>
+            {/* No outcome selector - LOG ATTEMPT goes directly */}
+            {(
                 {/* Main Action - Changes based on state */}
                 {hasInProgressAttempt ? (
                   <Button 
                     onClick={handleLogAttempt}
+                    disabled={finalizingAttempt}
                     className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
                   >
-                    <Zap className="w-4 h-4 mr-2" />
+                    {finalizingAttempt ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Zap className="w-4 h-4 mr-2" />
+                    )}
                     LOG ATTEMPT {inProgressAttempt.attempt_number}
                   </Button>
                 ) : (
