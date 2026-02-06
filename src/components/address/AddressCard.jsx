@@ -42,7 +42,7 @@ import { QualifierBadges, QualifierBox } from '@/components/qualifier/QualifierB
 import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
-import OutcomeSelectorModal from './OutcomeSelectorModal';
+
 
 // Format address in required 2-line ALL CAPS format
 export function formatAddress(address) {
@@ -95,8 +95,8 @@ export default function AddressCard({
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
   
-  // Outcome selector state
-  const [showOutcomeModal, setShowOutcomeModal] = useState(false);
+  // Outcome selector state (inline, not modal)
+  const [showOutcomeSelector, setShowOutcomeSelector] = useState(false);
   const [finalizingAttempt, setFinalizingAttempt] = useState(false);
 
   // Get current user
@@ -243,17 +243,8 @@ export default function AddressCard({
           status: address.status === 'pending' ? 'attempted' : address.status
         });
         
-        // Show toast with qualifier info
-        if (qualifierData.isNTC) {
-          toast.warning(`Attempt ${attemptNumber} started - NTC. Don't forget to log the outcome!`);
-        } else {
-          toast.success(`Attempt ${attemptNumber} started - ${qualifierData.display}. Don't forget to log the outcome!`);
-        }
-        
-        // Trigger animation callback
-        if (onAttemptLogged) {
-          setTimeout(() => onAttemptLogged(), 100);
-        }
+        // Show brief toast - no animation yet, card stays at top
+        toast.success(`Evidence saved - ${qualifierData.display}`);
       }
       
       // Invalidate queries
@@ -299,8 +290,8 @@ export default function AddressCard({
       return;
     }
     
-    // Open outcome selector
-    setShowOutcomeModal(true);
+    // Show inline outcome selector
+    setShowOutcomeSelector(true);
   };
 
   // Finalize attempt with selected outcome
@@ -389,10 +380,14 @@ export default function AddressCard({
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
-      setShowOutcomeModal(false);
-      toast.success(`Attempt logged: ${outcome.replace('_', ' ')}`);
+      setShowOutcomeSelector(false);
       
-      // If served, trigger callback and potentially navigate to receipt
+      // Trigger animation to move card to bottom
+      if (onAttemptLogged) {
+        setTimeout(() => onAttemptLogged(), 100);
+      }
+      
+      // If served, trigger callback
       if (isServedOutcome && onServed) {
         onServed();
       }
@@ -814,90 +809,120 @@ export default function AddressCard({
         {/* Action Buttons */}
         {showActions && !isServed && (
           <div className="px-4 py-3 space-y-2">
-            {/* Main Action - Changes based on state */}
-            {hasInProgressAttempt ? (
-              // Has in_progress attempt - show LOG ATTEMPT as primary
-              <Button 
-                onClick={handleLogAttempt}
-                className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                LOG ATTEMPT {inProgressAttempt.attempt_number}
-              </Button>
+            {/* Inline Outcome Selector - shows when logging attempt */}
+            {showOutcomeSelector && hasInProgressAttempt ? (
+              <div className="space-y-2">
+                <p className="text-xs text-gray-500 text-center font-medium">What happened?</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { value: 'no_answer', label: 'No Answer', color: 'bg-gray-500' },
+                    { value: 'not_home', label: 'Not Home', color: 'bg-blue-500' },
+                    { value: 'refused', label: 'Refused', color: 'bg-red-500' },
+                    { value: 'served', label: 'Served', color: 'bg-green-500' },
+                  ].map((outcome) => (
+                    <Button
+                      key={outcome.value}
+                      onClick={(e) => { e.stopPropagation(); handleFinalizeAttempt(outcome.value); }}
+                      disabled={finalizingAttempt}
+                      className={`h-12 ${outcome.color} hover:opacity-90 text-white font-bold text-sm rounded-xl`}
+                    >
+                      {finalizingAttempt ? <Loader2 className="w-4 h-4 animate-spin" /> : outcome.label}
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  variant="ghost"
+                  onClick={(e) => { e.stopPropagation(); setShowOutcomeSelector(false); }}
+                  className="w-full text-gray-500"
+                  disabled={finalizingAttempt}
+                >
+                  Cancel
+                </Button>
+              </div>
             ) : (
-              // No in_progress attempt - show TAKE EVIDENCE as primary
-              <Button 
-                onClick={handleCaptureEvidence}
-                className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                TAKE EVIDENCE
-              </Button>
+              <>
+                {/* Main Action - Changes based on state */}
+                {hasInProgressAttempt ? (
+                  <Button 
+                    onClick={handleLogAttempt}
+                    className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                  >
+                    <Zap className="w-4 h-4 mr-2" />
+                    LOG ATTEMPT {inProgressAttempt.attempt_number}
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleCaptureEvidence}
+                    className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                  >
+                    <Camera className="w-4 h-4 mr-2" />
+                    TAKE EVIDENCE
+                  </Button>
+                )}
+
+                {/* Secondary Actions Row - 3 buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  {hasInProgressAttempt ? (
+                    <Button 
+                      onClick={handleCaptureEvidence}
+                      className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span>ADD PHOTO</span>
+                    </Button>
+                  ) : (
+                    <Button 
+                      onClick={handleLogAttempt}
+                      disabled
+                      className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
+                    >
+                      <Zap className="w-5 h-5" />
+                      <span>LOG</span>
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                    }}
+                    className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                  >
+                    <FileText className="w-5 h-5" />
+                    <span>DETAILS</span>
+                  </Button>
+                  
+                  <Link 
+                    to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&finalize=true`)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Button 
+                      className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                    >
+                      <Shield className="w-5 h-5" />
+                      <span>FINALIZE</span>
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Navigate Button */}
+                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onMessageBoss && onMessageBoss(address); }}
+                    className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors"
+                  >
+                    <MoreVertical className="w-5 h-5 text-gray-400" />
+                  </button>
+                  <button 
+                    onClick={handleNavigate}
+                    className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <Navigation className="w-5 h-5 text-green-600" />
+                    <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
+                  </button>
+                </div>
+              </>
             )}
-
-            {/* Secondary Actions Row - 3 buttons */}
-            <div className="grid grid-cols-3 gap-2">
-              {hasInProgressAttempt ? (
-                // When in_progress, Evidence button adds more photos
-                <Button 
-                  onClick={handleCaptureEvidence}
-                  className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>ADD PHOTO</span>
-                </Button>
-              ) : (
-                // When no in_progress, show disabled LOG button
-                <Button 
-                  onClick={handleLogAttempt}
-                  disabled
-                  className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
-                >
-                  <Zap className="w-5 h-5" />
-                  <span>LOG</span>
-                </Button>
-              )}
-              
-              <Button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
-                }}
-                className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-              >
-                <FileText className="w-5 h-5" />
-                <span>DETAILS</span>
-              </Button>
-              
-              <Link 
-                to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&finalize=true`)}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Button 
-                  className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                >
-                  <Shield className="w-5 h-5" />
-                  <span>FINALIZE</span>
-                </Button>
-              </Link>
-            </div>
-
-            {/* Navigate Button */}
-            <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-              <button 
-                onClick={(e) => { e.stopPropagation(); onMessageBoss && onMessageBoss(address); }}
-                className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <MoreVertical className="w-5 h-5 text-gray-400" />
-              </button>
-              <button 
-                onClick={handleNavigate}
-                className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors"
-              >
-                <Navigation className="w-5 h-5 text-green-600" />
-                <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
-              </button>
-            </div>
           </div>
         )}
 
@@ -940,14 +965,7 @@ export default function AddressCard({
         requireComment={!hasInProgressAttempt}
       />
 
-      {/* Outcome Selector Modal */}
-      <OutcomeSelectorModal
-        open={showOutcomeModal}
-        onClose={() => setShowOutcomeModal(false)}
-        onSelect={handleFinalizeAttempt}
-        loading={finalizingAttempt}
-        attemptNumber={inProgressAttempt?.attempt_number}
-      />
+
 
       {/* Photo Viewer */}
       <PhotoViewer

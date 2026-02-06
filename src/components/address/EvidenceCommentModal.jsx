@@ -35,7 +35,7 @@ export default function EvidenceCommentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-blue-500" />
-            Add Description
+            Add Comment
           </DialogTitle>
         </DialogHeader>
 
@@ -49,23 +49,18 @@ export default function EvidenceCommentModal({
             />
           </div>
         )}
-
-        <p className="text-sm text-gray-500 mb-2">
-          Describe what you observed (vehicles, occupants, house details, license plates, etc.)
-          {requireComment && <span className="text-red-500 font-bold"> *Required</span>}
-        </p>
         
         <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="No answer at door. Blue Honda Civic in driveway, plate ABC-1234. House appears occupied, lights on inside."
-          className={`h-32 resize-none ${requireComment && !comment.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
+          placeholder="Blue Honda Civic in driveway, plate ABC-1234. Lights on inside."
+          className={`h-24 resize-none ${requireComment && !comment.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
           autoFocus
         />
         
         {requireComment && !comment.trim() && (
           <p className="text-xs text-red-500 mt-1">
-            A description is required before saving evidence
+            Comment required
           </p>
         )}
 
