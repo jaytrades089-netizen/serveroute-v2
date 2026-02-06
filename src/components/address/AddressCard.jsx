@@ -883,10 +883,8 @@ export default function AddressCard({
         {/* Action Buttons */}
         {showActions && !isServed && (
           <div className="px-4 py-3 space-y-2">
-            {/* No outcome selector - LOG ATTEMPT goes directly */}
-            {(
-                {/* Main Action - Changes based on state */}
-                {hasInProgressAttempt ? (
+            {/* Main Action - Changes based on state */}
+            {hasInProgressAttempt ? (
                   <Button 
                     onClick={handleLogAttempt}
                     disabled={finalizingAttempt}
