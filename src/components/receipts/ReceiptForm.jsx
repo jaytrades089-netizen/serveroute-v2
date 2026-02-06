@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { calculateDistanceFeet } from '@/components/services/GeoService';
-import { getCompanyId } from '@/lib/utils';
+import { getCompanyId } from '@/components/utils/companyUtils';
 
 const RELATIONSHIP_OPTIONS = [
   { value: 'defendant', label: 'Defendant' },

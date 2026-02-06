@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { BarChart3, Map, ScrollText } from 'lucide-react';
 import { createPageUrl } from '@/utils';
-import { getCompanyId } from '@/lib/utils';
+import { getCompanyId } from '@/components/utils/companyUtils';
 import { format } from 'date-fns';
 import { 
   Loader2, 

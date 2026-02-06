@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { getCompanyId } from '@/lib/utils';
+import { getCompanyId } from '@/components/utils/companyUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { ArrowLeft, RefreshCw, Loader2, MapPin, Clock, User } from 'lucide-react';
