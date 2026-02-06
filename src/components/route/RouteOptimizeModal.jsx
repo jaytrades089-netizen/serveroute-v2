@@ -182,13 +182,27 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     try {
       console.log('Starting optimization...');
       
-      // Get current position
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000
+      // Get current position with better error handling
+      let position;
+      try {
+        position = await new Promise((resolve, reject) => {
+          if (!navigator.geolocation) {
+            reject(new Error('Geolocation not supported'));
+            return;
+          }
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 60000
+          });
         });
-      });
+      } catch (geoError) {
+        console.error('Geolocation error:', geoError);
+        // Show user-friendly error and offer to use end location as start
+        toast.error('Could not get your location. Please enable location services and try again.');
+        setIsOptimizing(false);
+        return;
+      }
       console.log('Position:', position.coords.latitude, position.coords.longitude);
 
       const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
