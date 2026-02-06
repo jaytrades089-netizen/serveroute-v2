@@ -18,16 +18,25 @@ export default function EvidenceCommentModal({
     if (requireComment && !comment.trim()) {
       return; // Don't save if comment is required but empty
     }
+    // Pass the comment to parent - don't clear here, parent will close modal
     onSave(comment);
-    setComment('');
   };
   
   const canSave = !requireComment || comment.trim().length > 0;
 
   const handleClose = () => {
-    setComment('');
-    onClose();
+    if (!saving) {
+      setComment('');
+      onClose();
+    }
   };
+  
+  // Reset comment when modal opens fresh
+  React.useEffect(() => {
+    if (open) {
+      setComment('');
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
