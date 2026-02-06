@@ -196,7 +196,7 @@ export default function AddressCard({
         synced_at: now.toISOString()
       });
       
-      // 4. Build attempts summary for the address
+      // 5. Build attempts summary for the address
       const newAttemptSummary = {
         id: newAttempt.id,
         attempt_number: attemptNumber,
@@ -212,22 +212,12 @@ export default function AddressCard({
       const existingSummary = address.attempts_summary || [];
       const updatedSummary = [...existingSummary, newAttemptSummary];
       
-      // 5. Update address with attempt data and accumulated qualifiers
-      const addressUpdates = {
+      // 6. Update address with attempt data
+      await base44.entities.Address.update(address.id, {
         attempts_count: attemptNumber,
         attempts_summary: updatedSummary,
         status: 'attempted'
-      };
-      
-      // Update qualifier flags on address (cumulative across all attempts)
-      const allAttempts = [...localAttempts, newAttempt];
-      const hasAnyAM = allAttempts.some(a => a.has_am);
-      const hasAnyPM = allAttempts.some(a => a.has_pm);
-      const hasAnyWeekend = allAttempts.some(a => a.has_weekend);
-      
-      // These fields don't exist on Address but we track them via attempts_summary
-      
-      await base44.entities.Address.update(address.id, addressUpdates);
+      });
       
       // 7. Create AuditLog entry
       await base44.entities.AuditLog.create({
