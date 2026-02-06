@@ -343,37 +343,9 @@ export default function AddressCard({
         status: 'completed',
         outcome: outcome
       });
-      
-      // Build attempts summary
-      const qualifierFields = {
-        qualifier: inProgressAttempt.qualifier,
-        qualifier_badges: inProgressAttempt.qualifier_badges,
-        has_am: inProgressAttempt.has_am,
-        has_pm: inProgressAttempt.has_pm,
-        has_weekend: inProgressAttempt.has_weekend
-      };
-      
-      const newAttemptSummary = JSON.stringify({
-        id: inProgressAttempt.id,
-        attempt_number: inProgressAttempt.attempt_number,
-        attempt_time: inProgressAttempt.attempt_time,
-        qualifier: qualifierFields.qualifier,
-        qualifier_badges: qualifierFields.qualifier_badges,
-        outcome: outcome,
-        has_am: qualifierFields.has_am,
-        has_pm: qualifierFields.has_pm,
-        has_weekend: qualifierFields.has_weekend
-      });
-      
-      const existingSummary = address.attempts_summary || [];
-      const updatedSummary = [...existingSummary, newAttemptSummary];
-      
-      // PARALLEL: Update Address and create AuditLog
-      await Promise.all([
-        base44.entities.Address.update(address.id, {
-          attempts_summary: updatedSummary
-        }),
-        base44.entities.AuditLog.create({
+
+      // Create AuditLog
+      await base44.entities.AuditLog.create({
           company_id: companyId,
           action_type: 'attempt_logged',
           actor_id: user.id,
