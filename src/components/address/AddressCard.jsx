@@ -239,17 +239,17 @@ export default function AddressCard({
         timestamp: now.toISOString()
       });
       
-      // 7. Update local state to show new tab immediately
+      // 8. Update local state to show new tab immediately
       const updatedAttempts = [...localAttempts, newAttempt];
       setLocalAttempts(updatedAttempts);
       setActiveTab(attemptNumber);
       
-      // 8. Invalidate queries to refresh data
+      // 9. Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
-      // 9. Show success message
+      // 10. Show success message
       const distanceDisplay = distanceFeet !== null ? formatDistance(distanceFeet) : '';
       const distanceText = distanceDisplay ? ` - ${distanceDisplay}` : '';
       
@@ -261,7 +261,7 @@ export default function AddressCard({
         toast.success(`Attempt ${attemptNumber} logged - ${qualifierData.display}${distanceText}`);
       }
 
-      // 10. Trigger animation callback after small delay to let state update
+      // 11. Trigger animation callback after small delay to let state update
       if (onAttemptLogged) {
         setTimeout(() => onAttemptLogged(), 100);
       }
