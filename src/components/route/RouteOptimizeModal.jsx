@@ -6,7 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed } from 'lucide-react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
 import { optimizeWithHybrid } from '@/components/services/OptimizationService';
 
@@ -21,6 +22,8 @@ const TIME_AT_ADDRESS_OPTIONS = [
 export default function RouteOptimizeModal({ routeId, route, addresses, onClose, onOptimized }) {
   const queryClient = useQueryClient();
   const [selectedEndLocation, setSelectedEndLocation] = useState('');
+  const [useCurrentLocation, setUseCurrentLocation] = useState(true);
+  const [selectedStartLocation, setSelectedStartLocation] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [newLocationLabel, setNewLocationLabel] = useState('');
@@ -182,28 +185,49 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     try {
       console.log('Starting optimization...');
       
-      // Get current position with better error handling
-      let position;
-      try {
-        position = await new Promise((resolve, reject) => {
-          if (!navigator.geolocation) {
-            reject(new Error('Geolocation not supported'));
-            return;
-          }
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 60000
+      // Determine start coordinates
+      let startLat, startLng;
+      
+      if (useCurrentLocation) {
+        // Get current position with better error handling
+        try {
+          const position = await new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+              reject(new Error('Geolocation not supported'));
+              return;
+            }
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 60000
+            });
           });
-        });
-      } catch (geoError) {
-        console.error('Geolocation error:', geoError);
-        // Show user-friendly error and offer to use end location as start
-        toast.error('Could not get your location. Please enable location services and try again.');
-        setIsOptimizing(false);
-        return;
+          startLat = position.coords.latitude;
+          startLng = position.coords.longitude;
+        } catch (geoError) {
+          console.error('Geolocation error:', geoError);
+          toast.error('Could not get your location. Please enable location services or select a start location.');
+          setIsOptimizing(false);
+          return;
+        }
+      } else {
+        // Use selected start location
+        if (!selectedStartLocation) {
+          toast.error('Please select a start location');
+          setIsOptimizing(false);
+          return;
+        }
+        const startLocation = savedLocations.find(loc => loc.id === selectedStartLocation);
+        if (!startLocation) {
+          toast.error('Start location not found');
+          setIsOptimizing(false);
+          return;
+        }
+        startLat = startLocation.latitude;
+        startLng = startLocation.longitude;
       }
-      console.log('Position:', position.coords.latitude, position.coords.longitude);
+      
+      console.log('Start position:', startLat, startLng);
 
       const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
       if (!endLocation) {
@@ -258,8 +282,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       // Use the hybrid optimization (handles large routes automatically)
       const optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
-        position.coords.latitude,
-        position.coords.longitude,
+        startLat,
+        startLng,
         endLocation.latitude,
         endLocation.longitude,
         apiKey
@@ -267,7 +291,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       // Calculate route metrics using MapQuest directions API
       const locations = [
-        `${position.coords.latitude},${position.coords.longitude}`,
+        `${startLat},${startLng}`,
         ...optimizedAddresses.map(a => `${a.lat},${a.lng}`),
         `${endLocation.latitude},${endLocation.longitude}`
       ];
@@ -306,6 +330,14 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       }
 
       // Update route with optimization data (but don't start yet)
+      const startLocationData = useCurrentLocation 
+        ? { lat: startLat, lng: startLng }
+        : { 
+            address: savedLocations.find(loc => loc.id === selectedStartLocation)?.address,
+            lat: startLat, 
+            lng: startLng 
+          };
+      
       await base44.entities.Route.update(routeId, {
         optimized: true,
         ending_point: {
@@ -313,10 +345,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           lat: endLocation.latitude,
           lng: endLocation.longitude
         },
-        starting_point: {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        }
+        starting_point: startLocationData
       });
 
       // Update last_used on the selected location
@@ -447,6 +476,44 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           </Button>
         </div>
         
+        {/* Start location */}
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Start Location
+        </label>
+        
+        <div className="flex items-center gap-2 mb-3">
+          <Checkbox 
+            id="useCurrentLocation"
+            checked={useCurrentLocation}
+            onCheckedChange={setUseCurrentLocation}
+          />
+          <label htmlFor="useCurrentLocation" className="text-sm text-gray-600 flex items-center gap-1 cursor-pointer">
+            <LocateFixed className="w-4 h-4 text-blue-500" />
+            Use current location
+          </label>
+        </div>
+        
+        {!useCurrentLocation && (
+          <Select value={selectedStartLocation} onValueChange={setSelectedStartLocation}>
+            <SelectTrigger className="w-full mb-4">
+              <SelectValue placeholder="Select start location" />
+            </SelectTrigger>
+            <SelectContent>
+              {savedLocations.map(loc => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  <div className="flex items-center gap-2">
+                    {getLocationIcon(loc.label)}
+                    <span className="font-medium">{loc.label}</span>
+                    <span className="text-gray-400 text-sm truncate max-w-[150px]">
+                      - {loc.address}
+                    </span>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* End location */}
         <label className="block text-sm font-medium text-gray-700 mb-2">
           End Location
