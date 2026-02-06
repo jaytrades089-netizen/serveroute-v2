@@ -10,6 +10,7 @@ const publicPages = [];
 const bossPages = [
   'BossDashboard',
   'BossRoutes', 
+  'BossRouteDetail',
   'BossTeam',
   'BossWorkers',
   'BossSettings',
@@ -25,7 +26,12 @@ const bossPages = [
   'ReassignRoute',
   'RouteHandoff',
   'VacationRequests',
-  'WorkerDetail'
+  'WorkerDetail',
+  'ReceiptQueue',
+  'ReceiptReview',
+  'ReceiptDetail',
+  'ActivityLog',
+  'Analytics'
 ];
 
 // Server/Worker pages
@@ -34,12 +40,17 @@ const workerPages = [
   'WorkerRoutes',
   'WorkerRouteDetail',
   'WorkerAddresses',
+  'WorkerMap',
+  'WorkerReceipts',
   'WorkerPayout',
   'WorkerSettings',
   'WorkerStats',
   'WorkerVacationRequest',
   'Workers',
-  'Notifications'
+  'Notifications',
+  'ComboRouteSelection',
+  'SubmitReceipt',
+  'RouteOptimization'
 ];
 
 export default function Layout({ children, currentPageName }) {
