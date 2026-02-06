@@ -86,8 +86,7 @@ export default function AddressCard({
   // Tab state - 0 = home/summary, 1-5 = attempt details
   const [activeTab, setActiveTab] = useState(0);
   
-  // Log attempt state
-  const [loggingAttempt, setLoggingAttempt] = useState(false);
+  // Log attempt state (no longer needed for optimistic UI but keep for button disable during animation)
   
   // Evidence capture state
   const [showCamera, setShowCamera] = useState(false);
