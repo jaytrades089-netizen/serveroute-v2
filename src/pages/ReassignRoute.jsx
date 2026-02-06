@@ -27,7 +27,7 @@ export default function ReassignRoute() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
-  const routeId = urlParams.get('id');
+  const routeId = urlParams.get('id') || urlParams.get('routeId');
   
   const [selectedServerId, setSelectedServerId] = useState('');
   const [reason, setReason] = useState('');
