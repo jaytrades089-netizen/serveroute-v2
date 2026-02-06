@@ -727,20 +727,10 @@ export default function AddressCard({
             {/* Main Action - Log Attempt */}
             <Button 
               onClick={handleLogAttempt}
-              disabled={loggingAttempt}
               className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl"
             >
-              {loggingAttempt ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Logging...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2" />
-                  LOG ATTEMPT {attemptCount + 1}
-                </>
-              )}
+              <Zap className="w-4 h-4 mr-2" />
+              LOG ATTEMPT {attemptCount + 1}
             </Button>
 
             {/* Secondary Actions Row - 3 buttons */}
