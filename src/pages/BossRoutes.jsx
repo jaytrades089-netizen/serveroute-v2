@@ -206,6 +206,7 @@ export default function BossRoutes() {
                   <div key={route.id} className="relative">
                     <RouteCard
                       route={route}
+                      attempts={attemptsByRoute[route.id] || []}
                       showWorker={!!route.worker_id}
                       workerName={route.worker_id ? getServerName(route.worker_id) : null}
                       showActions={true}
