@@ -43,9 +43,10 @@ import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
 import { getCompanyId } from '@/components/utils/companyUtils';
+import { formatAddress } from '@/components/utils/addressUtils';
 
 // Re-export formatAddress for backward compatibility
-export { formatAddress } from '@/components/utils/addressUtils';
+export { formatAddress };
 
 // Outcome options for attempt logging
 const OUTCOME_OPTIONS = [
