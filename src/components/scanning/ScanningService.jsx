@@ -138,17 +138,22 @@ export function createNewSession(userId, companyId, documentType) {
 
 export function saveScanSession(session) {
   session.lastUpdated = new Date().toISOString();
-  localStorage.setItem('scanSession_' + session.id, JSON.stringify(session));
-  localStorage.setItem('activeScanSession', session.id);
+  // Strip base64 images before persisting — they're large and contain sensitive legal documents
+  const sessionToSave = {
+    ...session,
+    addresses: session.addresses.map(({ imageBase64, ...rest }) => rest)
+  };
+  sessionStorage.setItem('scanSession_' + session.id, JSON.stringify(sessionToSave));
+  sessionStorage.setItem('activeScanSession', session.id);
 }
 
 export function loadScanSession(sessionId) {
-  const data = localStorage.getItem('scanSession_' + sessionId);
+  const data = sessionStorage.getItem('scanSession_' + sessionId);
   return data ? JSON.parse(data) : null;
 }
 
 export function checkForRecoverableSession() {
-  const activeId = localStorage.getItem('activeScanSession');
+  const activeId = sessionStorage.getItem('activeScanSession');
   if (!activeId) return null;
   
   const session = loadScanSession(activeId);
@@ -172,10 +177,10 @@ export function checkForRecoverableSession() {
 }
 
 export function clearScanSession(sessionId) {
-  localStorage.removeItem('scanSession_' + sessionId);
-  const activeId = localStorage.getItem('activeScanSession');
+  sessionStorage.removeItem('scanSession_' + sessionId);
+  const activeId = sessionStorage.getItem('activeScanSession');
   if (activeId === sessionId) {
-    localStorage.removeItem('activeScanSession');
+    sessionStorage.removeItem('activeScanSession');
   }
 }
 
