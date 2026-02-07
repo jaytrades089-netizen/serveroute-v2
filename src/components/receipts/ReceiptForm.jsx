@@ -415,7 +415,7 @@ export default function ReceiptForm({
       await base44.entities.Address.update(address.id, addressUpdate);
       
       // Update route served count
-      const routeAddresses = await base44.entities.Address.filter({ route_id: route.id });
+      const routeAddresses = await base44.entities.Address.filter({ route_id: route.id, deleted_at: null });
       const servedCount = routeAddresses.filter(a => a.served || a.id === address.id).length;
       await base44.entities.Route.update(route.id, {
         served_count: servedCount
