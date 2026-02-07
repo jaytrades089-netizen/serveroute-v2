@@ -147,7 +147,16 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   // If small enough, just use MapQuest directly
   if (validAddresses.length <= MAPQUEST_LIMIT) {
     console.log('Using MapQuest directly (under limit)');
-    return await optimizeChunkWithMapQuest(validAddresses, startLat, startLng, endLat, endLng, apiKey);
+    const optimized = await optimizeChunkWithMapQuest(validAddresses, startLat, startLng, endLat, endLng, apiKey);
+    
+    // Append addresses without coordinates
+    const invalidAddresses = addresses.filter(addr => {
+      const lat = addr.lat || addr.latitude;
+      const lng = addr.lng || addr.longitude;
+      return !lat || !lng;
+    });
+    
+    return [...optimized, ...invalidAddresses];
   }
   
   // LARGE ROUTE: Use hybrid approach
