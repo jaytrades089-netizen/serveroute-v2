@@ -104,7 +104,7 @@ export default function BossDashboard() {
     queryKey: ['pendingReceipts', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      return base44.entities.Receipt.filter({ company_id: companyId, status: 'pending' });
+      return base44.entities.Receipt.filter({ company_id: companyId, status: 'pending_review' });
     },
     enabled: !!user
   });

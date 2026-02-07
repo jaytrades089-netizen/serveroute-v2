@@ -15,7 +15,7 @@ import { ReceiptSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending', icon: Clock, color: 'bg-yellow-100 text-yellow-700' },
+  pending_review: { label: 'Pending', icon: Clock, color: 'bg-yellow-100 text-yellow-700' },
   approved: { label: 'Approved', icon: CheckCircle, color: 'bg-green-100 text-green-700' },
   rejected: { label: 'Rejected', icon: XCircle, color: 'bg-red-100 text-red-700' },
   needs_revision: { label: 'Needs Revision', icon: AlertCircle, color: 'bg-orange-100 text-orange-700' }
@@ -30,7 +30,7 @@ const OUTCOME_CONFIG = {
 export default function ReceiptQueue() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [statusFilter, setStatusFilter] = useState('pending');
+  const [statusFilter, setStatusFilter] = useState('pending_review');
   const [workerFilter, setWorkerFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -115,7 +115,7 @@ export default function ReceiptQueue() {
     );
   }
 
-  const pendingCount = receipts.filter(r => r.status === 'pending').length;
+  const pendingCount = receipts.filter(r => r.status === 'pending_review').length;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -148,7 +148,7 @@ export default function ReceiptQueue() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="pending_review">Pending</SelectItem>
                 <SelectItem value="needs_revision">Needs Revision</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
@@ -176,8 +176,8 @@ export default function ReceiptQueue() {
         {filteredReceipts.length === 0 ? (
           <EmptyState 
             type="receipts"
-            title={statusFilter === 'pending' ? 'No receipts pending' : 'No receipts found'}
-            description={statusFilter === 'pending' 
+            title={statusFilter === 'pending_review' ? 'No receipts pending' : 'No receipts found'}
+            description={statusFilter === 'pending_review' 
               ? "You're all caught up! When workers submit receipts, they'll appear here."
               : `No receipts match the "${statusFilter}" filter.`
             }

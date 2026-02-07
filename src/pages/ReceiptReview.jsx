@@ -315,7 +315,7 @@ export default function ReceiptReview() {
   }
 
   const photoUrls = receipt.photo_urls || [];
-  const isPending = receipt.status === 'pending';
+  const isPending = receipt.status === 'pending_review';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import BottomNav from '../components/layout/BottomNav';
 
 const STATUS_CONFIG = {
-  pending: { label: 'Pending Review', icon: Clock, color: 'bg-yellow-100 text-yellow-700', iconColor: 'text-yellow-500' },
+  pending_review: { label: 'Pending Review', icon: Clock, color: 'bg-yellow-100 text-yellow-700', iconColor: 'text-yellow-500' },
   approved: { label: 'Approved', icon: CheckCircle, color: 'bg-green-100 text-green-700', iconColor: 'text-green-500' },
   rejected: { label: 'Rejected', icon: XCircle, color: 'bg-red-100 text-red-700', iconColor: 'text-red-500' },
   needs_revision: { label: 'Needs Revision', icon: AlertCircle, color: 'bg-orange-100 text-orange-700', iconColor: 'text-orange-500' }
@@ -71,7 +71,7 @@ export default function WorkerReceipts() {
 
   const statusCounts = {
     all: receipts.length,
-    pending: receipts.filter(r => r.status === 'pending').length,
+    pending: receipts.filter(r => r.status === 'pending_review').length,
     needs_revision: receipts.filter(r => r.status === 'needs_revision').length,
     approved: receipts.filter(r => r.status === 'approved').length,
     rejected: receipts.filter(r => r.status === 'rejected').length
@@ -102,7 +102,7 @@ export default function WorkerReceipts() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All ({statusCounts.all})</SelectItem>
-              <SelectItem value="pending">Pending ({statusCounts.pending})</SelectItem>
+              <SelectItem value="pending_review">Pending ({statusCounts.pending})</SelectItem>
               <SelectItem value="needs_revision">Needs Revision ({statusCounts.needs_revision})</SelectItem>
               <SelectItem value="approved">Approved ({statusCounts.approved})</SelectItem>
               <SelectItem value="rejected">Rejected ({statusCounts.rejected})</SelectItem>
