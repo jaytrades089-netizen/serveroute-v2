@@ -88,6 +88,18 @@ export default function ReassignRoute() {
         });
       }
       
+      // Update old worker - clear current route
+      await base44.entities.User.update(route.worker_id, {
+        current_route_id: null
+      });
+
+      // Update new worker - set current route
+      await base44.entities.User.update(selectedServerId, {
+        current_route_id: routeId,
+        worker_status: 'active',
+        last_active_at: new Date().toISOString()
+      });
+      
       // Notify old server
       await base44.entities.Notification.create({
         user_id: route.worker_id,
