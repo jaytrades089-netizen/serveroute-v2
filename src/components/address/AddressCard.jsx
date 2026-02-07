@@ -339,13 +339,13 @@ export default function AddressCard({
       toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
       
       // Update the attempt to completed in background
-      await base44.entities.Attempt.update(inProgressAttempt.id, {
-        status: 'completed',
-        outcome: outcome
-      });
-
-      // Create AuditLog
-      await base44.entities.AuditLog.create({
+      // Use Promise.allSettled so AuditLog failure doesn't kill Address update
+      await Promise.allSettled([
+        base44.entities.Attempt.update(inProgressAttempt.id, {
+          status: 'completed',
+          outcome: outcome
+        }),
+        base44.entities.AuditLog.create({
           company_id: companyId,
           action_type: 'attempt_logged',
           actor_id: user.id,
@@ -362,7 +362,8 @@ export default function AddressCard({
             distance_feet: inProgressAttempt.distance_feet
           },
           timestamp: now.toISOString()
-      });
+        })
+      ]);
       
       // Invalidate queries in background
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
