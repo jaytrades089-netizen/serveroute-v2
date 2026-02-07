@@ -215,6 +215,17 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   console.log('Step 4: Combining optimized chunks...');
   const finalOrder = optimizedChunks.flat();
   
+  // Step 5: Append addresses that had no coordinates (don't lose them)
+  const invalidAddresses = addresses.filter(addr => {
+    const lat = addr.lat || addr.latitude;
+    const lng = addr.lng || addr.longitude;
+    return !lat || !lng;
+  });
+  
+  if (invalidAddresses.length > 0) {
+    console.warn(`${invalidAddresses.length} addresses had no coordinates - appended to end of route`);
+  }
+  
   console.log('Optimization complete!');
-  return finalOrder;
+  return [...finalOrder, ...invalidAddresses];
 }
