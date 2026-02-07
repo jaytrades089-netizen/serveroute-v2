@@ -6,22 +6,34 @@
 /**
  * Get qualifier badges for a given timestamp
  * @param {Date|string} timestamp - The timestamp to evaluate
+ * @param {string} timezone - The timezone to use (defaults to Michigan time)
  * @returns {Object} Object with badges array, count, and metadata
  */
-export function getQualifiers(timestamp) {
+export function getQualifiers(timestamp, timezone = 'America/Detroit') {
   const date = new Date(timestamp);
-  const day = date.getDay(); // 0 = Sunday, 6 = Saturday
-  const hour = date.getHours();
-  const minutes = date.getMinutes();
+  
+  // Get hour and minute in the correct timezone
+  const hourStr = new Intl.DateTimeFormat('en-US', { 
+    timeZone: timezone, hour: 'numeric', hour12: false 
+  }).format(date);
+  const minuteStr = new Intl.DateTimeFormat('en-US', { 
+    timeZone: timezone, minute: 'numeric' 
+  }).format(date);
+  const dayStr = new Intl.DateTimeFormat('en-US', { 
+    timeZone: timezone, weekday: 'short' 
+  }).format(date);
+  
+  const hour = parseInt(hourStr);
+  const minutes = parseInt(minuteStr);
   const timeInMinutes = hour * 60 + minutes;
   
-  const isWeekend = (day === 0 || day === 6);
+  const isWeekend = (dayStr === 'Sat' || dayStr === 'Sun');
   
-  // Service hours: 8 AM (480 min) to 9 PM (1260 min)
-  const SERVICE_START = 8 * 60;  // 8:00 AM = 480 minutes
-  const SERVICE_END = 21 * 60;   // 9:00 PM = 1260 minutes
-  const AM_END = 12 * 60;        // 12:00 PM = 720 minutes
-  const PM_START = 17 * 60;      // 5:00 PM = 1020 minutes
+  // Service hours: 8 AM to 9 PM
+  const SERVICE_START = 8 * 60;
+  const SERVICE_END = 21 * 60;
+  const AM_END = 12 * 60;
+  const PM_START = 17 * 60;
   
   // Outside service hours
   if (timeInMinutes < SERVICE_START || timeInMinutes > SERVICE_END) {
@@ -40,35 +52,25 @@ export function getQualifiers(timestamp) {
   const badges = [];
   
   if (isWeekend) {
-    // Weekend logic
     badges.push('WEEKEND');
-    
     if (timeInMinutes < AM_END) {
-      // 8 AM - 12 PM on weekend = AM + WEEKEND
       badges.push('AM');
     } else if (timeInMinutes >= PM_START) {
-      // 5 PM - 9 PM on weekend = PM + WEEKEND
       badges.push('PM');
     }
-    // 12 PM - 5 PM on weekend = just WEEKEND (already added)
-    
   } else {
-    // Weekday logic
     if (timeInMinutes < AM_END) {
-      // 8 AM - 12 PM = AM
       badges.push('AM');
     } else if (timeInMinutes >= PM_START) {
-      // 5 PM - 9 PM = PM
       badges.push('PM');
     } else {
-      // 12 PM - 5 PM = NTC (No Time Covered)
       badges.push('NTC');
     }
   }
   
   return {
     badges: badges,
-    count: badges.filter(b => b !== 'NTC').length, // NTC doesn't count
+    count: badges.filter(b => b !== 'NTC').length,
     display: badges.join(' + '),
     hasAM: badges.includes('AM'),
     hasPM: badges.includes('PM'),
