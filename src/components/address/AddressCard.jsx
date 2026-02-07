@@ -267,6 +267,20 @@ export default function AddressCard({
         setLocalAttempts(prev => prev.map(a => 
           a.id === tempAttempt.id ? newAttempt : a
         ));
+        
+        // Set first_attempt_date on route if this is the first attempt
+        if (attemptNumber === 1 && routeId) {
+          try {
+            const currentRoute = await base44.entities.Route.filter({ id: routeId });
+            if (currentRoute[0] && !currentRoute[0].first_attempt_date) {
+              await base44.entities.Route.update(routeId, {
+                first_attempt_date: now.toISOString()
+              });
+            }
+          } catch (e) {
+            console.warn('Failed to set first_attempt_date:', e);
+          }
+        }
 
         // Update Address attempts_count
         await base44.entities.Address.update(address.id, {
