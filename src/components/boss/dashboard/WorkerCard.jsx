@@ -13,12 +13,14 @@ const statusConfig = {
   offline: { color: 'text-gray-500', bg: 'bg-gray-100', label: '○ Offline' }
 };
 
-const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+const IDLE_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes (heartbeat is every 2 min)
 
 export default function WorkerCard({ worker, route, progress, onMessage, onPauseResume, onAssign }) {
   const rawStatus = worker.worker_status || 'offline';
-  const isIdle = rawStatus === 'active' && worker.last_active_at && 
-    (Date.now() - new Date(worker.last_active_at).getTime()) > IDLE_THRESHOLD_MS;
+  // Only show idle if last_active_at is stale AND status is 'active'
+  const lastActiveTime = worker.last_active_at ? new Date(worker.last_active_at).getTime() : 0;
+  const timeSinceActive = Date.now() - lastActiveTime;
+  const isIdle = rawStatus === 'active' && lastActiveTime > 0 && timeSinceActive > IDLE_THRESHOLD_MS;
   const status = isIdle ? 'idle' : rawStatus;
   const config = statusConfig[status] || statusConfig.offline;
   const progressPercent = progress?.total > 0 ? Math.round((progress.served / progress.total) * 100) : 0;
