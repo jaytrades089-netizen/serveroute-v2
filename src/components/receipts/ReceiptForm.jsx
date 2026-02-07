@@ -458,45 +458,6 @@ export default function ReceiptForm({
         served_count: servedCount
       });
 
-      // Notify bosses/admins
-      const allUsers = await base44.entities.User.filter({ 
-        company_id: getCompanyId(user) 
-      });
-      const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
-
-      for (const boss of bosses) {
-        await base44.entities.Notification.create({
-          company_id: getCompanyId(user),
-          user_id: boss.id,
-          recipient_role: 'boss',
-          type: 'receipt_submitted',
-          title: isResubmission ? 'Receipt Resubmitted' : 'New Receipt Submitted',
-          body: `${user.full_name} submitted receipt for ${address.normalized_address || address.legal_address}`,
-          data: { receipt_id: receipt.id, address_id: address.id, is_resubmission: isResubmission },
-          action_url: `/ReceiptReview?receiptId=${receipt.id}`,
-          priority: 'normal'
-        });
-      }
-
-      // Audit log
-      await base44.entities.AuditLog.create({
-        company_id: getCompanyId(user),
-        action_type: isResubmission ? 'receipt_resubmitted' : 'receipt_submitted',
-        actor_id: user.id,
-        actor_role: 'server',
-        target_type: 'receipt',
-        target_id: receipt.id,
-        details: {
-          address_id: address.id,
-          outcome: 'served',
-          photo_count: photos.length,
-          has_signature: !!signatureUrl,
-          version,
-          location_type: locationType
-        },
-        timestamp: new Date().toISOString()
-      });
-
       setHasSubmitted(true);
       
       toast.success('Receipt sent to boss for review!', {
@@ -504,10 +465,56 @@ export default function ReceiptForm({
         icon: '✅'
       });
       
-      // Force navigation immediately
+      // Navigate FIRST, then do background tasks
       if (onSuccess) {
         onSuccess(receipt);
       }
+
+      // Background tasks - don't block navigation
+      (async () => {
+        try {
+          // Notify bosses/admins
+          const allUsers = await base44.entities.User.filter({ 
+            company_id: getCompanyId(user) 
+          });
+          const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
+
+          for (const boss of bosses) {
+            await base44.entities.Notification.create({
+              company_id: getCompanyId(user),
+              user_id: boss.id,
+              recipient_role: 'boss',
+              type: 'receipt_submitted',
+              title: isResubmission ? 'Receipt Resubmitted' : 'New Receipt Submitted',
+              body: `${user.full_name} submitted receipt for ${address.normalized_address || address.legal_address}`,
+              data: { receipt_id: receipt.id, address_id: address.id, is_resubmission: isResubmission },
+              action_url: `/ReceiptReview?receiptId=${receipt.id}`,
+              priority: 'normal'
+            });
+          }
+
+          // Audit log
+          await base44.entities.AuditLog.create({
+            company_id: getCompanyId(user),
+            action_type: isResubmission ? 'receipt_resubmitted' : 'receipt_submitted',
+            actor_id: user.id,
+            actor_role: 'server',
+            target_type: 'receipt',
+            target_id: receipt.id,
+            details: {
+              address_id: address.id,
+              outcome: 'served',
+              photo_count: photos.length,
+              has_signature: !!signatureUrl,
+              version,
+              location_type: locationType
+            },
+            timestamp: new Date().toISOString()
+          });
+        } catch (bgError) {
+          console.warn('Background task error:', bgError);
+        }
+      })();
 
     } catch (error) {
       console.error('Failed to submit receipt:', error);
