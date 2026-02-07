@@ -43,10 +43,10 @@ import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
 import { getCompanyId } from '@/components/utils/companyUtils';
-import { formatAddress } from '@/components/utils/addressUtils';
+import { formatAddress as formatAddressUtil } from '@/components/utils/addressUtils';
 
 // Re-export formatAddress for backward compatibility
-export { formatAddress };
+export const formatAddress = formatAddressUtil;
 
 // Outcome options for attempt logging
 const OUTCOME_OPTIONS = [
@@ -74,7 +74,7 @@ export default function AddressCard({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const formatted = formatAddress(address);
+  const formatted = formatAddressUtil(address);
   const receiptStatus = address.receipt_status;
   const needsReceipt = !address.served && receiptStatus === 'pending';
   const receiptPending = receiptStatus === 'pending_review';
