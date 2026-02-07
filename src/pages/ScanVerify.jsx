@@ -17,8 +17,7 @@ import {
   Send
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatAddress } from '@/components/address/AddressCard';
-import { generateNormalizedKey } from '@/components/scanning/ScanningService';
+import { formatAddress, generateNormalizedKey } from '@/components/utils/addressUtils';
 
 export default function ScanVerify() {
   const navigate = useNavigate();

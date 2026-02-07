@@ -43,33 +43,82 @@ export const OCR_RATE_LIMITS = {
   perDay: 500
 };
 
-// Generate normalized key for duplicate detection
-export function generateNormalizedKey(address) {
-  if (!address || !address.street) return null;
-  
-  const street = address.street
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-    .replace(/street/g, 'st')
-    .replace(/avenue/g, 'ave')
-    .replace(/boulevard/g, 'blvd')
-    .replace(/drive/g, 'dr')
-    .replace(/road/g, 'rd')
-    .replace(/lane/g, 'ln')
-    .replace(/court/g, 'ct')
-    .replace(/place/g, 'pl')
-    .replace(/way/g, 'way')
-    .replace(/circle/g, 'cir')
-    .replace(/apartment/g, 'apt')
-    .replace(/suite/g, 'ste')
-    .replace(/unit/g, 'unit');
-  
-  const city = (address.city || '').toLowerCase().replace(/[^a-z]/g, '');
-  const state = (address.state || '').toUpperCase();
-  const zip = (address.zip || '').replace(/\D/g, '').substring(0, 5);
-  
-  return `${street}-${city}-${state}-${zip}`;
+// Re-export from shared utility for backward compatibility
+export { generateNormalizedKey } from '@/components/utils/addressUtils';
+
+// Rate limiter class for OCR calls
+class RateLimiter {
+  constructor() {
+    this.minuteKey = 'ocr_minute_count';
+    this.dayKey = 'ocr_day_count';
+    this.dayDateKey = 'ocr_day_date';
+    this.sessionKey = 'ocr_session_count';
+  }
+
+  check() {
+    const now = Date.now();
+    
+    // Check minute limit
+    const minuteData = JSON.parse(sessionStorage.getItem(this.minuteKey) || '{"count":0,"reset":0}');
+    if (now > minuteData.reset) {
+      minuteData.count = 0;
+      minuteData.reset = now + 60000;
+    }
+    if (minuteData.count >= OCR_RATE_LIMITS.perMinute) {
+      return { allowed: false, reason: 'rate_limit_minute' };
+    }
+
+    // Check day limit
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem(this.dayDateKey);
+    let dayCount = parseInt(localStorage.getItem(this.dayKey) || '0', 10);
+    if (storedDate !== today) {
+      dayCount = 0;
+      localStorage.setItem(this.dayDateKey, today);
+    }
+    if (dayCount >= OCR_RATE_LIMITS.perDay) {
+      return { allowed: false, reason: 'rate_limit_day' };
+    }
+
+    // Check session limit
+    const sessionCount = parseInt(sessionStorage.getItem(this.sessionKey) || '0', 10);
+    if (sessionCount >= OCR_RATE_LIMITS.perSession) {
+      return { allowed: false, reason: 'rate_limit_session' };
+    }
+
+    return { allowed: true };
+  }
+
+  record() {
+    const now = Date.now();
+
+    // Update minute count
+    const minuteData = JSON.parse(sessionStorage.getItem(this.minuteKey) || '{"count":0,"reset":0}');
+    if (now > minuteData.reset) {
+      minuteData.count = 1;
+      minuteData.reset = now + 60000;
+    } else {
+      minuteData.count++;
+    }
+    sessionStorage.setItem(this.minuteKey, JSON.stringify(minuteData));
+
+    // Update day count
+    const today = new Date().toDateString();
+    const storedDate = localStorage.getItem(this.dayDateKey);
+    let dayCount = parseInt(localStorage.getItem(this.dayKey) || '0', 10);
+    if (storedDate !== today) {
+      dayCount = 0;
+      localStorage.setItem(this.dayDateKey, today);
+    }
+    localStorage.setItem(this.dayKey, String(dayCount + 1));
+
+    // Update session count
+    const sessionCount = parseInt(sessionStorage.getItem(this.sessionKey) || '0', 10);
+    sessionStorage.setItem(this.sessionKey, String(sessionCount + 1));
+  }
 }
+
+export const ocrRateLimiter = new RateLimiter();
 
 // Categorize confidence score
 export function categorizeConfidence(score) {
@@ -230,31 +279,72 @@ export async function checkImageQuality(imageBase64) {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = Math.min(img.width, 100);
-      canvas.height = Math.min(img.height, 100);
+      const sampleSize = 100;
+      canvas.width = Math.min(img.width, sampleSize);
+      canvas.height = Math.min(img.height, sampleSize);
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      const pixelCount = data.length / 4;
       
+      // Calculate brightness
       let totalBrightness = 0;
-      for (let i = 0; i < imageData.data.length; i += 4) {
-        const r = imageData.data[i];
-        const g = imageData.data[i + 1];
-        const b = imageData.data[i + 2];
-        totalBrightness += (r + g + b) / 3;
+      const grayscale = [];
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const gray = (r + g + b) / 3;
+        totalBrightness += gray;
+        grayscale.push(gray);
       }
-      const avgBrightness = totalBrightness / (imageData.data.length / 4);
+      const avgBrightness = totalBrightness / pixelCount;
+      
+      // Calculate Laplacian variance for blur detection
+      const width = canvas.width;
+      const height = canvas.height;
+      let laplacianSum = 0;
+      let laplacianCount = 0;
+      
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+          const laplacian = 
+            grayscale[idx - width] + 
+            grayscale[idx + width] + 
+            grayscale[idx - 1] + 
+            grayscale[idx + 1] - 
+            4 * grayscale[idx];
+          laplacianSum += laplacian * laplacian;
+          laplacianCount++;
+        }
+      }
+      const laplacianVariance = laplacianCount > 0 ? laplacianSum / laplacianCount : 0;
       
       const issues = [];
-      if (avgBrightness < 50) issues.push({ type: 'dark', message: 'Image is too dark. Try better lighting.' });
-      if (avgBrightness > 220) issues.push({ type: 'bright', message: 'Image is too bright/washed out.' });
+      
+      // Brightness checks
+      if (avgBrightness < 50) {
+        issues.push({ type: 'dark', message: 'Image is too dark. Try better lighting.' });
+      }
+      if (avgBrightness > 220) {
+        issues.push({ type: 'bright', message: 'Image is too bright/washed out.' });
+      }
+      
+      // Blur check - threshold tuned for document scanning
+      const BLUR_THRESHOLD = 100;
+      if (laplacianVariance < BLUR_THRESHOLD) {
+        issues.push({ type: 'blur', message: 'Image appears blurry. Hold steady and try again.' });
+      }
       
       resolve({
         quality: issues.length === 0 ? 'good' : 'poor',
         issues,
         brightness: avgBrightness,
-        canProcess: avgBrightness >= 30 && avgBrightness <= 240
+        sharpness: laplacianVariance,
+        canProcess: avgBrightness >= 30 && avgBrightness <= 240 && laplacianVariance >= BLUR_THRESHOLD * 0.5
       });
     };
     img.onerror = () => resolve({ quality: 'unknown', issues: [], canProcess: true });

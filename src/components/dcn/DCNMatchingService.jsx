@@ -1,40 +1,15 @@
 // DCN Matching Service - Phase 5B
 // Reuses Phase 3's normalized_key algorithm for address matching
 
+import { generateNormalizedKey } from '@/components/utils/addressUtils';
+
+export { generateNormalizedKey };
+
 export const CONFIDENCE_THRESHOLDS = {
   auto_match: 0.95,     // Auto-link without review
   pending_review: 0.75, // Show for boss confirmation
   no_match: 0.75        // Below this = unmatched
 };
-
-// Generate normalized key (from Phase 3)
-export function generateNormalizedKey(address) {
-  const street = (address.street || address.legal_address || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, '')
-    .replace(/\bstreet\b/g, 'st')
-    .replace(/\bavenue\b/g, 'ave')
-    .replace(/\bboulevard\b/g, 'blvd')
-    .replace(/\bdrive\b/g, 'dr')
-    .replace(/\broad\b/g, 'rd')
-    .replace(/\bcourt\b/g, 'ct')
-    .replace(/\blane\b/g, 'ln')
-    .replace(/\bcircle\b/g, 'cir')
-    .replace(/\bnorth\b/g, 'n')
-    .replace(/\bsouth\b/g, 's')
-    .replace(/\beast\b/g, 'e')
-    .replace(/\bwest\b/g, 'w')
-    .replace(/\bapartment\b/g, 'apt')
-    .replace(/\bsuite\b/g, 'ste')
-    .replace(/\bunit\b/g, 'unit')
-    .replace(/\s+/g, '');
-
-  const city = (address.city || '').toLowerCase().replace(/[^a-z]/g, '');
-  const state = (address.state || 'MI').toUpperCase();
-  const zip = (address.zip || '').replace(/\D/g, '').substring(0, 5);
-
-  return `${street}-${city}-${state}-${zip}`;
-}
 
 // Simple string similarity (Levenshtein-based)
 export function calculateStringSimilarity(str1, str2) {
