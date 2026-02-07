@@ -154,12 +154,37 @@ export function mapColumnName(header) {
   return null;
 }
 
-// Parse CSV text
+// Parse CSV text - handles quoted newlines
 export function parseCSV(text) {
-  const lines = text.split(/\r?\n/).filter(line => line.trim());
+  // Split into lines respecting quoted newlines
+  const lines = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      current += char;
+    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+      if (current.trim()) {
+        lines.push(current);
+      }
+      current = '';
+      // Skip \r\n combo
+      if (char === '\r' && text[i + 1] === '\n') i++;
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) {
+    lines.push(current);
+  }
+  
   if (lines.length < 2) return [];
 
-  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().replace(/^"|"$/g, ''));
   const mappedHeaders = headers.map(h => mapColumnName(h) || h);
 
   const rows = [];
@@ -175,7 +200,7 @@ export function parseCSV(text) {
   return rows;
 }
 
-// Handle quoted CSV fields
+// Handle quoted CSV fields with escaped quotes
 function parseCSVLine(line) {
   const result = [];
   let current = '';
@@ -185,7 +210,13 @@ function parseCSVLine(line) {
     const char = line[i];
     
     if (char === '"') {
-      inQuotes = !inQuotes;
+      if (inQuotes && line[i + 1] === '"') {
+        // Escaped quote ""
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
     } else if (char === ',' && !inQuotes) {
       result.push(current);
       current = '';
