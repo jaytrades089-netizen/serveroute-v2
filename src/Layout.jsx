@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 
@@ -58,6 +59,8 @@ const workerPages = [
 ];
 
 export default function Layout({ children, currentPageName }) {
+  const navigate = useNavigate();
+  
   const { data: user, isLoading, isError, error } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
@@ -134,7 +137,7 @@ export default function Layout({ children, currentPageName }) {
 
   // Server trying to access boss pages - redirect to worker home
   if (isWorker && isOnBossPage) {
-    window.location.href = '/WorkerHome';
+    navigate('/WorkerHome', { replace: true });
     return null;
   }
 
@@ -154,7 +157,7 @@ export default function Layout({ children, currentPageName }) {
 
     const bossPage = workerToBossMap[currentPageName];
     if (bossPage && bossPage !== currentPageName) {
-      window.location.href = '/' + bossPage;
+      navigate('/' + bossPage, { replace: true });
       return null;
     }
   }
