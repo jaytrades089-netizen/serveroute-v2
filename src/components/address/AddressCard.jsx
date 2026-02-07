@@ -938,7 +938,7 @@ export default function AddressCard({
                   </Button>
                   
                   <Link 
-                    to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&finalize=true`)}
+                    to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Button 
