@@ -91,11 +91,10 @@ export default function WorkerHome() {
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      // Fetch all routes for this company and filter by worker_id
-      const allRoutes = await base44.entities.Route.filter({ 
+      return base44.entities.Route.filter({ 
+        worker_id: user.id,
         deleted_at: null 
       });
-      return allRoutes.filter(r => r.worker_id === user.id);
     },
     enabled: !!user?.id,
     refetchInterval: 30000
@@ -105,11 +104,11 @@ export default function WorkerHome() {
     queryKey: ['workerAddresses', routes],
     queryFn: async () => {
       if (routes.length === 0) return [];
-      const routeIds = routes.map(r => r.id);
-      const allAddresses = await base44.entities.Address.filter({
-        deleted_at: null
-      });
-      return allAddresses.filter(a => routeIds.includes(a.route_id));
+      const addressPromises = routes.map(r => 
+        base44.entities.Address.filter({ route_id: r.id, deleted_at: null })
+      );
+      const results = await Promise.all(addressPromises);
+      return results.flat();
     },
     enabled: routes.length > 0
   });

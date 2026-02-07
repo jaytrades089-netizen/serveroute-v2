@@ -47,8 +47,11 @@ export default function WorkerReceipts() {
     queryFn: async () => {
       if (receipts.length === 0) return [];
       const addressIds = [...new Set(receipts.map(r => r.address_id))];
-      const all = await base44.entities.Address.filter({});
-      return all.filter(a => addressIds.includes(a.id));
+      const addressPromises = addressIds.map(id => 
+        base44.entities.Address.filter({ id })
+      );
+      const results = await Promise.all(addressPromises);
+      return results.flat();
     },
     enabled: receipts.length > 0
   });

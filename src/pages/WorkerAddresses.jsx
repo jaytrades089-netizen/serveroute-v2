@@ -24,9 +24,11 @@ export default function WorkerAddresses() {
     queryKey: ['workerAddresses', routes],
     queryFn: async () => {
       if (routes.length === 0) return [];
-      const routeIds = routes.map(r => r.id);
-      const allAddresses = await base44.entities.Address.filter({ deleted_at: null });
-      return allAddresses.filter(a => routeIds.includes(a.route_id) && !a.served);
+      const addressPromises = routes.map(r => 
+        base44.entities.Address.filter({ route_id: r.id, deleted_at: null })
+      );
+      const results = await Promise.all(addressPromises);
+      return results.flat().filter(a => !a.served);
     },
     enabled: routes.length > 0
   });
