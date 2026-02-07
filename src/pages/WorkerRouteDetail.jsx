@@ -54,21 +54,11 @@ export default function WorkerRouteDetail() {
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
       return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    refetchInterval: route?.status === 'active' ? 30000 : false
   });
 
-  // Subscribe to real-time address updates (e.g., receipt approval)
-  useEffect(() => {
-    if (!routeId) return;
-    
-    const unsubscribe = base44.entities.Address.subscribe((event) => {
-      if (event.type === 'update' && event.data?.route_id === routeId) {
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      }
-    });
-    
-    return unsubscribe;
-  }, [routeId, queryClient]);
+
 
   // Fetch attempts for all addresses in the route
   const { data: attempts = [] } = useQuery({

@@ -78,13 +78,10 @@ export default function BossDashboard() {
     queryKey: ['companyWorkers', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      const users = await base44.entities.User.list();
-      return users.filter(u => 
-        u.company_id === companyId && 
-        (u.role === 'server' || u.role === 'user')
-      );
+      const companyUsers = await base44.entities.User.filter({ company_id: companyId });
+      return companyUsers.filter(u => u.role === 'server' || u.role === 'user');
     },
-    enabled: !!user
+    enabled: !!companyId
   });
 
   // Get all routes

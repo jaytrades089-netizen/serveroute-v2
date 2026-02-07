@@ -8,12 +8,18 @@ import { createPageUrl } from '@/utils';
 
 const statusConfig = {
   active: { color: 'text-green-600', bg: 'bg-green-100', label: '● Active' },
+  idle: { color: 'text-orange-500', bg: 'bg-orange-100', label: '◐ Idle' },
   paused: { color: 'text-amber-600', bg: 'bg-amber-100', label: '○ Paused' },
   offline: { color: 'text-gray-500', bg: 'bg-gray-100', label: '○ Offline' }
 };
 
+const IDLE_THRESHOLD_MS = 30 * 60 * 1000; // 30 minutes
+
 export default function WorkerCard({ worker, route, progress, onMessage, onPauseResume, onAssign }) {
-  const status = worker.worker_status || 'offline';
+  const rawStatus = worker.worker_status || 'offline';
+  const isIdle = rawStatus === 'active' && worker.last_active_at && 
+    (Date.now() - new Date(worker.last_active_at).getTime()) > IDLE_THRESHOLD_MS;
+  const status = isIdle ? 'idle' : rawStatus;
   const config = statusConfig[status] || statusConfig.offline;
   const progressPercent = progress?.total > 0 ? Math.round((progress.served / progress.total) * 100) : 0;
 
