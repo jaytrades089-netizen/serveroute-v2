@@ -149,6 +149,9 @@ export default function EditAddress() {
       queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
       toast.success('Address updated');
       navigate(-1);
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

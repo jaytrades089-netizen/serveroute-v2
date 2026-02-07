@@ -85,6 +85,9 @@ export default function AddressPool() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
       toast.success('Address deleted');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 
@@ -119,6 +122,9 @@ export default function AddressPool() {
       queryClient.invalidateQueries({ queryKey: ['draftRoutes'] });
       setSelectedIds(new Set());
       toast.success('Addresses added to route');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

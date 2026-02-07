@@ -101,6 +101,9 @@ export default function DCNMatching() {
       toast.success('Match confirmed');
       queryClient.invalidateQueries({ queryKey: ['dcnRecords'] });
       queryClient.invalidateQueries({ queryKey: ['companyAddresses'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 
@@ -128,6 +131,9 @@ export default function DCNMatching() {
     onSuccess: () => {
       toast.success('Match rejected');
       queryClient.invalidateQueries({ queryKey: ['dcnRecords'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

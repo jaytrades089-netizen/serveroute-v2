@@ -51,6 +51,9 @@ export default function BossSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
       toast.success('Settings saved');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

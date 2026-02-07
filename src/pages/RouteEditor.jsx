@@ -110,6 +110,9 @@ export default function RouteEditor() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 
@@ -149,6 +152,9 @@ export default function RouteEditor() {
       setShowAddModal(false);
       setSelectedPoolIds(new Set());
       toast.success('Addresses added');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 
@@ -182,6 +188,9 @@ export default function RouteEditor() {
       queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
       toast.success('Address removed');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

@@ -94,6 +94,9 @@ export default function AddAddress() {
       } else {
         navigate(createPageUrl('AddressPool'));
       }
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

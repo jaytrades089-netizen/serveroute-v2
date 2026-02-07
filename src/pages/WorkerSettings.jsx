@@ -47,6 +47,9 @@ export default function WorkerSettings() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['userSettings'] });
       toast.success('Settings saved');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 

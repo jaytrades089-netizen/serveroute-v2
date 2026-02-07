@@ -65,6 +65,9 @@ export default function CreateRoute() {
     onSuccess: (newRoute) => {
       toast.success('Route created');
       navigate(createPageUrl(`RouteEditor?id=${newRoute.id}`));
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Something went wrong');
     }
   });
 
