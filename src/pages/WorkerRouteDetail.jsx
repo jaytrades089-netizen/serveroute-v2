@@ -37,6 +37,30 @@ export default function WorkerRouteDetail() {
     queryFn: () => base44.auth.me()
   });
 
+  // Set worker status to active when viewing a route
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const setActive = async () => {
+      if (user.worker_status !== 'active') {
+        await base44.auth.updateMe({
+          worker_status: 'active',
+          last_active_at: new Date().toISOString()
+        });
+        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      }
+    };
+
+    setActive();
+
+    // Heartbeat - update last_active_at every 2 minutes while on route
+    const heartbeat = setInterval(() => {
+      base44.auth.updateMe({ last_active_at: new Date().toISOString() });
+    }, 2 * 60 * 1000);
+
+    return () => clearInterval(heartbeat);
+  }, [user?.id, user?.worker_status, queryClient]);
+
   const { data: route, isLoading: routeLoading } = useQuery({
     queryKey: ['route', routeId],
     queryFn: async () => {
