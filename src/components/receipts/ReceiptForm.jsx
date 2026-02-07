@@ -53,6 +53,7 @@ export default function ReceiptForm({
   const [serviceDate, setServiceDate] = useState(parentReceipt?.service_date || format(new Date(), 'yyyy-MM-dd'));
   const [serviceTime, setServiceTime] = useState(parentReceipt?.service_time || format(new Date(), 'HH:mm'));
   const [photos, setPhotos] = useState([]);
+  const [cameraReady, setCameraReady] = useState(false);
   const [signature, setSignature] = useState(null);
   const [savedSignature, setSavedSignature] = useState(null);
   const [showSignaturePad, setShowSignaturePad] = useState(false);
@@ -79,12 +80,20 @@ export default function ReceiptForm({
     }
   }, [address, recipientName]);
 
-  // Check for existing receipt on mount
+  // Check for existing receipt on mount and load attempt photos
   useEffect(() => {
     checkExistingReceipt();
     loadSavedSignature();
     captureServeLocation();
+    loadAttemptPhotos();
   }, []);
+
+  // Load photos from attempt if available
+  const loadAttemptPhotos = () => {
+    if (attempt?.photo_urls?.length > 0 && photos.length === 0) {
+      setPhotos(attempt.photo_urls);
+    }
+  };
 
   const checkExistingReceipt = async () => {
     if (!address?.id || parentReceipt) return;
@@ -148,6 +157,9 @@ export default function ReceiptForm({
 
   // Camera functions
   const startCamera = async () => {
+    setCameraReady(false);
+    setShowCamera(true);
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
@@ -156,11 +168,16 @@ export default function ReceiptForm({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        // Wait for video to be ready before allowing capture
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current.play();
+          setCameraReady(true);
+        };
       }
-      setShowCamera(true);
     } catch (error) {
-      toast.error('Could not access camera');
+      toast.error('Could not access camera. Please check permissions.');
       console.error('Camera error:', error);
+      setShowCamera(false);
     }
   };
 
@@ -169,6 +186,7 @@ export default function ReceiptForm({
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    setCameraReady(false);
     setShowCamera(false);
   };
 
@@ -904,18 +922,32 @@ export default function ReceiptForm({
               <X className="w-6 h-6" />
             </button>
           </div>
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center relative">
+            {!cameraReady && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-2" />
+                  <p className="text-white text-sm">Starting camera...</p>
+                </div>
+              </div>
+            )}
             <video 
               ref={videoRef} 
               autoPlay 
               playsInline 
-              className="max-h-full max-w-full"
+              muted
+              className={`max-h-full max-w-full ${!cameraReady ? 'opacity-0' : 'opacity-100'}`}
             />
           </div>
           <div className="p-6 bg-black/50 flex justify-center">
             <button
               onClick={capturePhoto}
-              className="w-16 h-16 rounded-full bg-white border-4 border-gray-300"
+              disabled={!cameraReady}
+              className={`w-16 h-16 rounded-full border-4 transition-all ${
+                cameraReady 
+                  ? 'bg-white border-gray-300 hover:scale-105' 
+                  : 'bg-gray-500 border-gray-600 cursor-not-allowed'
+              }`}
             />
           </div>
         </div>
