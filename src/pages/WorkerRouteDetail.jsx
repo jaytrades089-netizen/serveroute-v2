@@ -517,6 +517,43 @@ export default function WorkerRouteDetail() {
                       status: 'completed',
                       completed_at: new Date().toISOString()
                     });
+                    
+                    // Notify boss(es)
+                    const allUsers = await base44.entities.User.filter({ 
+                      company_id: route.company_id || user?.company_id 
+                    });
+                    const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
+                    
+                    for (const boss of bosses) {
+                      await base44.entities.Notification.create({
+                        user_id: boss.id,
+                        company_id: route.company_id || user?.company_id,
+                        recipient_role: 'boss',
+                        type: 'route_completed',
+                        title: 'Route Completed ✓',
+                        body: `${user?.full_name || 'Worker'} completed ${route.folder_name}`,
+                        data: { route_id: routeId },
+                        action_url: `/BossRouteDetail?id=${routeId}`,
+                        priority: 'normal'
+                      });
+                    }
+                    
+                    // Audit log
+                    await base44.entities.AuditLog.create({
+                      company_id: route.company_id || user?.company_id,
+                      action_type: 'route_completed',
+                      actor_id: user?.id,
+                      actor_role: 'server',
+                      target_type: 'route',
+                      target_id: routeId,
+                      details: {
+                        route_name: route.folder_name,
+                        total_addresses: route.total_addresses,
+                        served_count: route.served_count
+                      },
+                      timestamp: new Date().toISOString()
+                    });
+                    
                     queryClient.invalidateQueries({ queryKey: ['route', routeId] });
                     queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
                     toast.success('Route completed! All addresses served.');
