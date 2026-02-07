@@ -42,20 +42,20 @@ import { QualifierBadges, QualifierBox } from '@/components/qualifier/QualifierB
 import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
+import { getCompanyId } from '@/components/utils/companyUtils';
 
+// Re-export formatAddress for backward compatibility
+export { formatAddress } from '@/components/utils/addressUtils';
 
-// Format address in required 2-line ALL CAPS format
-export function formatAddress(address) {
-  const street = (address.normalized_address || address.legal_address || '').split(',')[0];
-  const city = address.city || '';
-  const state = address.state || '';
-  const zip = address.zip || '';
-  
-  return {
-    line1: street.toUpperCase(),
-    line2: city && state ? `${city.toUpperCase()}, ${state.toUpperCase()} ${zip}` : ''
-  };
-}
+// Outcome options for attempt logging
+const OUTCOME_OPTIONS = [
+  { value: 'no_answer', label: 'No Answer', color: 'bg-gray-100 hover:bg-gray-200 text-gray-700' },
+  { value: 'left_with_cohabitant', label: 'Left w/ Cohabitant', color: 'bg-blue-100 hover:bg-blue-200 text-blue-700' },
+  { value: 'posted', label: 'Posted', color: 'bg-purple-100 hover:bg-purple-200 text-purple-700' },
+  { value: 'refused', label: 'Refused', color: 'bg-red-100 hover:bg-red-200 text-red-700' },
+  { value: 'door_tag', label: 'Door Tag', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' },
+  { value: 'other', label: 'Other', color: 'bg-orange-100 hover:bg-orange-200 text-orange-700' }
+];
 
 export default function AddressCard({ 
   address, 
@@ -101,6 +101,9 @@ export default function AddressCard({
   // Edit notes state
   const [editingNotes, setEditingNotes] = useState(false);
   const [editedNotesText, setEditedNotesText] = useState('');
+  
+  // Outcome selection state
+  const [showOutcomeSelector, setShowOutcomeSelector] = useState(false);
 
   // Get current user
   const { data: user } = useQuery({
@@ -329,7 +332,7 @@ export default function AddressCard({
     }
   };
 
-  // LOG ATTEMPT - Directly logs with "no_answer" outcome, NO additional screens
+  // LOG ATTEMPT - Shows outcome selector, then logs with selected outcome
   const handleLogAttempt = async (e) => {
     e.stopPropagation();
     
@@ -356,14 +359,18 @@ export default function AddressCard({
       return;
     }
     
-    // DIRECTLY log attempt with "no_answer" - NO dialogs
+    // Show outcome selector
+    setShowOutcomeSelector(true);
+  };
+  
+  // Handle outcome selection and finalize attempt
+  const handleOutcomeSelected = async (outcome) => {
+    setShowOutcomeSelector(false);
     setFinalizingAttempt(true);
-    
-    const outcome = 'no_answer';
     
     try {
       const now = new Date();
-      const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
+      const companyId = getCompanyId(user) || address.company_id;
       
       // OPTIMISTIC: Update local state immediately for instant feedback
       const updatedAttempts = localAttempts.map(a => 
@@ -1032,6 +1039,40 @@ export default function AddressCard({
         onClose={() => setShowPhotoViewer(false)}
         photos={selectedAttempt?.photo_urls || []}
       />
+
+      {/* Outcome Selector Modal */}
+      {showOutcomeSelector && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
+          onClick={() => setShowOutcomeSelector(false)}
+        >
+          <div 
+            className="bg-white w-full max-w-lg rounded-t-2xl p-4 pb-8 animate-slide-in-bottom"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
+            <h3 className="text-lg font-bold text-center mb-4">Select Outcome</h3>
+            <div className="grid grid-cols-2 gap-3">
+              {OUTCOME_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleOutcomeSelected(opt.value)}
+                  className={`p-4 rounded-xl font-semibold text-sm transition-all ${opt.color} border-2 border-transparent hover:border-gray-300`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              className="w-full mt-4"
+              onClick={() => setShowOutcomeSelector(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
