@@ -72,6 +72,24 @@ export default function BossRoutes() {
     enabled: !!user?.id
   });
 
+  const { data: allAttempts = [] } = useQuery({
+    queryKey: ['allAttempts', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      return base44.entities.Attempt.filter({ company_id: companyId });
+    },
+    enabled: !!user
+  });
+
+  const attemptsByRoute = React.useMemo(() => {
+    const grouped = {};
+    allAttempts.forEach(attempt => {
+      if (!grouped[attempt.route_id]) grouped[attempt.route_id] = [];
+      grouped[attempt.route_id].push(attempt);
+    });
+    return grouped;
+  }, [allAttempts]);
+
   const deleteRouteMutation = useMutation({
     mutationFn: async (routeId) => {
       const route = routes.find(r => r.id === routeId);
