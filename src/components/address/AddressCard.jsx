@@ -201,6 +201,22 @@ export default function AddressCard({
         toast.success('Photo added!');
       } else {
         // CREATE NEW IN_PROGRESS ATTEMPT
+        
+        // Verify worker owns this route before creating attempt
+        if (user?.role === 'server') {
+          // Need to check route ownership - fetch route if not passed
+          try {
+            const routes = await base44.entities.Route.filter({ id: routeId });
+            const route = routes[0];
+            if (route && route.worker_id !== user.id) {
+              toast.error('You are not assigned to this route');
+              return;
+            }
+          } catch (e) {
+            console.warn('Could not verify route ownership:', e);
+          }
+        }
+        
         const now = new Date();
         const qualifierData = getQualifiers(now);
 

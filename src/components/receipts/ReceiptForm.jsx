@@ -340,6 +340,13 @@ export default function ReceiptForm({
     setSubmitting(true);
 
     try {
+      // Verify worker owns this route before creating receipt
+      if (user?.role === 'server' && route?.worker_id !== user?.id) {
+        toast.error('You cannot submit receipts for routes assigned to other workers');
+        setSubmitting(false);
+        return;
+      }
+
       // Upload signature if it's a data URL
       let signatureUrl = signature;
       if (signature && signature.startsWith('data:')) {
