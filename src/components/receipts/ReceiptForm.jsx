@@ -482,13 +482,12 @@ export default function ReceiptForm({
       setHasSubmitted(true);
       
       toast.success('Receipt sent to boss for review!', {
-        duration: 4000,
+        duration: 3000,
         icon: '✅'
       });
       
-      setTimeout(() => {
-        onSuccess?.(receipt);
-      }, 1500);
+      // Navigate immediately - don't delay
+      onSuccess?.(receipt);
 
     } catch (error) {
       console.error('Failed to submit receipt:', error);
