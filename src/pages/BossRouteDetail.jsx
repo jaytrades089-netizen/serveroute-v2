@@ -38,7 +38,8 @@ export default function BossRouteDetail() {
       const routes = await base44.entities.Route.filter({ id: routeId });
       return routes[0] || null;
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    refetchInterval: 10000
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
@@ -48,7 +49,8 @@ export default function BossRouteDetail() {
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
       return addrs.sort((a, b) => (a.order_index || 0) - (b.order_index || 0));
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    refetchInterval: 10000
   });
 
   // Fetch attempts for all addresses in the route
@@ -58,7 +60,8 @@ export default function BossRouteDetail() {
       if (!routeId) return [];
       return base44.entities.Attempt.filter({ route_id: routeId }, '-attempt_time');
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    refetchInterval: 10000
   });
 
   // Fetch assigned worker info
