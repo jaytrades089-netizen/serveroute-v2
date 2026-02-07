@@ -157,6 +157,8 @@ export default function BossDashboard() {
       queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
       queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
       queryClient.invalidateQueries({ queryKey: ['allAddresses'] });
+      queryClient.invalidateQueries({ queryKey: ['pendingReceipts'] });
+      queryClient.invalidateQueries({ queryKey: ['recentActivity'] });
       setLastUpdate(new Date());
     }, interval);
 
