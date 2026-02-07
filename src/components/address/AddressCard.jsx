@@ -203,6 +203,18 @@ export default function AddressCard({
         // CREATE NEW IN_PROGRESS ATTEMPT
         const now = new Date();
         const qualifierData = getQualifiers(now);
+
+        // Warn about outside-hours attempts
+        if (qualifierData.isOutsideHours) {
+          const proceed = window.confirm(
+            'This attempt is outside service hours (8 AM - 9 PM Michigan time). ' +
+            'It will NOT earn any qualifier credit (AM/PM/WEEKEND). Continue?'
+          );
+          if (!proceed) {
+            return;
+          }
+        }
+
         const qualifierFields = getQualifierStorageFields(qualifierData);
         const attemptNumber = attemptCount + 1;
         const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
