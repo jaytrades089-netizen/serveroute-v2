@@ -46,6 +46,7 @@ export default function ScanRouteSetup() {
   const [requiredAttempts, setRequiredAttempts] = useState(3);
   const [minimumDaysSpread, setMinimumDaysSpread] = useState(10);
   const [isCreating, setIsCreating] = useState(false);
+  const [creationProgress, setCreationProgress] = useState('');
   const [showCustomAttempts, setShowCustomAttempts] = useState(false);
   const [showCustomSpread, setShowCustomSpread] = useState(false);
   const [customAttempts, setCustomAttempts] = useState(4);
@@ -58,6 +59,36 @@ export default function ScanRouteSetup() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
+
+  // Get user settings for MapQuest API key
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
+  // Geocode an address using MapQuest API
+  const geocodeAddress = async (fullAddress, apiKey) => {
+    if (!apiKey) return null;
+    try {
+      const response = await fetch(
+        `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(fullAddress)}`
+      );
+      const data = await response.json();
+      const location = data?.results?.[0]?.locations?.[0]?.latLng;
+      if (location && location.lat && location.lng) {
+        return { lat: location.lat, lng: location.lng, status: 'exact' };
+      }
+      return null;
+    } catch (err) {
+      console.warn('Geocoding failed for:', fullAddress, err);
+      return null;
+    }
+  };
 
   useEffect(() => {
     if (sessionId) {
@@ -144,9 +175,32 @@ export default function ScanRouteSetup() {
 
       const route = await base44.entities.Route.create(routeData);
 
-      // Create addresses
-      for (const addr of validAddresses) {
+      // Create addresses with geocoding
+      const mapquestApiKey = userSettings?.mapquest_api_key;
+      let geocodedCount = 0;
+
+      for (let i = 0; i < validAddresses.length; i++) {
+        const addr = validAddresses[i];
+        setCreationProgress(`Creating address ${i + 1}/${validAddresses.length}...`);
+        
         const normalizedKey = generateNormalizedKey(addr.extractedData);
+        
+        // Attempt geocoding
+        let lat = null;
+        let lng = null;
+        let geocodeStatus = 'pending';
+        
+        if (mapquestApiKey) {
+          const geoResult = await geocodeAddress(addr.extractedData.fullAddress, mapquestApiKey);
+          if (geoResult) {
+            lat = geoResult.lat;
+            lng = geoResult.lng;
+            geocodeStatus = geoResult.status;
+            geocodedCount++;
+          } else {
+            geocodeStatus = 'failed';
+          }
+        }
         
         await base44.entities.Address.create({
           company_id: getCompanyId(user),
@@ -156,6 +210,8 @@ export default function ScanRouteSetup() {
           city: addr.extractedData.city,
           state: addr.extractedData.state,
           zip: addr.extractedData.zip,
+          lat,
+          lng,
           serve_type: addr.extractedData?.documentType || session.documentType,
           pay_rate: PAY_RATES[session.documentType],
           status: 'pending',
@@ -171,8 +227,14 @@ export default function ScanRouteSetup() {
           normalized_key: normalizedKey,
           has_related_addresses: false,
           related_address_count: 0,
-          geocode_status: 'pending'
+          geocode_status: geocodeStatus
         });
+      }
+      
+      setCreationProgress('Finalizing...');
+      
+      if (mapquestApiKey && geocodedCount < validAddresses.length) {
+        console.log(`Geocoded ${geocodedCount}/${validAddresses.length} addresses`);
       }
 
       // Update scan session
@@ -428,7 +490,7 @@ export default function ScanRouteSetup() {
           {isCreating ? (
             <>
               <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Creating...
+              {creationProgress || 'Creating...'}
             </>
           ) : (
             <>
