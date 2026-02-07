@@ -135,10 +135,13 @@ export default function DCNUpload() {
       const existingRecords = await base44.entities.DCNRecord.filter({ company_id: companyId });
       existingRecords.forEach(r => existingDCNs.add(r.dcn));
 
+      // Process all rows in memory first (matching is client-side, no API calls needed)
+      const recordsToCreate = [];
+      const addressUpdates = [];
+
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
         const rowNum = i + 2;
-        setUploadProgress(30 + Math.floor((i / rows.length) * 60));
 
         // Validate required fields
         if (!row.dcn || row.dcn.trim() === '') {
@@ -201,41 +204,72 @@ export default function DCNUpload() {
         if (row.court_name) metadata.court_name = row.court_name;
         if (row.case_number) metadata.case_number = row.case_number;
 
-        // Create DCN record
-        const dcnRecord = await base44.entities.DCNRecord.create({
-          company_id: companyId,
-          dcn: dcnValue,
-          raw_address: row.address,
-          normalized_key: normalizedKey,
-          address_id: addressId,
-          upload_batch_id: batch.id,
-          uploaded_by: user.id,
-          uploaded_at: new Date().toISOString(),
-          source_filename: file.name,
-          source_row_number: rowNum,
-          match_status: matchStatus,
-          match_confidence: match?.confidence || null,
-          suggested_address_id: suggestedAddressId,
-          matched_by: matchStatus === 'auto_matched' ? 'system' : null,
-          matched_at: matchStatus === 'auto_matched' ? new Date().toISOString() : null,
-          metadata: metadata
+        // Instead of creating immediately, push to batch array
+        recordsToCreate.push({
+          index: i,
+          data: {
+            company_id: companyId,
+            dcn: dcnValue,
+            raw_address: row.address,
+            normalized_key: normalizedKey,
+            address_id: addressId,
+            upload_batch_id: batch.id,
+            uploaded_by: user.id,
+            uploaded_at: new Date().toISOString(),
+            source_filename: file.name,
+            source_row_number: rowNum,
+            match_status: matchStatus,
+            match_confidence: match?.confidence || null,
+            suggested_address_id: suggestedAddressId,
+            matched_by: matchStatus === 'auto_matched' ? 'system' : null,
+            matched_at: matchStatus === 'auto_matched' ? new Date().toISOString() : null,
+            metadata: metadata
+          },
+          addressId: matchStatus === 'auto_matched' ? addressId : null
         });
-
-        // If auto-matched, update address
-        if (matchStatus === 'auto_matched' && addressId) {
-          await base44.entities.Address.update(addressId, {
-            dcn_id: dcnRecord.id,
-            has_dcn: true,
-            dcn_linked_at: new Date().toISOString(),
-            dcn_linked_by: 'system'
-          });
-        }
 
         existingDCNs.add(dcnValue);
         stats.valid++;
       }
 
-      setUploadProgress(95);
+      setUploadProgress(50);
+
+      // Batch create DCN records in groups of 10
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < recordsToCreate.length; i += BATCH_SIZE) {
+        const batch_chunk = recordsToCreate.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(
+          batch_chunk.map(record => base44.entities.DCNRecord.create(record.data))
+        );
+        
+        // Collect address updates for auto-matched records
+        results.forEach((dcnRecord, idx) => {
+          const original = batch_chunk[idx];
+          if (original.addressId) {
+            addressUpdates.push({
+              addressId: original.addressId,
+              dcnRecordId: dcnRecord.id
+            });
+          }
+        });
+
+        setUploadProgress(50 + Math.floor((i / recordsToCreate.length) * 35));
+      }
+
+      // Batch update addresses for auto-matches
+      for (let i = 0; i < addressUpdates.length; i += BATCH_SIZE) {
+        const chunk = addressUpdates.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          chunk.map(update => base44.entities.Address.update(update.addressId, {
+            dcn_id: update.dcnRecordId,
+            has_dcn: true,
+            dcn_linked_at: new Date().toISOString(),
+            dcn_linked_by: 'system'
+          }))
+        );
+      }
+
+      setUploadProgress(90);
 
       // Update batch
       await base44.entities.DCNUploadBatch.update(batch.id, {
