@@ -54,7 +54,6 @@ const workerPages = [
   'Notifications',
   'ComboRouteSelection',
   'SubmitReceipt',
-  'RouteOptimization',
   'ReceiptDetail'
 ];
 
