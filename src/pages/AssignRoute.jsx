@@ -102,6 +102,13 @@ export default function AssignRoute() {
         status: 'assigned'
       });
       
+      // Update worker's current route
+      await base44.entities.User.update(selectedServerId, {
+        current_route_id: routeId,
+        worker_status: 'active',
+        last_active_at: new Date().toISOString()
+      });
+      
       // Send notification
       await base44.entities.Notification.create({
         user_id: selectedServerId,
