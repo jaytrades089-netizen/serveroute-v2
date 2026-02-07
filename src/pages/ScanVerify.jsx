@@ -439,14 +439,14 @@ export default function ScanVerify() {
               SCANNED: {scannedKeys.length} / {addresses.length}
             </p>
             <p className="text-sm text-gray-500">
-              {Math.round((scannedKeys.length / addresses.length) * 100)}%
+              {addresses.length > 0 ? Math.round((scannedKeys.length / addresses.length) * 100) : 0}%
             </p>
           </div>
           
           <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
             <div 
               className="bg-green-500 h-2 rounded-full transition-all"
-              style={{ width: `${(scannedKeys.length / addresses.length) * 100}%` }}
+              style={{ width: `${addresses.length > 0 ? (scannedKeys.length / addresses.length) * 100 : 0}%` }}
             />
           </div>
 
