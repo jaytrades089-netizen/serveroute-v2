@@ -57,7 +57,7 @@ export default function Chat() {
       return convos;
     },
     enabled: !!user?.company_id,
-    refetchInterval: 5000
+    refetchInterval: 15000
   });
 
   // Get company users for starting new chats

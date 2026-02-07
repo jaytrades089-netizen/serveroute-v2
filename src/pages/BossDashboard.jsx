@@ -44,8 +44,8 @@ import { Badge } from '@/components/ui/badge';
 
 // Polling configuration
 const POLLING_CONFIG = {
-  active: 5000,      // 5 seconds when tab active
-  background: 30000  // 30 seconds when tab hidden
+  active: 30000,     // 30 seconds when tab active
+  background: 60000  // 60 seconds when tab hidden
 };
 
 export default function BossDashboard() {

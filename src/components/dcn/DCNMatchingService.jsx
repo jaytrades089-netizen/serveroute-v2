@@ -86,6 +86,9 @@ export function findAddressMatch(addresses, rawAddress, rawCity = '') {
   let bestScore = 0;
 
   for (const addr of addresses) {
+    // Skip addresses that already have a DCN linked
+    if (addr.has_dcn) continue;
+    
     // Method 1: Exact normalized_key match
     if (addr.normalized_key === uploadedKey) {
       return {

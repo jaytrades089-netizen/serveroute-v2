@@ -72,6 +72,12 @@ export default function DCNMatching() {
     mutationFn: async ({ dcnId, addressId }) => {
       const dcn = dcnRecords.find(d => d.id === dcnId);
       
+      // Check if address already has a DCN
+      const targetAddr = addresses.find(a => a.id === addressId);
+      if (targetAddr?.has_dcn && targetAddr?.dcn_id) {
+        throw new Error('This address already has a DCN linked. Unlink the existing DCN first.');
+      }
+      
       await base44.entities.DCNRecord.update(dcnId, {
         address_id: addressId,
         match_status: 'manually_matched',
