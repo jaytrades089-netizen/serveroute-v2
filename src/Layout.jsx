@@ -29,9 +29,13 @@ const bossPages = [
   'WorkerDetail',
   'ReceiptQueue',
   'ReceiptReview',
-  'ReceiptDetail',
   'ActivityLog',
-  'Analytics'
+  'Analytics',
+  'DCNUpload',
+  'DCNMatching',
+  'DCNBatchDetail',
+  'AddressQuestionDetail',
+  'AddressDetail'
 ];
 
 // Server/Worker pages
@@ -50,7 +54,8 @@ const workerPages = [
   'Notifications',
   'ComboRouteSelection',
   'SubmitReceipt',
-  'RouteOptimization'
+  'RouteOptimization',
+  'ReceiptDetail'
 ];
 
 export default function Layout({ children, currentPageName }) {
@@ -142,6 +147,9 @@ export default function Layout({ children, currentPageName }) {
       'WorkerSettings': 'BossSettings',
       'Notifications': 'BossNotifications',
       'Workers': 'BossWorkers',
+      'WorkerRouteDetail': 'BossRouteDetail',
+      'WorkerStats': 'Analytics',
+      'WorkerVacationRequest': 'VacationRequests',
       'Chat': 'Chat' // Chat is shared, no redirect needed
     };
 
