@@ -323,10 +323,16 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setRouteMetrics(metrics);
       setIsOptimized(true);
 
-      // Update address order in database
+      // Save order_index in batches of 10 for faster performance
       console.log('Updating address order in database...');
-      for (let i = 0; i < optimizedAddresses.length; i++) {
-        await base44.entities.Address.update(optimizedAddresses[i].id, { order_index: i + 1 });
+      const BATCH_SIZE = 10;
+      for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
+        const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
+        await Promise.all(
+          batch.map((addr, i) => 
+            base44.entities.Address.update(addr.id, { order_index: start + i + 1 })
+          )
+        );
       }
 
       // Update route with optimization data (but don't start yet)
