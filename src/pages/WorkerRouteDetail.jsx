@@ -234,6 +234,16 @@ export default function WorkerRouteDetail() {
     );
   }
 
+  // Ownership check - workers can only see their own routes
+  if (user?.role === 'server' && route && route.worker_id !== user.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <p className="text-gray-600 mb-4">You don't have access to this route</p>
+        <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>Go to My Routes</Button>
+      </div>
+    );
+  }
+
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
   

@@ -14,6 +14,11 @@ export default function AddressDetail() {
   const addressId = urlParams.get('addressId') || urlParams.get('id');
   const routeId = urlParams.get('routeId');
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: address, isLoading: addressLoading } = useQuery({
     queryKey: ['address', addressId],
     queryFn: async () => {
@@ -58,6 +63,16 @@ export default function AddressDetail() {
           <ChevronLeft className="w-5 h-5 mr-1" /> Back
         </Button>
         <p className="text-center text-gray-500">Address not found</p>
+      </div>
+    );
+  }
+
+  // Ownership check for workers
+  if (user?.role === 'server' && route && route.worker_id !== user.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <p className="text-gray-600 mb-4">You don't have access to this address</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
       </div>
     );
   }

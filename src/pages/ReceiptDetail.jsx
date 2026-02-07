@@ -37,6 +37,11 @@ export default function ReceiptDetail() {
   const receiptId = urlParams.get('receiptId');
   const [previewImage, setPreviewImage] = useState(null);
 
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+
   const { data: receipt, isLoading: receiptLoading } = useQuery({
     queryKey: ['receipt', receiptId],
     queryFn: async () => {
@@ -89,6 +94,16 @@ export default function ReceiptDetail() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <p className="text-gray-600 mb-4">Receipt not found</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
+
+  // Ownership check - workers can only view their own receipts
+  if (user?.role === 'server' && receipt && receipt.worker_id !== user.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <p className="text-gray-600 mb-4">You don't have access to this receipt</p>
         <Button onClick={() => navigate(-1)}>Go Back</Button>
       </div>
     );

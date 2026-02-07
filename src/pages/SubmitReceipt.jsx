@@ -97,6 +97,16 @@ export default function SubmitReceipt() {
     );
   }
 
+  // Ownership check - workers can only submit receipts for their own routes
+  if (user?.role === 'server' && route && route.worker_id !== user.id) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <p className="text-gray-600 mb-4">You don't have access to submit receipts for this route</p>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
+
   const handleSuccess = (receipt) => {
     navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
   };
