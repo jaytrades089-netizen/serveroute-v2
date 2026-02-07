@@ -97,7 +97,8 @@ export default function WorkerHome() {
       });
       return allRoutes.filter(r => r.worker_id === user.id);
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    refetchInterval: 30000
   });
 
   const { data: addresses = [] } = useQuery({
@@ -122,7 +123,8 @@ export default function WorkerHome() {
         read: false 
       });
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    refetchInterval: 30000
   });
 
   useEffect(() => {

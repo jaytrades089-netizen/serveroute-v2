@@ -24,7 +24,8 @@ export default function Notifications() {
       if (!user?.id) return [];
       return base44.entities.Notification.filter({ user_id: user.id }, '-created_date');
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    refetchInterval: 15000
   });
 
   const markReadMutation = useMutation({
