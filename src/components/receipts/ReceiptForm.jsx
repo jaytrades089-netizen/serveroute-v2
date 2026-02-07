@@ -182,6 +182,10 @@ export default function ReceiptForm({
     ctx.drawImage(videoRef.current, 0, 0);
     
     canvas.toBlob(async (blob) => {
+      if (blob.size > 10 * 1024 * 1024) {
+        toast.error('Photo too large. Maximum size is 10MB.');
+        return;
+      }
       try {
         const file = new File([blob], `receipt_photo_${Date.now()}.jpg`, { type: 'image/jpeg' });
         const { file_url } = await base44.integrations.Core.UploadFile({ file });
@@ -197,6 +201,11 @@ export default function ReceiptForm({
   const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Photo too large. Maximum size is 10MB.');
+      return;
+    }
     
     try {
       const { file_url } = await base44.integrations.Core.UploadFile({ file });
