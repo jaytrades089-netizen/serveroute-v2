@@ -38,7 +38,8 @@ import {
   checkImageQuality,
   categorizeConfidence,
   getCameraPermissionInstructions,
-  ERROR_MESSAGES
+  ERROR_MESSAGES,
+  ocrRateLimiter
 } from '@/components/scanning/ScanningService';
 
 export default function ScanCamera() {
@@ -227,6 +228,14 @@ export default function ScanCamera() {
     setProcessingText('Processing image...');
 
     try {
+      // Check rate limits
+      const rateCheck = ocrRateLimiter.check();
+      if (!rateCheck.allowed) {
+        toast.error(ERROR_MESSAGES[rateCheck.reason] || 'Rate limit exceeded');
+        setIsProcessing(false);
+        return;
+      }
+
       const quality = await checkImageQuality(imageBase64);
       if (!quality.canProcess) {
         toast.error(quality.issues[0]?.message || 'Poor image quality');
@@ -290,6 +299,8 @@ export default function ScanCamera() {
       }
 
       if (result.success) {
+        // Record successful OCR call for rate limiting
+        ocrRateLimiter.record();
         toast.success('Address extracted');
       } else {
         toast.warning('Could not extract address - try again or adjust the document');
