@@ -108,7 +108,8 @@ export default function SubmitReceipt() {
   }
 
   const handleSuccess = (receipt) => {
-    navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
+    // Go back to previous screen (address card or route detail)
+    navigate(-1);
   };
 
   const handleCancel = () => {
