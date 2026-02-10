@@ -48,16 +48,17 @@ export default function WorkerDetail() {
     queryFn: () => base44.auth.me()
   });
 
+  const companyId = getCompanyId(currentUser);
+
   const { data: worker, isLoading } = useQuery({
-    queryKey: ['worker', workerId],
+    queryKey: ['worker', workerId, companyId],
     queryFn: async () => {
-      const users = await base44.entities.User.list();
+      if (!companyId) return null;
+      const users = await base44.entities.User.filter({ company_id: companyId });
       return users.find(u => u.id === workerId);
     },
-    enabled: !!workerId
+    enabled: !!workerId && !!companyId
   });
-
-  const companyId = currentUser?.company_id || 'default';
 
   const { data: routes = [] } = useQuery({
     queryKey: ['workerRoutes', workerId],
