@@ -502,6 +502,178 @@ export default function AddressCard({
   const isServed = address.served;
   const isPriority = attemptCount >= 2 && !isServed;
 
+  // Boss: Create attempt on behalf of worker
+  const handleBossCreateAttempt = async () => {
+    if (!bossAttemptOutcome || !bossAttemptTime) return;
+    
+    setBossCreatingAttempt(true);
+    try {
+      const attemptTime = new Date(bossAttemptTime);
+      const qualifierData = getQualifiers(attemptTime);
+      const qualifierFields = getQualifierStorageFields(qualifierData);
+      const attemptNumber = (localAttempts?.length || 0) + 1;
+      const companyId = getCompanyId(user) || address.company_id;
+
+      const newAttempt = await base44.entities.Attempt.create({
+        address_id: address.id,
+        route_id: routeId,
+        server_id: address.server_id || user.id,
+        company_id: companyId,
+        attempt_number: attemptNumber,
+        status: 'completed',
+        outcome: bossAttemptOutcome,
+        attempt_time: attemptTime.toISOString(),
+        attempt_timezone: 'America/Detroit',
+        ...qualifierFields,
+        notes: bossAttemptNotes 
+          ? `[Added by boss] ${bossAttemptNotes}` 
+          : '[Added by boss]',
+        manually_edited: true,
+        photo_urls: [],
+        synced_at: new Date().toISOString()
+      });
+
+      setLocalAttempts(prev => [...prev, newAttempt]);
+
+      await base44.entities.Address.update(address.id, {
+        attempts_count: attemptNumber,
+        status: address.status === 'pending' ? 'attempted' : address.status
+      });
+
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'attempt_added_by_boss',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          attempt_number: attemptNumber,
+          outcome: bossAttemptOutcome,
+          attempt_time: attemptTime.toISOString(),
+          route_id: routeId
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      toast.success(`Attempt ${attemptNumber} added`);
+      
+      setShowBossAddAttempt(false);
+      setBossAttemptOutcome(null);
+      setBossAttemptNotes('');
+      setBossAttemptTime(new Date().toISOString().slice(0, 16));
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    } catch (error) {
+      console.error('Failed to create attempt:', error);
+      toast.error('Failed to add attempt');
+    } finally {
+      setBossCreatingAttempt(false);
+    }
+  };
+
+  // Boss: Create attempt request
+  const handleCreateRequest = async () => {
+    if (requestQualifiers.length === 0) return;
+    
+    setCreatingRequest(true);
+    try {
+      const companyId = getCompanyId(user) || address.company_id;
+      
+      await base44.entities.AttemptRequest.create({
+        address_id: address.id,
+        route_id: routeId,
+        company_id: companyId,
+        requested_by: user.id,
+        assigned_to: address.server_id || null,
+        required_qualifiers: requestQualifiers,
+        status: 'pending',
+        boss_note: requestNote || null
+      });
+
+      await base44.entities.Address.update(address.id, {
+        has_pending_request: true,
+        pending_request_qualifiers: requestQualifiers
+      });
+
+      if (address.server_id) {
+        await base44.entities.Notification.create({
+          user_id: address.server_id,
+          company_id: companyId,
+          recipient_role: 'server',
+          type: 'attempt_requested',
+          title: 'New Attempt Requested',
+          body: `${requestQualifiers.join(' + ')} attempt needed at ${address.normalized_address || address.legal_address}`,
+          priority: 'urgent',
+          data: {
+            address_id: address.id,
+            route_id: routeId,
+            qualifiers: requestQualifiers
+          }
+        });
+      }
+
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'attempt_requested',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          qualifiers: requestQualifiers,
+          note: requestNote,
+          route_id: routeId
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      toast.success(`Request sent: ${requestQualifiers.join(' + ')}`);
+      
+      setShowRequestAttempt(false);
+      setRequestQualifiers([]);
+      setRequestNote('');
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
+    } catch (error) {
+      console.error('Failed to create request:', error);
+      toast.error('Failed to send request');
+    } finally {
+      setCreatingRequest(false);
+    }
+  };
+
+  // Worker: Reply to request
+  const handleWorkerReply = async () => {
+    if (!workerReplyText.trim() || !pendingRequest) return;
+    
+    try {
+      await base44.entities.AttemptRequest.update(pendingRequest.id, {
+        worker_reply: workerReplyText.trim(),
+        worker_replied_at: new Date().toISOString()
+      });
+
+      const companyId = getCompanyId(user) || address.company_id;
+      await base44.entities.Notification.create({
+        user_id: pendingRequest.requested_by,
+        company_id: companyId,
+        recipient_role: 'boss',
+        type: 'request_reply',
+        title: 'Worker Replied to Request',
+        body: `Reply on ${address.normalized_address || address.legal_address}: "${workerReplyText.trim().substring(0, 100)}"`,
+        priority: 'normal'
+      });
+
+      toast.success('Reply sent');
+      setWorkerReplyText('');
+      queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
+    } catch (error) {
+      toast.error('Failed to send reply');
+    }
+  };
+
   // Get selected attempt data
   const selectedAttempt = activeTab > 0 ? sortedAttempts[activeTab - 1] : null;
 
