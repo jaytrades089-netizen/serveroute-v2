@@ -40,10 +40,15 @@ export default function AddressQuestionsCard({ companyId }) {
     queryKey: ['questionAddresses', questions.map(q => q.address_id)],
     queryFn: async () => {
       if (questions.length === 0) return [];
-      const addrs = await Promise.all(
-        questions.map(q => base44.entities.Address.filter({ id: q.address_id }))
-      );
-      return addrs.flat();
+      try {
+        const addrs = await Promise.all(
+          questions.map(q => base44.entities.Address.filter({ id: q.address_id }))
+        );
+        return addrs.flat();
+      } catch (err) {
+        console.warn('Question addresses query failed:', err);
+        return [];
+      }
     },
     enabled: questions.length > 0
   });
