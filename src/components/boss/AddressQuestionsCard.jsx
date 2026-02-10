@@ -62,7 +62,8 @@ export default function AddressQuestionsCard({ companyId }) {
     return addresses.find(a => a.id === addressId);
   };
 
-  if (questions.length === 0) return null;
+  // Don't show if loading, error, or no questions
+  if (isLoading || isError || questions.length === 0) return null;
 
   return (
     <Card className="mb-6 border-orange-200 bg-orange-50">
