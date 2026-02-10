@@ -63,6 +63,7 @@ export default function AddressCard({
   index, 
   routeId,
   showActions = true,
+  isBossView = false,
   onMessageBoss,
   onClick,
   lastAttempt,
