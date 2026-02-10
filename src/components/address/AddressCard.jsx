@@ -133,6 +133,19 @@ export default function AddressCard({
     queryFn: () => base44.auth.me()
   });
   
+  // Fetch pending request for this address
+  const { data: pendingRequest } = useQuery({
+    queryKey: ['attemptRequest', address.id],
+    queryFn: async () => {
+      const requests = await base44.entities.AttemptRequest.filter({
+        address_id: address.id,
+        status: 'pending'
+      });
+      return requests[0] || null;
+    },
+    enabled: !!address.has_pending_request
+  });
+  
   // Sync local attempts with props
   React.useEffect(() => {
     setLocalAttempts(allAttempts);
