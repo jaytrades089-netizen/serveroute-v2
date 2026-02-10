@@ -108,9 +108,13 @@ export default function SubmitReceipt() {
   }
 
   const handleSuccess = (receipt) => {
-    // Go back to previous screen (address card or route detail)
-    // Force immediate navigation - use replace to prevent back-button issues
-    window.history.back();
+    // Force immediate navigation back to the route detail page
+    // Using replace to avoid navigation stack issues
+    if (routeId) {
+      navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`), { replace: true });
+    } else {
+      window.history.back();
+    }
   };
 
   const handleCancel = () => {
