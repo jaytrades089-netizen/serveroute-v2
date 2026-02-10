@@ -110,6 +110,22 @@ export default function AddressCard({
   
   // Outcome selection state
   const [showOutcomeSelector, setShowOutcomeSelector] = useState(false);
+  
+  // Boss action states
+  const [showBossAddAttempt, setShowBossAddAttempt] = useState(false);
+  const [showRequestAttempt, setShowRequestAttempt] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState(false);
+  const [bossAttemptTime, setBossAttemptTime] = useState(new Date().toISOString().slice(0, 16));
+  const [bossAttemptOutcome, setBossAttemptOutcome] = useState(null);
+  const [bossAttemptNotes, setBossAttemptNotes] = useState('');
+  const [bossCreatingAttempt, setBossCreatingAttempt] = useState(false);
+  const [requestQualifiers, setRequestQualifiers] = useState([]);
+  const [requestNote, setRequestNote] = useState('');
+  const [creatingRequest, setCreatingRequest] = useState(false);
+  
+  // Worker request states
+  const [showRequestDetail, setShowRequestDetail] = useState(false);
+  const [workerReplyText, setWorkerReplyText] = useState('');
 
   // Get current user
   const { data: user } = useQuery({
