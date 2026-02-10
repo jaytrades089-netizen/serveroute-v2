@@ -332,6 +332,15 @@ export default function BossDashboard() {
     );
   }
 
+  if (userError || !user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center flex-col gap-4">
+        <p className="text-gray-600">Unable to load user data</p>
+        <Button onClick={() => window.location.reload()}>Refresh</Button>
+      </div>
+    );
+  }
+
   // Calculate dashboard stats
   const today = new Date().toISOString().split('T')[0];
   const todayRoutes = routes.filter(r => 
