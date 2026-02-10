@@ -61,16 +61,21 @@ const workerPages = [
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   
-  const { data: user, isLoading, isError, error } = useQuery({
+  const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const isAuthenticated = await base44.auth.isAuthenticated();
-      if (!isAuthenticated) {
+      try {
+        const isAuthenticated = await base44.auth.isAuthenticated();
+        if (!isAuthenticated) {
+          return null;
+        }
+        return await base44.auth.me();
+      } catch (err) {
+        console.warn('Auth check failed:', err);
         return null;
       }
-      return base44.auth.me();
     },
-    retry: false,
+    retry: 1,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });

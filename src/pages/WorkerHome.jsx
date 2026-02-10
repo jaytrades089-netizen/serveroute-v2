@@ -39,10 +39,11 @@ export default function WorkerHome() {
   const queryClient = useQueryClient();
   const [currentPhase, setCurrentPhase] = useState('ntc');
 
-  const { data: user, isLoading: userLoading, isError: userError } = useQuery({
+  const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
-    retry: false
+    retry: 1,
+    staleTime: 5 * 60 * 1000
   });
 
   // Auth is handled by Layout - no redirect needed here
