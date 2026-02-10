@@ -1209,8 +1209,87 @@ export default function AddressCard({
         {/* Action Buttons */}
         {showActions && !isServed && (
           <div className="px-4 py-3 space-y-2">
-            {/* Main Action - Changes based on state */}
-            {hasInProgressAttempt ? (
+            {isBossView ? (
+              /* ========== BOSS ACTIONS ========== */
+              <>
+                {/* Primary row: 3 equal buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${routeId}`));
+                    }}
+                    className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                  >
+                    <Pencil className="w-5 h-5" />
+                    <span>EDIT</span>
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowBossAddAttempt(!showBossAddAttempt);
+                      setShowRequestAttempt(false);
+                    }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
+                      showBossAddAttempt 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                        : 'bg-amber-500 hover:bg-amber-600 text-white'
+                    }`}
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>ADD ATTEMPT</span>
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRequestAttempt(!showRequestAttempt);
+                      setShowBossAddAttempt(false);
+                    }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
+                      showRequestAttempt 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-red-500 hover:bg-red-600 text-white'
+                    }`}
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    <span>REQUEST</span>
+                  </Button>
+                </div>
+
+                {/* Secondary row: 2 buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                    }}
+                    variant="outline"
+                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    DETAILS
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMoveModal(true);
+                    }}
+                    variant="outline"
+                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    MOVE
+                  </Button>
+                </div>
+              </>
+            ) : (
+              /* ========== WORKER ACTIONS ========== */
+              <>
+                {/* Main Action - Changes based on state */}
+                {hasInProgressAttempt ? (
                   <Button 
                     onClick={handleLogAttempt}
                     disabled={finalizingAttempt}
@@ -1278,7 +1357,7 @@ export default function AddressCard({
                   </Link>
                 </div>
 
-                {/* Navigate Button */}
+                {/* Navigate Button — ONLY in worker view */}
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                   <button 
                     onClick={(e) => { e.stopPropagation(); onMessageBoss && onMessageBoss(address); }}
@@ -1294,7 +1373,189 @@ export default function AddressCard({
                     <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
                   </button>
                 </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Boss Add Attempt — Inline Panel */}
+        {isBossView && showBossAddAttempt && (
+          <div className="px-4 pb-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+              <h4 className="text-sm font-bold text-amber-800 mb-3">Add Attempt</h4>
+              
+              <div className="mb-3">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">DATE & TIME</label>
+                <input
+                  type="datetime-local"
+                  value={bossAttemptTime}
+                  onChange={(e) => setBossAttemptTime(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                />
               </div>
+
+              <div className="mb-3">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">OUTCOME</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {OUTCOME_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={(e) => { e.stopPropagation(); setBossAttemptOutcome(opt.value); }}
+                      className={`p-2 rounded-lg text-xs font-semibold transition-all ${
+                        bossAttemptOutcome === opt.value 
+                          ? 'ring-2 ring-amber-500 ' + opt.color
+                          : opt.color + ' opacity-60'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">NOTES</label>
+                <textarea
+                  value={bossAttemptNotes}
+                  onChange={(e) => setBossAttemptNotes(e.target.value)}
+                  placeholder="Optional notes..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  rows={2}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); setShowBossAddAttempt(false); }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleBossCreateAttempt(); }}
+                  disabled={!bossAttemptOutcome || !bossAttemptTime || bossCreatingAttempt}
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                >
+                  {bossCreatingAttempt ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Save Attempt
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Boss Request Attempt — Inline Panel */}
+        {isBossView && showRequestAttempt && (
+          <div className="px-4 pb-4">
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+              <h4 className="text-sm font-bold text-red-800 mb-3">Request New Attempt</h4>
+              <p className="text-xs text-red-600 mb-3">
+                Worker will see this request highlighted on their route
+              </p>
+              
+              <div className="mb-3">
+                <label className="text-xs font-semibold text-gray-600 block mb-2">
+                  REQUIRED TIME FRAME (tap all that apply)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { value: 'AM', label: 'AM', desc: 'Before noon', bg: 'bg-sky-100 text-sky-700 border-sky-300' },
+                    { value: 'PM', label: 'PM', desc: '5 PM - 9 PM', bg: 'bg-indigo-100 text-indigo-700 border-indigo-300' },
+                    { value: 'WEEKEND', label: 'WKND', desc: 'Sat or Sun', bg: 'bg-orange-100 text-orange-700 border-orange-300' },
+                    { value: 'ANYTIME', label: 'ANY', desc: 'Any time', bg: 'bg-gray-100 text-gray-700 border-gray-300' },
+                  ].map(q => {
+                    const isSelected = requestQualifiers.includes(q.value);
+                    const isAnytime = q.value === 'ANYTIME';
+                    
+                    return (
+                      <button
+                        key={q.value}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isAnytime) {
+                            setRequestQualifiers(['ANYTIME']);
+                          } else {
+                            setRequestQualifiers(prev => {
+                              const filtered = prev.filter(v => v !== 'ANYTIME');
+                              return filtered.includes(q.value)
+                                ? filtered.filter(v => v !== q.value)
+                                : [...filtered, q.value];
+                            });
+                          }
+                        }}
+                        className={`p-3 rounded-xl text-center border-2 transition-all ${
+                          isSelected 
+                            ? `${q.bg} border-current ring-2 ring-offset-1` 
+                            : 'bg-gray-50 text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        <span className="block text-sm font-bold">{q.label}</span>
+                        <span className="block text-[10px] mt-0.5">{q.desc}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRequestQualifiers(['WEEKEND', 'PM']); }}
+                    className="text-[10px] px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  >
+                    WKND + PM
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRequestQualifiers(['WEEKEND', 'AM']); }}
+                    className="text-[10px] px-2 py-1 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  >
+                    WKND + AM
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="text-xs font-semibold text-gray-600 block mb-1">NOTE TO WORKER</label>
+                <textarea
+                  value={requestNote}
+                  onChange={(e) => setRequestNote(e.target.value)}
+                  placeholder="Law office requires another attempt because..."
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  rows={2}
+                  maxLength={500}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setShowRequestAttempt(false);
+                    setRequestQualifiers([]);
+                    setRequestNote('');
+                  }}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => { e.stopPropagation(); handleCreateRequest(); }}
+                  disabled={requestQualifiers.length === 0 || creatingRequest}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white"
+                >
+                  {creatingRequest ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                  Send Request
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Receipt Status Alert */}
