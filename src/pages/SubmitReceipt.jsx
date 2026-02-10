@@ -109,10 +109,8 @@ export default function SubmitReceipt() {
 
   const handleSuccess = (receipt) => {
     // Go back to previous screen (address card or route detail)
-    // Use setTimeout to ensure navigation happens after React state updates
-    setTimeout(() => {
-      navigate(-1);
-    }, 0);
+    // Force immediate navigation - use replace to prevent back-button issues
+    window.history.back();
   };
 
   const handleCancel = () => {
