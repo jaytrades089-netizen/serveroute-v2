@@ -686,6 +686,100 @@ export default function AddressCard({
             : 'border border-gray-100'
         }`}
       >
+        {/* Pending Request Banner */}
+        {address.has_pending_request && pendingRequest && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!isBossView) setShowRequestDetail(!showRequestDetail);
+            }}
+            className={`w-full text-left px-4 py-2 border-b ${
+              isBossView 
+                ? 'bg-red-50 border-red-200'
+                : 'bg-red-100 border-red-300 animate-pulse cursor-pointer hover:bg-red-150'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <RotateCcw className="w-4 h-4 text-red-600" />
+              <span className="text-xs font-bold text-red-700">
+                ATTEMPT REQUESTED: {pendingRequest.required_qualifiers?.join(' + ')}
+              </span>
+              {!isBossView && (
+                <ChevronDown className={`w-3 h-3 text-red-500 ml-auto transition-transform ${
+                  showRequestDetail ? 'rotate-180' : ''
+                }`} />
+              )}
+            </div>
+            {!showRequestDetail && pendingRequest.boss_note && (
+              <p className="text-xs text-red-600 mt-1 pl-6 truncate">
+                "{pendingRequest.boss_note}"
+              </p>
+            )}
+          </button>
+        )}
+
+        {/* Worker Request Detail Panel */}
+        {!isBossView && showRequestDetail && pendingRequest && (
+          <div className="px-4 pb-3 bg-red-50 border-b border-red-200">
+            <div className="bg-white border border-red-200 rounded-xl p-4 mt-2">
+              <h4 className="text-sm font-bold text-red-800 mb-2">Attempt Requested</h4>
+              
+              <div className="flex gap-2 mb-3 flex-wrap">
+                {pendingRequest.required_qualifiers?.map(q => (
+                  <span key={q} className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                    q === 'AM' ? 'bg-sky-100 text-sky-700' :
+                    q === 'PM' ? 'bg-indigo-100 text-indigo-700' :
+                    q === 'WEEKEND' ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-700'
+                  }`}>
+                    {q === 'ANYTIME' ? 'ANYTIME' : q}
+                  </span>
+                ))}
+              </div>
+
+              {pendingRequest.boss_note && (
+                <div className="bg-red-50 rounded-lg p-3 mb-3 border border-red-100">
+                  <p className="text-xs text-gray-500 font-semibold mb-1">FROM BOSS:</p>
+                  <p className="text-sm text-gray-800">{pendingRequest.boss_note}</p>
+                </div>
+              )}
+
+              {!pendingRequest.worker_reply ? (
+                <div className="mb-3">
+                  <textarea
+                    value={workerReplyText}
+                    onChange={(e) => setWorkerReplyText(e.target.value)}
+                    placeholder="Reply to boss (optional)..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                    rows={2}
+                    maxLength={500}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={(e) => { e.stopPropagation(); handleWorkerReply(); }}
+                    className="mt-2"
+                    disabled={!workerReplyText.trim()}
+                  >
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Send Reply
+                  </Button>
+                </div>
+              ) : (
+                <div className="bg-blue-50 rounded-lg p-3 mb-3 border border-blue-100">
+                  <p className="text-xs text-gray-500 font-semibold mb-1">YOUR REPLY:</p>
+                  <p className="text-sm text-gray-800">{pendingRequest.worker_reply}</p>
+                </div>
+              )}
+
+              <p className="text-xs text-red-600 font-medium">
+                Complete a {pendingRequest.required_qualifiers?.join(' + ')} attempt to fulfill this request.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* In-Progress Banner */}
         {hasInProgressAttempt && !isServed && (
           <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 animate-pulse-glow">
