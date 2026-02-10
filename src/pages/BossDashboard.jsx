@@ -59,9 +59,10 @@ export default function BossDashboard() {
   const [suggestions, setSuggestions] = useState({});
   const [autoAssigning, setAutoAssigning] = useState(false);
   
-  const { data: user, isLoading: userLoading } = useQuery({
+  const { data: user, isLoading: userLoading, isError: userError } = useQuery({
     queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me()
+    queryFn: () => base44.auth.me(),
+    retry: 1
   });
 
   // Handle tab visibility for polling
