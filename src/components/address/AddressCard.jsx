@@ -24,7 +24,11 @@ import {
   Image as ImageIcon,
   MessageSquare,
   FileText,
-  Plus
+  Plus,
+  Pencil,
+  ArrowRightLeft,
+  RotateCcw,
+  ChevronDown
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
