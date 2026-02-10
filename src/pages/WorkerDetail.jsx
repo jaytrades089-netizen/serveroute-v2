@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format, formatDistanceToNow, subDays } from 'date-fns';
+import { getCompanyId } from '@/components/utils/companyUtils';
 import { 
   Loader2, 
   ChevronLeft, 
