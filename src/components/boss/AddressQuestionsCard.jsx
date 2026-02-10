@@ -10,14 +10,19 @@ import { format } from 'date-fns';
 import { formatAddress } from '@/components/address/AddressCard';
 
 export default function AddressQuestionsCard({ companyId }) {
-  const { data: questions = [] } = useQuery({
+  const { data: questions = [], isLoading, isError } = useQuery({
     queryKey: ['addressQuestions', companyId],
     queryFn: async () => {
       if (!companyId) return [];
-      return base44.entities.AddressQuestion.filter({
-        company_id: companyId,
-        status: 'pending'
-      }, '-asked_at', 10);
+      try {
+        return await base44.entities.AddressQuestion.filter({
+          company_id: companyId,
+          status: 'pending'
+        }, '-asked_at', 10);
+      } catch (err) {
+        console.warn('AddressQuestion query failed:', err);
+        return [];
+      }
     },
     enabled: !!companyId
   });
