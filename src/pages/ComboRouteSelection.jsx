@@ -122,21 +122,39 @@ export default function ComboRouteSelection() {
         allAddresses = [...allAddresses, ...addresses.map(a => ({ ...a, originalRouteId: routeId }))];
       }
 
-      // Get current position
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 15000
+      // Get current position — graceful fallback if denied
+      let startLat, startLng;
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000
+          });
         });
-      });
+        startLat = position.coords.latitude;
+        startLng = position.coords.longitude;
+      } catch (geoError) {
+        console.warn('Geolocation unavailable, using first address as start:', geoError.message);
+        // Fall back to first address that has coordinates
+        const firstWithCoords = allAddresses.find(a => a.lat && a.lng);
+        if (firstWithCoords) {
+          startLat = firstWithCoords.lat;
+          startLng = firstWithCoords.lng;
+          toast.info('Location unavailable — using first address as starting point');
+        } else {
+          toast.error('Location unavailable and no addresses have coordinates. Please enable location services.');
+          setIsOptimizing(false);
+          return;
+        }
+      }
 
       const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
 
       // Use hybrid optimization
       const optimizedAddresses = await optimizeWithHybrid(
         allAddresses,
-        position.coords.latitude,
-        position.coords.longitude,
+        startLat,
+        startLng,
         endLocation.latitude,
         endLocation.longitude,
         apiKey
