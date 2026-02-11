@@ -982,108 +982,170 @@ export default function AddressCard({
         {/* HOME TAB - Summary with all qualifiers/times */}
         {attemptCount > 0 && !isServed && activeTab === 0 && (
           <div className="px-4 py-3 border-t border-gray-100">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-bold text-gray-700 tracking-wide">
-                ATTEMPTS SUMMARY
-              </span>
-              {isPriority && (
-                <Badge className="bg-orange-500 text-white text-[10px] px-2 py-0.5">
-                  PRIORITY
-                </Badge>
-              )}
-            </div>
+            {address.serve_type === 'posting' ? (
+              /* ===== POSTING SUMMARY — simplified, no qualifiers ===== */
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                    POSTED SUMMARY
+                  </span>
+                </div>
 
-            {/* Attempt Timeline */}
-            <div className="space-y-2">
-              {sortedAttempts.map((attempt, idx) => {
-                const isInProgress = attempt.status === 'in_progress';
-                return (
-                  <div 
-                    key={attempt.id} 
-                    className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
-                      isInProgress 
-                        ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' 
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                    onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                      isInProgress 
-                        ? 'bg-amber-200 text-amber-700' 
-                        : 'bg-indigo-100 text-indigo-600'
-                    }`}>
-                      A{idx + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">
-                        {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                {/* Posting Timeline — just date/time + photo icon */}
+                <div className="space-y-2">
+                  {sortedAttempts.map((attempt, idx) => (
+                    <div 
+                      key={attempt.id} 
+                      className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (attempt.photo_urls?.length > 0) {
+                          setShowPhotoViewer(true);
+                        }
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-purple-100 text-purple-600">
+                        <FileText className="w-4 h-4" />
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <QualifierBadges 
-                          badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
-                          size="small" 
-                        />
-                        {isInProgress ? (
-                          <span className="text-[10px] text-amber-600 font-bold">
-                            AWAITING OUTCOME
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-gray-500 capitalize">
-                            {attempt.outcome?.replace('_', ' ')}
-                          </span>
-                        )}
-                        {attempt.distance_feet && (
-                          <span className="text-[10px] text-blue-500">
-                            {formatDistance(attempt.distance_feet)}
-                          </span>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                        </div>
+                        <span className="text-[10px] text-purple-600 font-bold">
+                          POSTED
+                        </span>
+                      </div>
+                      {attempt.photo_urls?.length > 0 && (
+                        <ImageIcon className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                    POSTING
+                  </Badge>
+                  {isVerified && (
+                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                      VERIFIED
+                    </Badge>
+                  )}
+                  {address.has_dcn && (
+                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                      DCN
+                    </Badge>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* ===== REGULAR SERVE SUMMARY — unchanged ===== */
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                    ATTEMPTS SUMMARY
+                  </span>
+                  {isPriority && (
+                    <Badge className="bg-orange-500 text-white text-[10px] px-2 py-0.5">
+                      PRIORITY
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Attempt Timeline */}
+                <div className="space-y-2">
+                  {sortedAttempts.map((attempt, idx) => {
+                    const isInProgress = attempt.status === 'in_progress';
+                    return (
+                      <div 
+                        key={attempt.id} 
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
+                          isInProgress 
+                            ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' 
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                        onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isInProgress 
+                            ? 'bg-amber-200 text-amber-700' 
+                            : 'bg-indigo-100 text-indigo-600'
+                        }`}>
+                          A{idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <QualifierBadges 
+                              badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
+                              size="small" 
+                            />
+                            {isInProgress ? (
+                              <span className="text-[10px] text-amber-600 font-bold">
+                                AWAITING OUTCOME
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-500 capitalize">
+                                {attempt.outcome?.replace('_', ' ')}
+                              </span>
+                            )}
+                            {attempt.distance_feet && (
+                              <span className="text-[10px] text-blue-500">
+                                {formatDistance(attempt.distance_feet)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {attempt.photo_urls?.length > 0 && (
+                          <ImageIcon className="w-4 h-4 text-blue-500" />
                         )}
                       </div>
-                    </div>
-                    {attempt.photo_urls?.length > 0 && (
-                      <ImageIcon className="w-4 h-4 text-blue-500" />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
 
-            {/* What's Earned / What's Needed Summary */}
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <QualifierBox 
-                label="EARNED" 
-                badges={(() => {
-                  const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
-                  const { earnedBadges } = getNeededQualifiers(completedAttempts);
-                  return earnedBadges;
-                })()}
-                emptyText="None yet"
-                variant="success"
-              />
-              <QualifierBox 
-                label="STILL NEED" 
-                badges={(() => {
-                  const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
-                  const { needed, isComplete } = getNeededQualifiers(completedAttempts);
-                  return isComplete ? [] : needed;
-                })()}
-                emptyText="✓ Complete!"
-                variant="warning"
-              />
-            </div>
+                {/* What's Earned / What's Needed Summary */}
+                <div className="grid grid-cols-2 gap-2 mt-3">
+                  <QualifierBox 
+                    label="EARNED" 
+                    badges={(() => {
+                      const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
+                      const { earnedBadges } = getNeededQualifiers(completedAttempts);
+                      return earnedBadges;
+                    })()}
+                    emptyText="None yet"
+                    variant="success"
+                  />
+                  <QualifierBox 
+                    label="STILL NEED" 
+                    badges={(() => {
+                      const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
+                      const { needed, isComplete } = getNeededQualifiers(completedAttempts);
+                      return isComplete ? [] : needed;
+                    })()}
+                    emptyText="✓ Complete!"
+                    variant="warning"
+                  />
+                </div>
 
-            {/* Status Badges */}
-            <div className="flex items-center gap-2 flex-wrap mt-3">
-              {isVerified && (
-                <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
-                  VERIFIED
-                </Badge>
-              )}
-              {address.has_dcn && (
-                <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
-                  DCN
-                </Badge>
-              )}
-            </div>
+                {/* Status Badges */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  {isVerified && (
+                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                      VERIFIED
+                    </Badge>
+                  )}
+                  {address.has_dcn && (
+                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                      DCN
+                    </Badge>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
