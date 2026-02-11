@@ -769,10 +769,10 @@ export default function AddressCard({
   return (
     <>
       <div
-        className={`bg-white rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
+        className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-200 ${
           !isBossView && address.has_pending_request && pendingRequest
             ? 'border-2 border-red-500 animate-request-pulse shadow-red-100 shadow-lg'
-            : 'border border-gray-100'
+            : 'border border-gray-300'
         }`}
       >
         {/* Pending Request Banner */}
