@@ -108,8 +108,8 @@ export default function AddressCard({
   const [editingNotes, setEditingNotes] = useState(false);
   const [editedNotesText, setEditedNotesText] = useState('');
   
-  // Outcome selection state
-  const [showOutcomeSelector, setShowOutcomeSelector] = useState(false);
+  // Outcome comment modal state
+  const [showOutcomeCommentModal, setShowOutcomeCommentModal] = useState(false);
   
   // Boss action states
   const [showBossAddAttempt, setShowBossAddAttempt] = useState(false);
@@ -151,15 +151,15 @@ export default function AddressCard({
     setLocalAttempts(allAttempts);
   }, [allAttempts]);
 
-  // Hide bottom nav when camera or outcome selector is open
+  // Hide bottom nav when camera or modal is open
   React.useEffect(() => {
-    if (showOutcomeSelector || showCamera) {
+    if (showOutcomeCommentModal || showCamera) {
       document.body.classList.add('camera-active');
     } else {
       document.body.classList.remove('camera-active');
     }
     return () => document.body.classList.remove('camera-active');
-  }, [showOutcomeSelector, showCamera]);
+  }, [showOutcomeCommentModal, showCamera]);
   
   // Sort attempts by date for consistent ordering
   const sortedAttempts = [...localAttempts].sort((a, b) => 
@@ -412,14 +412,8 @@ export default function AddressCard({
       return;
     }
     
-    // Validate: must have notes/comment (EXCEPT for postings where comment is optional)
-    if (address.serve_type !== 'posting' && (!inProgressAttempt.notes || !inProgressAttempt.notes.trim())) {
-      toast.error('You must add a description before logging');
-      return;
-    }
-    
-    // Show outcome selector
-    setShowOutcomeSelector(true);
+    // Show outcome comment modal (user will type outcome in comment)
+    setShowOutcomeCommentModal(true);
   };
 
   // FINALIZE POSTING - Marks address as served/completed
@@ -479,19 +473,25 @@ export default function AddressCard({
     }
   };
   
-  // Handle outcome selection and finalize attempt
-  const handleOutcomeSelected = async (outcome) => {
-    setShowOutcomeSelector(false);
+  // Handle finalize attempt with comment (outcome typed in notes)
+  const handleFinalizeWithComment = async (comment) => {
+    setShowOutcomeCommentModal(false);
     setFinalizingAttempt(true);
     
     try {
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
       
+      // Append outcome comment to existing notes
+      const existingNotes = inProgressAttempt.notes || '';
+      const finalNotes = comment.trim() 
+        ? (existingNotes ? `${existingNotes}\n\nOutcome: ${comment}` : `Outcome: ${comment}`)
+        : existingNotes;
+      
       // OPTIMISTIC: Update local state immediately for instant feedback
       const updatedAttempts = localAttempts.map(a => 
         a.id === inProgressAttempt.id 
-          ? { ...a, status: 'completed', outcome }
+          ? { ...a, status: 'completed', outcome: 'other', notes: finalNotes }
           : a
       );
       setLocalAttempts(updatedAttempts);
@@ -508,7 +508,8 @@ export default function AddressCard({
       await Promise.allSettled([
         base44.entities.Attempt.update(inProgressAttempt.id, {
           status: 'completed',
-          outcome: outcome
+          outcome: 'other',
+          notes: finalNotes
         }),
         base44.entities.AuditLog.create({
           company_id: companyId,
@@ -522,7 +523,8 @@ export default function AddressCard({
             attempt_number: inProgressAttempt.attempt_number,
             qualifier: inProgressAttempt.qualifier,
             qualifier_badges: inProgressAttempt.qualifier_badges,
-            outcome: outcome,
+            outcome: 'other',
+            outcome_notes: comment,
             route_id: routeId,
             distance_feet: inProgressAttempt.distance_feet
           },
@@ -1810,39 +1812,17 @@ export default function AddressCard({
         }
       />
 
-      {/* Outcome Selector Modal */}
-      {showOutcomeSelector && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center"
-          onClick={() => setShowOutcomeSelector(false)}
-        >
-          <div 
-            className="bg-white w-full max-w-lg rounded-t-2xl p-4 pb-8 animate-slide-in-bottom"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-center mb-4">Select Outcome</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {OUTCOME_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => handleOutcomeSelected(opt.value)}
-                  className={`p-4 rounded-xl font-semibold text-sm transition-all ${opt.color} border-2 border-transparent hover:border-gray-300`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <Button
-              variant="outline"
-              className="w-full mt-4"
-              onClick={() => setShowOutcomeSelector(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Outcome Comment Modal */}
+      <EvidenceCommentModal
+        open={showOutcomeCommentModal}
+        onClose={() => setShowOutcomeCommentModal(false)}
+        onSave={handleFinalizeWithComment}
+        saving={finalizingAttempt}
+        requireComment={true}
+        title="Log Attempt Outcome"
+        placeholder="Type the outcome of this attempt (e.g., No Answer, Not Home, Refused, etc.)"
+        buttonText="LOG ATTEMPT"
+      />
     </>
   );
 }
