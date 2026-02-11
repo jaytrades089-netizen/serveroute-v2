@@ -148,7 +148,17 @@ export default function ReceiptForm({
         setServeDistance(Math.round(distance));
       }
     } catch (error) {
-      console.log('Could not get location:', error.message);
+      console.warn('Geolocation error:', error.code, error.message);
+      // Graceful fallback - use address coordinates if available
+      if (address?.lat && address?.lng) {
+        setServeCoordinates({
+          latitude: address.lat,
+          longitude: address.lng,
+          accuracy: null,
+          fallback: true
+        });
+        setServeDistance(0);
+      }
     } finally {
       setGettingLocation(false);
     }
