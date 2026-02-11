@@ -6,7 +6,6 @@ import { createPageUrl } from '@/utils';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ReceiptForm from '../components/receipts/ReceiptForm';
-import BottomNav from '../components/layout/BottomNav';
 
 export default function SubmitReceipt() {
   const navigate = useNavigate();
