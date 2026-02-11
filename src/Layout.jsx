@@ -140,6 +140,18 @@ export default function Layout({ children, currentPageName }) {
   const isOnBossPage = bossPages.includes(currentPageName);
   const isOnWorkerPage = workerPages.includes(currentPageName);
 
+  // If on root/empty page or unknown page, redirect based on role
+  if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || 
+      (!isOnBossPage && !isOnWorkerPage && !['Chat'].includes(currentPageName))) {
+    if (isBoss) {
+      navigate('/BossDashboard', { replace: true });
+      return null;
+    } else {
+      navigate('/WorkerHome', { replace: true });
+      return null;
+    }
+  }
+
   // Server trying to access boss pages - redirect to worker home
   if (isWorker && isOnBossPage) {
     navigate('/WorkerHome', { replace: true });
