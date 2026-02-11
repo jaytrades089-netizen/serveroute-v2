@@ -121,7 +121,7 @@ export default function SubmitReceipt() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-8">
       {/* Header */}
       <header className="bg-white border-b sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center gap-3">
