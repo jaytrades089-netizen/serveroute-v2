@@ -884,8 +884,8 @@ export default function AddressCard({
           </div>
         )}
 
-        {/* Attempt Tabs - Only show if there are attempts */}
-        {attemptCount > 0 && (
+        {/* Attempt Tabs - Only show if there are attempts AND not a posting */}
+        {attemptCount > 0 && address.serve_type !== 'posting' && (
           <div className="flex border-b border-gray-100">
             {/* Home/Summary Tab */}
             <button
