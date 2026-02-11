@@ -194,8 +194,8 @@ export default function AddressCard({
   const handleSaveEvidence = async (comment) => {
     if (!capturedPhoto) return;
     
-    // Comment is required for new attempts
-    if (!hasInProgressAttempt && !comment.trim()) {
+    // Comment is required for new attempts, EXCEPT postings
+    if (!hasInProgressAttempt && !comment.trim() && address.serve_type !== 'posting') {
       toast.error('Please add a description');
       return;
     }
