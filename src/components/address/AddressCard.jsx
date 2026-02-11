@@ -1433,77 +1433,130 @@ export default function AddressCard({
             ) : (
               /* ========== WORKER ACTIONS ========== */
               <>
-                {/* Main Action - Changes based on state */}
-                {hasInProgressAttempt ? (
-                  <Button 
-                    onClick={address.serve_type === 'posting' ? handleLogPosting : handleLogAttempt}
-                    disabled={finalizingAttempt}
-                    className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
-                  >
-                    {finalizingAttempt ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {address.serve_type === 'posting' ? (
+                  /* === POSTING BUTTONS === */
+                  <>
+                    {/* Main Action Button */}
+                    {attemptCount > 0 ? (
+                      /* Evidence already taken — show FINALIZE POSTING */
+                      <Button 
+                        onClick={handleFinalizePosting}
+                        disabled={finalizingAttempt}
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                      >
+                        {finalizingAttempt ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Shield className="w-4 h-4 mr-2" />
+                        )}
+                        FINALIZE POSTING
+                      </Button>
                     ) : (
-                      <Zap className="w-4 h-4 mr-2" />
+                      /* No evidence yet — show TAKE PHOTO */
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        TAKE PHOTO
+                      </Button>
                     )}
-                    {address.serve_type === 'posting' 
-                      ? 'LOG POSTING' 
-                      : `LOG ATTEMPT ${inProgressAttempt.attempt_number}`
-                    }
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleCaptureEvidence}
-                    className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
-                  >
-                    <Camera className="w-4 h-4 mr-2" />
-                    {address.serve_type === 'posting' ? 'TAKE PHOTO' : 'TAKE EVIDENCE'}
-                  </Button>
-                )}
 
-                {/* Secondary Actions Row - 3 buttons */}
-                <div className="grid grid-cols-3 gap-2">
-                  {hasInProgressAttempt ? (
-                    <Button 
-                      onClick={handleCaptureEvidence}
-                      className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                    >
-                      <Plus className="w-5 h-5" />
-                      <span>ADD PHOTO</span>
-                    </Button>
-                  ) : (
-                    <Button 
-                      onClick={handleLogAttempt}
-                      disabled
-                      className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
-                    >
-                      <Zap className="w-5 h-5" />
-                      <span>LOG</span>
-                    </Button>
-                  )}
-                  
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
-                    }}
-                    className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                  >
-                    <FileText className="w-5 h-5" />
-                    <span>DETAILS</span>
-                  </Button>
-                  
-                  <Link 
-                    to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button 
-                      className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                    >
-                      <Shield className="w-5 h-5" />
-                      <span>{address.serve_type === 'posting' ? 'FINALIZE POSTING' : 'FINALIZE'}</span>
-                    </Button>
-                  </Link>
-                </div>
+                    {/* Posting: 2 buttons — ADD PHOTO + DETAILS */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>ADD PHOTO</span>
+                      </Button>
+                      
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                        }}
+                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span>DETAILS</span>
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  /* === REGULAR SERVE BUTTONS === */
+                  <>
+                    {/* Main Action - Changes based on state */}
+                    {hasInProgressAttempt ? (
+                      <Button 
+                        onClick={handleLogAttempt}
+                        disabled={finalizingAttempt}
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                      >
+                        {finalizingAttempt ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-2" />
+                        )}
+                        LOG ATTEMPT {inProgressAttempt.attempt_number}
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        TAKE EVIDENCE
+                      </Button>
+                    )}
+
+                    {/* Secondary Actions Row - 3 buttons */}
+                    <div className="grid grid-cols-3 gap-2">
+                      {hasInProgressAttempt ? (
+                        <Button 
+                          onClick={handleCaptureEvidence}
+                          className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Plus className="w-5 h-5" />
+                          <span>ADD PHOTO</span>
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={handleLogAttempt}
+                          disabled
+                          className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
+                        >
+                          <Zap className="w-5 h-5" />
+                          <span>LOG</span>
+                        </Button>
+                      )}
+                      
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                        }}
+                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span>DETAILS</span>
+                      </Button>
+                      
+                      <Link 
+                        to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button 
+                          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Shield className="w-5 h-5" />
+                          <span>FINALIZE</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                )}
 
                 {/* Navigate Button — ONLY in worker view */}
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
