@@ -422,8 +422,8 @@ export default function AddressCard({
     setShowOutcomeSelector(true);
   };
 
-  // LOG POSTING - Auto-completes with outcome "posted" (no outcome selector)
-  const handleLogPosting = async (e) => {
+  // FINALIZE POSTING - Marks address as served/completed
+  const handleFinalizePosting = async (e) => {
     e.stopPropagation();
     
     if (!user) {
@@ -431,71 +431,49 @@ export default function AddressCard({
       return;
     }
     
-    if (!hasInProgressAttempt) {
-      toast.error('Take a photo first');
-      return;
-    }
-    
-    // Validate: must have at least 1 photo
-    if (!inProgressAttempt.photo_urls || inProgressAttempt.photo_urls.length === 0) {
-      toast.error('You must take at least one photo before logging');
-      return;
-    }
-    
-    // Skip outcome selector — go straight to completing with outcome "posted"
     setFinalizingAttempt(true);
     
     try {
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
       
-      // OPTIMISTIC: Update local state immediately
-      const updatedAttempts = localAttempts.map(a => 
-        a.id === inProgressAttempt.id 
-          ? { ...a, status: 'completed', outcome: 'posted' }
-          : a
-      );
-      setLocalAttempts(updatedAttempts);
+      // Mark address as served
+      await base44.entities.Address.update(address.id, {
+        served: true,
+        served_at: now.toISOString(),
+        status: 'served'
+      });
       
-      if (onAttemptLogged) {
-        onAttemptLogged();
-      }
+      // Create audit log
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'posting_completed',
+        actor_id: user.id,
+        actor_role: user.role || 'server',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          route_id: routeId,
+          serve_type: 'posting',
+          attempt_count: attemptCount
+        },
+        timestamp: now.toISOString()
+      });
       
-      toast.success('Posting logged! Tap FINALIZE POSTING to complete.');
+      // Trigger parent callbacks to move card to completed section
+      if (onAttemptLogged) onAttemptLogged();
+      if (onServed) onServed();
       
-      // Update attempt in database
-      await Promise.allSettled([
-        base44.entities.Attempt.update(inProgressAttempt.id, {
-          status: 'completed',
-          outcome: 'posted'
-        }),
-        base44.entities.AuditLog.create({
-          company_id: companyId,
-          action_type: 'attempt_logged',
-          actor_id: user.id,
-          actor_role: user.role || 'server',
-          target_type: 'address',
-          target_id: address.id,
-          details: {
-            attempt_id: inProgressAttempt.id,
-            attempt_number: inProgressAttempt.attempt_number,
-            qualifier: inProgressAttempt.qualifier,
-            qualifier_badges: inProgressAttempt.qualifier_badges,
-            outcome: 'posted',
-            route_id: routeId,
-            serve_type: 'posting'
-          },
-          timestamp: now.toISOString()
-        })
-      ]);
+      toast.success('Posting completed! ✓');
       
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
     } catch (error) {
-      console.error('Failed to log posting:', error);
-      toast.error('Failed to log posting');
+      console.error('Failed to finalize posting:', error);
+      toast.error('Failed to complete posting');
     } finally {
       setFinalizingAttempt(false);
     }
