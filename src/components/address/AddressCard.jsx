@@ -1149,8 +1149,8 @@ export default function AddressCard({
           </div>
         )}
 
-        {/* ATTEMPT TAB - Individual attempt details */}
-        {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && (
+        {/* ATTEMPT TAB - Individual attempt details (not for postings) */}
+        {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
           <div className="px-4 py-3 border-t border-gray-100">
             {/* Header with qualifier badges */}
             <div className="flex items-center justify-between mb-4">
