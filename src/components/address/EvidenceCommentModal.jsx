@@ -10,7 +10,10 @@ export default function EvidenceCommentModal({
   onSave, 
   photoPreview,
   saving = false,
-  requireComment = true
+  requireComment = true,
+  title = 'Add Comment',
+  placeholder = 'Blue Honda Civic in driveway, plate ABC-1234. Lights on inside.',
+  buttonText = 'Save Evidence'
 }) {
   const [comment, setComment] = useState('');
 
@@ -44,7 +47,7 @@ export default function EvidenceCommentModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="w-5 h-5 text-blue-500" />
-            Add Comment
+            {title}
           </DialogTitle>
         </DialogHeader>
 
@@ -62,7 +65,7 @@ export default function EvidenceCommentModal({
         <Textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="Blue Honda Civic in driveway, plate ABC-1234. Lights on inside."
+          placeholder={placeholder}
           className={`h-24 resize-none ${requireComment && !comment.trim() ? 'border-red-300 focus:border-red-500' : ''}`}
           autoFocus
         />
@@ -93,7 +96,7 @@ export default function EvidenceCommentModal({
                 Saving...
               </>
             ) : (
-              'Save Evidence'
+              buttonText
             )}
           </Button>
         </div>
