@@ -108,8 +108,7 @@ export default function AddressCard({
   const [editingNotes, setEditingNotes] = useState(false);
   const [editedNotesText, setEditedNotesText] = useState('');
   
-  // Outcome comment modal state
-  const [showOutcomeCommentModal, setShowOutcomeCommentModal] = useState(false);
+
   
   // Boss action states
   const [showBossAddAttempt, setShowBossAddAttempt] = useState(false);
@@ -151,15 +150,15 @@ export default function AddressCard({
     setLocalAttempts(allAttempts);
   }, [allAttempts]);
 
-  // Hide bottom nav when camera or modal is open
+  // Hide bottom nav when camera is open
   React.useEffect(() => {
-    if (showOutcomeCommentModal || showCamera) {
+    if (showCamera) {
       document.body.classList.add('camera-active');
     } else {
       document.body.classList.remove('camera-active');
     }
     return () => document.body.classList.remove('camera-active');
-  }, [showOutcomeCommentModal, showCamera]);
+  }, [showCamera]);
   
   // Sort attempts by date for consistent ordering
   const sortedAttempts = [...localAttempts].sort((a, b) => 
@@ -473,77 +472,7 @@ export default function AddressCard({
     }
   };
   
-  // Handle finalize attempt with comment (outcome typed in notes)
-  const handleFinalizeWithComment = async (comment) => {
-    setShowOutcomeCommentModal(false);
-    setFinalizingAttempt(true);
-    
-    try {
-      const now = new Date();
-      const companyId = getCompanyId(user) || address.company_id;
-      
-      // Append outcome comment to existing notes
-      const existingNotes = inProgressAttempt.notes || '';
-      const finalNotes = comment.trim() 
-        ? (existingNotes ? `${existingNotes}\n\nOutcome: ${comment}` : `Outcome: ${comment}`)
-        : existingNotes;
-      
-      // OPTIMISTIC: Update local state immediately for instant feedback
-      const updatedAttempts = localAttempts.map(a => 
-        a.id === inProgressAttempt.id 
-          ? { ...a, status: 'completed', outcome: 'other', notes: finalNotes }
-          : a
-      );
-      setLocalAttempts(updatedAttempts);
-      
-      // Trigger animation to move card to bottom IMMEDIATELY
-      if (onAttemptLogged) {
-        onAttemptLogged();
-      }
-      
-      toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
-      
-      // Update the attempt to completed in background
-      // Use Promise.allSettled so AuditLog failure doesn't kill Address update
-      await Promise.allSettled([
-        base44.entities.Attempt.update(inProgressAttempt.id, {
-          status: 'completed',
-          outcome: 'other',
-          notes: finalNotes
-        }),
-        base44.entities.AuditLog.create({
-          company_id: companyId,
-          action_type: 'attempt_logged',
-          actor_id: user.id,
-          actor_role: user.role || 'server',
-          target_type: 'address',
-          target_id: address.id,
-          details: {
-            attempt_id: inProgressAttempt.id,
-            attempt_number: inProgressAttempt.attempt_number,
-            qualifier: inProgressAttempt.qualifier,
-            qualifier_badges: inProgressAttempt.qualifier_badges,
-            outcome: 'other',
-            outcome_notes: comment,
-            route_id: routeId,
-            distance_feet: inProgressAttempt.distance_feet
-          },
-          timestamp: now.toISOString()
-        })
-      ]);
-      
-      // Invalidate queries in background
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
-      
-    } catch (error) {
-      console.error('Failed to log attempt:', error);
-      toast.error('Failed to log attempt');
-    } finally {
-      setFinalizingAttempt(false);
-    }
-  };
+
 
   // Edit notes handler
   const handleEditNotes = (e) => {
@@ -1812,17 +1741,7 @@ export default function AddressCard({
         }
       />
 
-      {/* Outcome Comment Modal */}
-      <EvidenceCommentModal
-        open={showOutcomeCommentModal}
-        onClose={() => setShowOutcomeCommentModal(false)}
-        onSave={handleFinalizeWithComment}
-        saving={finalizingAttempt}
-        requireComment={true}
-        title="Log Attempt Outcome"
-        placeholder="Type the outcome of this attempt (e.g., No Answer, Not Home, Refused, etc.)"
-        buttonText="LOG ATTEMPT"
-      />
+
     </>
   );
 }
