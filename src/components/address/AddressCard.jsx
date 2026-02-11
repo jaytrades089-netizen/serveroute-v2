@@ -869,16 +869,13 @@ export default function AddressCard({
           </div>
         )}
 
-        {/* In-Progress Banner */}
-        {hasInProgressAttempt && !isServed && (
+        {/* In-Progress Banner — not for postings (they auto-complete) */}
+        {hasInProgressAttempt && !isServed && address.serve_type !== 'posting' && (
           <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 animate-pulse-glow">
             <div className="flex items-center gap-2 text-amber-700">
               <Camera className="w-4 h-4" />
               <span className="text-xs font-bold">
-                {address.serve_type === 'posting'
-                  ? 'Photo captured — tap LOG POSTING to continue'
-                  : 'Evidence captured — tap LOG ATTEMPT to finalize'
-                }
+                Evidence captured — tap LOG ATTEMPT to finalize
               </span>
             </div>
           </div>
