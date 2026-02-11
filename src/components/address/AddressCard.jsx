@@ -864,7 +864,12 @@ export default function AddressCard({
           <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 animate-pulse-glow">
             <div className="flex items-center gap-2 text-amber-700">
               <Camera className="w-4 h-4" />
-              <span className="text-xs font-bold">Evidence captured — tap LOG ATTEMPT to finalize</span>
+              <span className="text-xs font-bold">
+                {address.serve_type === 'posting'
+                  ? 'Photo captured — tap LOG POSTING to continue'
+                  : 'Evidence captured — tap LOG ATTEMPT to finalize'
+                }
+              </span>
             </div>
           </div>
         )}
