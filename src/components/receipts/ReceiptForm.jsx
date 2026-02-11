@@ -189,6 +189,7 @@ export default function ReceiptForm({
     }
     setCameraReady(false);
     setShowCamera(false);
+    document.body.classList.remove('camera-active');
   };
 
   const capturePhoto = async () => {
