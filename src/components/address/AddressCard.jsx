@@ -150,6 +150,16 @@ export default function AddressCard({
   React.useEffect(() => {
     setLocalAttempts(allAttempts);
   }, [allAttempts]);
+
+  // Hide bottom nav when camera or outcome selector is open
+  React.useEffect(() => {
+    if (showOutcomeSelector || showCamera) {
+      document.body.classList.add('camera-active');
+    } else {
+      document.body.classList.remove('camera-active');
+    }
+    return () => document.body.classList.remove('camera-active');
+  }, [showOutcomeSelector, showCamera]);
   
   // Sort attempts by date for consistent ordering
   const sortedAttempts = [...localAttempts].sort((a, b) => 
