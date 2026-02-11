@@ -146,8 +146,6 @@ export default function SubmitReceipt() {
           onCancel={handleCancel}
         />
       </main>
-
-      <BottomNav currentPage="WorkerRoutes" />
     </div>
   );
 }
