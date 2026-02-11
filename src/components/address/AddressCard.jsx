@@ -1375,7 +1375,7 @@ export default function AddressCard({
                 {/* Main Action - Changes based on state */}
                 {hasInProgressAttempt ? (
                   <Button 
-                    onClick={handleLogAttempt}
+                    onClick={address.serve_type === 'posting' ? handleLogPosting : handleLogAttempt}
                     disabled={finalizingAttempt}
                     className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
                   >
@@ -1384,7 +1384,10 @@ export default function AddressCard({
                     ) : (
                       <Zap className="w-4 h-4 mr-2" />
                     )}
-                    LOG ATTEMPT {inProgressAttempt.attempt_number}
+                    {address.serve_type === 'posting' 
+                      ? 'LOG POSTING' 
+                      : `LOG ATTEMPT ${inProgressAttempt.attempt_number}`
+                    }
                   </Button>
                 ) : (
                   <Button 
@@ -1392,7 +1395,7 @@ export default function AddressCard({
                     className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
                   >
                     <Camera className="w-4 h-4 mr-2" />
-                    TAKE EVIDENCE
+                    {address.serve_type === 'posting' ? 'TAKE PHOTO' : 'TAKE EVIDENCE'}
                   </Button>
                 )}
 
