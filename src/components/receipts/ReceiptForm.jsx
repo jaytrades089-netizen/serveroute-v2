@@ -694,18 +694,28 @@ export default function ReceiptForm({
         </CardHeader>
         <CardContent>
           {serveCoordinates ? (
-            <div className="bg-green-50 rounded-lg p-3 border border-green-200">
+            <div className={`rounded-lg p-3 border ${serveCoordinates.fallback ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-semibold text-green-700">Location Captured</span>
+                <MapPin className={`w-4 h-4 ${serveCoordinates.fallback ? 'text-amber-600' : 'text-green-600'}`} />
+                <span className={`text-sm font-semibold ${serveCoordinates.fallback ? 'text-amber-700' : 'text-green-700'}`}>
+                  {serveCoordinates.fallback ? 'Using Address Location' : 'Location Captured'}
+                </span>
               </div>
-              <p className="text-xs text-gray-600 mb-1">
-                Coordinates: {serveCoordinates.latitude.toFixed(6)}, {serveCoordinates.longitude.toFixed(6)}
-              </p>
-              {serveDistance !== null && (
-                <p className="text-xs text-gray-600">
-                  Distance from address on file: {serveDistance.toLocaleString()} feet
+              {serveCoordinates.fallback ? (
+                <p className="text-xs text-amber-700">
+                  GPS unavailable — using address on file coordinates. Enable location for accurate tracking.
                 </p>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-600 mb-1">
+                    Coordinates: {serveCoordinates.latitude.toFixed(6)}, {serveCoordinates.longitude.toFixed(6)}
+                  </p>
+                  {serveDistance !== null && (
+                    <p className="text-xs text-gray-600">
+                      Distance from address on file: {serveDistance.toLocaleString()} feet
+                    </p>
+                  )}
+                </>
               )}
             </div>
           ) : (
