@@ -84,3 +84,8 @@ css
 .animate-request-pulse {
   animation: request-pulse 2s ease-in-out infinite;
 }
+
+/* Hide bottom nav when camera or fullscreen dialog is open */
+body.camera-active .bottom-nav-bar {
+  display: none !important;
+}
