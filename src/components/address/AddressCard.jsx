@@ -1681,7 +1681,7 @@ export default function AddressCard({
         onSave={handleSaveEvidence}
         photoPreview={capturedPhoto?.dataUrl}
         saving={savingEvidence}
-        requireComment={!hasInProgressAttempt}
+        requireComment={!hasInProgressAttempt && address.serve_type !== 'posting'}
       />
 
 
