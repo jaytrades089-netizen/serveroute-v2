@@ -411,8 +411,65 @@ export default function AddressCard({
       return;
     }
     
-    // Show outcome comment modal (user will type outcome in comment)
-    setShowOutcomeCommentModal(true);
+    // Log attempt directly - no modal needed
+    setFinalizingAttempt(true);
+    
+    try {
+      const now = new Date();
+      const companyId = getCompanyId(user) || address.company_id;
+      
+      // OPTIMISTIC: Update local state immediately for instant feedback
+      const updatedAttempts = localAttempts.map(a => 
+        a.id === inProgressAttempt.id 
+          ? { ...a, status: 'completed', outcome: 'other' }
+          : a
+      );
+      setLocalAttempts(updatedAttempts);
+      
+      // Trigger animation to move card to bottom IMMEDIATELY
+      if (onAttemptLogged) {
+        onAttemptLogged();
+      }
+      
+      toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
+      
+      // Update the attempt to completed in background
+      await Promise.allSettled([
+        base44.entities.Attempt.update(inProgressAttempt.id, {
+          status: 'completed',
+          outcome: 'other'
+        }),
+        base44.entities.AuditLog.create({
+          company_id: companyId,
+          action_type: 'attempt_logged',
+          actor_id: user.id,
+          actor_role: user.role || 'server',
+          target_type: 'address',
+          target_id: address.id,
+          details: {
+            attempt_id: inProgressAttempt.id,
+            attempt_number: inProgressAttempt.attempt_number,
+            qualifier: inProgressAttempt.qualifier,
+            qualifier_badges: inProgressAttempt.qualifier_badges,
+            outcome: 'other',
+            route_id: routeId,
+            distance_feet: inProgressAttempt.distance_feet
+          },
+          timestamp: now.toISOString()
+        })
+      ]);
+      
+      // Invalidate queries in background
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
+      
+    } catch (error) {
+      console.error('Failed to log attempt:', error);
+      toast.error('Failed to log attempt');
+    } finally {
+      setFinalizingAttempt(false);
+    }
   };
 
   // FINALIZE POSTING - Marks address as served/completed
