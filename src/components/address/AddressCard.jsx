@@ -1804,7 +1804,10 @@ export default function AddressCard({
       <PhotoViewer
         open={showPhotoViewer}
         onClose={() => setShowPhotoViewer(false)}
-        photos={selectedAttempt?.photo_urls || []}
+        photos={address.serve_type === 'posting' 
+          ? (sortedAttempts[0]?.photo_urls || [])
+          : (selectedAttempt?.photo_urls || [])
+        }
       />
 
       {/* Outcome Selector Modal */}
