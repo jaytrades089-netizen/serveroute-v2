@@ -159,6 +159,7 @@ export default function ReceiptForm({
   const startCamera = async () => {
     setCameraReady(false);
     setShowCamera(true);
+    document.body.classList.add('camera-active');
     
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
