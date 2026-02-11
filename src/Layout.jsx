@@ -140,9 +140,12 @@ export default function Layout({ children, currentPageName }) {
   const isOnBossPage = bossPages.includes(currentPageName);
   const isOnWorkerPage = workerPages.includes(currentPageName);
 
+  // Known shared pages that both roles can access
+  const sharedPages = ['Chat', 'ReceiptDetail'];
+  
   // If on root/empty page or unknown page, redirect based on role
-  if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || 
-      (!isOnBossPage && !isOnWorkerPage && !['Chat'].includes(currentPageName))) {
+  if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
+      (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
     if (isBoss) {
       navigate('/BossDashboard', { replace: true });
       return null;
