@@ -13,9 +13,13 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
 
   useEffect(() => {
     if (open) {
+      document.body.classList.add('camera-active');
       checkCameraAndStart();
+    } else {
+      document.body.classList.remove('camera-active');
     }
     return () => {
+      document.body.classList.remove('camera-active');
       stopCamera();
     };
   }, [open]);
