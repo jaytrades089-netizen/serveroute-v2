@@ -80,20 +80,19 @@ export default function ReceiptForm({
     }
   }, [address, recipientName]);
 
-  // Check for existing receipt on mount and load attempt photos
+  // Check for existing receipt on mount
   useEffect(() => {
     checkExistingReceipt();
     loadSavedSignature();
     captureServeLocation();
-    loadAttemptPhotos();
   }, []);
 
-  // Load photos from attempt if available
-  const loadAttemptPhotos = () => {
+  // Load photos from attempt when attempt data arrives
+  useEffect(() => {
     if (attempt?.photo_urls?.length > 0 && photos.length === 0) {
       setPhotos(attempt.photo_urls);
     }
-  };
+  }, [attempt]);
 
   const checkExistingReceipt = async () => {
     if (!address?.id || parentReceipt) return;
