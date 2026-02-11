@@ -369,6 +369,15 @@ export default function AddressCard({
           status: address.status === 'pending' ? 'attempted' : address.status
         });
         
+        // For postings, auto-navigate to SubmitReceipt page
+        if (isPosting) {
+          toast.success('Photo saved! Review and submit the receipt.');
+          navigate(createPageUrl(
+            `SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${newAttempt.id}&finalize=true`
+          ));
+          return; // Skip the normal toast below
+        }
+        
         toast.success(`Evidence saved - ${qualifierData.display}`);
       }
       
