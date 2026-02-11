@@ -283,6 +283,9 @@ export default function AddressCard({
         const attemptNumber = attemptCount + 1;
         const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
         
+        // For postings: create as completed immediately, for serves: in_progress
+        const isPosting = address.serve_type === 'posting';
+        
         // OPTIMISTIC: Create local attempt immediately
         const tempAttempt = {
           id: 'temp_' + Date.now(),
@@ -291,7 +294,8 @@ export default function AddressCard({
           server_id: user.id,
           company_id: companyId,
           attempt_number: attemptNumber,
-          status: 'in_progress',
+          status: isPosting ? 'completed' : 'in_progress',
+          outcome: isPosting ? 'posted' : undefined,
           attempt_time: now.toISOString(),
           attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...qualifierFields,
