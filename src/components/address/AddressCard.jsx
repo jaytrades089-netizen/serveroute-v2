@@ -76,7 +76,8 @@ export default function AddressCard({
   onAttemptLogged,
   onServed,
   isAttemptedToday = false,
-  isCompleted = false
+  isCompleted = false,
+  editMode = false
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -126,6 +127,17 @@ export default function AddressCard({
   // Worker request states
   const [showRequestDetail, setShowRequestDetail] = useState(false);
   const [workerReplyText, setWorkerReplyText] = useState('');
+  
+  // Edit mode state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFields, setEditFields] = useState({
+    defendant_name: address.defendant_name || '',
+    normalized_address: address.normalized_address || address.legal_address || '',
+    city: address.city || '',
+    state: address.state || '',
+    zip: address.zip || '',
+    serve_type: address.serve_type || 'serve'
+  });
 
   // Get current user
   const { data: user } = useQuery({
@@ -664,6 +676,28 @@ export default function AddressCard({
     }
   };
 
+  // Save edit handler
+  const handleSaveEdit = async () => {
+    try {
+      await base44.entities.Address.update(address.id, {
+        defendant_name: editFields.defendant_name,
+        normalized_address: editFields.normalized_address,
+        city: editFields.city,
+        state: editFields.state,
+        zip: editFields.zip,
+        serve_type: editFields.serve_type,
+        manual_edit_flag: true
+      });
+      
+      setIsEditing(false);
+      toast.success('Address updated');
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    } catch (error) {
+      console.error('Failed to update address:', error);
+      toast.error('Failed to save changes');
+    }
+  };
+
   // Delete attempt handler
   const handleDeleteAttempt = async (attempt) => {
     const confirmed = window.confirm(
@@ -911,12 +945,21 @@ export default function AddressCard({
   return (
     <>
       <div
-        className={`bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-200 ${
+        className={`relative bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-200 ${
           !isBossView && address.has_pending_request && pendingRequest
             ? 'border-2 border-red-500 animate-request-pulse shadow-red-100 shadow-lg'
             : 'border border-gray-300'
         }`}
       >
+        {/* Edit button — shows in edit mode */}
+        {editMode && !isEditing && !isServed && (
+          <button
+            onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
+            className="absolute top-3 right-3 p-2 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors z-10"
+          >
+            <Pencil className="w-4 h-4 text-blue-600" />
+          </button>
+        )}
         {/* Pending Request Banner */}
         {address.has_pending_request && pendingRequest && (
           <button
@@ -1946,6 +1989,88 @@ export default function AddressCard({
                 >
                   {creatingRequest ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
                   Send Request
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Panel — shows when editMode + user taps edit */}
+        {isEditing && (
+          <div className="px-4 py-3 border-t border-blue-200 bg-blue-50" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Defendant Name</label>
+                <input
+                  type="text"
+                  value={editFields.defendant_name}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, defendant_name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  placeholder="Defendant name"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Street Address</label>
+                <input
+                  type="text"
+                  value={editFields.normalized_address}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, normalized_address: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">City</label>
+                  <input
+                    type="text"
+                    value={editFields.city}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">State</label>
+                  <input
+                    type="text"
+                    value={editFields.state}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">Zip</label>
+                  <input
+                    type="text"
+                    value={editFields.zip}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, zip: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Serve Type</label>
+                <select
+                  value={editFields.serve_type}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, serve_type: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                >
+                  <option value="serve">Serve</option>
+                  <option value="garnishment">Garnishment</option>
+                  <option value="posting">Posting</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(false)}
+                >
+                  Cancel
                 </Button>
               </div>
             </div>
