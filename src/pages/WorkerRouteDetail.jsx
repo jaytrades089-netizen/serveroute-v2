@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +31,7 @@ export default function WorkerRouteDetail() {
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [lastMilestoneChecked, setLastMilestoneChecked] = useState(0);
+  const editMode = urlParams.get('edit') === 'true';
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -594,6 +595,25 @@ export default function WorkerRouteDetail() {
           </div>
         )}
 
+        {/* Edit Mode Banner */}
+        {editMode && (
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Pencil className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-semibold text-blue-700">Edit Mode</span>
+              <span className="text-xs text-blue-500">Tap addresses to edit details</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`))}
+              className="text-blue-600 border-blue-300"
+            >
+              Done
+            </Button>
+          </div>
+        )}
+
         <DesktopWarningBanner />
 
         {addressesLoading ? (
@@ -608,6 +628,7 @@ export default function WorkerRouteDetail() {
             onMessageBoss={handleMessageBoss}
             lastAttemptMap={lastAttemptMap}
             allAttemptsMap={allAttemptsMap}
+            editMode={editMode}
           />
         )}
         
