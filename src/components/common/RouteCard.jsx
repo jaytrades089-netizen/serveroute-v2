@@ -68,7 +68,8 @@ export default function RouteCard({
   onEdit,
   isBossView = false,
   className = '',
-  attempts = []
+  attempts = [],
+  workerCanEdit = false
 }) {
   const navigate = useNavigate();
   const progress = route.total_addresses > 0 
