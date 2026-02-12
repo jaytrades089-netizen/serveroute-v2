@@ -28,7 +28,8 @@ import {
   Pencil,
   ArrowRightLeft,
   RotateCcw,
-  ChevronDown
+  ChevronDown,
+  Trash2
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
