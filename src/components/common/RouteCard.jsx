@@ -14,8 +14,18 @@ import {
   AlertTriangle,
   Zap,
   Play,
-  MoreVertical
+  MoreVertical,
+  Trash2,
+  Archive,
+  Pencil
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
 import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
@@ -25,7 +35,8 @@ const STATUS_CONFIG = {
   assigned: { label: 'ASSIGNED', color: 'bg-purple-100 text-purple-700 border-purple-200' },
   active: { label: 'ACTIVE', color: 'bg-green-100 text-green-700 border-green-200' },
   stalled: { label: 'STALLED', color: 'bg-red-100 text-red-700 border-red-200' },
-  completed: { label: 'COMPLETED', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' }
+  completed: { label: 'COMPLETED', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  archived: { label: 'ARCHIVED', color: 'bg-gray-200 text-gray-500 border-gray-300' }
 };
 
 function ProgressBar({ served, total }) {
@@ -52,6 +63,9 @@ export default function RouteCard({
   workerName,
   showActions = false,
   onMenuClick,
+  onDelete,
+  onArchive,
+  onEdit,
   isBossView = false,
   className = '',
   attempts = []
@@ -355,11 +369,12 @@ export default function RouteCard({
         )}
       </div>
 
-      {/* Action Button (for active routes) */}
-      {isActive && !isBossView && (
-        <div className="px-4 py-3 border-t border-gray-100">
+      {/* Bottom Action Bar */}
+      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
+        {/* Left: Continue button for active routes */}
+        {isActive && !isBossView ? (
           <Button 
-            className="w-full h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl"
+            className="flex-1 mr-3 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl"
             onClick={(e) => {
               e.stopPropagation();
               navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}`));
@@ -368,15 +383,63 @@ export default function RouteCard({
             <Play className="w-4 h-4 mr-2" />
             CONTINUE ROUTE
           </Button>
-        </div>
-      )}
+        ) : (
+          <div className="flex-1" />
+        )}
 
-      {/* Chevron for navigation hint */}
-      {!isActive && (
-        <div className="px-4 py-2 border-t border-gray-100 flex justify-end">
+        {/* Right: 3-dot menu */}
+        {(onDelete || onArchive || onEdit) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9 rounded-full hover:bg-gray-100"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MoreVertical className="w-5 h-5 text-gray-400" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-48">
+              {onEdit && (
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onEdit(route); }}
+                  className="cursor-pointer"
+                >
+                  <Pencil className="w-4 h-4 mr-2 text-blue-500" />
+                  <span>Edit Route</span>
+                </DropdownMenuItem>
+              )}
+              {onArchive && (
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onArchive(route); }}
+                  className="cursor-pointer"
+                >
+                  <Archive className="w-4 h-4 mr-2 text-amber-500" />
+                  <span>{route.status === 'archived' ? 'Unarchive Route' : 'Archive Route'}</span>
+                </DropdownMenuItem>
+              )}
+              {(onEdit || onArchive) && onDelete && (
+                <DropdownMenuSeparator />
+              )}
+              {onDelete && (
+                <DropdownMenuItem 
+                  onClick={(e) => { e.stopPropagation(); onDelete(route); }}
+                  className="cursor-pointer text-red-600 focus:text-red-600"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  <span>Delete Route</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
+        {/* Fallback: If no menu callbacks, show chevron */}
+        {!onDelete && !onArchive && !onEdit && (
           <ChevronRight className="w-5 h-5 text-gray-300" />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
