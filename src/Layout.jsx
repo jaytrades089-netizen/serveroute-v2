@@ -1,11 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
-
-// Pages that don't require auth check in layout
-const publicPages = [];
 
 // Boss pages that require boss/admin role
 const bossPages = [
@@ -58,6 +55,9 @@ const workerPages = [
   'ReceiptDetail'
 ];
 
+// Known shared pages that both roles can access
+const sharedPages = ['Chat', 'ReceiptDetail', 'ComboRouteSelection'];
+
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   
@@ -79,6 +79,55 @@ export default function Layout({ children, currentPageName }) {
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false
   });
+
+  // Compute role flags - always computed, even if user is null
+  const isBoss = user?.role === 'boss' || user?.role === 'admin';
+  const isWorker = user?.role === 'server';
+  const isOnBossPage = bossPages.includes(currentPageName);
+  const isOnWorkerPage = workerPages.includes(currentPageName);
+
+  // Navigation effect - MUST be called unconditionally (before any returns)
+  useEffect(() => {
+    // Don't navigate if still loading or no user
+    if (isLoading || !user) return;
+
+    // If on root/empty page or unknown page, redirect based on role
+    if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
+        (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
+      if (isBoss) {
+        navigate('/BossDashboard', { replace: true });
+      } else {
+        navigate('/WorkerHome', { replace: true });
+      }
+      return;
+    }
+
+    // Server trying to access boss pages - redirect to worker home
+    if (isWorker && isOnBossPage) {
+      navigate('/WorkerHome', { replace: true });
+      return;
+    }
+
+    // Boss/Admin trying to access worker pages - redirect to boss equivalent
+    if (isBoss && isOnWorkerPage) {
+      const workerToBossMap = {
+        'WorkerHome': 'BossDashboard',
+        'WorkerRoutes': 'BossRoutes',
+        'WorkerSettings': 'BossSettings',
+        'Notifications': 'BossNotifications',
+        'Workers': 'BossWorkers',
+        'WorkerRouteDetail': 'BossRouteDetail',
+        'WorkerStats': 'Analytics',
+        'WorkerVacationRequest': 'VacationRequests',
+        'Chat': 'Chat'
+      };
+
+      const bossPage = workerToBossMap[currentPageName];
+      if (bossPage && bossPage !== currentPageName) {
+        navigate('/' + bossPage, { replace: true });
+      }
+    }
+  }, [currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate, isLoading, user]);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -120,7 +169,6 @@ export default function Layout({ children, currentPageName }) {
     // Only redirect if we haven't redirected in the last 5 seconds
     if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000) {
       sessionStorage.setItem('lastLoginRedirect', now.toString());
-      // Use Base44's built-in login - pass current location for redirect back
       base44.auth.redirectToLogin(currentPath + window.location.search);
     }
 
@@ -133,55 +181,6 @@ export default function Layout({ children, currentPageName }) {
   
   // Clear redirect tracking on successful auth
   sessionStorage.removeItem('lastLoginRedirect');
-
-  // Redirect logic based on role and page
-  const isBoss = user.role === 'boss' || user.role === 'admin';
-  const isWorker = user.role === 'server';
-  const isOnBossPage = bossPages.includes(currentPageName);
-  const isOnWorkerPage = workerPages.includes(currentPageName);
-
-  // Known shared pages that both roles can access
-  const sharedPages = ['Chat', 'ReceiptDetail', 'ComboRouteSelection'];
-
-  // Use useEffect for navigation to avoid setState during render
-  React.useEffect(() => {
-    // If on root/empty page or unknown page, redirect based on role
-    if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
-        (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
-      if (isBoss) {
-        navigate('/BossDashboard', { replace: true });
-      } else {
-        navigate('/WorkerHome', { replace: true });
-      }
-      return;
-    }
-
-    // Server trying to access boss pages - redirect to worker home
-    if (isWorker && isOnBossPage) {
-      navigate('/WorkerHome', { replace: true });
-      return;
-    }
-
-    // Boss/Admin trying to access worker pages - redirect to boss equivalent
-    if (isBoss && isOnWorkerPage) {
-      const workerToBossMap = {
-        'WorkerHome': 'BossDashboard',
-        'WorkerRoutes': 'BossRoutes',
-        'WorkerSettings': 'BossSettings',
-        'Notifications': 'BossNotifications',
-        'Workers': 'BossWorkers',
-        'WorkerRouteDetail': 'BossRouteDetail',
-        'WorkerStats': 'Analytics',
-        'WorkerVacationRequest': 'VacationRequests',
-        'Chat': 'Chat'
-      };
-
-      const bossPage = workerToBossMap[currentPageName];
-      if (bossPage && bossPage !== currentPageName) {
-        navigate('/' + bossPage, { replace: true });
-      }
-    }
-  }, [currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate]);
 
   // Check if we should show loading while redirecting
   const shouldRedirect = 
