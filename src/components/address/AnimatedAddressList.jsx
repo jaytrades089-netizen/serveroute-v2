@@ -8,7 +8,8 @@ export default function AnimatedAddressList({
   routeId,
   onMessageBoss,
   lastAttemptMap,
-  allAttemptsMap
+  allAttemptsMap,
+  editMode = false
 }) {
   // Animation state
   const [animatingCardId, setAnimatingCardId] = useState(null);
@@ -149,6 +150,7 @@ export default function AnimatedAddressList({
                   allAttempts={allAttemptsMap[address.id] || []}
                   onAttemptLogged={() => handleAttemptLogged(address.id)}
                   onServed={() => handleAddressServed(address.id)}
+                  editMode={editMode}
                 />
               </div>
             ))}
@@ -202,6 +204,7 @@ export default function AnimatedAddressList({
                     onAttemptLogged={() => handleAttemptLogged(address.id)}
                     onServed={() => handleAddressServed(address.id)}
                     isAttemptedToday={true}
+                    editMode={editMode}
                   />
                 </div>
               </div>
@@ -260,6 +263,7 @@ export default function AnimatedAddressList({
                       lastAttempt={lastAttemptMap[address.id]}
                       allAttempts={allAttemptsMap[address.id] || []}
                       isCompleted={true}
+                      editMode={editMode}
                     />
                   </div>
                 </div>
