@@ -23,7 +23,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import BossBottomNav from '../components/boss/BossBottomNav';
 import RouteCard from '../components/common/RouteCard';
