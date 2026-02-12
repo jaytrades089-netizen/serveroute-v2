@@ -131,6 +131,26 @@ export default function AddressCard({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
+
+  // Determine if current user can edit attempt times
+  const canEditAttemptTimes = React.useMemo(() => {
+    if (!user) return false;
+    
+    // Boss can always edit
+    if (user.role === 'boss' || user.role === 'admin') return true;
+    
+    // Check grace period (5 days from account creation)
+    const createdAt = user.created_date ? new Date(user.created_date) : null;
+    if (createdAt) {
+      const daysSinceCreated = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceCreated <= 5) return true;
+    }
+    
+    // Check boss-enabled editing
+    if (user.editing_enabled) return true;
+    
+    return false;
+  }, [user]);
   
   // Fetch pending request for this address
   const { data: pendingRequest } = useQuery({
@@ -537,6 +557,147 @@ export default function AddressCard({
     if (selectedAttempt) {
       setEditedNotesText(selectedAttempt.notes || '');
       setEditingNotes(true);
+    }
+  };
+
+  // Edit attempt time — recalculates qualifiers
+  const handleEditAttemptTime = async (attempt, newTimeValue) => {
+    if (!newTimeValue) return;
+    
+    const newTime = new Date(newTimeValue);
+    
+    try {
+      // Recalculate qualifiers for the new time
+      const qualifierData = getQualifiers(newTime);
+      const qualifierFields = getQualifierStorageFields(qualifierData);
+      
+      // Update attempt in database
+      await base44.entities.Attempt.update(attempt.id, {
+        attempt_time: newTime.toISOString(),
+        ...qualifierFields,
+        manually_edited: true
+      });
+      
+      // Update local state
+      const updatedAttempts = localAttempts.map(a => 
+        a.id === attempt.id 
+          ? { 
+              ...a, 
+              attempt_time: newTime.toISOString(), 
+              ...qualifierFields,
+              manually_edited: true 
+            }
+          : a
+      );
+      setLocalAttempts(updatedAttempts);
+      
+      // Create audit log
+      const companyId = getCompanyId(user) || address.company_id;
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'attempt_time_edited',
+        actor_id: user.id,
+        actor_role: user.role || 'server',
+        target_type: 'attempt',
+        target_id: attempt.id,
+        details: {
+          old_time: attempt.attempt_time,
+          new_time: newTime.toISOString(),
+          old_qualifier: attempt.qualifier,
+          new_qualifier: qualifierData.qualifier,
+          address_id: address.id,
+          route_id: routeId
+        },
+        timestamp: new Date().toISOString()
+      });
+      
+      toast.success(`Time updated — ${qualifierData.display}`);
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      
+    } catch (error) {
+      console.error('Failed to edit attempt time:', error);
+      toast.error('Failed to update time');
+    }
+  };
+
+  // Delete address handler
+  const handleDeleteAddress = async () => {
+    const confirmed = window.confirm(
+      `Delete this address?\n\n${formatted.line1}\n${formatted.line2}\n\nAll attempts for this address will also be deleted.`
+    );
+    if (!confirmed) return;
+    
+    try {
+      // Soft-delete the address
+      await base44.entities.Address.update(address.id, {
+        deleted_at: new Date().toISOString()
+      });
+      
+      // Delete all attempts for this address
+      for (const attempt of localAttempts) {
+        await base44.entities.Attempt.delete(attempt.id);
+      }
+      
+      // Update route address count
+      if (routeId) {
+        const remainingAddresses = await base44.entities.Address.filter({
+          route_id: routeId,
+          deleted_at: null
+        });
+        await base44.entities.Route.update(routeId, {
+          total_addresses: remainingAddresses.length,
+          served_count: remainingAddresses.filter(a => a.served).length
+        });
+      }
+      
+      toast.success('Address deleted');
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+    } catch (error) {
+      console.error('Failed to delete address:', error);
+      toast.error('Failed to delete address');
+    }
+  };
+
+  // Delete attempt handler
+  const handleDeleteAttempt = async (attempt) => {
+    const confirmed = window.confirm(
+      `Delete Attempt ${attempt.attempt_number}?\n\nThis will permanently remove this attempt and its photos.`
+    );
+    if (!confirmed) return;
+    
+    try {
+      // Delete the attempt
+      await base44.entities.Attempt.delete(attempt.id);
+      
+      // Update local state
+      const updatedAttempts = localAttempts.filter(a => a.id !== attempt.id);
+      setLocalAttempts(updatedAttempts);
+      setActiveTab(0); // Go back to summary
+      
+      // Update address attempt count
+      await base44.entities.Address.update(address.id, {
+        attempts_count: Math.max(0, (address.attempts_count || attemptCount) - 1)
+      });
+      
+      // If we deleted the only attempt, reset address status
+      if (updatedAttempts.length === 0) {
+        await base44.entities.Address.update(address.id, {
+          status: 'pending'
+        });
+      }
+      
+      toast.success(`Attempt ${attempt.attempt_number} deleted`);
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    } catch (error) {
+      console.error('Failed to delete attempt:', error);
+      toast.error('Failed to delete attempt');
     }
   };
 
@@ -1140,24 +1301,39 @@ export default function AddressCard({
               />
             </div>
 
-            {/* Date & Time */}
+            {/* Date & Time — editable when allowed */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-amber-600" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-xs text-gray-500 font-medium">DATE & TIME</p>
-                <p className="text-base font-semibold">
-                  {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
-                    weekday: 'short',
-                    month: 'numeric',
-                    day: 'numeric',
-                    year: '2-digit',
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
-                </p>
+                {canEditAttemptTimes && selectedAttempt.status === 'completed' ? (
+                  <input
+                    type="datetime-local"
+                    value={(() => {
+                      const d = new Date(selectedAttempt.attempt_time);
+                      const offset = d.getTimezoneOffset();
+                      const local = new Date(d.getTime() - offset * 60000);
+                      return local.toISOString().slice(0, 16);
+                    })()}
+                    onChange={(e) => handleEditAttemptTime(selectedAttempt, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                ) : (
+                  <p className="text-base font-semibold">
+                    {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
+                      weekday: 'short',
+                      month: 'numeric',
+                      day: 'numeric',
+                      year: '2-digit',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1278,8 +1454,20 @@ export default function AddressCard({
                 Add More Photos
               </Button>
             )}
-          </div>
-        )}
+
+            {/* Delete Attempt button — always available to workers */}
+            {!isBossView && selectedAttempt && (
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+                className="w-full mt-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete Attempt {activeTab}
+              </Button>
+            )}
+            </div>
+            )}
 
         {/* No Attempts Yet - Show badges */}
         {attemptCount === 0 && !isServed && (
@@ -1548,12 +1736,28 @@ export default function AddressCard({
 
                 {/* Navigate Button — ONLY in worker view */}
                 <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onMessageBoss && onMessageBoss(address); }}
-                    className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors"
-                  >
-                    <MoreVertical className="w-5 h-5 text-gray-400" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors">
+                        <MoreVertical className="w-5 h-5 text-gray-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="top">
+                      {onMessageBoss && (
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }}>
+                          <MessageCircle className="w-4 h-4 mr-2" />
+                          Message Boss
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteAddress(); }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete Address
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   <button 
                     onClick={handleNavigate}
                     className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors"
@@ -1562,8 +1766,8 @@ export default function AddressCard({
                     <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
                   </button>
                 </div>
-              </>
-            )}
+                </>
+                )}
           </div>
         )}
 

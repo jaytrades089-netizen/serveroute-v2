@@ -17,7 +17,8 @@ import {
   Play,
   UserPlus,
   MoreVertical,
-  RefreshCw
+  RefreshCw,
+  Pencil
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -124,6 +125,48 @@ export default function BossWorkers() {
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update worker status');
+    }
+  });
+
+  const toggleEditingMutation = useMutation({
+    mutationFn: async ({ worker }) => {
+      const newState = !worker.editing_enabled;
+      await base44.entities.User.update(worker.id, {
+        editing_enabled: newState,
+        editing_enabled_at: newState ? new Date().toISOString() : null,
+        editing_enabled_by: newState ? user.id : null
+      });
+
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: newState ? 'editing_enabled' : 'editing_disabled',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'user',
+        target_id: worker.id,
+        details: { worker_name: worker.full_name },
+        timestamp: new Date().toISOString()
+      });
+
+      await base44.entities.Notification.create({
+        user_id: worker.id,
+        company_id: companyId,
+        recipient_role: 'server',
+        type: 'message_received',
+        title: newState ? 'Editing Enabled' : 'Editing Disabled',
+        body: newState 
+          ? 'Your boss has enabled attempt time editing for your account'
+          : 'Attempt time editing has been turned off for your account',
+        priority: 'normal'
+      });
+    },
+    onSuccess: (_, { worker }) => {
+      const newState = !worker.editing_enabled;
+      toast.success(newState ? `Editing enabled for ${worker.full_name}` : `Editing disabled for ${worker.full_name}`);
+      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update editing permission');
     }
   });
 
@@ -275,6 +318,31 @@ export default function BossWorkers() {
                             <Badge className={config.color}>{config.label}</Badge>
                           </div>
                           <p className="text-sm text-gray-500">{worker.email}</p>
+                          {/* Grace period or editing status badge */}
+                          {(() => {
+                            const createdAt = worker.created_date ? new Date(worker.created_date) : null;
+                            const daysSinceCreated = createdAt 
+                              ? Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24)) 
+                              : 999;
+                            const inGracePeriod = daysSinceCreated <= 5;
+                            const daysLeft = 5 - daysSinceCreated;
+                            
+                            if (inGracePeriod) {
+                              return (
+                                <Badge className="bg-blue-100 text-blue-700 text-[10px] mt-1">
+                                  NEW — {daysLeft} day{daysLeft !== 1 ? 's' : ''} free editing left
+                                </Badge>
+                              );
+                            }
+                            if (worker.editing_enabled) {
+                              return (
+                                <Badge className="bg-amber-100 text-amber-700 text-[10px] mt-1">
+                                  Editing enabled by boss
+                                </Badge>
+                              );
+                            }
+                            return null;
+                          })()}
                           {worker.last_active_at && (
                             <p className="text-xs text-gray-400 mt-1">
                               Last active: {formatDistanceToNow(new Date(worker.last_active_at), { addSuffix: true })}
@@ -357,7 +425,7 @@ export default function BossWorkers() {
                     )}
 
                     {/* Quick Actions */}
-                    <div className="mt-3 pt-3 border-t flex gap-2">
+                    <div className="mt-3 pt-3 border-t flex gap-2 flex-wrap">
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -373,6 +441,24 @@ export default function BossWorkers() {
                         <MessageSquare className="w-3 h-3 mr-1" />
                         Message
                       </Button>
+                      
+                      {/* Edit Toggle */}
+                      <Button 
+                        variant={worker.editing_enabled ? "default" : "outline"}
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleEditingMutation.mutate({ worker });
+                        }}
+                        className={worker.editing_enabled 
+                          ? "bg-amber-500 hover:bg-amber-600 text-white" 
+                          : ""
+                        }
+                      >
+                        <Pencil className="w-3 h-3 mr-1" />
+                        {worker.editing_enabled ? 'Edits ON' : 'Allow Edits'}
+                      </Button>
+                      
                       {status === 'active' && (
                         <Button 
                           variant="outline" 

@@ -1,25 +1,63 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import RouteCard from '../components/common/RouteCard';
-import { Loader2, MapPin, Shuffle } from 'lucide-react';
+import { Loader2, MapPin, Shuffle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
+import { toast } from 'sonner';
 
 export default function WorkerRoutes() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialFilter = urlParams.get('filter') || 'all';
   const [filter, setFilter] = useState(initialFilter);
+  const [deletingRouteId, setDeletingRouteId] = useState(null);
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
+
+  const handleDeleteRoute = async (route) => {
+    const confirmed = window.confirm(
+      `Delete "${route.folder_name}"?\n\nThis will remove the route and all its addresses. This cannot be undone.`
+    );
+    if (!confirmed) return;
+    
+    setDeletingRouteId(route.id);
+    try {
+      // Soft-delete route
+      await base44.entities.Route.update(route.id, {
+        deleted_at: new Date().toISOString(),
+        status: 'deleted'
+      });
+      
+      // Soft-delete all addresses in the route
+      const addresses = await base44.entities.Address.filter({ 
+        route_id: route.id, 
+        deleted_at: null 
+      });
+      for (const addr of addresses) {
+        await base44.entities.Address.update(addr.id, {
+          deleted_at: new Date().toISOString()
+        });
+      }
+      
+      toast.success(`"${route.folder_name}" deleted`);
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+    } catch (error) {
+      console.error('Failed to delete route:', error);
+      toast.error('Failed to delete route');
+    } finally {
+      setDeletingRouteId(null);
+    }
+  };
 
   const { data: routes = [], isLoading } = useQuery({
     queryKey: ['workerRoutes', user?.id],
@@ -130,12 +168,28 @@ export default function WorkerRoutes() {
         ) : (
           <div className="space-y-4">
             {filteredRoutes.map((route) => (
-              <RouteCard
-                key={route.id}
-                route={route}
-                isBossView={false}
-                attempts={attemptsByRoute[route.id] || []}
-              />
+              <div key={route.id} className="space-y-1">
+                <RouteCard
+                  route={route}
+                  isBossView={false}
+                  attempts={attemptsByRoute[route.id] || []}
+                />
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteRoute(route);
+                  }}
+                  disabled={deletingRouteId === route.id}
+                  className="w-full py-2 text-xs text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors flex items-center justify-center gap-1"
+                >
+                  {deletingRouteId === route.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3 h-3" />
+                  )}
+                  Delete Route
+                </button>
+              </div>
             ))}
           </div>
         )}
