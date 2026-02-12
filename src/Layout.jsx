@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
@@ -60,6 +60,7 @@ const sharedPages = ['Chat', 'ReceiptDetail', 'ComboRouteSelection'];
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -80,54 +81,72 @@ export default function Layout({ children, currentPageName }) {
     refetchOnWindowFocus: false
   });
 
-  // Compute role flags - always computed, even if user is null
+  // Compute role flags
   const isBoss = user?.role === 'boss' || user?.role === 'admin';
   const isWorker = user?.role === 'server';
   const isOnBossPage = bossPages.includes(currentPageName);
   const isOnWorkerPage = workerPages.includes(currentPageName);
 
-  // Navigation effect - MUST be called unconditionally (before any returns)
+  // Handle login redirect for unauthenticated users
   useEffect(() => {
-    // Don't navigate if still loading or no user
+    if (isLoading || user || hasRedirected) return;
+
+    const currentPath = window.location.pathname;
+    
+    // Skip if on auth-related path
+    if (currentPath.includes('auth') || currentPath === '/login' || currentPath === '/Login') {
+      return;
+    }
+
+    // Check for redirect loop prevention
+    const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
+    const now = Date.now();
+
+    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000) {
+      setHasRedirected(true);
+      sessionStorage.setItem('lastLoginRedirect', now.toString());
+      base44.auth.redirectToLogin(currentPath + window.location.search);
+    }
+  }, [isLoading, user, hasRedirected]);
+
+  // Handle role-based navigation
+  useEffect(() => {
     if (isLoading || !user) return;
+
+    // Clear redirect tracking on successful auth
+    sessionStorage.removeItem('lastLoginRedirect');
+
+    // Determine redirect target
+    let redirectTo = null;
 
     // If on root/empty page or unknown page, redirect based on role
     if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
         (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
-      if (isBoss) {
-        navigate('/BossDashboard', { replace: true });
-      } else {
-        navigate('/WorkerHome', { replace: true });
-      }
-      return;
+      redirectTo = isBoss ? '/BossDashboard' : '/WorkerHome';
     }
-
-    // Server trying to access boss pages - redirect to worker home
-    if (isWorker && isOnBossPage) {
-      navigate('/WorkerHome', { replace: true });
-      return;
+    // Server trying to access boss pages
+    else if (isWorker && isOnBossPage) {
+      redirectTo = '/WorkerHome';
     }
-
-    // Boss/Admin trying to access worker pages - redirect to boss equivalent
-    if (isBoss && isOnWorkerPage) {
+    // Boss/Admin trying to access worker pages
+    else if (isBoss && isOnWorkerPage && !sharedPages.includes(currentPageName)) {
       const workerToBossMap = {
-        'WorkerHome': 'BossDashboard',
-        'WorkerRoutes': 'BossRoutes',
-        'WorkerSettings': 'BossSettings',
-        'Notifications': 'BossNotifications',
-        'Workers': 'BossWorkers',
-        'WorkerRouteDetail': 'BossRouteDetail',
-        'WorkerStats': 'Analytics',
-        'WorkerVacationRequest': 'VacationRequests',
-        'Chat': 'Chat'
+        'WorkerHome': '/BossDashboard',
+        'WorkerRoutes': '/BossRoutes',
+        'WorkerSettings': '/BossSettings',
+        'Notifications': '/BossNotifications',
+        'Workers': '/BossWorkers',
+        'WorkerRouteDetail': '/BossRouteDetail',
+        'WorkerStats': '/Analytics',
+        'WorkerVacationRequest': '/VacationRequests'
       };
-
-      const bossPage = workerToBossMap[currentPageName];
-      if (bossPage && bossPage !== currentPageName) {
-        navigate('/' + bossPage, { replace: true });
-      }
+      redirectTo = workerToBossMap[currentPageName] || '/BossDashboard';
     }
-  }, [currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate, isLoading, user]);
+
+    if (redirectTo) {
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isLoading, user, currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate]);
 
   // Show loading while checking auth
   if (isLoading) {
@@ -138,58 +157,23 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // If not logged in, redirect to Base44's login
+  // Show loading for unauthenticated users (while redirect happens)
   if (!user) {
-    const currentPath = window.location.pathname;
-    
-    // If user is on /login (which doesn't exist), clear session and redirect to home
-    if (currentPath === '/login' || currentPath === '/Login') {
-      sessionStorage.removeItem('lastLoginRedirect');
-      window.location.replace('/WorkerHome');
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      );
-    }
-    
-    // Don't redirect if already in auth flow
-    if (currentPath.includes('auth')) {
-      return (
-        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      );
-    }
-
-    // Use React effect pattern to avoid redirect loops
-    const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
-    const now = Date.now();
-
-    // Only redirect if we haven't redirected in the last 5 seconds
-    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000) {
-      sessionStorage.setItem('lastLoginRedirect', now.toString());
-      base44.auth.redirectToLogin(currentPath + window.location.search);
-    }
-
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
   }
-  
-  // Clear redirect tracking on successful auth
-  sessionStorage.removeItem('lastLoginRedirect');
 
   // Check if we should show loading while redirecting
-  const shouldRedirect = 
+  const needsRedirect = 
     (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
       (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) ||
     (isWorker && isOnBossPage) ||
-    (isBoss && isOnWorkerPage && currentPageName !== 'Chat' && currentPageName !== 'ComboRouteSelection');
+    (isBoss && isOnWorkerPage && !sharedPages.includes(currentPageName));
 
-  if (shouldRedirect) {
+  if (needsRedirect) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
