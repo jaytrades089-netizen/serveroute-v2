@@ -401,54 +401,12 @@ export default function RouteCard({
         )}
 
         {/* Right: 3-dot menu - only render if handlers are provided */}
-        {(onDelete || onArchive || onEdit) ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-9 w-9 rounded-full hover:bg-gray-100"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <MoreVertical className="w-5 h-5 text-gray-400" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" side="top" className="w-48">
-              {onEdit && (
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); onEdit(route); }}
-                  className="cursor-pointer"
-                >
-                  <Pencil className="w-4 h-4 mr-2 text-blue-500" />
-                  <span>Edit Route</span>
-                </DropdownMenuItem>
-              )}
-              {onArchive && (
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); onArchive(route); }}
-                  className="cursor-pointer"
-                >
-                  <Archive className="w-4 h-4 mr-2 text-amber-500" />
-                  <span>{route.status === 'archived' ? 'Unarchive Route' : 'Archive Route'}</span>
-                </DropdownMenuItem>
-              )}
-              {(onEdit || onArchive) && onDelete && (
-                <DropdownMenuSeparator />
-              )}
-              {onDelete && (
-                <DropdownMenuItem 
-                  onClick={(e) => { e.stopPropagation(); onDelete(route); }}
-                  className="cursor-pointer text-red-600 focus:text-red-600"
-                >
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  <span>Delete Route</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        ) : (
-          <ChevronRight className="w-5 h-5 text-gray-300" />
-        )}
+        <RouteCardMenu 
+          route={route} 
+          onEdit={onEdit} 
+          onArchive={onArchive} 
+          onDelete={onDelete} 
+        />
       </div>
     </div>
   );
