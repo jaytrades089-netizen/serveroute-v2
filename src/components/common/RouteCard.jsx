@@ -400,8 +400,8 @@ export default function RouteCard({
           <div className="flex-1" />
         )}
 
-        {/* Right: 3-dot menu */}
-        {(onDelete || onArchive || onEdit) && (
+        {/* Right: 3-dot menu - only render if handlers are provided */}
+        {(onDelete || onArchive || onEdit) ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -446,10 +446,7 @@ export default function RouteCard({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-
-        {/* Fallback: If no menu callbacks, show chevron */}
-        {!onDelete && !onArchive && !onEdit && (
+        ) : (
           <ChevronRight className="w-5 h-5 text-gray-300" />
         )}
       </div>
