@@ -19,18 +19,15 @@ import {
   Archive,
   Pencil
 } from 'lucide-react';
-import * as DropdownMenuPrimitive from "@/components/ui/dropdown-menu";
-import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
-import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
-
-// Extract dropdown components to ensure they're not tree-shaken
-const {
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} = DropdownMenuPrimitive;
+} from "@/components/ui/dropdown-menu";
+import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
+import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
 const STATUS_CONFIG = {
   draft: { label: 'DRAFT', color: 'bg-gray-100 text-gray-700 border-gray-200' },
