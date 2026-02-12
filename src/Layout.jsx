@@ -141,45 +141,61 @@ export default function Layout({ children, currentPageName }) {
   const isOnWorkerPage = workerPages.includes(currentPageName);
 
   // Known shared pages that both roles can access
-  const sharedPages = ['Chat', 'ReceiptDetail'];
-  
-  // If on root/empty page or unknown page, redirect based on role
-  if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
-      (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
-    if (isBoss) {
-      navigate('/BossDashboard', { replace: true });
-      return null;
-    } else {
+  const sharedPages = ['Chat', 'ReceiptDetail', 'ComboRouteSelection'];
+
+  // Use useEffect for navigation to avoid setState during render
+  React.useEffect(() => {
+    // If on root/empty page or unknown page, redirect based on role
+    if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
+        (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
+      if (isBoss) {
+        navigate('/BossDashboard', { replace: true });
+      } else {
+        navigate('/WorkerHome', { replace: true });
+      }
+      return;
+    }
+
+    // Server trying to access boss pages - redirect to worker home
+    if (isWorker && isOnBossPage) {
       navigate('/WorkerHome', { replace: true });
-      return null;
+      return;
     }
-  }
 
-  // Server trying to access boss pages - redirect to worker home
-  if (isWorker && isOnBossPage) {
-    navigate('/WorkerHome', { replace: true });
-    return null;
-  }
+    // Boss/Admin trying to access worker pages - redirect to boss equivalent
+    if (isBoss && isOnWorkerPage) {
+      const workerToBossMap = {
+        'WorkerHome': 'BossDashboard',
+        'WorkerRoutes': 'BossRoutes',
+        'WorkerSettings': 'BossSettings',
+        'Notifications': 'BossNotifications',
+        'Workers': 'BossWorkers',
+        'WorkerRouteDetail': 'BossRouteDetail',
+        'WorkerStats': 'Analytics',
+        'WorkerVacationRequest': 'VacationRequests',
+        'Chat': 'Chat'
+      };
 
-  // Boss/Admin trying to access worker pages - redirect to boss equivalent
-  if (isBoss && isOnWorkerPage) {
-    const workerToBossMap = {
-      'WorkerHome': 'BossDashboard',
-      'WorkerRoutes': 'BossRoutes',
-      'WorkerSettings': 'BossSettings',
-      'Notifications': 'BossNotifications',
-      'Workers': 'BossWorkers',
-      'WorkerRouteDetail': 'BossRouteDetail',
-      'WorkerStats': 'Analytics',
-      'WorkerVacationRequest': 'VacationRequests',
-      'Chat': 'Chat' // Chat is shared, no redirect needed
-    };
-
-    const bossPage = workerToBossMap[currentPageName];
-    if (bossPage && bossPage !== currentPageName) {
-      navigate('/' + bossPage, { replace: true });
-      return null;
+      const bossPage = workerToBossMap[currentPageName];
+      if (bossPage && bossPage !== currentPageName) {
+        navigate('/' + bossPage, { replace: true });
+      }
     }
+  }, [currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate]);
+
+  // Check if we should show loading while redirecting
+  const shouldRedirect = 
+    (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
+      (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) ||
+    (isWorker && isOnBossPage) ||
+    (isBoss && isOnWorkerPage && currentPageName !== 'Chat' && currentPageName !== 'ComboRouteSelection');
+
+  if (shouldRedirect) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
   }
 
   return children;

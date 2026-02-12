@@ -61,7 +61,6 @@ import BossRouteDetail from './pages/BossRouteDetail';
 import BossRoutes from './pages/BossRoutes';
 import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
-import BossWorkers from './pages/BossWorkers';
 import Chat from './pages/Chat';
 import ComboRouteSelection from './pages/ComboRouteSelection';
 import CreateRoute from './pages/CreateRoute';
@@ -96,6 +95,7 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
+import BossWorkers from './pages/BossWorkers';
 import __Layout from './Layout.jsx';
 
 
@@ -114,7 +114,6 @@ export const PAGES = {
     "BossRoutes": BossRoutes,
     "BossSettings": BossSettings,
     "BossTeam": BossTeam,
-    "BossWorkers": BossWorkers,
     "Chat": Chat,
     "ComboRouteSelection": ComboRouteSelection,
     "CreateRoute": CreateRoute,
@@ -149,6 +148,7 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
+    "BossWorkers": BossWorkers,
 }
 
 export const pagesConfig = {
