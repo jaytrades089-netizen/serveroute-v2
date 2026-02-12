@@ -102,14 +102,26 @@ export default function RouteCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm border overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
-        isActiveRoute 
-          ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-orange-50 border-orange-200' 
-          : 'bg-white border-gray-100'
+      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
+        workerCanEdit
+          ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
+          : isActiveRoute 
+            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-orange-50 border-orange-200' 
+            : 'bg-white border border-gray-100'
       } ${className}`}
     >
+      {/* Worker Edit Mode Banner */}
+      {workerCanEdit && (
+        <div className="px-4 py-2 bg-orange-100 border-b border-orange-300">
+          <div className="flex items-center gap-2">
+            <Pencil className="w-4 h-4 text-orange-600" />
+            <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Worker Can Edit</span>
+          </div>
+        </div>
+      )}
+
       {/* Active Route Indicator */}
-      {isActiveRoute && (
+      {isActiveRoute && !workerCanEdit && (
         <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
