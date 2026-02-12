@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
 import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
