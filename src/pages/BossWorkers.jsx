@@ -305,8 +305,19 @@ export default function BossWorkers() {
               const stats = getWorkerStats(worker);
 
               return (
-                <Card key={worker.id} className="bg-white">
+                <Card 
+                  key={worker.id} 
+                  className={`bg-white ${worker.editing_enabled ? 'border-2 border-amber-400 shadow-amber-100 shadow-md' : ''}`}
+                >
                   <CardContent className="p-4">
+                    {/* Editing Enabled Banner */}
+                    {worker.editing_enabled && (
+                      <div className="flex items-center gap-2 mb-3 -mt-1 px-2 py-1.5 bg-amber-50 rounded-lg border border-amber-200">
+                        <Pencil className="w-4 h-4 text-amber-600" />
+                        <span className="text-xs font-bold text-amber-700">EDITING ALLOWED</span>
+                        <span className="text-xs text-amber-600">— Worker can modify attempt times</span>
+                      </div>
+                    )}
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">
                         <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
