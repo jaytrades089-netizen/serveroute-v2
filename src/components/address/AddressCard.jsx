@@ -211,6 +211,19 @@ export default function AddressCard({
 
   const handleNavigate = (e) => {
     e.stopPropagation();
+    
+    // Extract street number + first 2 letters of street name for clipboard
+    const streetLine = formatted.line1 || '';
+    const match = streetLine.match(/^(\d+)\s+([A-Za-z]{2})/i);
+    if (match) {
+      const clipboardText = `${match[1]} ${match[2].toUpperCase()}`;
+      navigator.clipboard.writeText(clipboardText).then(() => {
+        toast.success(`Copied: ${clipboardText}`);
+      }).catch(() => {
+        // Clipboard failed silently
+      });
+    }
+    
     const addressStr = `${formatted.line1}, ${formatted.line2}`;
     const encoded = encodeURIComponent(addressStr);
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, '_blank');
