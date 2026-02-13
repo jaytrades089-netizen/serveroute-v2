@@ -9,12 +9,13 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import {
+import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
+const {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} = DropdownMenuPrimitives;
 import AddressCard from '@/components/address/AddressCard';
 import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
