@@ -18,12 +18,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
+import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
+const {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} = DropdownMenuPrimitives;
 import { toast } from 'sonner';
 import BossBottomNav from '../components/boss/BossBottomNav';
 import RouteCard from '../components/common/RouteCard';
