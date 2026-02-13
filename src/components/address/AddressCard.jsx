@@ -214,14 +214,17 @@ export default function AddressCard({
     
     // Extract street number + first 2 letters of street name for clipboard
     const streetLine = formatted.line1 || '';
-    const match = streetLine.match(/^(\d+)\s+([A-Za-z]{2})/i);
+    // Match: number(s) followed by space(s) and at least 2 letters
+    const match = streetLine.match(/^(\d+)\s+([A-Za-z]{1,2})/i);
     if (match) {
       const clipboardText = `${match[1]} ${match[2].toUpperCase()}`;
-      navigator.clipboard.writeText(clipboardText).then(() => {
+      try {
+        navigator.clipboard.writeText(clipboardText);
         toast.success(`Copied: ${clipboardText}`);
-      }).catch(() => {
-        // Clipboard failed silently
-      });
+      } catch (err) {
+        // Fallback for browsers that don't support clipboard API
+        toast.info(`Address: ${clipboardText}`);
+      }
     }
     
     const addressStr = `${formatted.line1}, ${formatted.line2}`;
