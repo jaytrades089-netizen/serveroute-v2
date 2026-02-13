@@ -5,12 +5,13 @@ import { base44 } from '@/api/base44Client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
+import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
+const {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} = DropdownMenuPrimitives;
 import { 
   MapPin, 
   FileCheck, 
