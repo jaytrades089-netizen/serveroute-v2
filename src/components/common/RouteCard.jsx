@@ -19,13 +19,14 @@ import {
   Archive,
   Pencil
 } from 'lucide-react';
-import {
+import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
+const {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} = DropdownMenuPrimitives;
 import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/QualifierService';
 import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
