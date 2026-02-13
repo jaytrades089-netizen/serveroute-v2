@@ -56,7 +56,16 @@ const workerPages = [
 ];
 
 // Known shared pages that both roles can access
-const sharedPages = ['Chat', 'ReceiptDetail', 'ComboRouteSelection'];
+const sharedPages = [
+  'Chat', 
+  'ReceiptDetail', 
+  'ComboRouteSelection',
+  'ScanDocumentType',
+  'ScanCamera',
+  'ScanPreview',
+  'ScanRouteSetup',
+  'ScanVerify'
+];
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
