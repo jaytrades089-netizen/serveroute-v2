@@ -946,8 +946,8 @@ export default function ReceiptForm({
       {/* Camera Modal - Styled like EvidenceCamera */}
       {showCamera && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          {/* Video fills available space */}
-          <div className="flex-1 relative">
+          {/* Video with 4:3 aspect ratio */}
+          <div className="relative flex-1 flex items-center justify-center">
             {!cameraReady && (
               <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                 <div className="text-center">
@@ -961,52 +961,52 @@ export default function ReceiptForm({
               autoPlay 
               playsInline 
               muted
-              className="w-full h-full object-cover"
+              className="w-full aspect-[4/3] object-cover"
             />
-          </div>
-          
-          {/* Bottom Controls - Fixed above any nav */}
-          <div className="p-4 pb-8 bg-gradient-to-t from-black/80 to-transparent">
-            <div className="flex items-center justify-center gap-4">
-              {/* Cancel Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={stopCamera}
-                className="bg-white/20 border-white/40 text-white hover:bg-white/30"
-              >
-                <X className="w-4 h-4 mr-1" />
-                Cancel
-              </Button>
-              
-              {/* Capture Button */}
-              <button
-                onClick={capturePhoto}
-                disabled={!cameraReady}
-                className="w-16 h-16 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
-              >
-                {!cameraReady ? (
-                  <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-red-500" />
-                )}
-              </button>
-              
-              {/* Upload Button */}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  stopCamera();
-                  fileInputRef.current?.click();
-                }}
-                className="bg-white/20 border-white/40 text-white hover:bg-white/30"
-              >
-                <Upload className="w-4 h-4 mr-1" />
-                Upload
-              </Button>
+            
+            {/* Controls overlaid at bottom of video */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+              <div className="flex items-center justify-center gap-4">
+                {/* Cancel Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={stopCamera}
+                  className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Cancel
+                </Button>
+                
+                {/* Capture Button */}
+                <button
+                  onClick={capturePhoto}
+                  disabled={!cameraReady}
+                  className="w-16 h-16 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
+                >
+                  {!cameraReady ? (
+                    <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-red-500" />
+                  )}
+                </button>
+                
+                {/* Upload Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    stopCamera();
+                    fileInputRef.current?.click();
+                  }}
+                  className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+                >
+                  <Upload className="w-4 h-4 mr-1" />
+                  Upload
+                </Button>
+              </div>
             </div>
           </div>
         </div>
