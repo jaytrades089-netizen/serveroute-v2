@@ -943,18 +943,13 @@ export default function ReceiptForm({
         </p>
       )}
 
-      {/* Camera Modal */}
+      {/* Camera Modal - Styled like EvidenceCamera */}
       {showCamera && (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <div className="flex items-center justify-between p-4 bg-black/50">
-            <span className="text-white font-medium">Take Photo</span>
-            <button onClick={stopCamera} className="text-white">
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          <div className="flex-1 flex items-center justify-center relative">
+          {/* Video fills available space */}
+          <div className="flex-1 relative">
             {!cameraReady && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black">
+              <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 animate-spin text-white mx-auto mb-2" />
                   <p className="text-white text-sm">Starting camera...</p>
@@ -966,19 +961,53 @@ export default function ReceiptForm({
               autoPlay 
               playsInline 
               muted
-              className={`max-h-full max-w-full ${!cameraReady ? 'opacity-0' : 'opacity-100'}`}
+              className="w-full h-full object-cover"
             />
           </div>
-          <div className="p-6 bg-black/50 flex justify-center">
-            <button
-              onClick={capturePhoto}
-              disabled={!cameraReady}
-              className={`w-16 h-16 rounded-full border-4 transition-all ${
-                cameraReady 
-                  ? 'bg-white border-gray-300 hover:scale-105' 
-                  : 'bg-gray-500 border-gray-600 cursor-not-allowed'
-              }`}
-            />
+          
+          {/* Bottom Controls - Fixed above any nav */}
+          <div className="p-4 pb-8 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="flex items-center justify-center gap-4">
+              {/* Cancel Button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={stopCamera}
+                className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+              >
+                <X className="w-4 h-4 mr-1" />
+                Cancel
+              </Button>
+              
+              {/* Capture Button */}
+              <button
+                onClick={capturePhoto}
+                disabled={!cameraReady}
+                className="w-16 h-16 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
+              >
+                {!cameraReady ? (
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-600" />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-red-500" />
+                )}
+              </button>
+              
+              {/* Upload Button */}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  stopCamera();
+                  fileInputRef.current?.click();
+                }}
+                className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+              >
+                <Upload className="w-4 h-4 mr-1" />
+                Upload
+              </Button>
+            </div>
           </div>
         </div>
       )}
