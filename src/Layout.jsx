@@ -135,6 +135,17 @@ export default function Layout({ children, currentPageName }) {
     // Clear redirect tracking on successful auth
     sessionStorage.removeItem('lastLoginRedirect');
 
+    // Check for fresh launch - always go to dashboard
+    const freshLaunch = sessionStorage.getItem('freshLaunch');
+    if (freshLaunch) {
+      sessionStorage.removeItem('freshLaunch');
+      const dashboardUrl = isBoss ? '/BossDashboard' : '/WorkerHome';
+      if (window.location.pathname !== dashboardUrl) {
+        navigate(dashboardUrl, { replace: true });
+        return;
+      }
+    }
+
     // Determine redirect target
     let redirectTo = null;
 
