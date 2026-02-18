@@ -71,6 +71,16 @@ export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const [hasRedirected, setHasRedirected] = useState(false);
   
+  // Check for fresh app launch (PWA or new session)
+  useEffect(() => {
+    const lastSession = sessionStorage.getItem('appSessionActive');
+    if (!lastSession) {
+      // Fresh launch - mark session and redirect to dashboard
+      sessionStorage.setItem('appSessionActive', 'true');
+      sessionStorage.setItem('freshLaunch', 'true');
+    }
+  }, []);
+  
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
