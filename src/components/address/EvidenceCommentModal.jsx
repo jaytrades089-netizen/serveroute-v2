@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Camera, Loader2 } from 'lucide-react';
+import { Camera, Loader2, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 
 export default function EvidenceCommentModal({ 
   open, 
@@ -80,10 +81,20 @@ export default function EvidenceCommentModal({
           <Button 
             variant="outline" 
             className="flex-1"
-            onClick={handleClose}
-            disabled={saving}
+            onClick={() => {
+              if (comment.trim()) {
+                try {
+                  navigator.clipboard.writeText(comment);
+                  toast.success('Copied!');
+                } catch (err) {
+                  toast.error('Failed to copy');
+                }
+              }
+            }}
+            disabled={saving || !comment.trim()}
           >
-            Cancel
+            <Copy className="w-4 h-4 mr-1" />
+            Copy
           </Button>
           <Button 
             className={`flex-1 ${canSave ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
