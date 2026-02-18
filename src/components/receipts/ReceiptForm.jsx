@@ -943,11 +943,19 @@ export default function ReceiptForm({
         </p>
       )}
 
-      {/* Camera Modal - Styled like EvidenceCamera */}
+      {/* Camera Modal - Matches EvidenceCamera exactly */}
       {showCamera && (
-        <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          {/* Video with 4:3 aspect ratio */}
-          <div className="relative flex-1 flex items-center justify-center">
+        <div className="fixed inset-x-0 top-0 bottom-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="relative w-full max-w-lg overflow-hidden">
+            {/* Close X button - top right */}
+            <button 
+              onClick={stopCamera}
+              className="absolute top-3 right-3 z-20 text-white/80 hover:text-white"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            {/* Loading state */}
             {!cameraReady && (
               <div className="absolute inset-0 flex items-center justify-center bg-black z-10">
                 <div className="text-center">
@@ -956,6 +964,8 @@ export default function ReceiptForm({
                 </div>
               </div>
             )}
+            
+            {/* Video */}
             <video 
               ref={videoRef} 
               autoPlay 
@@ -964,22 +974,20 @@ export default function ReceiptForm({
               className="w-full aspect-[4/3] object-cover"
             />
             
-            {/* Controls overlaid at bottom of video */}
+            {/* Controls overlaid at bottom */}
             <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex items-center justify-center gap-4">
                 {/* Cancel Button */}
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={stopCamera}
-                  className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+                  className="flex items-center gap-1 px-3 py-2 rounded-md bg-white/20 border border-white/40 text-white text-sm hover:bg-white/30"
                 >
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="w-4 h-4" />
                   Cancel
-                </Button>
+                </button>
                 
-                {/* Capture Button */}
+                {/* Capture Button - red circle */}
                 <button
                   onClick={capturePhoto}
                   disabled={!cameraReady}
@@ -993,19 +1001,17 @@ export default function ReceiptForm({
                 </button>
                 
                 {/* Upload Button */}
-                <Button
+                <button
                   type="button"
-                  variant="outline"
-                  size="sm"
                   onClick={() => {
                     stopCamera();
                     fileInputRef.current?.click();
                   }}
-                  className="bg-white/20 border-white/40 text-white hover:bg-white/30"
+                  className="flex items-center gap-1 px-3 py-2 rounded-md bg-white/20 border border-white/40 text-white text-sm hover:bg-white/30"
                 >
-                  <Upload className="w-4 h-4 mr-1" />
+                  <Upload className="w-4 h-4" />
                   Upload
-                </Button>
+                </button>
               </div>
             </div>
           </div>
