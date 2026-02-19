@@ -279,7 +279,7 @@ export default function ScanCamera() {
         error: null
       };
 
-      const updatedAddresses = [...session.addresses, newAddress];
+      const updatedAddresses = [newAddress, ...session.addresses];
       const updatedSession = {
         ...session,
         addresses: updatedAddresses,
