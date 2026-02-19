@@ -277,17 +277,9 @@ export default function RouteCard({
 
         {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
         {(() => {
-          // HAS = qualifiers that ALL served addresses have (intersection)
-          // NEEDS = qualifiers not yet completed across all served addresses
-          
-          // Group attempts by address
-          const attemptsByAddress = {};
-          (attempts || []).forEach(att => {
-            if (!attemptsByAddress[att.address_id]) {
-              attemptsByAddress[att.address_id] = [];
-            }
-            attemptsByAddress[att.address_id].push(att);
-          });
+          // HAS = qualifiers earned on UNSERVED addresses only (work in progress)
+          // NEEDS = qualifiers still needed on unserved addresses
+          // Served addresses are IGNORED - serving one on weekend doesn't count for others
           
           // Get served address IDs
           const servedAddressIds = new Set();
@@ -297,33 +289,28 @@ export default function RouteCard({
             }
           });
           
-          // For each served address, track what qualifiers it has
-          const servedAddressQualifiers = [];
-          Object.entries(attemptsByAddress).forEach(([addressId, addressAttempts]) => {
-            if (servedAddressIds.has(addressId)) {
-              const addrHas = { AM: false, PM: false, WEEKEND: false };
-              addressAttempts.forEach(att => {
-                if (att.has_am) addrHas.AM = true;
-                if (att.has_pm) addrHas.PM = true;
-                if (att.has_weekend) addrHas.WEEKEND = true;
-              });
-              servedAddressQualifiers.push(addrHas);
+          // Group attempts by UNSERVED addresses only
+          const unservedAttemptsByAddress = {};
+          (attempts || []).forEach(att => {
+            if (!servedAddressIds.has(att.address_id)) {
+              if (!unservedAttemptsByAddress[att.address_id]) {
+                unservedAttemptsByAddress[att.address_id] = [];
+              }
+              unservedAttemptsByAddress[att.address_id].push(att);
             }
           });
           
-          // HAS = intersection of all served addresses (what ALL have)
-          let routeHas = { AM: true, PM: true, WEEKEND: true };
-          if (servedAddressQualifiers.length === 0) {
-            routeHas = { AM: false, PM: false, WEEKEND: false };
-          } else {
-            servedAddressQualifiers.forEach(addrHas => {
-              if (!addrHas.AM) routeHas.AM = false;
-              if (!addrHas.PM) routeHas.PM = false;
-              if (!addrHas.WEEKEND) routeHas.WEEKEND = false;
+          // HAS = union of qualifiers earned across all UNSERVED addresses
+          const routeHas = { AM: false, PM: false, WEEKEND: false };
+          Object.values(unservedAttemptsByAddress).forEach(addressAttempts => {
+            addressAttempts.forEach(att => {
+              if (att.has_am) routeHas.AM = true;
+              if (att.has_pm) routeHas.PM = true;
+              if (att.has_weekend) routeHas.WEEKEND = true;
             });
-          }
+          });
           
-          // NEEDS = what's NOT yet completed (not in HAS)
+          // NEEDS = what's NOT yet earned on unserved addresses
           const unservedCount = (route.total_addresses || 0) - (route.served_count || 0);
           let routeNeeds = { AM: false, PM: false, WEEKEND: false };
           if (unservedCount > 0) {
