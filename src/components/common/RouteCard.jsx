@@ -277,7 +277,39 @@ export default function RouteCard({
 
         {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
         {(() => {
-          const qualifierInfo = getNeededQualifiers(attempts);
+          // Calculate route-level qualifiers by finding the UNION of earned qualifiers
+          // and the UNION of still-needed qualifiers across all unserved addresses
+          const routeEarned = { AM: false, PM: false, WEEKEND: false };
+          const routeNeeded = { AM: false, PM: false, WEEKEND: false };
+          
+          // Group attempts by address
+          const attemptsByAddress = {};
+          (attempts || []).forEach(att => {
+            if (!attemptsByAddress[att.address_id]) {
+              attemptsByAddress[att.address_id] = [];
+            }
+            attemptsByAddress[att.address_id].push(att);
+          });
+          
+          // For each address that has attempts, calculate what it has earned
+          // and what it still needs (only for unserved addresses)
+          Object.entries(attemptsByAddress).forEach(([addressId, addressAttempts]) => {
+            const addressQualifiers = getNeededQualifiers(addressAttempts);
+            
+            // Add to route-level earned
+            if (addressQualifiers.earned.AM) routeEarned.AM = true;
+            if (addressQualifiers.earned.PM) routeEarned.PM = true;
+            if (addressQualifiers.earned.WEEKEND) routeEarned.WEEKEND = true;
+            
+            // Add to route-level needed (what any address still needs)
+            if (addressQualifiers.needed.includes('AM')) routeNeeded.AM = true;
+            if (addressQualifiers.needed.includes('PM')) routeNeeded.PM = true;
+            if (addressQualifiers.needed.includes('WEEKEND')) routeNeeded.WEEKEND = true;
+          });
+          
+          const earnedBadges = Object.keys(routeEarned).filter(k => routeEarned[k]);
+          const neededBadges = Object.keys(routeNeeded).filter(k => routeNeeded[k]);
+          
           const spreadDate = route.first_attempt_date 
             ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
             : null;
@@ -288,8 +320,8 @@ export default function RouteCard({
               {/* HAS Box */}
               <div className="bg-green-50 rounded-lg p-2 border border-green-200">
                 <p className="text-[10px] font-semibold text-green-700 mb-1">HAS</p>
-                {qualifierInfo.earnedBadges.length > 0 ? (
-                  <QualifierBadges badges={qualifierInfo.earnedBadges} size="small" />
+                {earnedBadges.length > 0 ? (
+                  <QualifierBadges badges={earnedBadges} size="small" />
                 ) : (
                   <p className="text-[10px] text-gray-400">None yet</p>
                 )}
@@ -314,8 +346,8 @@ export default function RouteCard({
               {/* NEEDS Box */}
               <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
                 <p className="text-[10px] font-semibold text-amber-700 mb-1">NEEDS</p>
-                {qualifierInfo.needed.length > 0 ? (
-                  <QualifierBadges badges={qualifierInfo.needed} size="small" />
+                {neededBadges.length > 0 ? (
+                  <QualifierBadges badges={neededBadges} size="small" />
                 ) : (
                   <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
                 )}
