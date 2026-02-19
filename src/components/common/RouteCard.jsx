@@ -277,10 +277,8 @@ export default function RouteCard({
 
         {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
         {(() => {
-          // HAS = qualifiers earned on SERVED addresses only (completed work)
-          // NEEDS = qualifiers still needed on UNSERVED addresses
-          const routeHas = { AM: false, PM: false, WEEKEND: false };
-          const routeNeeds = { AM: true, PM: true, WEEKEND: true }; // Start needing all
+          // HAS = qualifiers that ALL served addresses have (intersection)
+          // NEEDS = qualifiers not yet completed across all served addresses
           
           // Group attempts by address
           const attemptsByAddress = {};
@@ -291,7 +289,7 @@ export default function RouteCard({
             attemptsByAddress[att.address_id].push(att);
           });
           
-          // Get set of served address IDs from attempts that have outcome='served'
+          // Get served address IDs
           const servedAddressIds = new Set();
           (attempts || []).forEach(att => {
             if (att.outcome === 'served') {
@@ -299,30 +297,39 @@ export default function RouteCard({
             }
           });
           
-          // HAS: Only count qualifiers from SERVED addresses
+          // For each served address, track what qualifiers it has
+          const servedAddressQualifiers = [];
           Object.entries(attemptsByAddress).forEach(([addressId, addressAttempts]) => {
-            const isServed = servedAddressIds.has(addressId);
-            if (isServed) {
-              // This address is complete - its qualifiers count toward HAS
+            if (servedAddressIds.has(addressId)) {
+              const addrHas = { AM: false, PM: false, WEEKEND: false };
               addressAttempts.forEach(att => {
-                if (att.has_am) routeHas.AM = true;
-                if (att.has_pm) routeHas.PM = true;
-                if (att.has_weekend) routeHas.WEEKEND = true;
+                if (att.has_am) addrHas.AM = true;
+                if (att.has_pm) addrHas.PM = true;
+                if (att.has_weekend) addrHas.WEEKEND = true;
               });
+              servedAddressQualifiers.push(addrHas);
             }
           });
           
-          // NEEDS: If route has a qualifier (from served addresses), it's no longer needed
-          if (routeHas.AM) routeNeeds.AM = false;
-          if (routeHas.PM) routeNeeds.PM = false;
-          if (routeHas.WEEKEND) routeNeeds.WEEKEND = false;
+          // HAS = intersection of all served addresses (what ALL have)
+          let routeHas = { AM: true, PM: true, WEEKEND: true };
+          if (servedAddressQualifiers.length === 0) {
+            routeHas = { AM: false, PM: false, WEEKEND: false };
+          } else {
+            servedAddressQualifiers.forEach(addrHas => {
+              if (!addrHas.AM) routeHas.AM = false;
+              if (!addrHas.PM) routeHas.PM = false;
+              if (!addrHas.WEEKEND) routeHas.WEEKEND = false;
+            });
+          }
           
-          // If all addresses are served, nothing is needed
+          // NEEDS = what's NOT yet completed (not in HAS)
           const unservedCount = (route.total_addresses || 0) - (route.served_count || 0);
-          if (unservedCount === 0) {
-            routeNeeds.AM = false;
-            routeNeeds.PM = false;
-            routeNeeds.WEEKEND = false;
+          let routeNeeds = { AM: false, PM: false, WEEKEND: false };
+          if (unservedCount > 0) {
+            routeNeeds.AM = !routeHas.AM;
+            routeNeeds.PM = !routeHas.PM;
+            routeNeeds.WEEKEND = !routeHas.WEEKEND;
           }
           
           const earnedBadges = Object.keys(routeHas).filter(k => routeHas[k]);
