@@ -277,10 +277,10 @@ export default function RouteCard({
 
         {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
         {(() => {
-          // Calculate route-level qualifiers:
-          // HAS = union of all earned qualifiers across the entire route
-          // NEEDS = what's still needed across unserved addresses only
-          const routeEarned = { AM: false, PM: false, WEEKEND: false };
+          // HAS = qualifiers earned on SERVED addresses only (completed work)
+          // NEEDS = qualifiers still needed on UNSERVED addresses
+          const routeHas = { AM: false, PM: false, WEEKEND: false };
+          const routeNeeds = { AM: true, PM: true, WEEKEND: true }; // Start needing all
           
           // Group attempts by address
           const attemptsByAddress = {};
@@ -299,27 +299,34 @@ export default function RouteCard({
             }
           });
           
-          // Calculate what qualifiers are earned across all addresses
-          Object.values(attemptsByAddress).forEach(addressAttempts => {
-            const addressQualifiers = getNeededQualifiers(addressAttempts);
-            if (addressQualifiers.earned.AM) routeEarned.AM = true;
-            if (addressQualifiers.earned.PM) routeEarned.PM = true;
-            if (addressQualifiers.earned.WEEKEND) routeEarned.WEEKEND = true;
+          // HAS: Only count qualifiers from SERVED addresses
+          Object.entries(attemptsByAddress).forEach(([addressId, addressAttempts]) => {
+            const isServed = servedAddressIds.has(addressId);
+            if (isServed) {
+              // This address is complete - its qualifiers count toward HAS
+              addressAttempts.forEach(att => {
+                if (att.has_am) routeHas.AM = true;
+                if (att.has_pm) routeHas.PM = true;
+                if (att.has_weekend) routeHas.WEEKEND = true;
+              });
+            }
           });
           
-          // For NEEDS: The route needs qualifiers that aren't yet earned at route level
-          // (since each unserved address needs all 3, and if route doesn't have one yet, it's needed)
-          const unservedCount = (route.total_addresses || 0) - (route.served_count || 0);
+          // NEEDS: If route has a qualifier (from served addresses), it's no longer needed
+          if (routeHas.AM) routeNeeds.AM = false;
+          if (routeHas.PM) routeNeeds.PM = false;
+          if (routeHas.WEEKEND) routeNeeds.WEEKEND = false;
           
-          // If there are unserved addresses, NEEDS = qualifiers not yet earned
-          let neededBadges = [];
-          if (unservedCount > 0) {
-            if (!routeEarned.AM) neededBadges.push('AM');
-            if (!routeEarned.PM) neededBadges.push('PM');
-            if (!routeEarned.WEEKEND) neededBadges.push('WEEKEND');
+          // If all addresses are served, nothing is needed
+          const unservedCount = (route.total_addresses || 0) - (route.served_count || 0);
+          if (unservedCount === 0) {
+            routeNeeds.AM = false;
+            routeNeeds.PM = false;
+            routeNeeds.WEEKEND = false;
           }
           
-          const earnedBadges = Object.keys(routeEarned).filter(k => routeEarned[k]);
+          const earnedBadges = Object.keys(routeHas).filter(k => routeHas[k]);
+          const neededBadges = Object.keys(routeNeeds).filter(k => routeNeeds[k]);
           
           const spreadDate = route.first_attempt_date 
             ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
