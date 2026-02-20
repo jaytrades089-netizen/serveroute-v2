@@ -430,23 +430,23 @@ export default function WorkerRouteDetail() {
           </>
         ) : (
           // NOT ACTIVE: Show regular stats (Total, Served, Pending)
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2 mb-3">
             <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-gray-900">{addresses.length}</p>
-                <p className="text-xs text-gray-500">Total</p>
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-gray-900">{addresses.length}</p>
+                <p className="text-[10px] text-gray-500">Total</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{servedAddresses.length}</p>
-                <p className="text-xs text-gray-500">Served</p>
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-green-600">{servedAddresses.length}</p>
+                <p className="text-[10px] text-gray-500">Served</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-3 text-center">
-                <p className="text-2xl font-bold text-orange-600">{pendingAddresses.length}</p>
-                <p className="text-xs text-gray-500">Pending</p>
+              <CardContent className="p-2 text-center">
+                <p className="text-lg font-bold text-orange-600">{pendingAddresses.length}</p>
+                <p className="text-[10px] text-gray-500">Pending</p>
               </CardContent>
             </Card>
           </div>
