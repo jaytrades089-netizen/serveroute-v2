@@ -138,12 +138,14 @@ export default function AnimatedAddressList({
     }, 500);
   };
   
-  // Set initial highlighted address (first active address)
+  // Set initial highlighted address (first active address) on mount
   useEffect(() => {
-    if (activeAddresses.length > 0 && !highlightedAddressId) {
+    if (activeAddresses.length > 0) {
       setHighlightedAddressId(activeAddresses[0].id);
+    } else if (attemptedTodayAddresses.length > 0) {
+      setHighlightedAddressId(attemptedTodayAddresses[0].id);
     }
-  }, [activeAddresses, highlightedAddressId]);
+  }, [activeAddresses.length, attemptedTodayAddresses.length]);
 
   return (
     <div className="space-y-6">
