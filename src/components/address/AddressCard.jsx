@@ -1459,7 +1459,7 @@ export default function AddressCard({
                     size="sm"
                     onClick={(e) => { 
                       e.stopPropagation(); 
-                      navigator.clipboard.writeText(editedNotes);
+                      navigator.clipboard.writeText(editedNotesText);
                       toast.success('Notes copied to clipboard');
                     }}
                     className="flex-1"
