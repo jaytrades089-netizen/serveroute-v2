@@ -323,7 +323,7 @@ export default function WorkerRouteDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
-      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3">
+      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
         <Link to={createPageUrl('WorkerRoutes')}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
