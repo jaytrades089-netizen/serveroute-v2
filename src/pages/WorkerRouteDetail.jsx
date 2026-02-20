@@ -621,10 +621,11 @@ export default function WorkerRouteDetail() {
           route={route}
           addresses={addresses}
           onClose={() => setShowOptimizeModal(false)}
-          onOptimized={() => {
+          onOptimized={async () => {
             setShowOptimizeModal(false);
-            queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-            queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+            // Force refetch with fresh data after optimization updates order_index values
+            await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+            await queryClient.refetchQueries({ queryKey: ['route', routeId] });
           }}
         />
       )}
