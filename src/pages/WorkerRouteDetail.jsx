@@ -275,6 +275,24 @@ export default function WorkerRouteDetail() {
     setShowMessageDialog(true);
   };
 
+  const handleSaveFolderName = async () => {
+    if (!editedFolderName.trim() || editedFolderName === route.folder_name) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      await base44.entities.Route.update(routeId, {
+        folder_name: editedFolderName.trim()
+      });
+      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      toast.success('Route renamed');
+      setIsEditingName(false);
+    } catch (error) {
+      toast.error('Failed to rename route');
+    }
+  };
+
   const handleResetAllAttempts = async () => {
     const confirmed = window.confirm(
       'Are you sure you want to delete ALL attempts for this route? This will reset all addresses to pending. This cannot be undone.'
