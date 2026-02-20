@@ -1758,14 +1758,21 @@ export default function AddressCard({
                           <Plus className="w-5 h-5" />
                           <span>ADD PHOTO</span>
                         </Button>
+                      ) : selectedAttempt ? (
+                        <Button 
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+                          className="h-14 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                          <span>DELETE</span>
+                        </Button>
                       ) : (
                         <Button 
-                          onClick={handleLogAttempt}
                           disabled
                           className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
                         >
-                          <Zap className="w-5 h-5" />
-                          <span>LOG</span>
+                          <Trash2 className="w-5 h-5" />
+                          <span>DELETE</span>
                         </Button>
                       )}
                       
