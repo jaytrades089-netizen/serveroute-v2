@@ -16,6 +16,9 @@ export default function AnimatedAddressList({
   const [slidingUpCards, setSlidingUpCards] = useState([]);
   const [recentlyMovedId, setRecentlyMovedId] = useState(null);
   const [showCompletedDropdown, setShowCompletedDropdown] = useState(false);
+  
+  // Track which address should have flashing nav button (next to complete)
+  const [highlightedAddressId, setHighlightedAddressId] = useState(null);
 
   // Categorize addresses into sections
   const { activeAddresses, attemptedTodayAddresses, completedAddresses } = useMemo(() => {
