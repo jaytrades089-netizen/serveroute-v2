@@ -1457,10 +1457,15 @@ export default function AddressCard({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={(e) => { e.stopPropagation(); setEditingNotes(false); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      navigator.clipboard.writeText(editedNotes);
+                      toast.success('Notes copied to clipboard');
+                    }}
                     className="flex-1"
                   >
-                    Cancel
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
                   </Button>
                   <Button
                     size="sm"
