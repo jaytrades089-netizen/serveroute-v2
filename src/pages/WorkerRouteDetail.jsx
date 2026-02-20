@@ -354,41 +354,41 @@ export default function WorkerRouteDetail() {
         {route?.status === 'active' && route?.started_at ? (
           // ACTIVE ROUTE: Show 3 metric boxes
           <>
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
               {/* Start Time */}
-              <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-200">
-                <p className="text-xl font-bold text-blue-600">
+              <div className="bg-blue-50 rounded-lg p-1.5 text-center border border-blue-200">
+                <p className="text-sm font-bold text-blue-600">
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                   })}
                 </p>
-                <p className="text-xs text-blue-500 font-medium">Started</p>
+                <p className="text-[10px] text-blue-500 font-medium">Started</p>
               </div>
               
               {/* Miles + Duration (SPLIT BOX) */}
-              <div className="bg-purple-50 rounded-xl overflow-hidden border border-purple-200">
+              <div className="bg-purple-50 rounded-lg overflow-hidden border border-purple-200">
                 {/* Top Half - Remaining Miles */}
-                <div className="p-2 text-center border-b border-purple-200">
-                  <p className="text-xl font-bold text-purple-600">
+                <div className="p-1 text-center border-b border-purple-200">
+                  <p className="text-sm font-bold text-purple-600">
                     {calculateRemainingMiles.toFixed(1)}
-                    <span className="text-sm ml-0.5">mi</span>
+                    <span className="text-[10px] ml-0.5">mi</span>
                   </p>
-                  <p className="text-xs text-purple-400">remaining</p>
+                  <p className="text-[10px] text-purple-400">remaining</p>
                 </div>
                 {/* Bottom Half - Total Duration */}
-                <div className="p-1.5 text-center bg-purple-100/50">
-                  <p className="text-sm font-bold text-purple-700">
+                <div className="p-1 text-center bg-purple-100/50">
+                  <p className="text-xs font-bold text-purple-700">
                     {calculateRouteDuration || '--'}
                   </p>
-                  <p className="text-xs text-purple-500">total</p>
+                  <p className="text-[10px] text-purple-500">total</p>
                 </div>
               </div>
               
               {/* Est Completion */}
-              <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
-                <p className="text-xl font-bold text-green-600">
+              <div className="bg-green-50 rounded-lg p-1.5 text-center border border-green-200">
+                <p className="text-sm font-bold text-green-600">
                   {getUpdatedEstCompletion?.estCompletion 
                     ? getUpdatedEstCompletion.estCompletion.toLocaleTimeString('en-US', {
                         hour: 'numeric',
@@ -404,25 +404,25 @@ export default function WorkerRouteDetail() {
                       : '--:--'
                   }
                 </p>
-                <p className="text-xs text-green-500 font-medium">Est. Done</p>
+                <p className="text-[10px] text-green-500 font-medium">Est. Done</p>
               </div>
             </div>
 
             {/* Progress Bar with miles remaining */}
-            <div className="mb-4">
-              <div className="flex justify-between text-xs text-gray-500 mb-1">
+            <div className="mb-3">
+              <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
                 <span>{calculateProgress.completed} of {calculateProgress.total} complete</span>
                 <span className="text-purple-600 font-medium">
                   {calculateRemainingMiles.toFixed(1)} mi left
                 </span>
               </div>
-              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
                   style={{ width: `${calculateProgress.percentage}%` }}
                 />
               </div>
-              <div className="flex justify-between text-xs text-gray-400 mt-1">
+              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
                 <span>{calculateProgress.percentage}% done</span>
                 <span>{calculateRemainingTime}</span>
               </div>
