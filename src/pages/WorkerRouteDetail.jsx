@@ -331,8 +331,51 @@ export default function WorkerRouteDetail() {
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="font-bold text-lg">{route.folder_name}</h1>
-          {route.description && <p className="text-sm text-blue-100">{route.description}</p>}
+          {editMode && isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                value={editedFolderName}
+                onChange={(e) => setEditedFolderName(e.target.value)}
+                className="h-8 bg-white/20 border-white/30 text-white placeholder:text-white/50 font-bold"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleSaveFolderName();
+                  } else if (e.key === 'Escape') {
+                    setIsEditingName(false);
+                  }
+                }}
+              />
+              <button 
+                onClick={handleSaveFolderName}
+                className="p-1.5 bg-green-500 rounded-full hover:bg-green-600"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button 
+                onClick={() => setIsEditingName(false)}
+                className="p-1.5 bg-red-500 rounded-full hover:bg-red-600"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <div 
+              className={editMode ? 'cursor-pointer hover:bg-blue-600/50 rounded px-2 py-1 -mx-2 -my-1' : ''}
+              onClick={() => {
+                if (editMode) {
+                  setEditedFolderName(route.folder_name);
+                  setIsEditingName(true);
+                }
+              }}
+            >
+              <h1 className="font-bold text-lg flex items-center gap-2">
+                {route.folder_name}
+                {editMode && <Pencil className="w-3 h-3 opacity-60" />}
+              </h1>
+              {route.description && <p className="text-sm text-blue-100">{route.description}</p>}
+            </div>
+          )}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
