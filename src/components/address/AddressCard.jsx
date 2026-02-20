@@ -85,7 +85,8 @@ export default function AddressCard({
   onServed,
   isAttemptedToday = false,
   isCompleted = false,
-  editMode = false
+  editMode = false,
+  isHighlighted = false
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
