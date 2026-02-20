@@ -329,7 +329,7 @@ export default function WorkerRouteDetail() {
         </Link>
         <div className="flex-1">
           <h1 className="font-bold text-lg">{route.folder_name}</h1>
-          <p className="text-sm text-blue-100">{route.description || 'No description'}</p>
+          {route.description && <p className="text-sm text-blue-100">{route.description}</p>}
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
