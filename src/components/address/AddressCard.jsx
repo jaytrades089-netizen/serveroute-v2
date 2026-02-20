@@ -1777,7 +1777,7 @@ export default function AddressCard({
                 )}
 
                 {/* Navigate Button — ONLY in worker view */}
-                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                <div className={`flex items-center border border-gray-200 rounded-xl overflow-hidden ${isHighlighted ? 'flash-purple' : ''}`}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors">
@@ -1802,10 +1802,10 @@ export default function AddressCard({
                   </DropdownMenu>
                   <button 
                     onClick={handleNavigate}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors"
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}
                   >
-                    <Navigation className="w-5 h-5 text-green-600" />
-                    <span className="font-bold text-green-600 tracking-wide">NAVIGATE</span>
+                    <Navigation className={`w-5 h-5 ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`} />
+                    <span className={`font-bold tracking-wide ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`}>NAVIGATE</span>
                   </button>
                 </div>
                 </>
