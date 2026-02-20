@@ -1147,42 +1147,28 @@ export default function AddressCard({
           hasInProgressAttempt ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50' :
           'bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50'
         }`}>
-          <div className="flex items-start gap-3">
-            {/* Location Pin Icon */}
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-              isServed ? 'bg-green-100' : 
-              hasInProgressAttempt ? 'bg-amber-100' :
-              'bg-indigo-100'
-            }`}>
-              {isServed ? (
-                <CheckCircle className="w-6 h-6 text-green-600" />
-              ) : hasInProgressAttempt ? (
-                <Camera className="w-6 h-6 text-amber-600" />
-              ) : (
-                <MapPin className="w-6 h-6 text-indigo-600" />
-              )}
+          <div className="flex flex-col">
+            {/* Address Display - Full width vertical layout */}
+            <div>
+              <p className={`text-lg font-bold leading-tight ${
+                isServed ? 'text-gray-500' : 'text-gray-900'
+              }`}>
+                {formatted.line1}
+              </p>
+              <p className={`text-sm ${isServed ? 'text-gray-400' : 'text-gray-500'}`}>
+                {formatted.line2}
+              </p>
             </div>
             
-            <div className="flex-1 min-w-0">
-              {/* Address Display - Street on line 1, City/State/Zip on line 2, Defendant on right */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className={`text-lg font-bold leading-tight ${
-                    isServed ? 'text-gray-500' : 'text-gray-900'
-                  }`}>
-                    {formatted.line1}
-                  </p>
-                  <p className={`text-sm ${isServed ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {formatted.line2}
-                  </p>
-                </div>
-                {address.defendant_name && (
-                  <p className="text-xs text-gray-400 italic text-right max-w-[45%] break-words">
-                    {address.defendant_name}
-                  </p>
-                )}
-              </div>
-            </div>
+            {/* Separator and Defendant Name */}
+            {address.defendant_name && (
+              <>
+                <div className="border-t border-gray-200 my-3" />
+                <p className={`text-sm font-medium ${isServed ? 'text-gray-400' : 'text-gray-600'}`}>
+                  {address.defendant_name}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
