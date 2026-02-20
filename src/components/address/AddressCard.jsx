@@ -36,7 +36,8 @@ import {
   ArrowRightLeft,
   RotateCcw,
   ChevronDown,
-  Trash2
+  Trash2,
+  Copy
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
