@@ -174,6 +174,7 @@ export default function AnimatedAddressList({
                   onAttemptLogged={() => handleAttemptLogged(address.id)}
                   onServed={() => handleAddressServed(address.id)}
                   editMode={editMode}
+                  isHighlighted={highlightedAddressId === address.id}
                 />
               </div>
             ))}
