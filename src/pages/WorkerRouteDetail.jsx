@@ -452,34 +452,7 @@ export default function WorkerRouteDetail() {
           </div>
         )}
 
-        {/* Status/Due Date bar - only show for non-active routes */}
-        {route.status !== 'active' && (
-          <div className="flex items-center justify-between bg-white rounded-xl p-4 border border-gray-200 mb-4">
-            <div>
-              <p className="text-sm text-gray-500">Status</p>
-              <span className={`text-sm font-semibold ${
-                route.status === 'active' ? 'text-blue-600' :
-                route.status === 'completed' ? 'text-green-600' :
-                route.status === 'stalled' ? 'text-red-600' :
-                'text-gray-600'
-              }`}>
-                {route.status?.toUpperCase() || 'UNKNOWN'}
-              </span>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-500">Due Date</p>
-              <p className="font-medium">
-                {route.due_date ? format(new Date(route.due_date), 'MMM d, yyyy') : 'Not set'}
-              </p>
-            </div>
-            {route.locked && (
-              <div className="flex items-center gap-1 text-red-500">
-                <Lock className="w-4 h-4" />
-                <span className="text-xs">Locked</span>
-              </div>
-            )}
-          </div>
-        )}
+
 
         {/* Verification Banner */}
         {needsVerification && (
