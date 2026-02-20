@@ -1515,18 +1515,6 @@ export default function AddressCard({
                 Add More Photos
               </Button>
             )}
-
-            {/* Delete Attempt button — always available to workers */}
-            {!isBossView && selectedAttempt && (
-              <Button
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
-                className="w-full mt-2 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete Attempt {activeTab}
-              </Button>
-            )}
             </div>
             )}
 
