@@ -122,11 +122,6 @@ export default function AnimatedAddressList({
       {/* Active Addresses - TO DO */}
       {activeAddresses.length > 0 && (
         <div>
-          <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            TO DO ({activeAddresses.length})
-          </h2>
-          
           <div className="space-y-4">
             {activeAddresses.map((address) => (
               <div
