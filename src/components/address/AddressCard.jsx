@@ -1393,21 +1393,6 @@ export default function AddressCard({
               </div>
             </div>
 
-            {/* Outcome - only for completed attempts */}
-            {selectedAttempt.status !== 'in_progress' && selectedAttempt.outcome && (
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">OUTCOME</p>
-                  <p className="text-base font-semibold capitalize">
-                    {selectedAttempt.outcome?.replace('_', ' ')}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Coordinates */}
             {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
               <div className="flex items-center gap-3 mb-4">
