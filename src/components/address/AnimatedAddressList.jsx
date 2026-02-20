@@ -229,6 +229,7 @@ export default function AnimatedAddressList({
                     onServed={() => handleAddressServed(address.id)}
                     isAttemptedToday={true}
                     editMode={editMode}
+                    isHighlighted={highlightedAddressId === address.id}
                   />
                 </div>
               </div>
