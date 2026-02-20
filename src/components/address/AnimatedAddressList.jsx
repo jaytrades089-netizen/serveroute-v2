@@ -118,7 +118,32 @@ export default function AnimatedAddressList({
     // Reset animation states
     setAnimatingCardId(null);
     setSlidingUpCards([]);
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Highlight next address after a short delay
+    setTimeout(() => {
+      // Find next active address to highlight
+      const remainingActive = activeAddresses.filter(a => a.id !== addressId);
+      if (remainingActive.length > 0) {
+        setHighlightedAddressId(remainingActive[0].id);
+      } else if (attemptedTodayAddresses.length > 0) {
+        // If no active, highlight first attempted today
+        const remainingAttempted = attemptedTodayAddresses.filter(a => a.id !== addressId);
+        if (remainingAttempted.length > 0) {
+          setHighlightedAddressId(remainingAttempted[0].id);
+        }
+      }
+    }, 500);
   };
+  
+  // Set initial highlighted address (first active address)
+  useEffect(() => {
+    if (activeAddresses.length > 0 && !highlightedAddressId) {
+      setHighlightedAddressId(activeAddresses[0].id);
+    }
+  }, [activeAddresses, highlightedAddressId]);
 
   return (
     <div className="space-y-6">
