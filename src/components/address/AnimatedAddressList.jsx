@@ -153,7 +153,7 @@ export default function AnimatedAddressList({
       {activeAddresses.length > 0 && (
         <div>
           <div className="space-y-4">
-            {activeAddresses.map((address) => (
+            {activeAddresses.map((address, index) => (
               <div
                 key={address.id}
                 className={`
@@ -162,9 +162,9 @@ export default function AnimatedAddressList({
                   ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
                 `}
               >
-                {/* Order number badge */}
+                {/* Order number badge - use visual position (index + 1) */}
                 <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
-                  {address.order_index || '?'}
+                  {index + 1}
                 </div>
                 <AddressCard
                   address={address}
