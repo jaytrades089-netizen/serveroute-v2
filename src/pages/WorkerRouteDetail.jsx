@@ -33,6 +33,8 @@ export default function WorkerRouteDetail() {
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
   const [lastMilestoneChecked, setLastMilestoneChecked] = useState(0);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editedFolderName, setEditedFolderName] = useState('');
   const editMode = urlParams.get('edit') === 'true';
 
   const { data: user } = useQuery({
