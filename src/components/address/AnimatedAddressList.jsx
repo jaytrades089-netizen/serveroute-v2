@@ -196,7 +196,7 @@ export default function AnimatedAddressList({
           </div>
           
           <div className="space-y-4">
-            {attemptedTodayAddresses.map((address) => (
+            {attemptedTodayAddresses.map((address, index) => (
               <div
                 key={address.id}
                 className={`
@@ -206,9 +206,9 @@ export default function AnimatedAddressList({
                   ${recentlyMovedId === address.id ? 'animate-slide-in-bottom' : ''}
                 `}
               >
-                {/* Order number badge */}
+                {/* Order number badge - continues from active addresses */}
                 <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
-                  {address.order_index || '?'}
+                  {activeAddresses.length + index + 1}
                 </div>
                 
                 {/* Attempted Today Banner */}
