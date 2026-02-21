@@ -1911,6 +1911,13 @@ export default function AddressCard({
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem 
+                        onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }}
+                        className="text-red-600 focus:text-red-600"
+                      >
+                        <RotateCcw className="w-4 h-4 mr-2" />
+                        <span className="text-red-600 font-bold">RTO</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
                         onClick={(e) => { e.stopPropagation(); handleDeleteAddress(); }}
                         className="text-red-600 focus:text-red-600"
                       >
