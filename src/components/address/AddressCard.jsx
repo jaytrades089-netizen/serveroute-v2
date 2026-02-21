@@ -2252,6 +2252,14 @@ export default function AddressCard({
         }
       />
 
+      {/* RTO Modal */}
+      <RTOModal
+        open={showRTOModal}
+        onClose={() => setShowRTOModal(false)}
+        onSubmit={handleRTO}
+        address={address}
+        saving={savingRTO}
+      />
 
     </>
   );
