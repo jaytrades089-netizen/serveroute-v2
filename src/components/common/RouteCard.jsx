@@ -402,11 +402,9 @@ export default function RouteCard({
                 ) : (
                   <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
                 )}
-                {spreadDate && (
-                  <p className={`text-[9px] mt-1 ${isSpreadPassed ? 'text-green-600' : 'text-amber-600'}`}>
-                    Spread: {format(spreadDate, 'MMM d')}
-                  </p>
-                )}
+                <p className="text-[9px] mt-1 text-amber-600">
+                  Spread: {route.spread_type === '10' ? '10' : '14'} days
+                </p>
               </div>
             </div>
           );
