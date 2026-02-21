@@ -161,10 +161,14 @@ export default function WorkerHome() {
     );
   }
 
-  // Show both assigned and active routes on home
-  const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned');
-  const pendingAddresses = addresses.filter(a => !a.served);
-  const servedAddresses = addresses.filter(a => a.served);
+  // Show both assigned and active routes on home (exclude archived/completed)
+  const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned' || r.status === 'ready');
+  const activeRouteIds = activeRoutes.map(r => r.id);
+  
+  // Only count addresses from active routes
+  const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
+  const pendingAddresses = activeAddresses.filter(a => !a.served);
+  const servedAddresses = activeAddresses.filter(a => a.served);
   
   const threeDaysFromNow = new Date();
   threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
