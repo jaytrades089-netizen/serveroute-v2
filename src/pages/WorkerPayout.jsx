@@ -100,9 +100,9 @@ export default function WorkerPayout() {
     periodStart.setDate(periodStart.getDate() - daysBack);
     periodStart.setHours(selectedHour, 0, 0, 0);
     
-    // Period END is NOW (current time), not 7 days from start
-    // This captures all historical data from last turn-in through today
-    const periodEnd = new Date(now);
+    // Period END is 7 days after start (next turn-in day)
+    const periodEnd = new Date(periodStart);
+    periodEnd.setDate(periodEnd.getDate() + 7);
     
     return { start: periodStart, end: periodEnd };
   }, [selectedDay, selectedHour]);
