@@ -169,8 +169,27 @@ export default function WorkerHome() {
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
   
-  // Served count includes ALL served addresses (including archived routes) to match payout
-  const servedAddresses = addresses.filter(a => a.served);
+  // Served count = addresses within current payroll period (same logic as WorkerPayout)
+  // Default payroll period: Wednesday at 12:00 PM
+  const selectedDay = 3;
+  const selectedHour = 12;
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const currentHour = now.getHours();
+  let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
+  if (daysBack === 0 && currentHour < selectedHour) {
+    daysBack = 7;
+  }
+  const periodStart = new Date(now);
+  periodStart.setDate(periodStart.getDate() - daysBack);
+  periodStart.setHours(selectedHour, 0, 0, 0);
+  
+  // Count served addresses within current payroll period
+  const servedAddresses = addresses.filter(a => {
+    if (!a.served || !a.served_at) return false;
+    const servedDate = new Date(a.served_at);
+    return servedDate >= periodStart && servedDate < now;
+  });
   
   const threeDaysFromNow = new Date();
   threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
