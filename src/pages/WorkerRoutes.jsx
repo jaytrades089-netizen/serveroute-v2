@@ -99,9 +99,9 @@ export default function WorkerRoutes() {
     }
   };
 
-  // EDIT — navigate to route detail in edit mode
+  // EDIT — navigate to EditRoute page
   const handleEditRoute = (route) => {
-    navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}&edit=true`));
+    navigate(createPageUrl(`EditRoute?id=${route.id}`));
   };
 
   const { data: routes = [], isLoading } = useQuery({
