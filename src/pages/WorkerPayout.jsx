@@ -23,6 +23,14 @@ const HOURS = Array.from({ length: 24 }, (_, i) => ({
   label: i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`
 }));
 
+// Calculate correct pay rate based on serve_type (overrides database values)
+function calculateCorrectPayRate(serveType) {
+  if (serveType === 'posting') return 10;
+  if (serveType === 'serve') return 24;
+  if (serveType === 'garnishment') return 24;
+  return 0;
+}
+
 export default function WorkerPayout() {
   // Default: Wednesday at 12:00 PM
   const [selectedDay, setSelectedDay] = useState(3);
