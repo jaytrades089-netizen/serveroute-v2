@@ -667,6 +667,7 @@ export default function WorkerRouteDetail() {
             lastAttemptMap={lastAttemptMap}
             allAttemptsMap={allAttemptsMap}
             editMode={editMode}
+            route={route}
           />
         )}
         
