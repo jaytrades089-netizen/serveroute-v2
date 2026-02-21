@@ -380,7 +380,20 @@ export default function RouteCard({
                 }`}>
                   {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
                 </p>
-                {route.due_date && (
+                {route.first_attempt_date && (
+                  <p className={`text-[9px] mt-0.5 ${
+                    isOverdue ? 'text-red-500' : 'text-blue-500'
+                  }`}>
+                    3rd: {(() => {
+                      const firstAttempt = new Date(route.first_attempt_date);
+                      const spreadDays = route.minimum_days_spread || 14;
+                      const spreadDueDate = new Date(firstAttempt);
+                      spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
+                      return format(spreadDueDate, 'MMM d');
+                    })()}
+                  </p>
+                )}
+                {!route.first_attempt_date && route.due_date && (
                   <p className={`text-[9px] mt-0.5 ${
                     isOverdue ? 'text-red-500' : 'text-blue-500'
                   }`}>
