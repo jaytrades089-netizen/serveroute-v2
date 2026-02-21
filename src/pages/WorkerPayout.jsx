@@ -154,8 +154,8 @@ export default function WorkerPayout() {
     }).filter(a => !instantPayouts.find(ip => ip.id === a.id)); // Exclude already instant paid
   }, [addresses, addressAttemptsMap, payrollPeriod, instantPayouts]);
 
-  const instantTotal = instantPayouts.reduce((sum, a) => sum + (a.pay_rate || 0), 0);
-  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.pay_rate || 0), 0);
+  const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
+  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
 
   const isLoading = addressesLoading || attemptsLoading;
 
