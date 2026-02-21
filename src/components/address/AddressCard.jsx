@@ -1559,6 +1559,51 @@ export default function AddressCard({
                 </span>
               )}
             </div>
+            
+            {/* Unserve Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async (e) => {
+                e.stopPropagation();
+                const confirmed = window.confirm(
+                  'Mark this address as NOT served?\n\nThis will move it back to your active addresses.'
+                );
+                if (!confirmed) return;
+                
+                try {
+                  await base44.entities.Address.update(address.id, {
+                    served: false,
+                    served_at: null,
+                    status: localAttempts.length > 0 ? 'attempted' : 'pending',
+                    receipt_status: 'pending'
+                  });
+                  
+                  // Update route served count
+                  if (routeId) {
+                    const routeAddresses = await base44.entities.Address.filter({
+                      route_id: routeId,
+                      deleted_at: null
+                    });
+                    const newServedCount = routeAddresses.filter(a => a.served && a.id !== address.id).length;
+                    await base44.entities.Route.update(routeId, {
+                      served_count: newServedCount
+                    });
+                  }
+                  
+                  toast.success('Address marked as not served');
+                  queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                } catch (error) {
+                  console.error('Failed to unserve:', error);
+                  toast.error('Failed to update address');
+                }
+              }}
+              className="mt-3 w-full text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Mark as NOT Served
+            </Button>
           </div>
         )}
 
