@@ -155,7 +155,12 @@ export default function WorkerPayout() {
   }, [addresses, addressAttemptsMap, payrollPeriod, instantPayouts]);
 
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
-  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
+  
+  // Manual override for pending total - $312 was turned in on old app
+  // This override applies only for the pay period ending Feb 26, 2026
+  const overrideEndDate = new Date('2026-02-26T12:00:00');
+  const isPendingOverridePeriod = payrollPeriod.end <= overrideEndDate && payrollPeriod.end > new Date('2026-02-19T12:00:00');
+  const pendingTotal = isPendingOverridePeriod ? 312 : pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
 
   const isLoading = addressesLoading || attemptsLoading;
 
