@@ -65,7 +65,8 @@ const sharedPages = [
   'ScanCamera',
   'ScanPreview',
   'ScanRouteSetup',
-  'ScanVerify'
+  'ScanVerify',
+  'EditRoute'
 ];
 
 export default function Layout({ children, currentPageName }) {
