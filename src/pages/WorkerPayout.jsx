@@ -269,7 +269,7 @@ export default function WorkerPayout() {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-green-600">
-                          ${(address.pay_rate || 0).toFixed(2)}
+                          ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
                         </p>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 capitalize">
                           {address.serve_type}
