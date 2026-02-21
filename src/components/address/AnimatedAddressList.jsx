@@ -9,7 +9,8 @@ export default function AnimatedAddressList({
   onMessageBoss,
   lastAttemptMap,
   allAttemptsMap,
-  editMode = false
+  editMode = false,
+  route = null
 }) {
   // Animation state
   const [animatingCardId, setAnimatingCardId] = useState(null);
