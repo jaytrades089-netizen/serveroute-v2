@@ -165,10 +165,12 @@ export default function WorkerHome() {
   const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned' || r.status === 'ready');
   const activeRouteIds = activeRoutes.map(r => r.id);
   
-  // Only count addresses from active routes
+  // Pending addresses only from active routes
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
-  const servedAddresses = activeAddresses.filter(a => a.served);
+  
+  // Served count includes ALL served addresses (including archived routes) to match payout
+  const servedAddresses = addresses.filter(a => a.served);
   
   const threeDaysFromNow = new Date();
   threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
