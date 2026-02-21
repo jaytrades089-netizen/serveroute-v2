@@ -267,9 +267,29 @@ export default function RouteCard({
           <span className="text-xs font-bold text-gray-700 tracking-wide">
             PROGRESS
           </span>
-          <span className="text-sm font-bold text-gray-900">
-            {route.served_count || 0} / {route.total_addresses || 0}
-          </span>
+          <div className="flex items-center gap-3">
+            {/* Attempts Badge */}
+            {(() => {
+              const requiredAttempts = route.required_attempts || 3;
+              // Count completed attempts (exclude in_progress)
+              const completedAttempts = (attempts || []).filter(a => a.status === 'completed').length;
+              // Calculate max possible (addresses * required)
+              const totalAddresses = route.total_addresses || 0;
+              const maxAttempts = totalAddresses * requiredAttempts;
+              
+              return (
+                <div className="flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                  <Zap className="w-3 h-3" />
+                  <span className="text-xs font-bold">
+                    {completedAttempts}/{maxAttempts}
+                  </span>
+                </div>
+              );
+            })()}
+            <span className="text-sm font-bold text-gray-900">
+              {route.served_count || 0} / {route.total_addresses || 0}
+            </span>
+          </div>
         </div>
 
         {/* Progress Bar */}
