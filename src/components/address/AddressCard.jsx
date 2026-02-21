@@ -140,6 +140,10 @@ export default function AddressCard({
   
   // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
+  
+  // RTO modal state
+  const [showRTOModal, setShowRTOModal] = useState(false);
+  const [savingRTO, setSavingRTO] = useState(false);
   const [editFields, setEditFields] = useState({
     defendant_name: address.defendant_name || '',
     normalized_address: address.normalized_address || address.legal_address || '',
