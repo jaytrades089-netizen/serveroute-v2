@@ -380,6 +380,18 @@ export default function RouteCard({
                 }`}>
                   {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
                 </p>
+                {route.due_date && (
+                  <p className={`text-[9px] mt-0.5 ${
+                    isOverdue ? 'text-red-500' : 'text-blue-500'
+                  }`}>
+                    {(() => {
+                      const days = differenceInDays(new Date(route.due_date), new Date());
+                      if (days < 0) return `${Math.abs(days)}d overdue`;
+                      if (days === 0) return 'Due today';
+                      return `Due: ${days} days`;
+                    })()}
+                  </p>
+                )}
               </div>
               
               {/* NEEDS Box */}
