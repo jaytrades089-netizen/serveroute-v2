@@ -268,20 +268,41 @@ export default function RouteCard({
             PROGRESS
           </span>
           <div className="flex items-center gap-3">
-            {/* Attempts Badge */}
+            {/* Attempts Badge - shows current attempt # out of required */}
             {(() => {
               const requiredAttempts = route.required_attempts || 3;
-              // Count completed attempts (exclude in_progress)
-              const completedAttempts = (attempts || []).filter(a => a.status === 'completed').length;
-              // Calculate max possible (addresses * required)
               const totalAddresses = route.total_addresses || 0;
-              const maxAttempts = totalAddresses * requiredAttempts;
+              
+              // Find the minimum completed attempts across all addresses
+              // This represents what "round" of attempts the route is on
+              if (totalAddresses === 0) {
+                return (
+                  <div className="flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    <Zap className="w-3 h-3" />
+                    <span className="text-xs font-bold">0/{requiredAttempts}</span>
+                  </div>
+                );
+              }
+              
+              // Group attempts by address and count completed per address
+              const attemptsByAddress = {};
+              (attempts || []).forEach(att => {
+                if (att.status === 'completed') {
+                  attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
+                }
+              });
+              
+              // Find the minimum attempts any address has (the "current round")
+              const addressAttemptCounts = Object.values(attemptsByAddress);
+              const currentAttemptRound = addressAttemptCounts.length > 0 
+                ? Math.min(...addressAttemptCounts)
+                : 0;
               
               return (
                 <div className="flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
                   <Zap className="w-3 h-3" />
                   <span className="text-xs font-bold">
-                    {completedAttempts}/{maxAttempts}
+                    {currentAttemptRound}/{requiredAttempts}
                   </span>
                 </div>
               );
