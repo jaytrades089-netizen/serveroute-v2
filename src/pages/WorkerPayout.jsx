@@ -72,25 +72,29 @@ export default function WorkerPayout() {
   });
 
   // Calculate payroll period based on selected day and hour
+  // This looks BACKWARDS through historical data to find the most recent turn-in day
   const payrollPeriod = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
     const currentHour = now.getHours();
     
-    // Calculate days back to the selected day
+    // Calculate days back to the MOST RECENT selected day
     let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
     
-    // If we're on the selected day but before the selected hour, go back a week
+    // If we're on the selected day but before the selected hour, 
+    // the period hasn't ended yet - go back to PREVIOUS week's selected day
     if (daysBack === 0 && currentHour < selectedHour) {
       daysBack = 7;
     }
     
+    // Period START is the most recent selected day at selected hour
     const periodStart = new Date(now);
     periodStart.setDate(periodStart.getDate() - daysBack);
     periodStart.setHours(selectedHour, 0, 0, 0);
     
-    const periodEnd = new Date(periodStart);
-    periodEnd.setDate(periodEnd.getDate() + 7);
+    // Period END is NOW (current time), not 7 days from start
+    // This captures all historical data from last turn-in through today
+    const periodEnd = new Date(now);
     
     return { start: periodStart, end: periodEnd };
   }, [selectedDay, selectedHour]);
