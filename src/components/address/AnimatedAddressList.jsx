@@ -48,15 +48,45 @@ export default function AnimatedAddressList({
       }
     });
     
-    // Sort by order_index (original route order)
+    // Sort by spread due date (first attempt date + spread days)
+    // Addresses with earlier spread due dates come first
+    const sortBySpreadDue = (a, b) => {
+      // Get first attempt dates for each address
+      const aAttempts = attempts.filter(att => att.address_id === a.id && att.status === 'completed');
+      const bAttempts = attempts.filter(att => att.address_id === b.id && att.status === 'completed');
+      
+      const aFirstAttempt = aAttempts.length > 0 
+        ? Math.min(...aAttempts.map(att => new Date(att.attempt_time).getTime()))
+        : null;
+      const bFirstAttempt = bAttempts.length > 0 
+        ? Math.min(...bAttempts.map(att => new Date(att.attempt_time).getTime()))
+        : null;
+      
+      // Get spread days from route
+      const spreadDays = route?.minimum_days_spread || 14;
+      
+      // Calculate spread due dates
+      const aSpreadDue = aFirstAttempt ? aFirstAttempt + (spreadDays * 24 * 60 * 60 * 1000) : Infinity;
+      const bSpreadDue = bFirstAttempt ? bFirstAttempt + (spreadDays * 24 * 60 * 60 * 1000) : Infinity;
+      
+      // Sort by spread due date (earliest first)
+      // If no attempts, fall back to order_index
+      if (aSpreadDue === Infinity && bSpreadDue === Infinity) {
+        return (a.order_index || 999) - (b.order_index || 999);
+      }
+      
+      return aSpreadDue - bSpreadDue;
+    };
+    
+    // Sort by order_index for original route order (fallback)
     const sortByOrder = (a, b) => (a.order_index || 999) - (b.order_index || 999);
     
     return {
-      activeAddresses: active.sort(sortByOrder),
-      attemptedTodayAddresses: attemptedToday.sort(sortByOrder),
+      activeAddresses: active.sort(sortBySpreadDue),
+      attemptedTodayAddresses: attemptedToday.sort(sortBySpreadDue),
       completedAddresses: served.sort(sortByOrder)
     };
-  }, [addresses, attempts]);
+  }, [addresses, attempts, route?.minimum_days_spread]);
 
   // Handle when an attempt is logged (card moves to "attempted today")
   const handleAttemptLogged = async (addressId) => {
