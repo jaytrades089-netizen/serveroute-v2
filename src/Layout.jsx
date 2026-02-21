@@ -33,7 +33,8 @@ const bossPages = [
   'DCNMatching',
   'DCNBatchDetail',
   'AddressQuestionDetail',
-  'AddressDetail'
+  'AddressDetail',
+  'EditRoute'
 ];
 
 // Server/Worker pages
