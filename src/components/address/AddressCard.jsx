@@ -665,6 +665,75 @@ export default function AddressCard({
     }
   };
 
+  // RTO handler - Return to Office
+  const handleRTO = async (comment) => {
+    if (!comment.trim()) {
+      toast.error('Please provide a reason for the return');
+      return;
+    }
+    
+    setSavingRTO(true);
+    try {
+      const now = new Date();
+      const companyId = getCompanyId(user) || address.company_id;
+      
+      // Update address with RTO status
+      await base44.entities.Address.update(address.id, {
+        status: 'returned',
+        served: false,
+        receipt_status: 'pending', // Will be paid on next check, not instant
+        rto_at: now.toISOString(),
+        rto_reason: comment.trim(),
+        rto_by: user?.id
+      });
+      
+      // Create audit log
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'address_rto',
+        actor_id: user?.id,
+        actor_role: user?.role || 'server',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          route_id: routeId,
+          reason: comment.trim(),
+          attempt_count: attemptCount
+        },
+        timestamp: now.toISOString()
+      });
+      
+      // Update route served count (RTO counts as "done" for route progress)
+      if (routeId) {
+        const routeAddresses = await base44.entities.Address.filter({
+          route_id: routeId,
+          deleted_at: null
+        });
+        const doneCount = routeAddresses.filter(a => 
+          a.served || a.status === 'returned' || (a.id === address.id)
+        ).length;
+        await base44.entities.Route.update(routeId, {
+          served_count: doneCount
+        });
+      }
+      
+      toast.success('Address marked as RTO');
+      setShowRTOModal(false);
+      
+      // Trigger parent callbacks
+      if (onAttemptLogged) onAttemptLogged();
+      if (onServed) onServed();
+      
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+    } catch (error) {
+      console.error('Failed to mark as RTO:', error);
+      toast.error('Failed to process RTO');
+    } finally {
+      setSavingRTO(false);
+    }
+  };
+
   // Delete address handler
   const handleDeleteAddress = async () => {
     const confirmed = window.confirm(
