@@ -205,14 +205,99 @@ function splitIntoChunks(addresses, chunkSize) {
 }
 
 /**
+ * Geocode an address using HERE Maps
+ * Returns { lat, lng } or null if failed
+ */
+export async function geocodeWithHere(addressString, hereApiKey) {
+  const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addressString)}&in=countryCode:USA&apiKey=${hereApiKey}`;
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`HERE geocoding returned ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (data.items?.[0]?.position) {
+      return {
+        lat: data.items[0].position.lat,
+        lng: data.items[0].position.lng
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('HERE geocoding error:', error);
+    return null;
+  }
+}
+
+/**
+ * Geocode an address using MapQuest
+ * Returns { lat, lng } or null if failed
+ */
+export async function geocodeWithMapQuest(addressString, mapquestApiKey) {
+  const url = `https://www.mapquestapi.com/geocoding/v1/address?key=${mapquestApiKey}&location=${encodeURIComponent(addressString)}`;
+  
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+    
+    if (data.results?.[0]?.locations?.[0]?.latLng) {
+      const coords = data.results[0].locations[0].latLng;
+      return {
+        lat: coords.lat,
+        lng: coords.lng
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('MapQuest geocoding error:', error);
+    return null;
+  }
+}
+
+/**
+ * Geocode an address with HERE fallback to MapQuest
+ */
+export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) {
+  // Try HERE first if key is available
+  if (hereApiKey) {
+    const hereResult = await geocodeWithHere(addressString, hereApiKey);
+    if (hereResult) {
+      return hereResult;
+    }
+    console.log('HERE geocoding failed, falling back to MapQuest');
+  }
+  
+  // Fallback to MapQuest
+  if (mapquestApiKey) {
+    const mqResult = await geocodeWithMapQuest(addressString, mapquestApiKey);
+    if (mqResult) {
+      return mqResult;
+    }
+  }
+  
+  // Both failed
+  console.error('Both HERE and MapQuest geocoding failed');
+  return null;
+}
+
+/**
  * MAIN HYBRID OPTIMIZATION FUNCTION
  * Use this for ALL route optimization in the app
+ * Now supports HERE Maps with MapQuest fallback
  */
-export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey) {
+export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey, hereApiKey = null) {
   console.log(`Optimizing ${addresses.length} addresses...`);
   
-  if (!apiKey) {
-    throw new Error('MapQuest API key not configured');
+  // Need at least one API key
+  if (!apiKey && !hereApiKey) {
+    throw new Error('No API key configured (HERE or MapQuest required)');
   }
   
   // Filter out addresses without coordinates
@@ -227,10 +312,18 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     return addresses;
   }
   
-  // If small enough, just use MapQuest directly
-  if (validAddresses.length <= MAPQUEST_LIMIT) {
-    console.log('Using MapQuest directly (under limit)');
-    const optimized = await optimizeChunkWithMapQuest(validAddresses, startLat, startLng, endLat, endLng, apiKey);
+  // Determine chunk size based on which service we'll use
+  const chunkSize = hereApiKey ? HERE_LIMIT : MAPQUEST_LIMIT;
+  const serviceName = hereApiKey ? 'HERE' : 'MapQuest';
+  
+  // If small enough, optimize directly
+  if (validAddresses.length <= chunkSize) {
+    console.log(`Using ${serviceName} directly (under limit)`);
+    const optimized = await optimizeChunk(validAddresses, startLat, startLng, endLat, endLng, hereApiKey, apiKey);
+    
+    if (!optimized || optimized.length === 0) {
+      throw new Error('Route optimization failed - both services returned errors');
+    }
     
     // Append addresses without coordinates
     const invalidAddresses = addresses.filter(addr => {
@@ -249,13 +342,14 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   console.log('Step 1: Applying Nearest Neighbor pre-sort...');
   const nnSorted = nearestNeighborSort(validAddresses, startLat, startLng);
   
-  // Step 2: Split into chunks of 25
-  const chunks = splitIntoChunks(nnSorted, MAPQUEST_LIMIT);
-  console.log(`Step 2: Split into ${chunks.length} chunks`);
+  // Step 2: Split into chunks
+  const chunks = splitIntoChunks(nnSorted, chunkSize);
+  console.log(`Step 2: Split into ${chunks.length} chunks (${chunkSize} per chunk)`);
   
-  // Step 3: Optimize each chunk with MapQuest
-  console.log('Step 3: Optimizing each chunk with MapQuest...');
+  // Step 3: Optimize each chunk
+  console.log(`Step 3: Optimizing each chunk with ${serviceName}...`);
   const optimizedChunks = [];
+  let anyChunkFailed = false;
   
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
@@ -286,9 +380,14 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
       chunkEndLng = nextChunk[0].lng || nextChunk[0].longitude;
     }
     
-    const optimizedChunk = await optimizeChunkWithMapQuest(
-      chunk, chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, apiKey
+    const optimizedChunk = await optimizeChunk(
+      chunk, chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, hereApiKey, apiKey
     );
+    
+    // Check if this chunk optimization returned original order (both APIs failed)
+    if (optimizedChunk === chunk) {
+      anyChunkFailed = true;
+    }
     
     optimizedChunks.push(optimizedChunk);
     console.log(`  Chunk ${i + 1}/${chunks.length} optimized`);
@@ -307,6 +406,10 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   
   if (invalidAddresses.length > 0) {
     console.warn(`${invalidAddresses.length} addresses had no coordinates - appended to end of route`);
+  }
+  
+  if (anyChunkFailed) {
+    console.warn('Some chunks could not be optimized - using nearest neighbor order for those');
   }
   
   console.log('Optimization complete!');
