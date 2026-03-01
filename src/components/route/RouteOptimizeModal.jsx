@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertTriangle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
 import { optimizeWithHybrid } from '@/components/services/OptimizationService';
@@ -599,6 +599,23 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                 {savingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
               </Button>
             </div>
+          </div>
+        )}
+
+        {/* Routing Service Indicator */}
+        {userSettings?.here_api_key ? (
+          <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+            <p className="text-sm text-green-800">
+              Routing: HERE Maps (Zone Clustering Active)
+            </p>
+          </div>
+        ) : (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+            <p className="text-sm text-yellow-800">
+              Routing: MapQuest (No HERE key — zone clustering unavailable)
+            </p>
           </div>
         )}
 
