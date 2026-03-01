@@ -138,7 +138,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     try {
       const shuffled = [...addresses].sort(() => Math.random() - 0.5);
       for (let i = 0; i < shuffled.length; i++) {
-        await base44.entities.Address.update(shuffled[i].id, { order_index: i + 1 });
+        await base44.entities.Address.update(shuffled[i].id, { 
+          order_index: i + 1,
+          zone_label: null  // Clear zone labels when shuffling
+        });
       }
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       setIsOptimized(false);
