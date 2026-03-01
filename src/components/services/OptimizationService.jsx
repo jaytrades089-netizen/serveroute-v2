@@ -63,57 +63,51 @@ export function nearestNeighborSort(addresses, startLat, startLng) {
 }
 
 /**
- * Call HERE Waypoint Sequence API for a chunk of addresses
- * Falls back to MapQuest if HERE fails
+ * Call HERE Waypoint Sequence API via server-side proxy
+ * Uses Base44 backend function to avoid CORS issues
  */
 async function optimizeChunkWithHere(addresses, startLat, startLng, endLat, endLng, hereApiKey) {
-  // Build destination parameters - prefix IDs with wp_ to ensure they start with a letter
-  const destinationParams = addresses.map((addr, idx) => {
-    const lat = addr.lat || addr.latitude;
-    const lng = addr.lng || addr.longitude;
-    const waypointId = `wp_${addr.id}`;
-    return `destination${idx + 1}=${waypointId};${lat},${lng}`;
-  }).join('&');
-  
-  // PREMIUM: change to traffic:disabled for basic tier
-  const mode = 'fastest;car;traffic:enabled';
-  
-  const url = `https://wps.hereapi.com/v8/findsequence2?apiKey=${hereApiKey}&start=origin;${startLat},${startLng}&${destinationParams}&end=endpoint;${endLat},${endLng}&mode=${mode}&improveFor=time`;
-  
   try {
-    const response = await fetch(url);
+    // Build waypoints payload for server function
+    const waypoints = addresses.map(addr => ({
+      id: addr.id,
+      lat: addr.lat || addr.latitude,
+      lng: addr.lng || addr.longitude
+    }));
     
-    if (!response.ok) {
-      console.warn(`HERE API returned ${response.status}, will fallback to MapQuest`);
+    // Call server-side proxy function
+    const response = await base44.functions.invoke('optimizeCluster', {
+      hereApiKey,
+      start: { lat: startLat, lng: startLng },
+      end: { lat: endLat, lng: endLng },
+      waypoints
+    });
+    
+    const result = response.data;
+    
+    if (!result.success) {
+      console.warn('HERE optimization failed:', result.error);
       return null; // Signal to use fallback
     }
     
-    const data = await response.json();
-    
-    if (data.results?.[0]?.waypoints) {
-      const waypoints = data.results[0].waypoints;
-      const optimized = [];
-      
-      // Waypoints are already in optimized order
-      // Skip 'origin' and 'endpoint', extract address records by ID
-      for (const wp of waypoints) {
-        if (wp.id === 'origin' || wp.id === 'endpoint') continue;
-        
-        // Strip wp_ prefix to get original record ID
-        const recordId = wp.id.replace(/^wp_/, '');
-        const addr = addresses.find(a => a.id === recordId);
-        if (addr) {
-          optimized.push(addr);
-        }
+    // Reorder addresses based on returned orderedIds
+    const optimized = [];
+    for (const id of result.orderedIds) {
+      const addr = addresses.find(a => a.id === id);
+      if (addr) {
+        optimized.push(addr);
       }
-      
-      return optimized;
     }
     
-    console.warn('HERE optimization response missing waypoints');
-    return null; // Signal to use fallback
+    // Sanity check: make sure we got all addresses back
+    if (optimized.length !== addresses.length) {
+      console.warn(`HERE returned ${optimized.length} addresses but expected ${addresses.length}`);
+      // Still return what we got - better than nothing
+    }
+    
+    return optimized;
   } catch (error) {
-    console.error('HERE API error:', error);
+    console.error('HERE proxy call failed:', error);
     return null; // Signal to use fallback
   }
 }
