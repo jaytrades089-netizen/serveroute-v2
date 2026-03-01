@@ -209,6 +209,260 @@ function splitIntoChunks(addresses, chunkSize) {
 }
 
 /**
+ * ============================================================================
+ * CLUSTERING FUNCTIONS - Group addresses by geographic proximity
+ * ============================================================================
+ */
+
+/**
+ * Calculate cluster centroid (average lat/lng of all addresses in cluster)
+ */
+function calculateCentroid(addresses) {
+  if (addresses.length === 0) return { lat: 0, lng: 0 };
+  
+  let sumLat = 0, sumLng = 0;
+  for (const addr of addresses) {
+    sumLat += addr.lat || addr.latitude || 0;
+    sumLng += addr.lng || addr.longitude || 0;
+  }
+  
+  return {
+    lat: sumLat / addresses.length,
+    lng: sumLng / addresses.length
+  };
+}
+
+/**
+ * Generate zone label based on majority city in cluster
+ * Falls back to "Zone N" if no city data available
+ */
+function generateZoneLabel(addresses, zoneIndex) {
+  // Count city occurrences
+  const cityCounts = {};
+  for (const addr of addresses) {
+    const city = addr.city?.trim();
+    if (city) {
+      cityCounts[city] = (cityCounts[city] || 0) + 1;
+    }
+  }
+  
+  // Find majority city
+  let maxCount = 0;
+  let majorityCity = null;
+  for (const [city, count] of Object.entries(cityCounts)) {
+    if (count > maxCount) {
+      maxCount = count;
+      majorityCity = city;
+    }
+  }
+  
+  if (majorityCity) {
+    // Capitalize first letter of each word
+    const formatted = majorityCity.split(' ')
+      .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(' ');
+    return `${formatted} Area`;
+  }
+  
+  return `Zone ${zoneIndex + 1}`;
+}
+
+/**
+ * Cluster addresses using proximity-based grouping (nearest neighbor clustering)
+ * Returns array of clusters, each with addresses and centroid
+ */
+export function clusterAddresses(addresses) {
+  if (addresses.length === 0) return [];
+  
+  // Filter to valid addresses with coordinates
+  const validAddresses = addresses.filter(addr => {
+    const lat = addr.lat || addr.latitude;
+    const lng = addr.lng || addr.longitude;
+    return lat && lng;
+  });
+  
+  if (validAddresses.length === 0) return [];
+  
+  // Calculate number of clusters (1 per 8-10 addresses)
+  let numClusters = Math.ceil(validAddresses.length / ADDRESSES_PER_CLUSTER);
+  numClusters = Math.max(MIN_CLUSTERS, Math.min(MAX_CLUSTERS, numClusters));
+  
+  // If only 1 cluster needed, return all addresses as one cluster
+  if (numClusters === 1 || validAddresses.length <= ADDRESSES_PER_CLUSTER) {
+    const centroid = calculateCentroid(validAddresses);
+    const label = generateZoneLabel(validAddresses, 0);
+    return [{
+      addresses: validAddresses,
+      centroid,
+      label
+    }];
+  }
+  
+  // K-means style clustering with smart initialization
+  // Step 1: Pick initial centroids using furthest-first selection
+  const centroids = [];
+  const assigned = new Set();
+  
+  // First centroid: pick a random address
+  centroids.push({
+    lat: validAddresses[0].lat || validAddresses[0].latitude,
+    lng: validAddresses[0].lng || validAddresses[0].longitude
+  });
+  
+  // Remaining centroids: pick address furthest from existing centroids
+  while (centroids.length < numClusters) {
+    let maxMinDist = -1;
+    let bestAddr = null;
+    
+    for (const addr of validAddresses) {
+      const lat = addr.lat || addr.latitude;
+      const lng = addr.lng || addr.longitude;
+      
+      // Find minimum distance to any existing centroid
+      let minDist = Infinity;
+      for (const c of centroids) {
+        const dist = calculateDistanceFeet(lat, lng, c.lat, c.lng);
+        minDist = Math.min(minDist, dist);
+      }
+      
+      if (minDist > maxMinDist) {
+        maxMinDist = minDist;
+        bestAddr = addr;
+      }
+    }
+    
+    if (bestAddr) {
+      centroids.push({
+        lat: bestAddr.lat || bestAddr.latitude,
+        lng: bestAddr.lng || bestAddr.longitude
+      });
+    }
+  }
+  
+  // Step 2: Assign addresses to nearest centroid
+  const clusters = centroids.map(() => ({ addresses: [] }));
+  
+  for (const addr of validAddresses) {
+    const lat = addr.lat || addr.latitude;
+    const lng = addr.lng || addr.longitude;
+    
+    let nearestIdx = 0;
+    let nearestDist = Infinity;
+    
+    for (let i = 0; i < centroids.length; i++) {
+      const dist = calculateDistanceFeet(lat, lng, centroids[i].lat, centroids[i].lng);
+      if (dist < nearestDist) {
+        nearestDist = dist;
+        nearestIdx = i;
+      }
+    }
+    
+    clusters[nearestIdx].addresses.push(addr);
+  }
+  
+  // Step 3: Merge any single-address clusters into nearest cluster
+  let merged = true;
+  while (merged) {
+    merged = false;
+    for (let i = clusters.length - 1; i >= 0; i--) {
+      if (clusters[i].addresses.length === 1 && clusters.length > 1) {
+        const loneAddr = clusters[i].addresses[0];
+        const loneLat = loneAddr.lat || loneAddr.latitude;
+        const loneLng = loneAddr.lng || loneAddr.longitude;
+        
+        // Find nearest other cluster
+        let nearestIdx = -1;
+        let nearestDist = Infinity;
+        
+        for (let j = 0; j < clusters.length; j++) {
+          if (j === i || clusters[j].addresses.length === 0) continue;
+          
+          const otherCentroid = calculateCentroid(clusters[j].addresses);
+          const dist = calculateDistanceFeet(loneLat, loneLng, otherCentroid.lat, otherCentroid.lng);
+          
+          if (dist < nearestDist) {
+            nearestDist = dist;
+            nearestIdx = j;
+          }
+        }
+        
+        if (nearestIdx >= 0) {
+          clusters[nearestIdx].addresses.push(loneAddr);
+          clusters.splice(i, 1);
+          merged = true;
+          break;
+        }
+      }
+    }
+  }
+  
+  // Remove empty clusters
+  const finalClusters = clusters.filter(c => c.addresses.length > 0);
+  
+  // Step 4: Recalculate centroids and generate labels
+  for (let i = 0; i < finalClusters.length; i++) {
+    finalClusters[i].centroid = calculateCentroid(finalClusters[i].addresses);
+    finalClusters[i].label = generateZoneLabel(finalClusters[i].addresses, i);
+  }
+  
+  return finalClusters;
+}
+
+/**
+ * Order clusters by proximity starting from start point
+ * Last cluster is the one closest to the end point
+ */
+export function orderClusters(clusters, startLat, startLng, endLat, endLng) {
+  if (clusters.length <= 1) return clusters;
+  
+  const ordered = [];
+  const remaining = [...clusters];
+  let currentLat = startLat;
+  let currentLng = startLng;
+  
+  // Order all but the last cluster by nearest-first from current position
+  while (remaining.length > 1) {
+    let nearestIdx = 0;
+    let nearestDist = Infinity;
+    
+    // If only 2 remaining, pick the one NOT closest to endpoint for next
+    // (save the one closest to endpoint for last)
+    if (remaining.length === 2 && endLat && endLng) {
+      const dist0 = calculateDistanceFeet(remaining[0].centroid.lat, remaining[0].centroid.lng, endLat, endLng);
+      const dist1 = calculateDistanceFeet(remaining[1].centroid.lat, remaining[1].centroid.lng, endLat, endLng);
+      nearestIdx = dist0 < dist1 ? 1 : 0; // Pick the one FURTHER from end
+    } else {
+      for (let i = 0; i < remaining.length; i++) {
+        const dist = calculateDistanceFeet(currentLat, currentLng, 
+          remaining[i].centroid.lat, remaining[i].centroid.lng);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestIdx = i;
+        }
+      }
+    }
+    
+    const next = remaining.splice(nearestIdx, 1)[0];
+    ordered.push(next);
+    currentLat = next.centroid.lat;
+    currentLng = next.centroid.lng;
+  }
+  
+  // Add the last remaining cluster
+  if (remaining.length > 0) {
+    ordered.push(remaining[0]);
+  }
+  
+  return ordered;
+}
+
+/**
+ * ============================================================================
+ * GEOCODING FUNCTIONS
+ * ============================================================================
+ */
+
+/**
  * Geocode an address using HERE Maps
  * Returns { lat, lng } or null if failed
  */
