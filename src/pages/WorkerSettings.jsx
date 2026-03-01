@@ -194,7 +194,24 @@ export default function WorkerSettings() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <Label>HERE Maps API Key</Label>
+              <p className="text-xs text-gray-500 mb-1">Primary routing service. Enter your HERE platform API key.</p>
+              <Input
+                type="password"
+                placeholder="Enter your HERE API key"
+                value={settings?.here_api_key || ''}
+                onChange={(e) => updateSettingsMutation.mutate({ 
+                  here_api_key: e.target.value,
+                  here_key_validated: false
+                })}
+              />
+              {settings?.here_key_validated && (
+                <p className="text-xs text-green-600 mt-1">✓ Key validated</p>
+              )}
+            </div>
+            <div>
               <Label>MapQuest API Key</Label>
+              <p className="text-xs text-gray-500 mb-1">Fallback routing service. Used if HERE Maps is unavailable.</p>
               <Input
                 type="password"
                 placeholder="Enter your MapQuest API key"
