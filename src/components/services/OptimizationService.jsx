@@ -1,9 +1,13 @@
-// OptimizationService.js - Hybrid route optimization with Nearest Neighbor + HERE Maps / MapQuest
+// OptimizationService.js - Cluster-First Zone-Based Route Optimization
+// Groups addresses by geographic area, orders zones, then optimizes within each zone
 
 import { base44 } from '@/api/base44Client';
 
 const MAPQUEST_LIMIT = 25;
 const HERE_LIMIT = 48; // 50 max waypoints minus start and end
+const ADDRESSES_PER_CLUSTER = 8; // Target addresses per cluster
+const MIN_CLUSTERS = 1;
+const MAX_CLUSTERS = 10;
 
 /**
  * Calculate distance between two points in feet using Haversine formula
