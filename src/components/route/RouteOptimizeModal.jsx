@@ -283,13 +283,16 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       console.log(`Optimizing ${validAddresses.length} addresses using hybrid algorithm...`);
 
       // Use the hybrid optimization (handles large routes automatically)
+      // Pass HERE API key if available for cluster-first optimization
+      const hereApiKey = userSettings?.here_api_key || null;
       const optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
         startLat,
         startLng,
         endLocation.latitude,
         endLocation.longitude,
-        apiKey
+        apiKey,
+        hereApiKey
       );
 
       // Calculate route metrics using MapQuest directions API
