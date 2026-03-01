@@ -1,8 +1,9 @@
-// OptimizationService.js - Hybrid route optimization with Nearest Neighbor + MapQuest
+// OptimizationService.js - Hybrid route optimization with Nearest Neighbor + HERE Maps / MapQuest
 
 import { base44 } from '@/api/base44Client';
 
 const MAPQUEST_LIMIT = 25;
+const HERE_LIMIT = 48; // 50 max waypoints minus start and end
 
 /**
  * Calculate distance between two points in feet using Haversine formula
