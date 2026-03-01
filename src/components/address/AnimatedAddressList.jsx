@@ -2,6 +2,19 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, ChevronDown, Clock, MapPin } from 'lucide-react';
 import AddressCard from './AddressCard';
 
+// Zone divider component - non-interactive label row
+function ZoneDivider({ label }) {
+  return (
+    <div className="flex items-center gap-3 py-2 px-1">
+      <div className="flex-1 h-px bg-gray-300" />
+      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
+        {label}
+      </span>
+      <div className="flex-1 h-px bg-gray-300" />
+    </div>
+  );
+}
+
 export default function AnimatedAddressList({
   addresses,
   attempts,
@@ -10,7 +23,8 @@ export default function AnimatedAddressList({
   lastAttemptMap,
   allAttemptsMap,
   editMode = false,
-  route = null
+  route = null,
+  showZoneLabels = true
 }) {
   // Animation state
   const [animatingCardId, setAnimatingCardId] = useState(null);
