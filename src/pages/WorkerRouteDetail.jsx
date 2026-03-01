@@ -678,6 +678,7 @@ export default function WorkerRouteDetail() {
             allAttemptsMap={allAttemptsMap}
             editMode={editMode}
             route={route}
+            showZoneLabels={userSettings?.show_zone_labels !== false}
           />
         )}
         
