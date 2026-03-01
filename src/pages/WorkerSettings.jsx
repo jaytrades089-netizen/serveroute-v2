@@ -183,6 +183,17 @@ export default function WorkerSettings() {
                 onChange={(e) => updateSettingsMutation.mutate({ default_ending_location: e.target.value })}
               />
             </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <div>
+                <Label>Show Area Labels on Route</Label>
+                <p className="text-xs text-gray-500">Groups stops by area when viewing an optimized route</p>
+              </div>
+              <Switch
+                checked={settings?.show_zone_labels !== false}
+                onCheckedChange={(checked) => updateSettingsMutation.mutate({ show_zone_labels: checked })}
+              />
+            </div>
           </CardContent>
         </Card>
 
