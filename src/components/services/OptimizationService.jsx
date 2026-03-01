@@ -59,6 +59,62 @@ export function nearestNeighborSort(addresses, startLat, startLng) {
 }
 
 /**
+ * Call HERE Waypoint Sequence API for a chunk of addresses
+ * Falls back to MapQuest if HERE fails
+ */
+async function optimizeChunkWithHere(addresses, startLat, startLng, endLat, endLng, hereApiKey) {
+  // Build destination parameters - prefix IDs with wp_ to ensure they start with a letter
+  const destinationParams = addresses.map((addr, idx) => {
+    const lat = addr.lat || addr.latitude;
+    const lng = addr.lng || addr.longitude;
+    const waypointId = `wp_${addr.id}`;
+    return `destination${idx + 1}=${waypointId};${lat},${lng}`;
+  }).join('&');
+  
+  // PREMIUM: change to traffic:disabled for basic tier
+  const mode = 'fastest;car;traffic:enabled';
+  
+  const url = `https://wps.hereapi.com/v8/findsequence2?apiKey=${hereApiKey}&start=origin;${startLat},${startLng}&${destinationParams}&end=endpoint;${endLat},${endLng}&mode=${mode}&improveFor=time`;
+  
+  try {
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      console.warn(`HERE API returned ${response.status}, will fallback to MapQuest`);
+      return null; // Signal to use fallback
+    }
+    
+    const data = await response.json();
+    
+    if (data.results?.[0]?.waypoints) {
+      const waypoints = data.results[0].waypoints;
+      const optimized = [];
+      
+      // Waypoints are already in optimized order
+      // Skip 'origin' and 'endpoint', extract address records by ID
+      for (const wp of waypoints) {
+        if (wp.id === 'origin' || wp.id === 'endpoint') continue;
+        
+        // Strip wp_ prefix to get original record ID
+        const recordId = wp.id.replace(/^wp_/, '');
+        const addr = addresses.find(a => a.id === recordId);
+        if (addr) {
+          optimized.push(addr);
+        }
+      }
+      
+      return optimized;
+    }
+    
+    console.warn('HERE optimization response missing waypoints');
+    return null; // Signal to use fallback
+  } catch (error) {
+    console.error('HERE API error:', error);
+    return null; // Signal to use fallback
+  }
+}
+
+/**
  * Call MapQuest Optimized Route API for a chunk of addresses
  */
 async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, endLng, apiKey) {
@@ -104,11 +160,37 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
     }
     
     console.warn('MapQuest optimization failed, returning original order');
-    return addresses;
+    return null; // Return null to signal failure
   } catch (error) {
     console.error('MapQuest API error:', error);
-    return addresses;
+    return null; // Return null to signal failure
   }
+}
+
+/**
+ * Optimize a chunk using HERE with MapQuest fallback
+ */
+async function optimizeChunk(addresses, startLat, startLng, endLat, endLng, hereApiKey, mapquestApiKey) {
+  // Try HERE first if key is available
+  if (hereApiKey) {
+    const hereResult = await optimizeChunkWithHere(addresses, startLat, startLng, endLat, endLng, hereApiKey);
+    if (hereResult) {
+      return hereResult;
+    }
+    console.log('HERE optimization failed, falling back to MapQuest');
+  }
+  
+  // Fallback to MapQuest
+  if (mapquestApiKey) {
+    const mqResult = await optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, endLng, mapquestApiKey);
+    if (mqResult) {
+      return mqResult;
+    }
+  }
+  
+  // Both failed - return original order
+  console.error('Both HERE and MapQuest optimization failed');
+  return addresses;
 }
 
 /**
