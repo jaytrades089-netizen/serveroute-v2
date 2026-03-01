@@ -42,6 +42,16 @@ export default function WorkerRouteDetail() {
     queryFn: () => base44.auth.me()
   });
 
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
   // Set worker status to active when viewing a route
   useEffect(() => {
     if (!user?.id) return;
