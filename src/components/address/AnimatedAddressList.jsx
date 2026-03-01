@@ -198,33 +198,46 @@ export default function AnimatedAddressList({
       {activeAddresses.length > 0 && (
         <div>
           <div className="space-y-4">
-            {activeAddresses.map((address, index) => (
-              <div
-                key={address.id}
-                className={`
-                  relative transition-all duration-300
-                  ${animatingCardId === address.id ? 'animate-slide-out-right' : ''}
-                  ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
-                `}
-              >
-                {/* Order number badge - use visual position (index + 1) */}
-                <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
-                  {index + 1}
-                </div>
-                <AddressCard
-                  address={address}
-                  routeId={routeId}
-                  showActions={true}
-                  onMessageBoss={onMessageBoss}
-                  lastAttempt={lastAttemptMap[address.id]}
-                  allAttempts={allAttemptsMap[address.id] || []}
-                  onAttemptLogged={() => handleAttemptLogged(address.id)}
-                  onServed={() => handleAddressServed(address.id)}
-                  editMode={editMode}
-                  isHighlighted={highlightedAddressId === address.id}
-                />
-              </div>
-            ))}
+            {activeAddresses.map((address, index) => {
+              // Check if this address starts a new zone
+              const prevAddress = index > 0 ? activeAddresses[index - 1] : null;
+              const showZoneDivider = showZoneLabels && 
+                address.zone_label && 
+                (!prevAddress || prevAddress.zone_label !== address.zone_label);
+              
+              return (
+                <React.Fragment key={address.id}>
+                  {/* Zone divider - appears before first address of each zone */}
+                  {showZoneDivider && (
+                    <ZoneDivider label={address.zone_label} />
+                  )}
+                  <div
+                    className={`
+                      relative transition-all duration-300
+                      ${animatingCardId === address.id ? 'animate-slide-out-right' : ''}
+                      ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
+                    `}
+                  >
+                    {/* Order number badge - use visual position (index + 1) */}
+                    <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                      {index + 1}
+                    </div>
+                    <AddressCard
+                      address={address}
+                      routeId={routeId}
+                      showActions={true}
+                      onMessageBoss={onMessageBoss}
+                      lastAttempt={lastAttemptMap[address.id]}
+                      allAttempts={allAttemptsMap[address.id] || []}
+                      onAttemptLogged={() => handleAttemptLogged(address.id)}
+                      onServed={() => handleAddressServed(address.id)}
+                      editMode={editMode}
+                      isHighlighted={highlightedAddressId === address.id}
+                    />
+                  </div>
+                </React.Fragment>
+              );
+            })}
           </div>
         </div>
       )}
