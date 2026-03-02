@@ -215,8 +215,18 @@ export default function RouteCard({
               : 'bg-white border border-gray-200'
       } ${className}`}
     >
+      {/* Overdue Banner */}
+      {isOverdue && !isCompleted && (
+        <div className="px-4 py-2 bg-red-500 border-b border-red-600">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-white" />
+            <span className="text-xs font-bold text-white uppercase tracking-wide">OVERDUE - Past Due Date</span>
+          </div>
+        </div>
+      )}
+
       {/* Worker Edit Mode Banner */}
-      {workerCanEdit && (
+      {workerCanEdit && !isOverdue && (
         <div className="px-4 py-2 bg-orange-100 border-b border-orange-300">
           <div className="flex items-center gap-2">
             <Pencil className="w-4 h-4 text-orange-600" />
@@ -226,7 +236,7 @@ export default function RouteCard({
       )}
 
       {/* Active Route Indicator */}
-      {isActiveRoute && !workerCanEdit && (
+      {isActiveRoute && !workerCanEdit && !isOverdue && (
         <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
