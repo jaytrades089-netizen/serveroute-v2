@@ -16,7 +16,8 @@ import {
   User,
   Calendar,
   MessageSquare,
-  FileText
+  FileText,
+  RotateCcw
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { toast } from 'sonner';
 const typeConfig = {
   route_completed: { icon: CheckCheck, color: 'text-green-600', bg: 'bg-green-100' },
   address_flagged: { icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-100' },
+  address_rto: { icon: RotateCcw, color: 'text-red-600', bg: 'bg-red-100' },
   worker_offline: { icon: User, color: 'text-gray-600', bg: 'bg-gray-100' },
   vacation_request: { icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-100' },
   route_needs_reassignment: { icon: MapPin, color: 'text-amber-600', bg: 'bg-amber-100' },

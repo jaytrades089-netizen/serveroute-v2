@@ -239,8 +239,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
-      // Geocode addresses that don't have coordinates
-      let validAddresses = [...addresses];
+      // Exclude addresses already completed in any form — served, done via attempts, or RTO
+      let validAddresses = addresses.filter(addr =>
+        !addr.served &&
+        addr.status !== 'served' &&
+        addr.status !== 'completed' &&
+        addr.status !== 'returned'
+      );
+
+      if (validAddresses.length < addresses.length) {
+        const excluded = addresses.length - validAddresses.length;
+        console.log(`Excluded ${excluded} completed address(es) from optimization`);
+      }
+      
       const needsGeocoding = validAddresses.filter(a => !a.lat || !a.lng);
       
       if (needsGeocoding.length > 0) {
