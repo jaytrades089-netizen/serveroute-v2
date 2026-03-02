@@ -168,10 +168,10 @@ export default function WorkerRoutes() {
     if (filter === 'completed') return route.status === 'completed';
     if (filter === 'archived') return route.status === 'archived';
     if (filter === 'due-soon') {
-      return route.status !== 'completed' && 
-             route.status !== 'archived' &&
-             route.spread_due_date && 
-             new Date(route.spread_due_date) <= nextPayrollDate;
+      if (route.status === 'completed' || route.status === 'archived') return false;
+      const spreadDate = route.first_attempt_deadline || route.spread_due_date;
+      if (!spreadDate) return false;
+      return new Date(spreadDate) <= nextPayrollDate;
     }
     return true;
   });
