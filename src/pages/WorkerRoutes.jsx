@@ -170,8 +170,8 @@ export default function WorkerRoutes() {
     if (filter === 'due-soon') {
       return route.status !== 'completed' && 
              route.status !== 'archived' &&
-             route.due_date && 
-             new Date(route.due_date) <= nextPayrollDate;
+             route.spread_due_date && 
+             new Date(route.spread_due_date) <= nextPayrollDate;
     }
     return true;
   });

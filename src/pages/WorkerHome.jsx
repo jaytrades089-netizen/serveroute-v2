@@ -206,8 +206,8 @@ export default function WorkerHome() {
   const dueSoonRoutes = routes.filter(r => 
     r.status !== 'completed' && 
     r.status !== 'archived' &&
-    r.due_date && 
-    new Date(r.due_date) <= nextPayrollDate
+    r.spread_due_date && 
+    new Date(r.spread_due_date) <= nextPayrollDate
   );
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';
