@@ -342,7 +342,7 @@ export default function RouteCard({
                     today.setHours(0, 0, 0, 0);
                     spreadDueDate.setHours(0, 0, 0, 0);
                     const daysLeft = Math.ceil((spreadDueDate - today) / (1000 * 60 * 60 * 24));
-                    return `${daysLeft} days`;
+                    return `Spread: ${daysLeft} Days`;
                   })()}
                 </span>
               )}
