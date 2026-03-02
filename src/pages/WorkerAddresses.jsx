@@ -20,17 +20,22 @@ export default function WorkerAddresses() {
     enabled: !!user?.id
   });
 
+  // Filter to only active/assigned/ready routes (exclude archived/completed)
+  const activeRoutes = routes.filter(r => 
+    r.status === 'active' || r.status === 'assigned' || r.status === 'ready'
+  );
+
   const { data: addresses = [], isLoading } = useQuery({
-    queryKey: ['workerAddresses', routes],
+    queryKey: ['workerAddresses', activeRoutes.map(r => r.id).join(',')],
     queryFn: async () => {
-      if (routes.length === 0) return [];
-      const addressPromises = routes.map(r => 
+      if (activeRoutes.length === 0) return [];
+      const addressPromises = activeRoutes.map(r => 
         base44.entities.Address.filter({ route_id: r.id, deleted_at: null })
       );
       const results = await Promise.all(addressPromises);
       return results.flat().filter(a => !a.served);
     },
-    enabled: routes.length > 0
+    enabled: activeRoutes.length > 0
   });
 
   const { data: notifications = [] } = useQuery({
