@@ -1275,11 +1275,6 @@ export default function AddressCard({
                   <span className="text-xs font-bold text-gray-700 tracking-wide">
                     ATTEMPTS SUMMARY
                   </span>
-                  {isPriority && (
-                    <Badge className="bg-orange-500 text-white text-[10px] px-2 py-0.5">
-                      PRIORITY
-                    </Badge>
-                  )}
                 </div>
 
                 {/* Attempt Timeline */}
