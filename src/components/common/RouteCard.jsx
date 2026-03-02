@@ -142,7 +142,6 @@ export default function RouteCard({
     if (onClick) {
       onClick(route);
     } else if (linkTo) {
-      // Check if linkTo already has query params
       const url = linkTo.includes('?') ? linkTo : linkTo;
       navigate(createPageUrl(url));
     } else if (isBossView) {
@@ -153,16 +152,62 @@ export default function RouteCard({
   };
 
   const isActiveRoute = route.status === 'active';
+  
+  // Calculate stats
+  const totalAddresses = route.total_addresses || 0;
+  const servedCount = route.served_count || 0;
+  const pendingCount = totalAddresses - servedCount;
+  
+  // Calculate HAS/NEEDS qualifiers
+  const servedAddressIds = new Set();
+  (attempts || []).forEach(att => {
+    if (att.outcome === 'served') {
+      servedAddressIds.add(att.address_id);
+    }
+  });
+  
+  const unservedAttemptsByAddress = {};
+  (attempts || []).forEach(att => {
+    if (!servedAddressIds.has(att.address_id)) {
+      if (!unservedAttemptsByAddress[att.address_id]) {
+        unservedAttemptsByAddress[att.address_id] = [];
+      }
+      unservedAttemptsByAddress[att.address_id].push(att);
+    }
+  });
+  
+  const routeHas = { AM: false, PM: false, WEEKEND: false };
+  Object.values(unservedAttemptsByAddress).forEach(addressAttempts => {
+    addressAttempts.forEach(att => {
+      if (att.has_am) routeHas.AM = true;
+      if (att.has_pm) routeHas.PM = true;
+      if (att.has_weekend) routeHas.WEEKEND = true;
+    });
+  });
+  
+  const unservedCount = totalAddresses - servedCount;
+  let routeNeeds = { AM: false, PM: false, WEEKEND: false };
+  if (unservedCount > 0) {
+    routeNeeds.AM = !routeHas.AM;
+    routeNeeds.PM = !routeHas.PM;
+    routeNeeds.WEEKEND = !routeHas.WEEKEND;
+  }
+  
+  const earnedBadges = Object.keys(routeHas).filter(k => routeHas[k]);
+  const neededBadges = Object.keys(routeNeeds).filter(k => routeNeeds[k]);
+  
+  // Spread days from route
+  const spreadDays = route.minimum_days_spread || route.spread_type || 14;
 
   return (
     <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
+      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] bg-white border border-gray-200 ${
         workerCanEdit
           ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
           : isActiveRoute 
-            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-orange-50 border-orange-200' 
-            : 'bg-white border border-gray-100'
+            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30' 
+            : ''
       } ${className}`}
     >
       {/* Worker Edit Mode Banner */}
@@ -188,374 +233,143 @@ export default function RouteCard({
         </div>
       )}
 
-      {/* Header Section with Gradient */}
-      <div className={`px-4 py-4 ${
-        isCompleted ? 'bg-gradient-to-r from-green-50 to-emerald-50' :
-        isOverdue ? 'bg-gradient-to-r from-red-50 to-orange-50' :
-        isDueSoon ? 'bg-gradient-to-r from-orange-50 to-yellow-50' :
-        'bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50'
-      }`}>
-        <div className="flex items-start gap-3">
-          {/* Route Icon */}
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-            isCompleted ? 'bg-green-100' :
-            isOverdue ? 'bg-red-100' :
-            isDueSoon ? 'bg-orange-100' :
-            'bg-indigo-100'
-          }`}>
-            {isCompleted ? (
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            ) : isOverdue || isDueSoon ? (
-              <AlertTriangle className="w-6 h-6 text-orange-600" />
-            ) : (
-              <MapPin className="w-6 h-6 text-indigo-600" />
-            )}
-          </div>
-          
+      {/* Header: Route Name + Address Count + Spread Badge */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            {/* Route Name */}
-            <p className={`text-lg font-bold leading-tight ${
-              isCompleted ? 'text-gray-500' : 'text-gray-900'
-            }`}>
-              {route.folder_name}
-            </p>
-            {/* Worker name or description */}
-            {showWorker && workerName ? (
-              <p className="text-sm text-gray-500 flex items-center gap-1">
+            <h3 className="text-xl font-bold text-gray-900 leading-tight">
+              {route.folder_name} - {totalAddresses} Address{totalAddresses !== 1 ? 'es' : ''}
+            </h3>
+            {showWorker && workerName && (
+              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
                 <User className="w-3 h-3" /> {workerName}
               </p>
-            ) : route.description ? (
-              <p className="text-sm text-gray-500 truncate">{route.description}</p>
-            ) : null}
-          </div>
-
-          {/* Status Badge */}
-          <div className="flex-shrink-0 flex items-center gap-2">
-            <div className={`px-3 py-1.5 rounded-lg border-2 text-center ${
-              isCompleted ? 'border-green-300 bg-green-50' :
-              isOverdue ? 'border-red-300 bg-red-50' :
-              isDueSoon ? 'border-orange-300 bg-orange-50' :
-              'border-indigo-300 bg-white'
-            }`}>
-              <div className={`text-[10px] font-bold ${
-                isCompleted ? 'text-green-600' :
-                isOverdue ? 'text-red-600' :
-                isDueSoon ? 'text-orange-600' :
-                'text-indigo-600'
-              }`}>
-                {statusConfig.label}
-              </div>
-            </div>
-            {showActions && onMenuClick && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={(e) => { e.stopPropagation(); onMenuClick(route); }}
-              >
-                <MoreVertical className="w-4 h-4 text-gray-400" />
-              </Button>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Progress Section */}
-      <div className="px-4 py-3 border-t border-gray-100">
-        {/* Progress Stats */}
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-gray-700 tracking-wide">
-            PROGRESS
-          </span>
-          <div className="flex items-center gap-3">
-            {/* Attempts Badge - shows current attempt round out of required */}
-            {(() => {
-              const requiredAttempts = route.required_attempts || 3;
-              
-              // Count completed attempts per address, then find the common/minimum round
-              const attemptsByAddress = {};
-              (attempts || []).forEach(att => {
-                if (att.status === 'completed') {
-                  attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
-                }
-              });
-              
-              // Get the attempt counts - if all addresses have same count, that's our round
-              const counts = Object.values(attemptsByAddress);
-              const currentRound = counts.length > 0 ? Math.min(...counts) : 0;
-              
-              return (
-                <div className="flex items-center gap-1 bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
-                  <Zap className="w-3 h-3" />
-                  <span className="text-xs font-bold">
-                    {currentRound}/{requiredAttempts}
-                  </span>
-                </div>
-              );
-            })()}
-            <span className="text-sm font-bold text-gray-900">
-              {route.served_count || 0} / {route.total_addresses || 0}
+          <div className="flex-shrink-0 ml-3">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-bold">
+              {spreadDays}d
             </span>
           </div>
         </div>
+      </div>
 
-        {/* Progress Bar */}
-        <ProgressBar served={route.served_count || 0} total={route.total_addresses || 0} />
+      {/* Stats Row: Total / Served / Pending */}
+      <div className="px-4 pb-3">
+        <div className="grid grid-cols-3 gap-3">
+          {/* Total */}
+          <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+            <p className="text-3xl font-bold text-blue-600">{totalAddresses}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Total</p>
+          </div>
+          
+          {/* Served */}
+          <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+            <p className="text-3xl font-bold text-green-600">{servedCount}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Served</p>
+          </div>
+          
+          {/* Pending */}
+          <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+            <p className="text-3xl font-bold text-orange-500">{pendingCount}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Pending</p>
+          </div>
+        </div>
+      </div>
 
-        {/* HAS / DUE / NEEDS Boxes - ALWAYS VISIBLE */}
-        {(() => {
-          // HAS = qualifiers earned on UNSERVED addresses only (work in progress)
-          // NEEDS = qualifiers still needed on unserved addresses
-          // Served addresses are IGNORED - serving one on weekend doesn't count for others
-          
-          // Get served address IDs
-          const servedAddressIds = new Set();
-          (attempts || []).forEach(att => {
-            if (att.outcome === 'served') {
-              servedAddressIds.add(att.address_id);
-            }
-          });
-          
-          // Group attempts by UNSERVED addresses only
-          const unservedAttemptsByAddress = {};
-          (attempts || []).forEach(att => {
-            if (!servedAddressIds.has(att.address_id)) {
-              if (!unservedAttemptsByAddress[att.address_id]) {
-                unservedAttemptsByAddress[att.address_id] = [];
-              }
-              unservedAttemptsByAddress[att.address_id].push(att);
-            }
-          });
-          
-          // HAS = union of qualifiers earned across all UNSERVED addresses
-          const routeHas = { AM: false, PM: false, WEEKEND: false };
-          Object.values(unservedAttemptsByAddress).forEach(addressAttempts => {
-            addressAttempts.forEach(att => {
-              if (att.has_am) routeHas.AM = true;
-              if (att.has_pm) routeHas.PM = true;
-              if (att.has_weekend) routeHas.WEEKEND = true;
-            });
-          });
-          
-          // NEEDS = what's NOT yet earned on unserved addresses
-          const unservedCount = (route.total_addresses || 0) - (route.served_count || 0);
-          let routeNeeds = { AM: false, PM: false, WEEKEND: false };
-          if (unservedCount > 0) {
-            routeNeeds.AM = !routeHas.AM;
-            routeNeeds.PM = !routeHas.PM;
-            routeNeeds.WEEKEND = !routeHas.WEEKEND;
-          }
-          
-          const earnedBadges = Object.keys(routeHas).filter(k => routeHas[k]);
-          const neededBadges = Object.keys(routeNeeds).filter(k => routeNeeds[k]);
-          
-          const spreadDate = route.first_attempt_date 
-            ? calculateSpreadDate(route.first_attempt_date, route.spread_type || '14')
-            : null;
-          const isSpreadPassed = spreadDate && new Date() > spreadDate;
-          
-          return (
-            <div className="grid grid-cols-3 gap-2 mt-3">
-              {/* HAS Box */}
-              <div className="bg-green-50 rounded-lg p-2 border border-green-200">
-                <p className="text-[10px] font-semibold text-green-700 mb-1">HAS</p>
-                {earnedBadges.length > 0 ? (
+      {/* HAS / DUE / NEEDS Row */}
+      <div className="px-4 pb-3">
+        <div className="grid grid-cols-3 gap-3">
+          {/* HAS */}
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Has</p>
+            <div className="bg-green-50 rounded-xl p-2.5 border border-green-200 min-h-[60px] flex items-center justify-center">
+              {earnedBadges.length > 0 ? (
+                <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={earnedBadges} size="small" />
-                ) : (
-                  <p className="text-[10px] text-gray-400">None yet</p>
-                )}
-              </div>
-              
-              {/* DUE Box */}
-              <div className={`rounded-lg p-2 border ${
-                isOverdue 
-                  ? 'bg-red-50 border-red-300' 
-                  : 'bg-blue-50 border-blue-200'
+                </div>
+              ) : (
+                <span className="text-sm text-gray-400">None</span>
+              )}
+            </div>
+          </div>
+          
+          {/* DUE */}
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Due</p>
+            <div className={`rounded-xl p-2.5 border min-h-[60px] flex flex-col items-center justify-center ${
+              isOverdue 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-purple-50 border-purple-200'
+            }`}>
+              <span className={`text-sm font-medium ${
+                isOverdue ? 'text-red-600' : 'text-purple-600'
               }`}>
-                <p className={`text-[10px] font-semibold mb-1 ${
-                  isOverdue ? 'text-red-700' : 'text-blue-700'
-                }`}>DUE</p>
-                <p className={`text-xs font-bold ${
-                  isOverdue ? 'text-red-600' : 'text-blue-600'
-                }`}>
-                  {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'N/A'}
-                </p>
-                {route.first_attempt_date && (
-                  <p className={`text-[9px] mt-0.5 ${
-                    isOverdue ? 'text-red-500' : 'text-blue-500'
-                  }`}>
-                    3rd: {(() => {
-                      const firstAttempt = new Date(route.first_attempt_date);
-                      const spreadDays = route.minimum_days_spread || 14;
-                      const spreadDueDate = new Date(firstAttempt);
-                      spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
-                      return format(spreadDueDate, 'MMM d');
-                    })()}
-                  </p>
-                )}
-                {!route.first_attempt_date && route.due_date && (
-                  <p className={`text-[9px] mt-0.5 ${
-                    isOverdue ? 'text-red-500' : 'text-blue-500'
-                  }`}>
-                    {(() => {
-                      const days = differenceInDays(new Date(route.due_date), new Date());
-                      if (days < 0) return `${Math.abs(days)}d overdue`;
-                      if (days === 0) return 'Due today';
-                      return `Due: ${days} days`;
-                    })()}
-                  </p>
-                )}
-              </div>
-              
-              {/* NEEDS Box */}
-              <div className="bg-amber-50 rounded-lg p-2 border border-amber-200">
-                <p className="text-[10px] font-semibold text-amber-700 mb-1">NEEDS</p>
-                {neededBadges.length > 0 ? (
-                  <QualifierBadges badges={neededBadges} size="small" />
-                ) : (
-                  <p className="text-[10px] text-green-600 font-semibold">✓ Done</p>
-                )}
-                <p className="text-[9px] mt-1 text-amber-600">
-                  Spread: {route.minimum_days_spread || 14} days
-                </p>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* OPTIMIZATION METRICS - SHOW IF ROUTE HAS BEEN OPTIMIZED */}
-        {route.total_miles != null && (
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {/* Start Time (if started) or Total Miles (if not started) */}
-            {route.started_at ? (
-              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                <p className="text-lg font-bold text-blue-600">
-                  {new Date(route.started_at).toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                  })}
-                </p>
-                <p className="text-[10px] text-blue-500 font-medium">Started</p>
-              </div>
-            ) : (
-              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                <p className="text-lg font-bold text-blue-600">
-                  {route.total_miles?.toFixed(1)}
-                </p>
-                <p className="text-[10px] text-blue-500 font-medium">Total Mi</p>
-              </div>
-            )}
-            
-            {/* Miles Remaining + Duration (SPLIT BOX) */}
-            <div className="bg-purple-50 rounded-lg overflow-hidden border border-purple-200">
-              <div className="p-1.5 text-center border-b border-purple-200">
-                <p className="text-lg font-bold text-purple-600">
-                  {(() => {
-                    if (!route.started_at) return route.total_miles?.toFixed(1) || '0';
-                    const totalAddresses = route.total_addresses || 0;
-                    const completedCount = route.served_count || 0;
-                    if (totalAddresses === 0) return route.total_miles?.toFixed(1) || '0';
-                    const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
-                    return (route.total_miles * remainingPercentage).toFixed(1);
-                  })()}
-                  <span className="text-xs ml-0.5">mi</span>
-                </p>
-                {route.started_at && (
-                  <p className="text-[9px] text-purple-400">remaining</p>
-                )}
-              </div>
-              <div className="p-1 text-center bg-purple-100/50">
-                <p className="text-sm font-semibold text-purple-700">
-                  {(() => {
-                    const totalMinutes = route.est_total_minutes || route.total_drive_time_minutes || 0;
-                    if (!totalMinutes) return '--';
-                    const hours = Math.floor(totalMinutes / 60);
-                    const minutes = totalMinutes % 60;
-                    if (hours === 0) return `${minutes}m`;
-                    if (minutes === 0) return `${hours}h`;
-                    return `${hours}h ${minutes}m`;
-                  })()}
-                </p>
-              </div>
-            </div>
-            
-            {/* Est Completion */}
-            <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-              <p className="text-lg font-bold text-green-600">
-                {route.est_completion_time 
-                  ? new Date(route.est_completion_time).toLocaleTimeString('en-US', {
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })
-                  : '--:--'
-                }
-              </p>
-              <p className="text-[10px] text-green-500 font-medium">
-                {route.started_at ? 'Est. Done' : 'Est. Time'}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ACTIVE ROUTE EXTRA PROGRESS INFO */}
-        {isActiveRoute && route.total_miles != null && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex justify-between text-xs text-gray-500 mb-1">
-              <span>{progress}% complete</span>
-              <span className="text-purple-600 font-medium">
-                {(() => {
-                  const totalAddresses = route.total_addresses || 0;
-                  const completedCount = route.served_count || 0;
-                  if (totalAddresses === 0) return route.total_miles?.toFixed(1) || '0';
-                  const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
-                  return (route.total_miles * remainingPercentage).toFixed(1);
-                })()} mi left
+                {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'No date'}
               </span>
+              {route.first_attempt_date && (
+                <span className={`text-[10px] mt-0.5 ${
+                  isOverdue ? 'text-red-500' : 'text-purple-500'
+                }`}>
+                  3rd: {(() => {
+                    const firstAttempt = new Date(route.first_attempt_date);
+                    const spreadDueDate = new Date(firstAttempt);
+                    spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || 14));
+                    return format(spreadDueDate, 'MMM d');
+                  })()}
+                </span>
+              )}
             </div>
-            {route.est_completion_time && (
-              <p className="text-xs text-gray-400 text-right">
-                {(() => {
-                  const now = new Date();
-                  const end = new Date(route.est_completion_time);
-                  const remainingMinutes = Math.max(0, Math.round((end - now) / 60000));
-                  const hours = Math.floor(remainingMinutes / 60);
-                  const minutes = remainingMinutes % 60;
-                  if (hours === 0) return `${minutes}m remaining`;
-                  return `${hours}h ${minutes}m remaining`;
-                })()}
-              </p>
-            )}
           </div>
-        )}
+          
+          {/* NEEDS */}
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Needs</p>
+            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 min-h-[60px] flex items-center justify-center">
+              {neededBadges.length > 0 ? (
+                <div className="flex flex-wrap gap-1 justify-center">
+                  <QualifierBadges badges={neededBadges} size="small" />
+                </div>
+              ) : (
+                <span className="text-sm text-green-600 font-semibold">✓ Done</span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between">
-        {/* Left: Continue button for active routes */}
-        {isActive && !isBossView ? (
-          <Button 
-            className="flex-1 mr-3 h-11 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl"
+      <div className="px-4 py-3 border-t border-gray-100">
+        <div className="flex items-center">
+          {/* View Button - Full width with icon */}
+          <button 
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
             onClick={(e) => {
               e.stopPropagation();
-              navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}`));
+              if (isBossView) {
+                navigate(createPageUrl(`BossRouteDetail?id=${route.id}`));
+              } else {
+                navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}`));
+              }
             }}
           >
-            <Play className="w-4 h-4 mr-2" />
-            CONTINUE ROUTE
-          </Button>
-        ) : (
-          <div className="flex-1" />
-        )}
-
-        {/* Right: 3-dot menu - only render if handlers are provided */}
-        <RouteCardMenu 
-          route={route} 
-          onEdit={onEdit} 
-          onArchive={onArchive} 
-          onDelete={onDelete} 
-        />
+            <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span className="text-blue-600 font-semibold">View</span>
+          </button>
+          
+          {/* 3-dot menu */}
+          <div className="ml-2">
+            <RouteCardMenu 
+              route={route} 
+              onEdit={onEdit} 
+              onArchive={onArchive} 
+              onDelete={onDelete} 
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
