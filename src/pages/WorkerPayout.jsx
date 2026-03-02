@@ -45,6 +45,7 @@ export default function WorkerPayout() {
   // Default: Wednesday at 12:00 PM
   const [selectedDay, setSelectedDay] = useState(3);
   const [selectedHour, setSelectedHour] = useState(12);
+  const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -71,6 +72,9 @@ export default function WorkerPayout() {
       }
       if (userSettings.payroll_turn_in_hour !== undefined && userSettings.payroll_turn_in_hour !== null) {
         setSelectedHour(userSettings.payroll_turn_in_hour);
+      }
+      if (userSettings.previous_turn_in_date) {
+        setPreviousTurnInDate(new Date(userSettings.previous_turn_in_date));
       }
     }
   }, [userSettings]);
@@ -179,18 +183,23 @@ export default function WorkerPayout() {
     const currentEnd = new Date(currentStart);
     currentEnd.setDate(currentEnd.getDate() + 7);
     
-    // PREVIOUS Period is the week BEFORE current period
-    // These are attempts that were completed last week, getting paid THIS check
-    const previousStart = new Date(currentStart);
-    previousStart.setDate(previousStart.getDate() - 7);
+    // PREVIOUS Period uses saved previous_turn_in_date if available
+    // This allows the previous period to stay fixed even if you change the current settings
+    let previousEnd;
+    if (previousTurnInDate) {
+      previousEnd = new Date(previousTurnInDate);
+    } else {
+      previousEnd = new Date(currentStart); // Fallback to current start
+    }
     
-    const previousEnd = new Date(currentStart); // Ends when current starts
+    const previousStart = new Date(previousEnd);
+    previousStart.setDate(previousStart.getDate() - 7);
     
     return {
       currentPeriod: { start: currentStart, end: currentEnd },
       previousPeriod: { start: previousStart, end: previousEnd }
     };
-  }, [selectedDay, selectedHour]);
+  }, [selectedDay, selectedHour, previousTurnInDate]);
 
   // Filter instant payouts (directly served addresses within CURRENT period)
   const instantPayouts = useMemo(() => {
