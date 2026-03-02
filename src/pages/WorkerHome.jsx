@@ -127,6 +127,17 @@ export default function WorkerHome() {
     refetchInterval: 30000
   });
 
+  // Load user settings for payroll day/hour
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
   useEffect(() => {
     const timezone = user?.settings?.timezone || 'America/Detroit';
     setCurrentPhase(getCurrentPhase(timezone));
@@ -170,9 +181,9 @@ export default function WorkerHome() {
   const pendingAddresses = activeAddresses.filter(a => !a.served);
   
   // Served count = addresses within current payroll period (same logic as WorkerPayout)
-  // Default payroll period: Wednesday at 12:00 PM
-  const selectedDay = 3;
-  const selectedHour = 12;
+  // Use saved settings or default to Wednesday at 12:00 PM
+  const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
+  const selectedHour = userSettings?.payroll_turn_in_hour ?? 12;
   const now = new Date();
   const currentDayOfWeek = now.getDay();
   const currentHour = now.getHours();
