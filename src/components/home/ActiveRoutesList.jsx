@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronRight, MapPin } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 
 export default function ActiveRoutesList({ routes = [] }) {
   // Filter out archived routes and sort: active first, then by due date
