@@ -191,12 +191,15 @@ export default function WorkerHome() {
     return servedDate >= periodStart && servedDate < now;
   });
   
-  const threeDaysFromNow = new Date();
-  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+  // Due Soon = routes due before the next payroll turn-in date (Wednesday 12pm)
+  const nextPayrollDate = new Date(periodStart);
+  nextPayrollDate.setDate(nextPayrollDate.getDate() + 7); // Next Wednesday
+  
   const dueSoonRoutes = routes.filter(r => 
     r.status !== 'completed' && 
+    r.status !== 'archived' &&
     r.due_date && 
-    new Date(r.due_date) <= threeDaysFromNow
+    new Date(r.due_date) <= nextPayrollDate
   );
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';
