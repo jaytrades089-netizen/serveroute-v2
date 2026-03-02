@@ -1815,7 +1815,7 @@ export default function AddressCard({
                           className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
                         >
                           <Shield className="w-5 h-5" />
-                          <span>FINALIZE</span>
+                          <span>SERVED</span>
                         </Button>
                       </Link>
                     </div>
