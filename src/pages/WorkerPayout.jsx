@@ -8,15 +8,25 @@ import { Loader2, DollarSign, CheckCircle, Clock, Calendar } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const DAYS_OF_WEEK = [
-  { value: '0', label: 'Sunday' },
-  { value: '1', label: 'Monday' },
-  { value: '2', label: 'Tuesday' },
-  { value: '3', label: 'Wednesday' },
-  { value: '4', label: 'Thursday' },
-  { value: '5', label: 'Friday' },
-  { value: '6', label: 'Saturday' }
-];
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+// Generate days with dates for the next turn-in
+function getDaysWithDates() {
+  const today = new Date();
+  const currentDay = today.getDay();
+  
+  return DAY_NAMES.map((name, dayIndex) => {
+    // Calculate the next occurrence of this day
+    let daysUntil = (dayIndex - currentDay + 7) % 7;
+    if (daysUntil === 0) daysUntil = 7; // If it's today, show next week's date
+    
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysUntil);
+    
+    const dateStr = format(nextDate, 'M/d');
+    return { value: String(dayIndex), label: `${name} ${dateStr}` };
+  });
+}
 
 const HOURS = Array.from({ length: 24 }, (_, i) => ({
   value: String(i),
@@ -250,7 +260,7 @@ export default function WorkerPayout() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {DAYS_OF_WEEK.map(day => (
+                    {getDaysWithDates().map(day => (
                       <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
                     ))}
                   </SelectContent>
