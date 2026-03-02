@@ -126,7 +126,8 @@ export default function RouteCard({
   isBossView = false,
   className = '',
   attempts = [],
-  workerCanEdit = false
+  workerCanEdit = false,
+  isOverdue: isOverdueFromProps
 }) {
   const navigate = useNavigate();
   const progress = route.total_addresses > 0 
@@ -136,7 +137,7 @@ export default function RouteCard({
   const isCompleted = route.status === 'completed';
   const isActive = route.status === 'active' || route.status === 'assigned';
   const isDueSoon = route.due_date && differenceInDays(new Date(route.due_date), new Date()) <= 3 && !isCompleted;
-  const isOverdue = route.due_date && new Date(route.due_date) < new Date() && !isCompleted;
+  const isOverdue = isOverdueFromProps !== undefined ? isOverdueFromProps : (route.due_date && new Date(route.due_date) < new Date() && !isCompleted);
 
   const statusConfig = STATUS_CONFIG[route.status] || STATUS_CONFIG.draft;
 
@@ -204,12 +205,14 @@ export default function RouteCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] bg-white border border-gray-200 ${
-        workerCanEdit
-          ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
-          : isActiveRoute 
-            ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30' 
-            : ''
+      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
+        isOverdue
+          ? 'bg-red-50 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1'
+          : workerCanEdit
+            ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
+            : isActiveRoute 
+              ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-white border border-gray-200' 
+              : 'bg-white border border-gray-200'
       } ${className}`}
     >
       {/* Worker Edit Mode Banner */}

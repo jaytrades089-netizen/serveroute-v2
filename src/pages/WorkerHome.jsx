@@ -214,23 +214,29 @@ export default function WorkerHome() {
     nextPayrollDate.setHours(selectedHour, 0, 0, 0);
   }
   
-  // Calculate spread due date (3rd attempt deadline) from first_attempt_date + minimum_days_spread
-  // This matches the "3rd: X/X" red badge shown in the NEEDS box on RouteCard
+  // Due Soon = routes that need to be completed by the next payroll turn-in
+  // If route has first_attempt_date, use spread due date (3rd attempt deadline)
+  // Otherwise, use the route's due_date
   const dueSoonRoutes = routes.filter(r => {
     if (r.status === 'completed' || r.status === 'archived') return false;
     
-    // Calculate the actual spread due date (same formula as RouteCard NEEDS box)
-    let spreadDueDate = null;
+    // Calculate the effective due date for this route
+    let effectiveDueDate = null;
+    
+    // If route has started (has first_attempt_date), use the spread due date
     if (r.first_attempt_date) {
       const spreadDays = r.minimum_days_spread || (r.spread_type === '10' ? 10 : 14);
-      spreadDueDate = new Date(r.first_attempt_date);
-      spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
+      effectiveDueDate = new Date(r.first_attempt_date);
+      effectiveDueDate.setDate(effectiveDueDate.getDate() + spreadDays);
     } else if (r.spread_due_date) {
-      spreadDueDate = new Date(r.spread_due_date);
+      effectiveDueDate = new Date(r.spread_due_date);
+    } else if (r.due_date) {
+      // Fallback to route's due_date if not started yet
+      effectiveDueDate = new Date(r.due_date);
     }
     
-    if (!spreadDueDate) return false;
-    return spreadDueDate <= nextPayrollDate;
+    if (!effectiveDueDate) return false;
+    return effectiveDueDate <= nextPayrollDate;
   });
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';

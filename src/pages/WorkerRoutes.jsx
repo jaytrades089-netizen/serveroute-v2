@@ -181,18 +181,23 @@ export default function WorkerRoutes() {
     if (filter === 'due-soon') {
       if (route.status === 'completed' || route.status === 'archived') return false;
       
-      // Calculate the actual spread due date (same formula as RouteCard NEEDS box)
-      let spreadDueDate = null;
+      // Calculate the effective due date for this route
+      let effectiveDueDate = null;
+      
+      // If route has started (has first_attempt_date), use the spread due date
       if (route.first_attempt_date) {
         const spreadDays = route.minimum_days_spread || (route.spread_type === '10' ? 10 : 14);
-        spreadDueDate = new Date(route.first_attempt_date);
-        spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
+        effectiveDueDate = new Date(route.first_attempt_date);
+        effectiveDueDate.setDate(effectiveDueDate.getDate() + spreadDays);
       } else if (route.spread_due_date) {
-        spreadDueDate = new Date(route.spread_due_date);
+        effectiveDueDate = new Date(route.spread_due_date);
+      } else if (route.due_date) {
+        // Fallback to route's due_date if not started yet
+        effectiveDueDate = new Date(route.due_date);
       }
       
-      if (!spreadDueDate) return false;
-      return spreadDueDate <= nextPayrollDate;
+      if (!effectiveDueDate) return false;
+      return effectiveDueDate <= nextPayrollDate;
     }
     return true;
   });
@@ -260,17 +265,23 @@ export default function WorkerRoutes() {
               const aDate = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');
               const bDate = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');
               return aDate - bDate;
-            }).map((route) => (
-              <RouteCard
-                key={route.id}
-                route={route}
-                isBossView={false}
-                attempts={attemptsByRoute[route.id] || []}
-                onDelete={handleDeleteRoute}
-                onArchive={handleArchiveRoute}
-                onEdit={handleEditRoute}
-              />
-            ))}
+            }).map((route) => {
+              // Check if route is overdue for red styling
+              const isOverdue = route.due_date && new Date(route.due_date) < new Date() && route.status !== 'completed';
+              
+              return (
+                <RouteCard
+                  key={route.id}
+                  route={route}
+                  isBossView={false}
+                  attempts={attemptsByRoute[route.id] || []}
+                  onDelete={handleDeleteRoute}
+                  onArchive={handleArchiveRoute}
+                  onEdit={handleEditRoute}
+                  isOverdue={isOverdue}
+                />
+              );
+            })}
           </div>
         )}
       </main>
