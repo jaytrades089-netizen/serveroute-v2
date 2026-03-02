@@ -340,6 +340,36 @@ export default function RouteCard({
         </div>
       </div>
 
+      {/* Attempt Progress Indicator */}
+      {(() => {
+        const requiredAttempts = route.required_attempts || 3;
+        if (!requiredAttempts || requiredAttempts <= 0) return null;
+        
+        // Calculate current attempt round based on minimum completed attempts across addresses
+        const attemptsByAddress = {};
+        (attempts || []).forEach(att => {
+          if (att.status === 'completed') {
+            attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
+          }
+        });
+        
+        const counts = Object.values(attemptsByAddress);
+        // Current round = minimum completed across all addresses, then add 1 for "in progress"
+        // If no attempts yet, show "Attempt 1 of Y" (ready to begin)
+        const completedRound = counts.length > 0 ? Math.min(...counts) : 0;
+        const currentAttempt = Math.min(completedRound + 1, requiredAttempts);
+        
+        return (
+          <div className="px-4 pb-3">
+            <div className="flex items-center justify-center">
+              <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                Attempt {currentAttempt} of {requiredAttempts}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Bottom Action Bar */}
       <div className="px-4 py-3 border-t border-gray-100">
         <div className="flex items-center">
