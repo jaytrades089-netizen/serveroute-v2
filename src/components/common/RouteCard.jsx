@@ -248,10 +248,31 @@ export default function RouteCard({
               </p>
             )}
           </div>
-          <div className="flex-shrink-0 ml-3">
+          <div className="flex-shrink-0 ml-3 flex items-center gap-2">
             <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-bold">
               {spreadDays}d
             </span>
+            {(() => {
+              const requiredAttempts = route.required_attempts || 3;
+              if (!requiredAttempts || requiredAttempts <= 0) return null;
+              
+              const attemptsByAddress = {};
+              (attempts || []).forEach(att => {
+                if (att.status === 'completed') {
+                  attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
+                }
+              });
+              
+              const counts = Object.values(attemptsByAddress);
+              const completedRound = counts.length > 0 ? Math.min(...counts) : 0;
+              const currentAttempt = Math.min(completedRound + 1, requiredAttempts);
+              
+              return (
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {currentAttempt}/{requiredAttempts}
+                </span>
+              );
+            })()}
           </div>
         </div>
       </div>
