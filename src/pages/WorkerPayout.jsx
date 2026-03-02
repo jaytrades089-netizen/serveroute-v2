@@ -214,11 +214,11 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // Filter pending payouts (addresses completed via attempts in CURRENT period)
+  // Filter pending payouts (addresses completed via attempts in PREVIOUS period)
   // These are addresses that:
   // 1. Have all qualifiers (AM + PM + Weekend) completed, OR
   // 2. Are marked as RTO
-  // These were completed THIS week and will be paid on NEXT check
+  // These were completed LAST week and turned in on the previous turn-in date
   const pendingPayouts = useMemo(() => {
     return addresses.filter(a => {
       // Check if address is RTO (returned to office)
@@ -253,17 +253,17 @@ export default function WorkerPayout() {
       
       if (!completionDate) return false;
       
-      // Must be completed in the CURRENT period (this week) - paid on NEXT check
-      return completionDate >= currentPeriod.start && completionDate < currentPeriod.end;
+      // Must be completed in the PREVIOUS period (last week) - turned in on previous turn-in date
+      return completionDate >= previousPeriod.start && completionDate < previousPeriod.end;
     });
-  }, [addresses, addressAttemptsMap, currentPeriod]);
+  }, [addresses, addressAttemptsMap, previousPeriod]);
 
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
   
   // Manual override for pending total - $312 was turned in on old app
   // This override applies only for the pay period ending Feb 26, 2026
   const overrideEndDate = new Date('2026-02-26T12:00:00');
-  const isPendingOverridePeriod = currentPeriod.end <= overrideEndDate && currentPeriod.end > new Date('2026-02-19T12:00:00');
+  const isPendingOverridePeriod = previousPeriod.end <= overrideEndDate && previousPeriod.end > new Date('2026-02-19T12:00:00');
   const pendingTotal = isPendingOverridePeriod ? 312 : pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
 
   const isLoading = addressesLoading || attemptsLoading;
@@ -401,13 +401,13 @@ export default function WorkerPayout() {
               </div>
             )}
 
-            {/* Pending Payouts Section - From CURRENT week, paid on NEXT check */}
+            {/* Pending Payouts Section - From PREVIOUS week, turned in on previous turn-in date */}
             <h2 className="text-lg font-semibold text-orange-700 mb-3 flex items-center gap-2">
               <Clock className="w-5 h-5" />
               Completed Attempts (Next Check)
             </h2>
             <p className="text-xs text-orange-600 mb-3">
-              Completed {format(currentPeriod.start, 'MMM d')} - {format(currentPeriod.end, 'MMM d')}
+              Turned in {format(previousPeriod.end, 'MMM d')}
             </p>
             
             {pendingPayouts.length === 0 ? (
