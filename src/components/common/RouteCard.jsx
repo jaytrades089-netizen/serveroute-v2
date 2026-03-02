@@ -15,9 +15,11 @@ import {
   Zap,
   Play,
   MoreVertical,
+  MoreHorizontal,
   Trash2,
   Archive,
-  Pencil
+  Pencil,
+  Eye
 } from 'lucide-react';
 import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
 const {
