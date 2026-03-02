@@ -118,6 +118,7 @@ export default function WorkerPayout() {
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      // Include ALL routes (including archived) to capture completed work
       return base44.entities.Route.filter({ worker_id: user.id, deleted_at: null });
     },
     enabled: !!user?.id
@@ -152,9 +153,10 @@ export default function WorkerPayout() {
     enabled: !!user?.id
   });
 
-  // Calculate payroll period based on selected day and hour
-  // This looks BACKWARDS through historical data to find the most recent turn-in day
-  const payrollPeriod = useMemo(() => {
+  // Calculate payroll periods based on selected day and hour
+  // Current period = for instant payouts (served this week)
+  // Previous period = for pending payouts (attempts completed last week, paid on THIS check)
+  const { currentPeriod, previousPeriod } = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
     const currentHour = now.getHours();
@@ -168,27 +170,37 @@ export default function WorkerPayout() {
       daysBack = 7;
     }
     
-    // Period START is the most recent selected day at selected hour
-    const periodStart = new Date(now);
-    periodStart.setDate(periodStart.getDate() - daysBack);
-    periodStart.setHours(selectedHour, 0, 0, 0);
+    // CURRENT Period START is the most recent selected day at selected hour
+    const currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - daysBack);
+    currentStart.setHours(selectedHour, 0, 0, 0);
     
-    // Period END is 7 days after start (next turn-in day)
-    const periodEnd = new Date(periodStart);
-    periodEnd.setDate(periodEnd.getDate() + 7);
+    // CURRENT Period END is 7 days after start (next turn-in day)
+    const currentEnd = new Date(currentStart);
+    currentEnd.setDate(currentEnd.getDate() + 7);
     
-    return { start: periodStart, end: periodEnd };
+    // PREVIOUS Period is the week BEFORE current period
+    // These are attempts that were completed last week, getting paid THIS check
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(previousStart.getDate() - 7);
+    
+    const previousEnd = new Date(currentStart); // Ends when current starts
+    
+    return {
+      currentPeriod: { start: currentStart, end: currentEnd },
+      previousPeriod: { start: previousStart, end: previousEnd }
+    };
   }, [selectedDay, selectedHour]);
 
-  // Filter instant payouts (directly served addresses within period)
+  // Filter instant payouts (directly served addresses within CURRENT period)
   const instantPayouts = useMemo(() => {
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       const servedDate = new Date(a.served_at);
-      return servedDate >= payrollPeriod.start && servedDate < payrollPeriod.end;
+      return servedDate >= currentPeriod.start && servedDate < currentPeriod.end;
     });
-  }, [addresses, payrollPeriod]);
+  }, [addresses, currentPeriod]);
 
   // Create map of address attempts for pending calculation
   const addressAttemptsMap = useMemo(() => {
@@ -202,37 +214,56 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // Filter pending payouts (addresses with all qualifiers completed via attempts)
+  // Filter pending payouts (addresses completed via attempts in PREVIOUS period)
+  // These are addresses from archived routes that:
+  // 1. Have all qualifiers (AM + PM + Weekend) completed, OR
+  // 2. Are marked as RTO
+  // These were completed LAST week and will be paid on THIS check
   const pendingPayouts = useMemo(() => {
     return addresses.filter(a => {
-      const addrAttempts = addressAttemptsMap[a.id] || [];
-      if (addrAttempts.length === 0) return false;
+      // Check if address is RTO (returned to office)
+      const isRTO = !!a.rto_at;
       
-      // Check if all qualifiers are present
+      // Check if all qualifiers are present via attempts
+      const addrAttempts = addressAttemptsMap[a.id] || [];
       const hasAM = addrAttempts.some(att => att.has_am);
       const hasPM = addrAttempts.some(att => att.has_pm);
       const hasWeekend = addrAttempts.some(att => att.has_weekend);
+      const hasAllQualifiers = hasAM && hasPM && hasWeekend;
       
-      if (!hasAM || !hasPM || !hasWeekend) return false;
+      // Must be either RTO or have all qualifiers completed
+      if (!isRTO && !hasAllQualifiers) return false;
       
-      // Check if at least one attempt is within the payroll period
-      const lastAttempt = addrAttempts
-        .filter(att => att.attempt_time)
-        .sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time))[0];
+      // Exclude addresses that were directly served (those go to instant payouts)
+      if (a.served && a.served_at) return false;
       
-      if (!lastAttempt) return false;
+      // Determine the completion date - either RTO date or last attempt date
+      let completionDate = null;
       
-      const attemptDate = new Date(lastAttempt.attempt_time);
-      return attemptDate >= payrollPeriod.start && attemptDate < payrollPeriod.end;
-    }).filter(a => !instantPayouts.find(ip => ip.id === a.id)); // Exclude already instant paid
-  }, [addresses, addressAttemptsMap, payrollPeriod, instantPayouts]);
+      if (isRTO && a.rto_at) {
+        completionDate = new Date(a.rto_at);
+      } else if (hasAllQualifiers) {
+        const lastAttempt = addrAttempts
+          .filter(att => att.attempt_time)
+          .sort((x, y) => new Date(y.attempt_time) - new Date(x.attempt_time))[0];
+        if (lastAttempt?.attempt_time) {
+          completionDate = new Date(lastAttempt.attempt_time);
+        }
+      }
+      
+      if (!completionDate) return false;
+      
+      // Must be completed in the PREVIOUS period (last week)
+      return completionDate >= previousPeriod.start && completionDate < previousPeriod.end;
+    });
+  }, [addresses, addressAttemptsMap, previousPeriod]);
 
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
   
   // Manual override for pending total - $312 was turned in on old app
   // This override applies only for the pay period ending Feb 26, 2026
   const overrideEndDate = new Date('2026-02-26T12:00:00');
-  const isPendingOverridePeriod = payrollPeriod.end <= overrideEndDate && payrollPeriod.end > new Date('2026-02-19T12:00:00');
+  const isPendingOverridePeriod = previousPeriod.end <= overrideEndDate && previousPeriod.end > new Date('2026-02-19T12:00:00');
   const pendingTotal = isPendingOverridePeriod ? 312 : pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
 
   const isLoading = addressesLoading || attemptsLoading;
@@ -282,7 +313,7 @@ export default function WorkerPayout() {
             </div>
 
             <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
-              <span className="font-medium">Period:</span> {format(payrollPeriod.start, 'MMM d, h:mm a')} → {format(payrollPeriod.end, 'MMM d, h:mm a')}
+              <span className="font-medium">Current Period:</span> {format(currentPeriod.start, 'MMM d, h:mm a')} → {format(currentPeriod.end, 'MMM d, h:mm a')}
             </div>
           </CardContent>
         </Card>
@@ -370,11 +401,14 @@ export default function WorkerPayout() {
               </div>
             )}
 
-            {/* Pending Payouts Section */}
+            {/* Pending Payouts Section - From PREVIOUS week, paid on THIS check */}
             <h2 className="text-lg font-semibold text-orange-700 mb-3 flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Pending Payouts (Next Check)
+              Completed Attempts (This Check)
             </h2>
+            <p className="text-xs text-orange-600 mb-3">
+              Completed {format(previousPeriod.start, 'MMM d')} - {format(previousPeriod.end, 'MMM d')}
+            </p>
             
             {pendingPayouts.length === 0 ? (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 text-center">
@@ -403,7 +437,7 @@ export default function WorkerPayout() {
                             {lastAttempt?.attempt_time && format(new Date(lastAttempt.attempt_time), 'MMM d, h:mm a')}
                           </p>
                           <p className="text-xs text-orange-500 mt-0.5">
-                            Attempts mailed: {addrAttempts.length}
+                            {address.rto_at ? 'RTO' : `Attempts: ${addrAttempts.length}`}
                           </p>
                         </div>
                         <div className="text-right">
@@ -411,7 +445,7 @@ export default function WorkerPayout() {
                             ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
                           </p>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700">
-                            Attempt
+                            {address.rto_at ? 'RTO' : 'Attempt'}
                           </span>
                         </div>
                       </div>
