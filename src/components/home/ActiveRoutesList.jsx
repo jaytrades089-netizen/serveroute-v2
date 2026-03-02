@@ -69,6 +69,11 @@ export default function ActiveRoutesList({ routes = [] }) {
                         Due: {format(new Date(route.due_date), 'M/d')}
                       </p>
                     )}
+                    {route.spread_due_date && (
+                      <p className={`text-[10px] ${isActive ? 'text-blue-500' : 'text-gray-400'}`}>
+                        Spread: {format(new Date(route.spread_due_date), 'M/d')}
+                      </p>
+                    )}
                   </div>
                 </div>
               </Link>
