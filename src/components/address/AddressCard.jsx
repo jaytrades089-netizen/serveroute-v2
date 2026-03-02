@@ -1314,7 +1314,7 @@ export default function AddressCard({
                             )}
                             {attempt.distance_feet && (
                               <span className="text-[10px] text-blue-500">
-                                {formatDistance(attempt.distance_feet)}
+                                {attempt.distance_feet}f from address
                               </span>
                             )}
                           </div>
