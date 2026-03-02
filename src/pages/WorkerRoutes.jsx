@@ -169,9 +169,19 @@ export default function WorkerRoutes() {
     if (filter === 'archived') return route.status === 'archived';
     if (filter === 'due-soon') {
       if (route.status === 'completed' || route.status === 'archived') return false;
-      const spreadDate = route.first_attempt_deadline || route.spread_due_date;
-      if (!spreadDate) return false;
-      return new Date(spreadDate) <= nextPayrollDate;
+      
+      // Calculate the actual spread due date
+      let spreadDueDate = null;
+      if (route.first_attempt_date) {
+        const spreadDays = route.spread_type === '10' ? 10 : 14;
+        spreadDueDate = new Date(route.first_attempt_date);
+        spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
+      } else if (route.spread_due_date) {
+        spreadDueDate = new Date(route.spread_due_date);
+      }
+      
+      if (!spreadDueDate) return false;
+      return spreadDueDate <= nextPayrollDate;
     }
     return true;
   });

@@ -203,12 +203,22 @@ export default function WorkerHome() {
     nextPayrollDate.setHours(selectedHour, 0, 0, 0);
   }
   
-  // Use first_attempt_deadline as the spread due date (the "3rd: X/X" badge date)
+  // Calculate spread due date from first_attempt_date + spread_type days
   const dueSoonRoutes = routes.filter(r => {
     if (r.status === 'completed' || r.status === 'archived') return false;
-    const spreadDate = r.first_attempt_deadline || r.spread_due_date;
-    if (!spreadDate) return false;
-    return new Date(spreadDate) <= nextPayrollDate;
+    
+    // Calculate the actual spread due date
+    let spreadDueDate = null;
+    if (r.first_attempt_date) {
+      const spreadDays = r.spread_type === '10' ? 10 : 14;
+      spreadDueDate = new Date(r.first_attempt_date);
+      spreadDueDate.setDate(spreadDueDate.getDate() + spreadDays);
+    } else if (r.spread_due_date) {
+      spreadDueDate = new Date(r.spread_due_date);
+    }
+    
+    if (!spreadDueDate) return false;
+    return spreadDueDate <= nextPayrollDate;
   });
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';
