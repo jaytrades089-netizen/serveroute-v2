@@ -215,7 +215,18 @@ export default function WorkerRoutes() {
           />
         ) : (
           <div className="space-y-4">
-            {filteredRoutes.map((route) => (
+            {[...filteredRoutes].sort((a, b) => {
+              // Active routes always at top
+              const aActive = a.status === 'active';
+              const bActive = b.status === 'active';
+              if (aActive && !bActive) return -1;
+              if (!aActive && bActive) return 1;
+              
+              // Then sort by due date ascending (closest due date first)
+              const aDate = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');
+              const bDate = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');
+              return aDate - bDate;
+            }).map((route) => (
               <RouteCard
                 key={route.id}
                 route={route}
