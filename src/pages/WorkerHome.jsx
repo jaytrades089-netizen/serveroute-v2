@@ -202,17 +202,14 @@ export default function WorkerHome() {
     return servedDate >= periodStart && servedDate < now;
   });
   
-  // Due Soon = routes due on or before the next payroll turn-in date (Wednesday 12pm)
-  // Calculate next Wednesday at noon
+  // Due Soon = routes due on or before the next payroll turn-in date
+  // Calculate next occurrence of the selected day
+  let daysUntilPayroll = (selectedDay - currentDayOfWeek + 7) % 7;
+  if (daysUntilPayroll === 0) daysUntilPayroll = 7; // If today is the selected day, show next week
+  
   const nextPayrollDate = new Date(now);
-  const daysUntilWednesday = (selectedDay - currentDayOfWeek + 7) % 7 || 7;
-  // If it's Wednesday but before noon, use today; otherwise use next Wednesday
-  if (currentDayOfWeek === selectedDay && currentHour < selectedHour) {
-    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
-  } else {
-    nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilWednesday);
-    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
-  }
+  nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilPayroll);
+  nextPayrollDate.setHours(23, 59, 59, 999); // End of that day to include routes due ON that date
   
   // Due Soon = routes that need to be completed by the next payroll turn-in
   // If route has first_attempt_date, use spread due date (3rd attempt deadline)
@@ -220,7 +217,7 @@ export default function WorkerHome() {
   const dueSoonRoutes = routes.filter(r => {
     if (r.status === 'completed' || r.status === 'archived') return false;
     
-    // Calculate the effective due date for this route
+    // Calculate the effective due date for this route (spread due date = 3rd attempt deadline)
     let effectiveDueDate = null;
     
     // If route has started (has first_attempt_date), use the spread due date
@@ -228,14 +225,19 @@ export default function WorkerHome() {
       const spreadDays = r.minimum_days_spread || (r.spread_type === '10' ? 10 : 14);
       effectiveDueDate = new Date(r.first_attempt_date);
       effectiveDueDate.setDate(effectiveDueDate.getDate() + spreadDays);
+      effectiveDueDate.setHours(0, 0, 0, 0); // Start of the day for comparison
     } else if (r.spread_due_date) {
       effectiveDueDate = new Date(r.spread_due_date);
+      effectiveDueDate.setHours(0, 0, 0, 0);
     } else if (r.due_date) {
       // Fallback to route's due_date if not started yet
       effectiveDueDate = new Date(r.due_date);
+      effectiveDueDate.setHours(0, 0, 0, 0);
     }
     
     if (!effectiveDueDate) return false;
+    
+    // Include routes where spread due date is ON or BEFORE the selected payroll date
     return effectiveDueDate <= nextPayrollDate;
   });
 
