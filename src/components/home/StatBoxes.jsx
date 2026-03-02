@@ -6,11 +6,11 @@ import { Link2, Clock, CheckCircle, CalendarDays } from 'lucide-react';
 const stats = [
   { 
     id: 'active', 
-    label: 'Active Routes', 
+    label: 'Available Routes', 
     icon: Link2, 
     bgColor: 'bg-blue-100', 
     textColor: 'text-blue-600',
-    link: 'WorkerRoutes?filter=active'
+    link: 'WorkerRoutes'
   },
   { 
     id: 'addresses', 
