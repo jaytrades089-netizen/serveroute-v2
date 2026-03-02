@@ -334,11 +334,15 @@ export default function RouteCard({
                 <span className={`text-[10px] mt-0.5 ${
                   isOverdue ? 'text-red-500' : 'text-purple-500'
                 }`}>
-                  3rd: {(() => {
+                  {(() => {
                     const firstAttempt = new Date(route.first_attempt_date);
                     const spreadDueDate = new Date(firstAttempt);
                     spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || 14));
-                    return format(spreadDueDate, 'MMM d');
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    spreadDueDate.setHours(0, 0, 0, 0);
+                    const daysLeft = Math.ceil((spreadDueDate - today) / (1000 * 60 * 60 * 24));
+                    return `${daysLeft} days`;
                   })()}
                 </span>
               )}
