@@ -146,9 +146,20 @@ export default function WorkerRoutes() {
     enabled: !!user?.id
   });
 
-  // Calculate next payroll turn-in date (Wednesday at 12pm) - same as WorkerHome
-  const selectedDay = 3; // Wednesday
-  const selectedHour = 12;
+  // Load user settings for payroll day/hour
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
+  // Calculate next payroll turn-in date - use saved settings or default to Wednesday at 12pm
+  const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
+  const selectedHour = userSettings?.payroll_turn_in_hour ?? 12;
   const now = new Date();
   const currentDayOfWeek = now.getDay();
   const currentHour = now.getHours();
