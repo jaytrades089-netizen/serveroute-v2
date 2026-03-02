@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
@@ -35,11 +35,74 @@ export default function WorkerPayout() {
   // Default: Wednesday at 12:00 PM
   const [selectedDay, setSelectedDay] = useState(3);
   const [selectedHour, setSelectedHour] = useState(12);
+  const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
+
+  // Load user settings for payroll day/hour
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
+  });
+
+  // Initialize state from saved settings
+  useEffect(() => {
+    if (userSettings) {
+      if (userSettings.payroll_turn_in_day !== undefined && userSettings.payroll_turn_in_day !== null) {
+        setSelectedDay(userSettings.payroll_turn_in_day);
+      }
+      if (userSettings.payroll_turn_in_hour !== undefined && userSettings.payroll_turn_in_hour !== null) {
+        setSelectedHour(userSettings.payroll_turn_in_hour);
+      }
+    }
+  }, [userSettings]);
+
+  // Mutation to save settings
+  const saveSettingsMutation = useMutation({
+    mutationFn: async ({ day, hour }) => {
+      if (!user?.id) return;
+      
+      if (userSettings?.id) {
+        // Update existing settings
+        await base44.entities.UserSettings.update(userSettings.id, {
+          payroll_turn_in_day: day,
+          payroll_turn_in_hour: hour
+        });
+      } else {
+        // Create new settings
+        await base44.entities.UserSettings.create({
+          user_id: user.id,
+          payroll_turn_in_day: day,
+          payroll_turn_in_hour: hour
+        });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+    }
+  });
+
+  // Handle day change and save
+  const handleDayChange = (value) => {
+    const day = parseInt(value);
+    setSelectedDay(day);
+    saveSettingsMutation.mutate({ day, hour: selectedHour });
+  };
+
+  // Handle hour change and save
+  const handleHourChange = (value) => {
+    const hour = parseInt(value);
+    setSelectedHour(hour);
+    saveSettingsMutation.mutate({ day: selectedDay, hour });
+  };
 
   const { data: routes = [] } = useQuery({
     queryKey: ['workerRoutes', user?.id],
@@ -182,7 +245,7 @@ export default function WorkerPayout() {
             <div className="grid grid-cols-2 gap-3 mb-3">
               <div>
                 <label className="text-xs text-blue-600 mb-1 block">Turn-in Day</label>
-                <Select value={String(selectedDay)} onValueChange={(v) => setSelectedDay(parseInt(v))}>
+                <Select value={String(selectedDay)} onValueChange={handleDayChange}>
                   <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -195,7 +258,7 @@ export default function WorkerPayout() {
               </div>
               <div>
                 <label className="text-xs text-blue-600 mb-1 block">Turn-in Time</label>
-                <Select value={String(selectedHour)} onValueChange={(v) => setSelectedHour(parseInt(v))}>
+                <Select value={String(selectedHour)} onValueChange={handleHourChange}>
                   <SelectTrigger className="bg-white">
                     <SelectValue />
                   </SelectTrigger>
