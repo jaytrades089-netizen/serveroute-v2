@@ -348,14 +348,25 @@ export default function RouteCard({
           {/* NEEDS */}
           <div className="text-center">
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Needs</p>
-            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 min-h-[60px] flex items-center justify-center">
+            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 min-h-[60px] flex flex-col items-center justify-center gap-1">
               {neededBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={neededBadges} size="small" />
                 </div>
-              ) : (
+              ) : null}
+              {/* Show 3rd attempt deadline based on spread */}
+              {route.first_attempt_date && pendingCount > 0 ? (
+                <span className="text-sm font-bold text-red-600">
+                  3rd: {format((() => {
+                    const firstAttempt = new Date(route.first_attempt_date);
+                    const spreadDueDate = new Date(firstAttempt);
+                    spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || spreadDays || 14));
+                    return spreadDueDate;
+                  })(), 'M/d')}
+                </span>
+              ) : pendingCount === 0 ? (
                 <span className="text-sm text-green-600 font-semibold">✓ Done</span>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
