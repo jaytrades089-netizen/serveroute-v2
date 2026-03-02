@@ -55,7 +55,7 @@ export default function ActiveRoutesList({ routes = [] }) {
                       {route.folder_name}
                     </h3>
                     <p className={`text-xs ${isActive ? 'text-blue-600' : 'text-gray-500'}`}>
-                      {route.served_count || 0}/{route.total_addresses || 0} served
+                      {(route.total_addresses || 0) - (route.served_count || 0)} remaining
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
