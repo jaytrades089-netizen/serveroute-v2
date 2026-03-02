@@ -1307,13 +1307,9 @@ export default function AddressCard({
                               badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
                               size="small" 
                             />
-                            {isInProgress ? (
+                            {isInProgress && (
                               <span className="text-[10px] text-amber-600 font-bold">
                                 AWAITING OUTCOME
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-gray-500 capitalize">
-                                {attempt.outcome?.replace('_', ' ')}
                               </span>
                             )}
                             {attempt.distance_feet && (
