@@ -321,8 +321,55 @@ export default function WorkerPayout() {
               </div>
             </div>
 
-            <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
+            <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2 mb-3">
               <span className="font-medium">Current Period:</span> {format(currentPeriod.start, 'MMM d, h:mm a')} → {format(currentPeriod.end, 'MMM d, h:mm a')}
+            </div>
+
+            <div>
+              <label className="text-xs text-blue-600 mb-1 block">Previous Turn-in Date (for Next Check calculation)</label>
+              <Select 
+                value={previousTurnInDate ? previousTurnInDate.toISOString() : 'auto'}
+                onValueChange={(value) => {
+                  if (value === 'auto') {
+                    setPreviousTurnInDate(null);
+                    if (userSettings?.id) {
+                      base44.entities.UserSettings.update(userSettings.id, { previous_turn_in_date: null });
+                    }
+                  } else {
+                    const date = new Date(value);
+                    setPreviousTurnInDate(date);
+                    if (userSettings?.id) {
+                      base44.entities.UserSettings.update(userSettings.id, { previous_turn_in_date: date.toISOString() });
+                    }
+                  }
+                }}
+              >
+                <SelectTrigger className="bg-white">
+                  <SelectValue placeholder="Select previous turn-in date" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">Auto (based on current settings)</SelectItem>
+                  {/* Generate last 4 weeks of potential turn-in dates */}
+                  {Array.from({ length: 4 }, (_, i) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (7 * (i + 1)));
+                    // Find the selected day in that week
+                    const dayDiff = (date.getDay() - selectedDay + 7) % 7;
+                    date.setDate(date.getDate() - dayDiff);
+                    date.setHours(selectedHour, 0, 0, 0);
+                    return date;
+                  }).map((date, i) => (
+                    <SelectItem key={i} value={date.toISOString()}>
+                      {format(date, 'EEEE, MMM d')} at {format(date, 'h:mm a')}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {previousTurnInDate && (
+                <p className="text-xs text-blue-500 mt-1">
+                  Locked to: {format(previousTurnInDate, 'MMM d, h:mm a')}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
