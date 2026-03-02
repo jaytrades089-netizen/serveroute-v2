@@ -57,9 +57,9 @@ function ProgressBar({ served, total }) {
 }
 
 function RouteCardMenu({ route, onEdit, onArchive, onDelete }) {
-  // If no handlers provided, just show chevron
+  // If no handlers provided, just show three-dot icon
   if (!onDelete && !onArchive && !onEdit) {
-    return <ChevronRight className="w-5 h-5 text-gray-300" />;
+    return <MoreHorizontal className="w-5 h-5 text-gray-400" />;
   }
 
   return (
@@ -71,7 +71,7 @@ function RouteCardMenu({ route, onEdit, onArchive, onDelete }) {
           className="h-9 w-9 rounded-full hover:bg-gray-100"
           onClick={(e) => e.stopPropagation()}
         >
-          <MoreVertical className="w-5 h-5 text-gray-400" />
+          <MoreHorizontal className="w-5 h-5 text-gray-400" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-48">
