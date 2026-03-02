@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertTriangle } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertCircle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
 import { optimizeWithHybrid } from '@/components/services/OptimizationService';
@@ -280,19 +280,16 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
-      console.log(`Optimizing ${validAddresses.length} addresses using hybrid algorithm...`);
+      console.log(`Optimizing ${validAddresses.length} addresses using zone clustering...`);
 
-      // Use the hybrid optimization (handles large routes automatically)
-      // Pass HERE API key if available for cluster-first optimization
-      const hereApiKey = userSettings?.here_api_key || null;
+      // Use zone-based optimization with MapQuest
       const optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
         startLat,
         startLng,
         endLocation.latitude,
         endLocation.longitude,
-        apiKey,
-        hereApiKey
+        apiKey
       );
 
       // Calculate route metrics using MapQuest directions API
@@ -602,28 +599,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           </div>
         )}
 
-        {/* Routing Service Indicator */}
-        {userSettings?.here_api_key ? (
+        {/* Zone Clustering Status */}
+        {userSettings?.mapquest_api_key ? (
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
             <p className="text-sm text-green-800">
-              Routing: HERE Maps (Zone Clustering Active)
+              Zone Clustering Active
             </p>
           </div>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
             <p className="text-sm text-yellow-800">
-              Routing: MapQuest (No HERE key — zone clustering unavailable)
-            </p>
-          </div>
-        )}
-
-        {/* API Key Warning */}
-        {!userSettings?.mapquest_api_key && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4">
-            <p className="text-sm text-yellow-800">
-              <strong>Note:</strong> MapQuest API key required. Add it in Settings.
+              No API key configured. Add MapQuest key in Settings.
             </p>
           </div>
         )}

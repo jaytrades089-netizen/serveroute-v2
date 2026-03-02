@@ -1,10 +1,7 @@
 // OptimizationService.js - Cluster-First Zone-Based Route Optimization
-// Groups addresses by geographic area, orders zones, then optimizes within each zone
-
-import { base44 } from '@/api/base44Client';
+// Groups addresses by geographic area, orders zones, then optimizes within each zone using MapQuest
 
 const MAPQUEST_LIMIT = 25;
-const HERE_LIMIT = 48; // 50 max waypoints minus start and end
 const ADDRESSES_PER_CLUSTER = 8; // Target addresses per cluster
 const MIN_CLUSTERS = 1;
 const MAX_CLUSTERS = 10;
@@ -63,56 +60,6 @@ export function nearestNeighborSort(addresses, startLat, startLng) {
 }
 
 /**
- * Call HERE Waypoint Sequence API via server-side proxy
- * Uses Base44 backend function to avoid CORS issues
- */
-async function optimizeChunkWithHere(addresses, startLat, startLng, endLat, endLng, hereApiKey) {
-  try {
-    // Build waypoints payload for server function
-    const waypoints = addresses.map(addr => ({
-      id: addr.id,
-      lat: addr.lat || addr.latitude,
-      lng: addr.lng || addr.longitude
-    }));
-    
-    // Call server-side proxy function
-    const response = await base44.functions.invoke('optimizeCluster', {
-      hereApiKey,
-      start: { lat: startLat, lng: startLng },
-      end: { lat: endLat, lng: endLng },
-      waypoints
-    });
-    
-    const result = response.data;
-    
-    if (!result.success) {
-      console.warn('HERE optimization failed:', result.error);
-      return null; // Signal to use fallback
-    }
-    
-    // Reorder addresses based on returned orderedIds
-    const optimized = [];
-    for (const id of result.orderedIds) {
-      const addr = addresses.find(a => a.id === id);
-      if (addr) {
-        optimized.push(addr);
-      }
-    }
-    
-    // Sanity check: make sure we got all addresses back
-    if (optimized.length !== addresses.length) {
-      console.warn(`HERE returned ${optimized.length} addresses but expected ${addresses.length}`);
-      // Still return what we got - better than nothing
-    }
-    
-    return optimized;
-  } catch (error) {
-    console.error('HERE proxy call failed:', error);
-    return null; // Signal to use fallback
-  }
-}
-
-/**
  * Call MapQuest Optimized Route API for a chunk of addresses
  */
 async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, endLng, apiKey) {
@@ -157,38 +104,12 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
       return optimized;
     }
     
-    console.warn('MapQuest optimization failed, returning original order');
+    console.warn('MapQuest optimization failed, returning null');
     return null; // Return null to signal failure
   } catch (error) {
     console.error('MapQuest API error:', error);
     return null; // Return null to signal failure
   }
-}
-
-/**
- * Optimize a chunk using HERE with MapQuest fallback
- */
-async function optimizeChunk(addresses, startLat, startLng, endLat, endLng, hereApiKey, mapquestApiKey) {
-  // Try HERE first if key is available
-  if (hereApiKey) {
-    const hereResult = await optimizeChunkWithHere(addresses, startLat, startLng, endLat, endLng, hereApiKey);
-    if (hereResult) {
-      return hereResult;
-    }
-    console.log('HERE optimization failed, falling back to MapQuest');
-  }
-  
-  // Fallback to MapQuest
-  if (mapquestApiKey) {
-    const mqResult = await optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, endLng, mapquestApiKey);
-    if (mqResult) {
-      return mqResult;
-    }
-  }
-  
-  // Both failed - return original order
-  console.error('Both HERE and MapQuest optimization failed');
-  return addresses;
 }
 
 /**
@@ -295,7 +216,6 @@ export function clusterAddresses(addresses) {
   // K-means style clustering with smart initialization
   // Step 1: Pick initial centroids using furthest-first selection
   const centroids = [];
-  const assigned = new Set();
   
   // First centroid: pick a random address
   centroids.push({
@@ -541,27 +461,35 @@ export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) 
 
 /**
  * ============================================================================
- * CLUSTER-FIRST ZONE-BASED OPTIMIZATION (PRIMARY - uses HERE)
- * Groups addresses by geographic area, orders zones, optimizes within each zone
+ * MAIN OPTIMIZATION FUNCTION
+ * Use this for ALL route optimization in the app
+ * Uses cluster-first approach with MapQuest for within-zone optimization
  * ============================================================================
  */
-export async function optimizeWithClusters(addresses, startLat, startLng, endLat, endLng, hereApiKey) {
-  console.log(`Cluster-first optimization for ${addresses.length} addresses...`);
+export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey) {
+  console.log(`Optimizing ${addresses.length} addresses with zone clustering...`);
   
-  if (!hereApiKey) {
-    throw new Error('HERE API key required for cluster optimization');
+  // Must have MapQuest API key
+  if (!apiKey) {
+    throw new Error('MapQuest API key required for route optimization');
   }
   
-  // Filter out addresses without coordinates
+  // Separate valid addresses (have coordinates) from invalid
   const validAddresses = addresses.filter(addr => {
     const lat = addr.lat || addr.latitude;
     const lng = addr.lng || addr.longitude;
     return lat && lng;
   });
   
+  const invalidAddresses = addresses.filter(addr => {
+    const lat = addr.lat || addr.latitude;
+    const lng = addr.lng || addr.longitude;
+    return !lat || !lng;
+  });
+  
   if (validAddresses.length === 0) {
     console.warn('No addresses with coordinates to optimize');
-    return { optimizedAddresses: addresses, clusters: [] };
+    return addresses;
   }
   
   // STEP 1: Cluster addresses by geographic proximity
@@ -577,63 +505,70 @@ export async function optimizeWithClusters(addresses, startLat, startLng, endLat
     console.log(`  Zone ${i + 1}: ${orderedClusters[i].label} (${orderedClusters[i].addresses.length} addresses)`);
   }
   
-  // STEP 3: Optimize within each cluster using HERE
-  console.log('Step 3: Optimizing within each zone...');
+  // STEP 3: Optimize within each zone using MapQuest
+  console.log('Step 3: Optimizing within each zone with MapQuest...');
   const optimizedClusters = [];
   
   for (let i = 0; i < orderedClusters.length; i++) {
     const cluster = orderedClusters[i];
     
-    // Determine start point for this cluster
-    let clusterStartLat, clusterStartLng;
+    // Determine start point for this zone
+    let zoneStartLat, zoneStartLng;
     if (i === 0) {
-      clusterStartLat = startLat;
-      clusterStartLng = startLng;
+      zoneStartLat = startLat;
+      zoneStartLng = startLng;
     } else {
-      // Start from last address of previous cluster
+      // Start from last address of previous zone
       const prevCluster = optimizedClusters[i - 1];
       const lastAddr = prevCluster.addresses[prevCluster.addresses.length - 1];
-      clusterStartLat = lastAddr.lat || lastAddr.latitude;
-      clusterStartLng = lastAddr.lng || lastAddr.longitude;
+      zoneStartLat = lastAddr.lat || lastAddr.latitude;
+      zoneStartLng = lastAddr.lng || lastAddr.longitude;
     }
     
-    // Determine end point for this cluster
-    let clusterEndLat, clusterEndLng;
+    // Determine end point for this zone
+    let zoneEndLat, zoneEndLng;
     if (i === orderedClusters.length - 1) {
-      // Last cluster ends at final destination (if provided)
-      clusterEndLat = endLat || cluster.centroid.lat;
-      clusterEndLng = endLng || cluster.centroid.lng;
+      // Last zone ends at final destination
+      zoneEndLat = endLat || cluster.centroid.lat;
+      zoneEndLng = endLng || cluster.centroid.lng;
     } else {
-      // End aimed at the centroid of the next cluster
+      // End aimed at the centroid of the next zone
       const nextCluster = orderedClusters[i + 1];
-      clusterEndLat = nextCluster.centroid.lat;
-      clusterEndLng = nextCluster.centroid.lng;
+      zoneEndLat = nextCluster.centroid.lat;
+      zoneEndLng = nextCluster.centroid.lng;
     }
     
-    // If cluster is too large, split it and optimize in chunks
-    if (cluster.addresses.length > HERE_LIMIT) {
+    // If zone has more than MAPQUEST_LIMIT addresses, split into chunks
+    if (cluster.addresses.length > MAPQUEST_LIMIT) {
       console.log(`  Zone ${i + 1} too large (${cluster.addresses.length}), splitting...`);
-      const chunks = splitIntoChunks(cluster.addresses, HERE_LIMIT);
+      const chunks = splitIntoChunks(cluster.addresses, MAPQUEST_LIMIT);
       let optimizedAddrs = [];
-      let chunkStartLat = clusterStartLat;
-      let chunkStartLng = clusterStartLng;
+      let chunkStartLat = zoneStartLat;
+      let chunkStartLng = zoneStartLng;
       
       for (let j = 0; j < chunks.length; j++) {
-        const chunkEndLat = j === chunks.length - 1 ? clusterEndLat : chunks[j + 1][0].lat || chunks[j + 1][0].latitude;
-        const chunkEndLng = j === chunks.length - 1 ? clusterEndLng : chunks[j + 1][0].lng || chunks[j + 1][0].longitude;
+        const chunkEndLat = j === chunks.length - 1 ? zoneEndLat : chunks[j + 1][0].lat || chunks[j + 1][0].latitude;
+        const chunkEndLng = j === chunks.length - 1 ? zoneEndLng : chunks[j + 1][0].lng || chunks[j + 1][0].longitude;
         
-        const optimized = await optimizeChunkWithHere(chunks[j], chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, hereApiKey);
+        const optimized = await optimizeChunkWithMapQuest(chunks[j], chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, apiKey);
         
-        if (!optimized) {
-          throw new Error(`HERE optimization failed for zone ${cluster.label} chunk ${j + 1}`);
+        if (optimized) {
+          optimizedAddrs.push(...optimized);
+          // Update start for next chunk
+          const lastAddr = optimized[optimized.length - 1];
+          chunkStartLat = lastAddr.lat || lastAddr.latitude;
+          chunkStartLng = lastAddr.lng || lastAddr.longitude;
+        } else {
+          // MapQuest failed for this chunk, fall back to nearest neighbor
+          console.warn(`  MapQuest failed for zone ${cluster.label} chunk ${j + 1}, using nearest neighbor`);
+          const nnSorted = nearestNeighborSort(chunks[j], chunkStartLat, chunkStartLng);
+          optimizedAddrs.push(...nnSorted);
+          if (nnSorted.length > 0) {
+            const lastAddr = nnSorted[nnSorted.length - 1];
+            chunkStartLat = lastAddr.lat || lastAddr.latitude;
+            chunkStartLng = lastAddr.lng || lastAddr.longitude;
+          }
         }
-        
-        optimizedAddrs.push(...optimized);
-        
-        // Update start for next chunk
-        const lastAddr = optimized[optimized.length - 1];
-        chunkStartLat = lastAddr.lat || lastAddr.latitude;
-        chunkStartLng = lastAddr.lng || lastAddr.longitude;
       }
       
       optimizedClusters.push({
@@ -641,25 +576,31 @@ export async function optimizeWithClusters(addresses, startLat, startLng, endLat
         addresses: optimizedAddrs
       });
     } else {
-      // Optimize cluster directly
-      const optimized = await optimizeChunkWithHere(
-        cluster.addresses, clusterStartLat, clusterStartLng, clusterEndLat, clusterEndLng, hereApiKey
+      // Optimize zone directly
+      const optimized = await optimizeChunkWithMapQuest(
+        cluster.addresses, zoneStartLat, zoneStartLng, zoneEndLat, zoneEndLng, apiKey
       );
       
-      if (!optimized) {
-        throw new Error(`HERE optimization failed for zone ${cluster.label}`);
+      if (optimized) {
+        optimizedClusters.push({
+          ...cluster,
+          addresses: optimized
+        });
+      } else {
+        // MapQuest failed, fall back to nearest neighbor
+        console.warn(`  MapQuest failed for zone ${cluster.label}, using nearest neighbor`);
+        const nnSorted = nearestNeighborSort(cluster.addresses, zoneStartLat, zoneStartLng);
+        optimizedClusters.push({
+          ...cluster,
+          addresses: nnSorted
+        });
       }
-      
-      optimizedClusters.push({
-        ...cluster,
-        addresses: optimized
-      });
     }
     
     console.log(`  Zone ${i + 1}/${orderedClusters.length} optimized: ${cluster.label}`);
   }
   
-  // STEP 4: Stitch all clusters together and assign order_index + zone_label
+  // STEP 4: Stitch all zones together and assign order_index + zone_label
   console.log('Step 4: Stitching zones together...');
   const finalOrder = [];
   let orderIndex = 1;
@@ -674,13 +615,7 @@ export async function optimizeWithClusters(addresses, startLat, startLng, endLat
     }
   }
   
-  // Append addresses without coordinates at the end
-  const invalidAddresses = addresses.filter(addr => {
-    const lat = addr.lat || addr.latitude;
-    const lng = addr.lng || addr.longitude;
-    return !lat || !lng;
-  });
-  
+  // Append invalid addresses at the end
   for (const addr of invalidAddresses) {
     finalOrder.push({
       ...addr,
@@ -693,150 +628,6 @@ export async function optimizeWithClusters(addresses, startLat, startLng, endLat
     console.warn(`${invalidAddresses.length} addresses had no coordinates - appended to end`);
   }
   
-  console.log('Cluster-first optimization complete!');
-  return { 
-    optimizedAddresses: finalOrder, 
-    clusters: optimizedClusters.map(c => ({ label: c.label, count: c.addresses.length }))
-  };
-}
-
-/**
- * ============================================================================
- * MAIN HYBRID OPTIMIZATION FUNCTION
- * Use this for ALL route optimization in the app
- * Uses cluster-first approach with HERE, falls back to linear MapQuest
- * ============================================================================
- */
-export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey, hereApiKey = null) {
-  console.log(`Optimizing ${addresses.length} addresses...`);
-  
-  // Need at least one API key
-  if (!apiKey && !hereApiKey) {
-    throw new Error('No API key configured (HERE or MapQuest required)');
-  }
-  
-  // Try cluster-first optimization with HERE if key is available
-  if (hereApiKey) {
-    try {
-      console.log('Using cluster-first zone-based optimization with HERE...');
-      const result = await optimizeWithClusters(addresses, startLat, startLng, endLat, endLng, hereApiKey);
-      return result.optimizedAddresses;
-    } catch (error) {
-      console.error('Cluster optimization failed:', error.message);
-      console.log('Falling back to linear MapQuest optimization...');
-      // Fall through to MapQuest fallback below
-    }
-  }
-  
-  // FALLBACK: Linear MapQuest optimization (original behavior)
-  if (!apiKey) {
-    throw new Error('MapQuest API key required for fallback optimization');
-  }
-  
-  // Filter out addresses without coordinates
-  const validAddresses = addresses.filter(addr => {
-    const lat = addr.lat || addr.latitude;
-    const lng = addr.lng || addr.longitude;
-    return lat && lng;
-  });
-  
-  if (validAddresses.length === 0) {
-    console.warn('No addresses with coordinates to optimize');
-    return addresses;
-  }
-  
-  const chunkSize = MAPQUEST_LIMIT;
-  
-  // If small enough, optimize directly
-  if (validAddresses.length <= chunkSize) {
-    console.log('Using MapQuest directly (under limit)');
-    const optimized = await optimizeChunkWithMapQuest(validAddresses, startLat, startLng, endLat, endLng, apiKey);
-    
-    if (!optimized || optimized.length === 0) {
-      throw new Error('Route optimization failed - MapQuest returned errors');
-    }
-    
-    // Append addresses without coordinates
-    const invalidAddresses = addresses.filter(addr => {
-      const lat = addr.lat || addr.latitude;
-      const lng = addr.lng || addr.longitude;
-      return !lat || !lng;
-    });
-    
-    return [...optimized, ...invalidAddresses];
-  }
-  
-  // LARGE ROUTE: Use hybrid approach with MapQuest
-  console.log('Large route detected, using hybrid MapQuest optimization');
-  
-  // Step 1: Sort with Nearest Neighbor first
-  console.log('Step 1: Applying Nearest Neighbor pre-sort...');
-  const nnSorted = nearestNeighborSort(validAddresses, startLat, startLng);
-  
-  // Step 2: Split into chunks
-  const chunks = splitIntoChunks(nnSorted, chunkSize);
-  console.log(`Step 2: Split into ${chunks.length} chunks`);
-  
-  // Step 3: Optimize each chunk
-  console.log('Step 3: Optimizing each chunk with MapQuest...');
-  const optimizedChunks = [];
-  let anyChunkFailed = false;
-  
-  for (let i = 0; i < chunks.length; i++) {
-    const chunk = chunks[i];
-    
-    let chunkStartLat, chunkStartLng;
-    if (i === 0) {
-      chunkStartLat = startLat;
-      chunkStartLng = startLng;
-    } else {
-      const prevChunk = optimizedChunks[i - 1];
-      const lastAddr = prevChunk[prevChunk.length - 1];
-      chunkStartLat = lastAddr.lat || lastAddr.latitude;
-      chunkStartLng = lastAddr.lng || lastAddr.longitude;
-    }
-    
-    let chunkEndLat, chunkEndLng;
-    if (i === chunks.length - 1) {
-      chunkEndLat = endLat;
-      chunkEndLng = endLng;
-    } else {
-      const nextChunk = chunks[i + 1];
-      chunkEndLat = nextChunk[0].lat || nextChunk[0].latitude;
-      chunkEndLng = nextChunk[0].lng || nextChunk[0].longitude;
-    }
-    
-    const optimizedChunk = await optimizeChunkWithMapQuest(
-      chunk, chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, apiKey
-    );
-    
-    if (!optimizedChunk) {
-      anyChunkFailed = true;
-      optimizedChunks.push(chunk); // Use original order for failed chunk
-    } else {
-      optimizedChunks.push(optimizedChunk);
-    }
-    console.log(`  Chunk ${i + 1}/${chunks.length} optimized`);
-  }
-  
-  // Step 4: Combine all chunks
-  const finalOrder = optimizedChunks.flat();
-  
-  // Append addresses without coordinates
-  const invalidAddresses = addresses.filter(addr => {
-    const lat = addr.lat || addr.latitude;
-    const lng = addr.lng || addr.longitude;
-    return !lat || !lng;
-  });
-  
-  if (invalidAddresses.length > 0) {
-    console.warn(`${invalidAddresses.length} addresses had no coordinates - appended to end`);
-  }
-  
-  if (anyChunkFailed) {
-    console.warn('Some chunks could not be optimized - using nearest neighbor order for those');
-  }
-  
-  console.log('MapQuest optimization complete!');
-  return [...finalOrder, ...invalidAddresses];
+  console.log('Zone-based optimization complete!');
+  return finalOrder;
 }
