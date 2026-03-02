@@ -69,9 +69,9 @@ export default function ActiveRoutesList({ routes = [] }) {
                         Due: {format(new Date(route.due_date), 'M/d')}
                       </p>
                     )}
-                    {route.spread_due_date && (
+                    {route.first_attempt_date && route.spread_type && (
                       <p className={`text-[10px] ${isActive ? 'text-blue-500' : 'text-gray-400'}`}>
-                        Spread: {format(new Date(route.spread_due_date), 'M/d')}
+                        Spread: {format(addDays(new Date(route.first_attempt_date), parseInt(route.spread_type)), 'M/d')}
                       </p>
                     )}
                   </div>
