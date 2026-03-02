@@ -146,8 +146,21 @@ export default function WorkerRoutes() {
     enabled: !!user?.id
   });
 
-  const threeDaysFromNow = new Date();
-  threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+  // Calculate next payroll turn-in date (Wednesday at 12pm) - same as WorkerHome
+  const selectedDay = 3; // Wednesday
+  const selectedHour = 12;
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const currentHour = now.getHours();
+  
+  const nextPayrollDate = new Date(now);
+  const daysUntilWednesday = (selectedDay - currentDayOfWeek + 7) % 7 || 7;
+  if (currentDayOfWeek === selectedDay && currentHour < selectedHour) {
+    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
+  } else {
+    nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilWednesday);
+    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
+  }
 
   const filteredRoutes = routes.filter(route => {
     if (filter === 'all') return route.status !== 'archived';
@@ -158,7 +171,7 @@ export default function WorkerRoutes() {
       return route.status !== 'completed' && 
              route.status !== 'archived' &&
              route.due_date && 
-             new Date(route.due_date) <= threeDaysFromNow;
+             new Date(route.due_date) <= nextPayrollDate;
     }
     return true;
   });
