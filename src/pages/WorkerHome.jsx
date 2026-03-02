@@ -191,9 +191,17 @@ export default function WorkerHome() {
     return servedDate >= periodStart && servedDate < now;
   });
   
-  // Due Soon = routes due before the next payroll turn-in date (Wednesday 12pm)
-  const nextPayrollDate = new Date(periodStart);
-  nextPayrollDate.setDate(nextPayrollDate.getDate() + 7); // Next Wednesday
+  // Due Soon = routes due on or before the next payroll turn-in date (Wednesday 12pm)
+  // Calculate next Wednesday at noon
+  const nextPayrollDate = new Date(now);
+  const daysUntilWednesday = (selectedDay - currentDayOfWeek + 7) % 7 || 7;
+  // If it's Wednesday but before noon, use today; otherwise use next Wednesday
+  if (currentDayOfWeek === selectedDay && currentHour < selectedHour) {
+    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
+  } else {
+    nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilWednesday);
+    nextPayrollDate.setHours(selectedHour, 0, 0, 0);
+  }
   
   const dueSoonRoutes = routes.filter(r => 
     r.status !== 'completed' && 
