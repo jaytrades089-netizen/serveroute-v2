@@ -240,7 +240,7 @@ export default function RouteCard({
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold text-gray-900 leading-tight">
-              {route.folder_name} - {totalAddresses} Address{totalAddresses !== 1 ? 'es' : ''}
+              {route.folder_name}
             </h3>
             {showWorker && workerName && (
               <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
