@@ -1336,30 +1336,6 @@ export default function AddressCard({
                   })}
                 </div>
 
-                {/* What's Earned / What's Needed Summary */}
-                <div className="grid grid-cols-2 gap-2 mt-3">
-                  <QualifierBox 
-                    label="EARNED" 
-                    badges={(() => {
-                      const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
-                      const { earnedBadges } = getNeededQualifiers(completedAttempts);
-                      return earnedBadges;
-                    })()}
-                    emptyText="None yet"
-                    variant="success"
-                  />
-                  <QualifierBox 
-                    label="STILL NEED" 
-                    badges={(() => {
-                      const completedAttempts = sortedAttempts.filter(a => a.status !== 'in_progress');
-                      const { needed, isComplete } = getNeededQualifiers(completedAttempts);
-                      return isComplete ? [] : needed;
-                    })()}
-                    emptyText="✓ Complete!"
-                    variant="warning"
-                  />
-                </div>
-
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap mt-3">
                   {isVerified && (
