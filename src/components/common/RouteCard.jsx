@@ -127,7 +127,8 @@ export default function RouteCard({
   className = '',
   attempts = [],
   workerCanEdit = false,
-  isOverdue: isOverdueFromProps
+  isOverdue: isOverdueFromProps,
+  addresses = []
 }) {
   const navigate = useNavigate();
   const progress = route.total_addresses > 0 
@@ -201,22 +202,76 @@ export default function RouteCard({
   
   // Spread days from route
   const spreadDays = route.minimum_days_spread || route.spread_type || 14;
+  
+  // Check if ALL addresses have met requirements (ready for turn-in)
+  const allAddressesComplete = (() => {
+    if (!addresses || addresses.length === 0) return false;
+    
+    const routeAddresses = addresses.filter(a => a.route_id === route.id && !a.served && a.status !== 'served');
+    if (routeAddresses.length === 0) {
+      // All addresses served or no unserved addresses
+      return route.served_count > 0 && route.served_count === route.total_addresses;
+    }
+    
+    const requiredAttempts = route.required_attempts || 3;
+    const minimumDaysSpread = route.minimum_days_spread || 10;
+    
+    // Check each unserved address
+    for (const addr of routeAddresses) {
+      const addressAttempts = (attempts || []).filter(a => a.address_id === addr.id && a.status === 'completed');
+      
+      // Check qualifiers
+      const qualifierStatus = getNeededQualifiers(addressAttempts);
+      if (!qualifierStatus.isComplete) return false;
+      
+      // Check attempt count
+      if (addressAttempts.length < requiredAttempts) return false;
+      
+      // Check spread (calendar days)
+      if (addressAttempts.length >= 2) {
+        const attemptDates = addressAttempts.map(a => {
+          const d = new Date(a.attempt_time);
+          return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+        });
+        const firstDate = Math.min(...attemptDates);
+        const lastDate = Math.max(...attemptDates);
+        const daysDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24);
+        if (daysDiff < minimumDaysSpread) return false;
+      } else {
+        return false; // Need at least 2 attempts for spread
+      }
+    }
+    
+    return true;
+  })();
 
   return (
     <div
       onClick={handleCardClick}
       className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
-        isOverdue
-          ? 'bg-red-50 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1'
-          : workerCanEdit
-            ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
-            : isActiveRoute 
-              ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-white border border-gray-200' 
-              : 'bg-white border border-gray-200'
+        allAddressesComplete
+          ? 'bg-green-50 border-2 border-green-400 ring-2 ring-green-300 ring-offset-1'
+          : isOverdue
+            ? 'bg-red-50 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1'
+            : workerCanEdit
+              ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
+              : isActiveRoute 
+                ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-white border border-gray-200' 
+                : 'bg-white border border-gray-200'
       } ${className}`}
     >
+      {/* All Complete Banner */}
+      {allAddressesComplete && (
+        <div className="px-4 py-2 bg-green-500 border-b border-green-600">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 text-white" />
+            <span className="text-xs font-bold text-white uppercase tracking-wide">ALL REQUIREMENTS MET - Ready to Archive</span>
+          </div>
+        </div>
+      )}
+
       {/* Overdue Banner */}
-      {isOverdue && !isCompleted && (
+      {isOverdue && !isCompleted && !allAddressesComplete && (
         <div className="px-4 py-2 bg-red-500 border-b border-red-600">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-white" />
