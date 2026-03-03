@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertCircle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
-import { optimizeWithHybrid } from '@/components/services/OptimizationService';
+import { optimizeWithHybrid, geocodeAddress } from '@/components/services/OptimizationService';
 
 const TIME_AT_ADDRESS_OPTIONS = [
   { label: '1 min', value: 1 },
@@ -25,24 +25,23 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [useCurrentLocation, setUseCurrentLocation] = useState(true);
   const [selectedStartLocation, setSelectedStartLocation] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [currentLocationAddress, setCurrentLocationAddress] = useState(null);
+  const [locationError, setLocationError] = useState(null);
   const [showAddLocation, setShowAddLocation] = useState(false);
   const [newLocationLabel, setNewLocationLabel] = useState('');
   const [newLocationAddress, setNewLocationAddress] = useState('');
   const [savingLocation, setSavingLocation] = useState(false);
   
-  // Route metrics state
   const [routeMetrics, setRouteMetrics] = useState(null);
   const [timeAtAddress, setTimeAtAddress] = useState(2);
   const [isOptimized, setIsOptimized] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
 
-  // Fetch current user
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
 
-  // Fetch user's saved locations
   const { data: savedLocations = [], refetch: refetchLocations } = useQuery({
     queryKey: ['savedLocations', user?.id],
     queryFn: async () => {
@@ -57,14 +56,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     enabled: !!user?.id
   });
 
-  // Auto-select the most recently used location
   useEffect(() => {
     if (savedLocations.length > 0 && !selectedEndLocation) {
       setSelectedEndLocation(savedLocations[0].id);
     }
   }, [savedLocations, selectedEndLocation]);
 
-  // Fetch user settings for MapQuest API key
   const { data: userSettings } = useQuery({
     queryKey: ['userSettings', user?.id],
     queryFn: async () => {
@@ -88,9 +85,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       toast.error('Please enter both label and address');
       return;
     }
-
     setSavingLocation(true);
-
     try {
       const apiKey = userSettings?.mapquest_api_key;
       if (!apiKey) {
@@ -98,14 +93,11 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         setSavingLocation(false);
         return;
       }
-
       const geocodeUrl = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(newLocationAddress)}`;
       const response = await fetch(geocodeUrl);
       const data = await response.json();
-
       if (data.results?.[0]?.locations?.[0]) {
         const loc = data.results[0].locations[0];
-
         await base44.entities.SavedLocation.create({
           user_id: user.id,
           company_id: user.company_id,
@@ -114,7 +106,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           latitude: loc.latLng.lat,
           longitude: loc.latLng.lng
         });
-
         refetchLocations();
         setNewLocationLabel('');
         setNewLocationAddress('');
@@ -140,7 +131,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       for (let i = 0; i < shuffled.length; i++) {
         await base44.entities.Address.update(shuffled[i].id, { 
           order_index: i + 1,
-          zone_label: null  // Clear zone labels when shuffling
+          zone_label: null
         });
       }
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
@@ -152,23 +143,14 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     }
   };
 
-  // Calculate estimated completion time
   const calculateEstCompletion = () => {
     if (!routeMetrics) return null;
-    
     const driveTimeMinutes = routeMetrics.totalTimeMinutes;
     const addressTimeMinutes = timeAtAddress * addresses.length;
     const totalMinutes = driveTimeMinutes + addressTimeMinutes;
-    
     const now = new Date();
     const completionTime = new Date(now.getTime() + totalMinutes * 60000);
-    
-    return {
-      totalMinutes,
-      completionTime,
-      driveTime: routeMetrics.totalTimeMinutes,
-      addressTime: addressTimeMinutes
-    };
+    return { totalMinutes, completionTime, driveTime: routeMetrics.totalTimeMinutes, addressTime: addressTimeMinutes };
   };
 
   const handleOptimizeRoute = async () => {
@@ -176,7 +158,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       toast.error('Please select an end location');
       return;
     }
-
     const apiKey = userSettings?.mapquest_api_key;
     if (!apiKey) {
       toast.error('MapQuest API key not configured. Go to Settings to add it.');
@@ -184,40 +165,59 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     }
 
     setIsOptimizing(true);
+    setLocationError(null);
 
     try {
-      console.log('Starting optimization...');
-      
-      // Determine start coordinates
       let startLat, startLng;
-      
+
       if (useCurrentLocation) {
-        // Get current position with better error handling
         try {
           toast.info('Getting your current location...');
           const position = await new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
-              reject(new Error('Geolocation not supported'));
+              reject(new Error('Geolocation not supported by this device'));
               return;
             }
             navigator.geolocation.getCurrentPosition(resolve, reject, {
               enableHighAccuracy: true,
               timeout: 15000,
-              maximumAge: 0 // Force fresh location, don't use cached
+              maximumAge: 0
             });
           });
           startLat = position.coords.latitude;
           startLng = position.coords.longitude;
           console.log('GPS Location obtained:', startLat, startLng);
-          toast.success(`Location: ${startLat.toFixed(4)}, ${startLng.toFixed(4)}`);
+
+          // Reverse geocode to show the worker exactly which address was used as start
+          try {
+            const reverseUrl = `https://www.mapquestapi.com/geocoding/v1/reverse?key=${apiKey}&location=${startLat},${startLng}`;
+            const reverseRes = await fetch(reverseUrl);
+            const reverseData = await reverseRes.json();
+            const loc = reverseData?.results?.[0]?.locations?.[0];
+            if (loc) {
+              const readable = [loc.street, loc.adminArea5, loc.adminArea3].filter(Boolean).join(', ');
+              setCurrentLocationAddress(readable || `${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+            } else {
+              setCurrentLocationAddress(`${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+            }
+          } catch {
+            setCurrentLocationAddress(`${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+          }
+
         } catch (geoError) {
           console.error('Geolocation error:', geoError);
-          toast.error('Could not get your location. Please enable location services or select a start location.');
+          const msg = geoError.code === 1
+            ? 'Location permission denied. Enable location in your phone settings or choose a start location below.'
+            : geoError.code === 2
+            ? 'Could not detect your location. Check GPS signal and try again.'
+            : geoError.code === 3
+            ? 'Location request timed out. Try again or choose a start location.'
+            : 'Could not get your location. Please enable location services.';
+          setLocationError(msg);
           setIsOptimizing(false);
           return;
         }
       } else {
-        // Use selected start location
         if (!selectedStartLocation) {
           toast.error('Please select a start location');
           setIsOptimizing(false);
@@ -232,7 +232,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         startLat = startLocation.latitude;
         startLng = startLocation.longitude;
       }
-      
+
       console.log('Start position:', startLat, startLng);
 
       const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
@@ -242,7 +242,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
-      // Exclude addresses already completed in any form — served, done via attempts, or RTO
+      // Exclude completed addresses
       let validAddresses = addresses.filter(addr =>
         !addr.served &&
         addr.status !== 'served' &&
@@ -251,43 +251,39 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       );
 
       if (validAddresses.length < addresses.length) {
-        const excluded = addresses.length - validAddresses.length;
-        console.log(`Excluded ${excluded} completed address(es) from optimization`);
+        console.log(`Excluded ${addresses.length - validAddresses.length} completed address(es) from optimization`);
       }
-      
+
       const needsGeocoding = validAddresses.filter(a => !a.lat || !a.lng);
-      
+
       if (needsGeocoding.length > 0) {
         console.log(`Geocoding ${needsGeocoding.length} addresses...`);
         toast.info(`Geocoding ${needsGeocoding.length} addresses...`);
-        
+
+        const hereApiKey = userSettings?.here_api_key || null;
+
         for (const addr of needsGeocoding) {
           const fullAddress = addr.normalized_address || addr.legal_address;
-          const geocodeUrl = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(fullAddress)}`;
-          
           try {
-            const geoResponse = await fetch(geocodeUrl);
-            const geoData = await geoResponse.json();
-            
-            if (geoData.results?.[0]?.locations?.[0]) {
-              const loc = geoData.results[0].locations[0];
+            // HERE first, MapQuest fallback — handled inside geocodeAddress()
+            const coords = await geocodeAddress(fullAddress, hereApiKey, apiKey);
+            if (coords) {
               await base44.entities.Address.update(addr.id, {
-                lat: loc.latLng.lat,
-                lng: loc.latLng.lng,
+                lat: coords.lat,
+                lng: coords.lng,
                 geocode_status: 'exact'
               });
-              addr.lat = loc.latLng.lat;
-              addr.lng = loc.latLng.lng;
+              addr.lat = coords.lat;
+              addr.lng = coords.lng;
             }
           } catch (geoErr) {
             console.error('Geocode error for', fullAddress, geoErr);
           }
         }
       }
-      
-      // Filter to only addresses with coordinates
+
       validAddresses = validAddresses.filter(a => a.lat && a.lng);
-      
+
       if (validAddresses.length === 0) {
         toast.error('No addresses could be geocoded');
         setIsOptimizing(false);
@@ -296,7 +292,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       console.log(`Optimizing ${validAddresses.length} addresses using zone clustering...`);
 
-      // Use zone-based optimization with MapQuest
       const optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
         startLat,
@@ -306,7 +301,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         apiKey
       );
 
-      // Calculate route metrics using MapQuest directions API
+      // Calculate route metrics
       const locations = [
         `${startLat},${startLng}`,
         ...optimizedAddresses.map(a => `${a.lat},${a.lng}`),
@@ -317,17 +312,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       const directionsResponse = await fetch(directionsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locations: locations,
-          options: { routeType: 'fastest', unit: 'm' }
-        })
+        body: JSON.stringify({ locations, options: { routeType: 'fastest', unit: 'm' } })
       });
-      
       const directionsData = await directionsResponse.json();
       console.log('Directions response:', directionsData);
 
       let metrics = { totalMiles: 0, totalTimeMinutes: 0 };
-      
       if (directionsData.route) {
         metrics = {
           totalMiles: directionsData.route.distance || 0,
@@ -340,14 +330,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setRouteMetrics(metrics);
       setIsOptimized(true);
 
-      // Save order_index and zone_label in batches of 10 for faster performance
-      console.log('Updating address order in database...');
+      // Save order_index in batches of 10
       const BATCH_SIZE = 10;
       for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
         const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
         await Promise.all(
-          batch.map((addr, i) => 
-            base44.entities.Address.update(addr.id, { 
+          batch.map((addr, i) =>
+            base44.entities.Address.update(addr.id, {
               order_index: start + i + 1,
               zone_label: addr.zone_label || null
             })
@@ -355,33 +344,25 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         );
       }
 
-      // Update route with optimization data (but don't start yet)
-      const startLocationData = useCurrentLocation 
+      const startLocationData = useCurrentLocation
         ? { lat: startLat, lng: startLng }
-        : { 
+        : {
             address: savedLocations.find(loc => loc.id === selectedStartLocation)?.address,
-            lat: startLat, 
-            lng: startLng 
+            lat: startLat,
+            lng: startLng
           };
-      
+
       await base44.entities.Route.update(routeId, {
         optimized: true,
-        ending_point: {
-          address: endLocation.address,
-          lat: endLocation.latitude,
-          lng: endLocation.longitude
-        },
+        ending_point: { address: endLocation.address, lat: endLocation.latitude, lng: endLocation.longitude },
         starting_point: startLocationData
       });
 
-      // Update last_used on the selected location
       await base44.entities.SavedLocation.update(selectedEndLocation, {
         last_used: new Date().toISOString()
       });
 
-      // Invalidate queries to refresh address list
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-
       toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {
@@ -397,24 +378,15 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       toast.error('Please optimize the route first');
       return;
     }
-
     setIsStarting(true);
-
     try {
       const estCompletion = calculateEstCompletion();
-
-      // Deactivate other active routes
-      const activeRoutes = await base44.entities.Route.filter({ 
-        worker_id: user.id, 
-        status: 'active' 
-      });
+      const activeRoutes = await base44.entities.Route.filter({ worker_id: user.id, status: 'active' });
       for (const activeRoute of activeRoutes) {
         if (activeRoute.id !== routeId) {
           await base44.entities.Route.update(activeRoute.id, { status: 'ready' });
         }
       }
-
-      // Start this route with metrics
       await base44.entities.Route.update(routeId, {
         status: 'active',
         started_at: new Date().toISOString(),
@@ -424,18 +396,11 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         est_completion_time: estCompletion.completionTime.toISOString(),
         est_total_minutes: estCompletion.totalMinutes
       });
-
-      // Invalidate queries
       await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-
       toast.success('Route started!');
-      
-      if (onOptimized) {
-        onOptimized();
-      }
-
+      if (onOptimized) onOptimized();
     } catch (error) {
       console.error('Failed to start route:', error);
       toast.error('Failed to start route');
@@ -446,79 +411,74 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
   return (
     <div className="fixed inset-0 z-50">
-      {/* Slide-up animation styles */}
       <style>{`
-        @keyframes slide-down {
-          from {
-            transform: translateY(-100%);
-          }
-          to {
-            transform: translateY(0);
-          }
-        }
-        .animate-slide-down {
-          animation: slide-down 0.3s ease-out;
-        }
+        @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        .animate-slide-down { animation: slide-down 0.3s ease-out; }
       `}</style>
-      
-      {/* Semi-transparent backdrop - tap to close */}
-      <div 
-        className="absolute inset-0 bg-black/20"
-        onClick={onClose}
-      />
 
-      {/* Top sheet */}
+      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+
       <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl p-4 pb-6 shadow-2xl animate-slide-down z-50 max-h-[85vh] overflow-y-auto">
-        {/* Drag handle at bottom */}
         <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
-        
-        {/* Header */}
+
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Optimize Route</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        
+
         {/* Route info */}
         <div className="bg-gray-50 rounded-xl p-3 mb-4 flex justify-between items-center">
           <div>
             <p className="font-semibold">{route?.folder_name || 'Route'}</p>
-            <p className="text-sm text-gray-500">{addresses.length} addresses</p>
+            <p className="text-sm text-gray-500">
+              {addresses.filter(a => !a.served && a.status !== 'served' && a.status !== 'completed' && a.status !== 'returned').length} pending
+              {addresses.filter(a => a.served || a.status === 'served' || a.status === 'completed' || a.status === 'returned').length > 0 && (
+                <span className="text-gray-400"> · {addresses.filter(a => a.served || a.status === 'served' || a.status === 'completed' || a.status === 'returned').length} done</span>
+              )}
+            </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleShuffle}
-            disabled={isShuffling}
-            className="text-xs"
-          >
-            {isShuffling ? (
-              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-            ) : (
-              <Shuffle className="w-3 h-3 mr-1" />
-            )}
+          <Button variant="outline" size="sm" onClick={handleShuffle} disabled={isShuffling} className="text-xs">
+            {isShuffling ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Shuffle className="w-3 h-3 mr-1" />}
             {isShuffling ? 'Shuffling...' : 'Shuffle'}
           </Button>
         </div>
-        
+
         {/* Start location */}
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Start Location
-        </label>
-        
-        <div className="flex items-center gap-2 mb-3">
-          <Checkbox 
+        <label className="block text-sm font-medium text-gray-700 mb-2">Start Location</label>
+
+        <div className="flex items-center gap-2 mb-1">
+          <Checkbox
             id="useCurrentLocation"
             checked={useCurrentLocation}
-            onCheckedChange={setUseCurrentLocation}
+            onCheckedChange={(val) => {
+              setUseCurrentLocation(val);
+              if (!val) { setCurrentLocationAddress(null); setLocationError(null); }
+            }}
           />
           <label htmlFor="useCurrentLocation" className="text-sm text-gray-600 flex items-center gap-1 cursor-pointer">
             <LocateFixed className="w-4 h-4 text-blue-500" />
             Use current location
           </label>
         </div>
-        
+
+        {useCurrentLocation && currentLocationAddress && !locationError && (
+          <div className="flex items-center gap-1.5 mb-3 ml-6">
+            <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
+            <p className="text-xs text-green-700 font-medium">{currentLocationAddress}</p>
+          </div>
+        )}
+        {useCurrentLocation && locationError && (
+          <div className="flex items-start gap-1.5 mb-3 ml-6 bg-red-50 border border-red-200 rounded-lg p-2">
+            <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
+            <p className="text-xs text-red-700">{locationError}</p>
+          </div>
+        )}
+        {useCurrentLocation && !currentLocationAddress && !locationError && (
+          <p className="text-xs text-gray-400 mb-3 ml-6">Address will show here after you tap Optimize</p>
+        )}
+
         {!useCurrentLocation && (
           <Select value={selectedStartLocation} onValueChange={setSelectedStartLocation}>
             <SelectTrigger className="w-full mb-4">
@@ -530,9 +490,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                   <div className="flex items-center gap-2">
                     {getLocationIcon(loc.label)}
                     <span className="font-medium">{loc.label}</span>
-                    <span className="text-gray-400 text-sm truncate max-w-[150px]">
-                      - {loc.address}
-                    </span>
+                    <span className="text-gray-400 text-sm truncate max-w-[150px]">- {loc.address}</span>
                   </div>
                 </SelectItem>
               ))}
@@ -541,9 +499,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {/* End location */}
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          End Location
-        </label>
+        <label className="block text-sm font-medium text-gray-700 mb-2">End Location</label>
         <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
           <SelectTrigger className="w-full mb-3">
             <SelectValue placeholder="Select where to end" />
@@ -554,111 +510,62 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                 <div className="flex items-center gap-2">
                   {getLocationIcon(loc.label)}
                   <span className="font-medium">{loc.label}</span>
-                  <span className="text-gray-400 text-sm truncate max-w-[150px]">
-                    - {loc.address}
-                  </span>
+                  <span className="text-gray-400 text-sm truncate max-w-[150px]">- {loc.address}</span>
                 </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
-        
-        {/* Add location */}
+
         {!showAddLocation ? (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full mb-4"
-            onClick={() => setShowAddLocation(true)}
-          >
+          <Button variant="outline" size="sm" className="w-full mb-4" onClick={() => setShowAddLocation(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Add End Location
           </Button>
         ) : (
           <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
-            <Input
-              placeholder="Label (Home, Office)"
-              value={newLocationLabel}
-              onChange={(e) => setNewLocationLabel(e.target.value)}
-              className="mb-2"
-            />
-            <Input
-              placeholder="Full address"
-              value={newLocationAddress}
-              onChange={(e) => setNewLocationAddress(e.target.value)}
-              className="mb-2"
-            />
+            <Input placeholder="Label (Home, Office)" value={newLocationLabel} onChange={(e) => setNewLocationLabel(e.target.value)} className="mb-2" />
+            <Input placeholder="Full address" value={newLocationAddress} onChange={(e) => setNewLocationAddress(e.target.value)} className="mb-2" />
             <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex-1" 
-                onClick={() => {
-                  setShowAddLocation(false);
-                  setNewLocationLabel('');
-                  setNewLocationAddress('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button 
-                size="sm" 
-                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" 
-                onClick={handleAddLocation}
-                disabled={savingLocation}
-              >
+              <Button variant="outline" size="sm" className="flex-1" onClick={() => { setShowAddLocation(false); setNewLocationLabel(''); setNewLocationAddress(''); }}>Cancel</Button>
+              <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddLocation} disabled={savingLocation}>
                 {savingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Zone Clustering Status */}
+        {/* API key status */}
         {userSettings?.mapquest_api_key ? (
           <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
             <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <p className="text-sm text-green-800">
-              Zone Clustering Active
-            </p>
+            <p className="text-sm text-green-800">Zone Clustering Active</p>
           </div>
         ) : (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-            <p className="text-sm text-yellow-800">
-              No API key configured. Add MapQuest key in Settings.
-            </p>
+            <p className="text-sm text-yellow-800">No API key configured. Add MapQuest key in Settings.</p>
           </div>
         )}
 
-        {/* Route Metrics - Show after optimization */}
+        {/* Route Metrics */}
         {isOptimized && routeMetrics && (
-          <div className="bg-white rounded-xl p-4 shadow-sm mb-4 border border-gray-200 animate-fade-in">
+          <div className="bg-white rounded-xl p-4 shadow-sm mb-4 border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-500 mb-3">ROUTE SUMMARY</h3>
-            
-            {/* 3 Metric Boxes */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              {/* Miles + Duration (SPLIT BOX) */}
               <div className="bg-purple-50 rounded-xl overflow-hidden border border-purple-200">
-                {/* Top Half - Total Miles */}
                 <div className="p-2 text-center border-b border-purple-200">
-                  <p className="text-2xl font-bold text-purple-600">
-                    {routeMetrics.totalMiles.toFixed(1)}
-                    <span className="text-sm ml-0.5">mi</span>
-                  </p>
+                  <p className="text-2xl font-bold text-purple-600">{routeMetrics.totalMiles.toFixed(1)}<span className="text-sm ml-0.5">mi</span></p>
                 </div>
-                {/* Bottom Half - Drive Time */}
                 <div className="p-2 text-center bg-purple-100/50">
                   <p className="text-lg font-bold text-purple-700">
-                    {routeMetrics.totalTimeMinutes >= 60 
+                    {routeMetrics.totalTimeMinutes >= 60
                       ? `${Math.floor(routeMetrics.totalTimeMinutes / 60)}h ${routeMetrics.totalTimeMinutes % 60}m`
-                      : `${routeMetrics.totalTimeMinutes}m`
-                    }
+                      : `${routeMetrics.totalTimeMinutes}m`}
                   </p>
                   <p className="text-xs text-purple-500">drive time</p>
                 </div>
               </div>
-              
-              {/* Time at Address Selector */}
               <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
                 <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
                   <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-2xl p-0 h-auto justify-center">
@@ -666,27 +573,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                   </SelectTrigger>
                   <SelectContent>
                     {TIME_AT_ADDRESS_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value.toString()}>
-                        {opt.label}
-                      </SelectItem>
+                      <SelectItem key={opt.value} value={opt.value.toString()}>{opt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-amber-500 font-medium mt-1">per address</p>
               </div>
-              
-              {/* Est Completion */}
               <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
                 {(() => {
                   const est = calculateEstCompletion();
                   return (
                     <>
                       <p className="text-2xl font-bold text-green-600">
-                        {est?.completionTime.toLocaleTimeString('en-US', { 
-                          hour: 'numeric', 
-                          minute: '2-digit',
-                          hour12: true 
-                        }) || '--:--'}
+                        {est?.completionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '--:--'}
                       </p>
                       <p className="text-xs text-green-500 font-medium">est. done</p>
                     </>
@@ -694,11 +593,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                 })()}
               </div>
             </div>
-            
-            {/* Total Route Summary */}
             <div className="bg-gray-100 rounded-lg p-3 text-center">
               <p className="text-sm text-gray-600">
-                {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses • 
+                {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses •
                 {(() => {
                   const est = calculateEstCompletion();
                   if (!est) return ' --';
@@ -710,18 +607,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             </div>
           </div>
         )}
-        
+
         {/* Buttons */}
         <div className="space-y-3">
-          {/* Optimize Button */}
           <Button
             onClick={handleOptimizeRoute}
             disabled={!selectedEndLocation || isOptimizing}
-            className={`w-full font-bold py-4 ${
-              isOptimized 
-                ? 'bg-gray-400 hover:bg-gray-500' 
-                : 'bg-orange-500 hover:bg-orange-600'
-            } text-white`}
+            className={`w-full font-bold py-4 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
           >
             {isOptimizing ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimizing...</>
@@ -731,14 +623,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
               <><Navigation className="w-5 h-5 mr-2" /> Optimize Route</>
             )}
           </Button>
-          
-          {/* Start Button - Only show after optimization */}
+
           {isOptimized && (
-            <Button
-              onClick={handleStartRoute}
-              disabled={isStarting}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4"
-            >
+            <Button onClick={handleStartRoute} disabled={isStarting} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4">
               {isStarting ? (
                 <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
               ) : (
