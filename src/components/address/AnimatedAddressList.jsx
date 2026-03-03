@@ -82,8 +82,9 @@ export default function AnimatedAddressList({
         const isReadyForTurnIn = qualifiersComplete && hasEnoughAttempts && spreadMet;
         
         if (isReadyForTurnIn) {
-          // This address has met ALL requirements - move to completed section
-          served.push(addr);
+          // This address has met ALL requirements - keep in attemptedToday with special flag
+          addr._requirementsMet = true;
+          attemptedToday.push(addr);
         } else {
           // Check if has a COMPLETED attempt today (not in_progress)
           const hasCompletedAttemptToday = addressAttempts.some(a => 
@@ -97,6 +98,13 @@ export default function AnimatedAddressList({
           }
         }
       }
+    });
+    
+    // Sort attemptedToday: requirements met addresses first, then by spread due
+    attemptedToday.sort((a, b) => {
+      if (a._requirementsMet && !b._requirementsMet) return -1;
+      if (!a._requirementsMet && b._requirementsMet) return 1;
+      return 0;
     });
     
     // Sort by spread due date (first attempt date + spread days)
@@ -291,7 +299,10 @@ export default function AnimatedAddressList({
           </div>
           
           <div className="space-y-4">
-            {attemptedTodayAddresses.map((address, index) => (
+            {attemptedTodayAddresses.map((address, index) => {
+              const isRequirementsMet = address._requirementsMet;
+              
+              return (
               <div
                 key={address.id}
                 className={`
@@ -301,20 +312,31 @@ export default function AnimatedAddressList({
                   ${recentlyMovedId === address.id ? 'animate-slide-in-bottom' : ''}
                 `}
               >
-                {/* Order number badge - continues from active addresses */}
-                <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                {/* Order number badge - green if requirements met */}
+                <div className={`absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white ${
+                  isRequirementsMet ? 'bg-green-500' : 'bg-amber-500'
+                }`}>
                   {activeAddresses.length + index + 1}
                 </div>
                 
-                {/* Attempted Today Banner */}
+                {/* Status Banner */}
                 <div className="absolute -top-2 left-8 z-10">
-                  <div className="bg-amber-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1 animate-pulse-glow">
-                    <Clock className="w-3 h-3" />
-                    Attempted Today
-                  </div>
+                  {isRequirementsMet ? (
+                    <div className="bg-green-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1">
+                      <CheckCircle className="w-3 h-3" />
+                      READY FOR TURN-IN
+                    </div>
+                  ) : (
+                    <div className="bg-amber-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1 animate-pulse-glow">
+                      <Clock className="w-3 h-3" />
+                      Attempted Today
+                    </div>
+                  )}
                 </div>
                 
-                <div className="pt-1 border-2 border-amber-300 rounded-2xl">
+                <div className={`pt-1 border-2 rounded-2xl ${
+                  isRequirementsMet ? 'border-green-400 bg-green-50/50' : 'border-amber-300'
+                }`}>
                   <AddressCard
                     address={address}
                     routeId={routeId}
@@ -330,7 +352,8 @@ export default function AnimatedAddressList({
                   />
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       )}
