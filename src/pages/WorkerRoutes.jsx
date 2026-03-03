@@ -127,6 +127,21 @@ export default function WorkerRoutes() {
     enabled: !!user?.id
   });
 
+  // Fetch all addresses for user's routes
+  const { data: allAddresses = [] } = useQuery({
+    queryKey: ['workerAddresses', user?.id, routes],
+    queryFn: async () => {
+      if (!user?.id || routes.length === 0) return [];
+      const routeIds = routes.map(r => r.id);
+      const addresses = await base44.entities.Address.filter({ 
+        route_id: { $in: routeIds },
+        deleted_at: null 
+      });
+      return addresses;
+    },
+    enabled: !!user?.id && routes.length > 0
+  });
+
   // Group attempts by route_id
   const attemptsByRoute = React.useMemo(() => {
     const map = {};
@@ -278,6 +293,7 @@ export default function WorkerRoutes() {
                   route={route}
                   isBossView={false}
                   attempts={attemptsByRoute[route.id] || []}
+                  addresses={allAddresses}
                   onDelete={handleDeleteRoute}
                   onArchive={handleArchiveRoute}
                   onEdit={handleEditRoute}
