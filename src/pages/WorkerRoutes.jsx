@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
-import AddressSearch from '../components/common/AddressSearch';
 
 export default function WorkerRoutes() {
   const navigate = useNavigate();
@@ -234,12 +233,6 @@ export default function WorkerRoutes() {
       
       <main className="px-4 py-6 max-w-lg mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">My Routes</h1>
-
-        <AddressSearch
-          routes={routes}
-          addresses={allAddresses}
-          isBossView={false}
-        />
 
         <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
           {filters.map(f => (
