@@ -194,6 +194,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       if (useCurrentLocation) {
         // Get current position with better error handling
         try {
+          toast.info('Getting your current location...');
           const position = await new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
               reject(new Error('Geolocation not supported'));
@@ -202,11 +203,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             navigator.geolocation.getCurrentPosition(resolve, reject, {
               enableHighAccuracy: true,
               timeout: 15000,
-              maximumAge: 60000
+              maximumAge: 0 // Force fresh location, don't use cached
             });
           });
           startLat = position.coords.latitude;
           startLng = position.coords.longitude;
+          console.log('GPS Location obtained:', startLat, startLng);
+          toast.success(`Location: ${startLat.toFixed(4)}, ${startLng.toFixed(4)}`);
         } catch (geoError) {
           console.error('Geolocation error:', geoError);
           toast.error('Could not get your location. Please enable location services or select a start location.');
