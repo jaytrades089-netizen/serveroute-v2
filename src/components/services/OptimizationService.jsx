@@ -468,6 +468,8 @@ export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) 
  */
 export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey) {
   console.log(`Optimizing ${addresses.length} addresses with zone clustering...`);
+  console.log(`START LOCATION: ${startLat}, ${startLng}`);
+  console.log(`END LOCATION: ${endLat}, ${endLng}`);
   
   // Must have MapQuest API key
   if (!apiKey) {
