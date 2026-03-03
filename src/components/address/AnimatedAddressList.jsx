@@ -263,15 +263,15 @@ export default function AnimatedAddressList({
         </div>
       )}
 
-      {/* Attempted Today Section */}
+      {/* Attempted Today / Ready for Decision Section */}
       {attemptedTodayAddresses.length > 0 && (
         <div>
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-3">
             <h2 className="text-sm font-bold text-amber-700 flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              ATTEMPTED TODAY ({attemptedTodayAddresses.length})
+              ATTEMPTED TODAY / READY ({attemptedTodayAddresses.length})
             </h2>
-            <p className="text-xs text-amber-600 mt-1">These addresses need another attempt on a different day</p>
+            <p className="text-xs text-amber-600 mt-1">Attempted today or all qualifiers complete — ready for serve/RTO decision</p>
           </div>
           
           <div className="space-y-4">
