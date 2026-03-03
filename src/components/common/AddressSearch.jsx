@@ -1,8 +1,11 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search, Archive, X, FolderOpen, CheckCircle, Clock } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { Search, Archive, X, FolderOpen, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AddressSearch({ routes = [], addresses = [], workers = [], isBossView = false }) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
   const inputRef = useRef(null);
@@ -48,11 +51,10 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
     inputRef.current?.focus();
   };
 
-  const getStatusDisplay = (addr) => {
-    if (addr.status === 'completed') {
-      return { label: 'Served', color: 'bg-green-100 text-green-700', Icon: CheckCircle };
-    }
-    return { label: 'Pending', color: 'bg-yellow-100 text-yellow-700', Icon: Clock };
+  const handleSelectAddress = (addr) => {
+    setQuery('');
+    const detailPage = isBossView ? 'BossRouteDetail' : 'WorkerRouteDetail';
+    navigate(createPageUrl(`${detailPage}?id=${addr.route_id}&addressId=${addr.id}`));
   };
 
   return (
@@ -113,37 +115,30 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
               <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
                 {results.map(addr => {
                   const route = routeMap[addr.route_id];
-                  const { label, color, Icon } = getStatusDisplay(addr);
-                  const worker = isBossView && route?.worker_id ? workerMap[route.worker_id] : null;
                   const isArchived = route?.status === 'archived';
                   return (
-                    <li key={addr.id} className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <FolderOpen className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                        <span className="text-xs font-semibold text-blue-600 truncate">
-                          {route?.folder_name || 'Unknown Folder'}
-                        </span>
-                        {addr.order_index != null && (
-                          <span className="ml-1 text-xs text-gray-400">#{addr.order_index}</span>
-                        )}
-                        {isArchived && (
-                          <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Archived</span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-800 leading-snug">
-                        {addr.legal_address || addr.normalized_address}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                        <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full ${color}`}>
-                          <Icon className="w-3 h-3" />
-                          {label}
-                        </span>
-                        {isBossView && worker && (
-                          <span className="text-xs text-gray-500">
-                            {worker.full_name || worker.email}
+                    <li 
+                      key={addr.id} 
+                      onClick={() => handleSelectAddress(addr)}
+                      className="px-4 py-3 cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center justify-between"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <FolderOpen className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                          <span className="text-sm font-semibold text-blue-600 truncate">
+                            {route?.folder_name || 'Unknown Folder'}
                           </span>
+                          {isArchived && (
+                            <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Archived</span>
+                          )}
+                        </div>
+                        {addr.defendant_name && (
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {addr.defendant_name}
+                          </p>
                         )}
                       </div>
+                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
                     </li>
                   );
                 })}
