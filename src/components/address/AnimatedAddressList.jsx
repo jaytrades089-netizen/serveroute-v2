@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { CheckCircle, ChevronDown, Clock, MapPin } from 'lucide-react';
 import AddressCard from './AddressCard';
+import { getNeededQualifiers } from '@/components/services/QualifierService';
 
 // Zone divider component - non-interactive label row
 function ZoneDivider({ label }) {
