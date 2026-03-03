@@ -41,6 +41,7 @@ import { generateSuggestions, autoAssignAllRoutes } from '../components/services
 import { buildAddressCountsMap } from '../components/services/MetricsService';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import AddressSearch from '../components/common/AddressSearch';
 
 // Polling configuration
 const POLLING_CONFIG = {
@@ -473,6 +474,14 @@ export default function BossDashboard() {
 
           </div>
         </div>
+
+        {/* Address Search */}
+        <AddressSearch
+          routes={routes}
+          addresses={addresses}
+          workers={workers}
+          isBossView={true}
+        />
 
         {/* Overview Stats */}
         <div className="mb-6">
