@@ -46,6 +46,7 @@ export default function AnimatedAddressList({
     
     // Get route requirements (default to AM + PM + WEEKEND)
     const requiredAttempts = route?.required_attempts || 3;
+    const minimumDaysSpread = route?.minimum_days_spread || 10;
     
     addresses.forEach(addr => {
       // Check if served/completed
@@ -58,15 +59,26 @@ export default function AnimatedAddressList({
         // Check if qualifiers are complete using getNeededQualifiers
         const qualifierStatus = getNeededQualifiers(addressAttempts);
         
-        // Address is "complete" (awaiting serve) if:
+        // Check spread requirement (first to last attempt >= minimum_days_spread)
+        const spreadMet = (() => {
+          if (addressAttempts.length < 2) return false;
+          const attemptTimes = addressAttempts.map(a => new Date(a.attempt_time).getTime());
+          const firstAttempt = Math.min(...attemptTimes);
+          const lastAttempt = Math.max(...attemptTimes);
+          const daysDiff = (lastAttempt - firstAttempt) / (1000 * 60 * 60 * 24);
+          return daysDiff >= minimumDaysSpread;
+        })();
+        
+        // Address is "ready for turn-in" if:
         // 1. All qualifiers are met (AM + PM + WEEKEND), AND
-        // 2. Has at least required_attempts attempts
+        // 2. Has at least required_attempts attempts, AND
+        // 3. Spread requirement is met (10+ days between first and last attempt)
         const qualifiersComplete = qualifierStatus.isComplete;
         const hasEnoughAttempts = addressAttempts.length >= requiredAttempts;
+        const isReadyForTurnIn = qualifiersComplete && hasEnoughAttempts && spreadMet;
         
-        if (qualifiersComplete && hasEnoughAttempts) {
-          // This address has met all requirements - move to "attempted today" section
-          // to indicate it's ready for serve/RTO decision
+        if (isReadyForTurnIn) {
+          // This address has met ALL requirements - ready for serve/RTO decision
           attemptedToday.push(addr);
         } else {
           // Check if has a COMPLETED attempt today (not in_progress)
