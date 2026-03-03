@@ -500,11 +500,21 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   console.log(`  Created ${clusters.length} clusters`);
   
   // STEP 2: Order clusters starting from start point, ending near end point
-  console.log('Step 2: Ordering clusters by proximity...');
+  console.log('Step 2: Ordering clusters by proximity to start point...');
+  console.log(`  Start point for ordering: ${startLat}, ${startLng}`);
+  
+  // Log distances from start to each cluster centroid BEFORE ordering
+  for (const cluster of clusters) {
+    const distFromStart = calculateDistanceFeet(startLat, startLng, cluster.centroid.lat, cluster.centroid.lng);
+    console.log(`  ${cluster.label} centroid: ${cluster.centroid.lat.toFixed(4)}, ${cluster.centroid.lng.toFixed(4)} - ${(distFromStart / 5280).toFixed(1)} miles from start`);
+  }
+  
   const orderedClusters = orderClusters(clusters, startLat, startLng, endLat, endLng);
   
+  console.log('  Ordered zones (should start nearest to your location):');
   for (let i = 0; i < orderedClusters.length; i++) {
-    console.log(`  Zone ${i + 1}: ${orderedClusters[i].label} (${orderedClusters[i].addresses.length} addresses)`);
+    const distFromStart = calculateDistanceFeet(startLat, startLng, orderedClusters[i].centroid.lat, orderedClusters[i].centroid.lng);
+    console.log(`  Zone ${i + 1}: ${orderedClusters[i].label} (${orderedClusters[i].addresses.length} addresses) - ${(distFromStart / 5280).toFixed(1)} miles from start`);
   }
   
   // STEP 3: Optimize within each zone using MapQuest
