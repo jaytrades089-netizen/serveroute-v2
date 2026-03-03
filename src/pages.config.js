@@ -55,7 +55,6 @@ import AddressPool from './pages/AddressPool';
 import AddressQuestionDetail from './pages/AddressQuestionDetail';
 import Analytics from './pages/Analytics';
 import AssignRoute from './pages/AssignRoute';
-import BossDashboard from './pages/BossDashboard';
 import BossNotifications from './pages/BossNotifications';
 import BossRouteDetail from './pages/BossRouteDetail';
 import BossRoutes from './pages/BossRoutes';
@@ -87,16 +86,17 @@ import UnassignRoute from './pages/UnassignRoute';
 import VacationRequests from './pages/VacationRequests';
 import WorkerAddresses from './pages/WorkerAddresses';
 import WorkerDetail from './pages/WorkerDetail';
-import WorkerHome from './pages/WorkerHome';
 import WorkerMap from './pages/WorkerMap';
 import WorkerPayout from './pages/WorkerPayout';
 import WorkerReceipts from './pages/WorkerReceipts';
 import WorkerRouteDetail from './pages/WorkerRouteDetail';
-import WorkerRoutes from './pages/WorkerRoutes';
 import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
+import WorkerHome from './pages/WorkerHome';
+import BossDashboard from './pages/BossDashboard';
+import WorkerRoutes from './pages/WorkerRoutes';
 import __Layout from './Layout.jsx';
 
 
@@ -109,7 +109,6 @@ export const PAGES = {
     "AddressQuestionDetail": AddressQuestionDetail,
     "Analytics": Analytics,
     "AssignRoute": AssignRoute,
-    "BossDashboard": BossDashboard,
     "BossNotifications": BossNotifications,
     "BossRouteDetail": BossRouteDetail,
     "BossRoutes": BossRoutes,
@@ -141,16 +140,17 @@ export const PAGES = {
     "VacationRequests": VacationRequests,
     "WorkerAddresses": WorkerAddresses,
     "WorkerDetail": WorkerDetail,
-    "WorkerHome": WorkerHome,
     "WorkerMap": WorkerMap,
     "WorkerPayout": WorkerPayout,
     "WorkerReceipts": WorkerReceipts,
     "WorkerRouteDetail": WorkerRouteDetail,
-    "WorkerRoutes": WorkerRoutes,
     "WorkerSettings": WorkerSettings,
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
+    "WorkerHome": WorkerHome,
+    "BossDashboard": BossDashboard,
+    "WorkerRoutes": WorkerRoutes,
 }
 
 export const pagesConfig = {
