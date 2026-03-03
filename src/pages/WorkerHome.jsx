@@ -10,7 +10,7 @@ import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
-import AddressSearch from '@/components/common/AddressSearch.jsx';
+import AddressSearch from '../components/common/AddressSearch';
 import { Loader2 } from 'lucide-react';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
