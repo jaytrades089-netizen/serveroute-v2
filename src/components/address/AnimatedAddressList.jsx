@@ -44,21 +44,41 @@ export default function AnimatedAddressList({
     const attemptedToday = [];
     const active = [];
     
+    // Get route requirements (default to AM + PM + WEEKEND)
+    const requiredAttempts = route?.required_attempts || 3;
+    
     addresses.forEach(addr => {
       // Check if served/completed
       if (addr.served || addr.status === 'served' || addr.receipt_status === 'approved') {
         served.push(addr);
       } else {
-        // Check if has a COMPLETED attempt today (not in_progress)
-        const addressAttempts = attempts.filter(a => a.address_id === addr.id);
-        const hasCompletedAttemptToday = addressAttempts.some(a => 
-          a.status === 'completed' && new Date(a.attempt_time).toDateString() === today
-        );
+        // Get attempts for this address
+        const addressAttempts = attempts.filter(a => a.address_id === addr.id && a.status === 'completed');
         
-        if (hasCompletedAttemptToday) {
+        // Check if qualifiers are complete using getNeededQualifiers
+        const qualifierStatus = getNeededQualifiers(addressAttempts);
+        
+        // Address is "complete" (awaiting serve) if:
+        // 1. All qualifiers are met (AM + PM + WEEKEND), AND
+        // 2. Has at least required_attempts attempts
+        const qualifiersComplete = qualifierStatus.isComplete;
+        const hasEnoughAttempts = addressAttempts.length >= requiredAttempts;
+        
+        if (qualifiersComplete && hasEnoughAttempts) {
+          // This address has met all requirements - move to "attempted today" section
+          // to indicate it's ready for serve/RTO decision
           attemptedToday.push(addr);
         } else {
-          active.push(addr);
+          // Check if has a COMPLETED attempt today (not in_progress)
+          const hasCompletedAttemptToday = addressAttempts.some(a => 
+            new Date(a.attempt_time).toDateString() === today
+          );
+          
+          if (hasCompletedAttemptToday) {
+            attemptedToday.push(addr);
+          } else {
+            active.push(addr);
+          }
         }
       }
     });
