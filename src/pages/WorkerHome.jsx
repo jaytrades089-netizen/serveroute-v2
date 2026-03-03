@@ -10,6 +10,7 @@ import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
+import AddressSearch from '../components/common/AddressSearch';
 import { Loader2 } from 'lucide-react';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
@@ -255,6 +256,12 @@ export default function WorkerHome() {
           </h1>
           <p className="text-gray-500 mt-1">{todayDate}</p>
         </div>
+
+        <AddressSearch
+          routes={routes}
+          addresses={addresses}
+          isBossView={false}
+        />
 
         <WorkPhaseBlocks currentPhase={currentPhase} />
         
