@@ -60,12 +60,16 @@ export default function AnimatedAddressList({
         const qualifierStatus = getNeededQualifiers(addressAttempts);
         
         // Check spread requirement (first to last attempt >= minimum_days_spread)
+        // Use calendar days (date difference) not exact milliseconds
         const spreadMet = (() => {
           if (addressAttempts.length < 2) return false;
-          const attemptTimes = addressAttempts.map(a => new Date(a.attempt_time).getTime());
-          const firstAttempt = Math.min(...attemptTimes);
-          const lastAttempt = Math.max(...attemptTimes);
-          const daysDiff = (lastAttempt - firstAttempt) / (1000 * 60 * 60 * 24);
+          const attemptDates = addressAttempts.map(a => {
+            const d = new Date(a.attempt_time);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+          });
+          const firstDate = Math.min(...attemptDates);
+          const lastDate = Math.max(...attemptDates);
+          const daysDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24);
           return daysDiff >= minimumDaysSpread;
         })();
         
