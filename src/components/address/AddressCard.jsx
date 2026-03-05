@@ -1833,23 +1833,17 @@ export default function AddressCard({
                     <DropdownMenuContent align="start" side="top">
                       {onMessageBoss && (
                         <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }}>
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Message Boss
+                          <MessageCircle className="w-4 h-4 mr-2" />Message Boss
                         </DropdownMenuItem>
                       )}
-                      <DropdownMenuItem 
-                        onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        <span className="text-red-600 font-bold">RTO</span>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+                        <Pencil className="w-4 h-4 mr-2" />Edit Address
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteAddress(); }}
-                        className="text-red-600 focus:text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete Address
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }} className="text-red-600 focus:text-red-600">
+                        <RotateCcw className="w-4 h-4 mr-2" /><span className="text-red-600 font-bold">RTO</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteAddress(); }} className="text-red-600 focus:text-red-600">
+                        <Trash2 className="w-4 h-4 mr-2" />Delete Address
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
