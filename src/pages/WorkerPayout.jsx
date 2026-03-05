@@ -528,6 +528,63 @@ export default function WorkerPayout() {
                 })}
               </div>
             )}
+
+            {/* RTO Addresses - Current Period (will appear on NEXT paycheck) */}
+            {rtoCurrentPeriod.length > 0 && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-red-700 flex items-center gap-2">
+                    <RotateCcw className="w-5 h-5" />
+                    Returned to Office
+                  </h2>
+                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
+                    On {format(nextPaycheckDate, 'MMM d')} paycheck
+                  </span>
+                </div>
+                <p className="text-xs text-red-500 mb-3">
+                  These addresses will be mailed in and appear on your {format(nextPaycheckDate, 'EEEE, MMM d')} paycheck
+                </p>
+                
+                <div className="space-y-2">
+                  {rtoCurrentPeriod.map((address) => (
+                    <div
+                      key={address.id}
+                      className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">
+                            {address.normalized_address || address.legal_address}
+                          </p>
+                          {address.defendant_name && (
+                            <p className="text-xs text-gray-600 mt-0.5">{address.defendant_name}</p>
+                          )}
+                          <p className="text-xs text-gray-500 mt-1">
+                            RTO'd {address.rto_at && format(new Date(address.rto_at), 'MMM d, h:mm a')}
+                          </p>
+                          {address.rto_reason && (
+                            <p className="text-xs text-red-500 mt-0.5 italic">"{address.rto_reason}"</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-red-600">
+                            ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
+                          </p>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                            RTO
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                    <p className="text-xs text-red-600">
+                      RTO Total: <span className="font-bold">${rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0).toFixed(2)}</span> — not included in totals above
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </>
         )}
       </main>
