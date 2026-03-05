@@ -23,11 +23,12 @@ export async function handleRTO({
   const now = new Date();
   const companyId = getCompanyId(user) || address.company_id;
   
-  // Update address with RTO status
+  // Update address with RTO status — mark served so it moves to completed and counts for payroll
   await base44.entities.Address.update(address.id, {
     status: 'returned',
-    served: false,
-    receipt_status: 'pending',
+    served: true,
+    served_at: now.toISOString(),
+    receipt_status: 'not_required',
     rto_at: now.toISOString(),
     rto_reason: comment.trim(),
     rto_by: user?.id
