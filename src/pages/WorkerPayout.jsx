@@ -267,6 +267,24 @@ export default function WorkerPayout() {
     });
   }, [addresses, addressAttemptsMap, previousPeriod]);
 
+  // RTO addresses in the CURRENT period — these will appear on the NEXT paycheck (not this one)
+  const rtoCurrentPeriod = useMemo(() => {
+    return addresses.filter(a => {
+      if (!a.rto_at) return false;
+      const rtoDate = new Date(a.rto_at);
+      return rtoDate >= currentPeriod.start && rtoDate < currentPeriod.end;
+    });
+  }, [addresses, currentPeriod]);
+
+  // Calculate when the next paycheck after current period is
+  const nextPaycheckDate = useMemo(() => {
+    // The current period ends at currentPeriod.end — that's the next turn-in
+    // The paycheck AFTER that is 7 days later
+    const nextCheck = new Date(currentPeriod.end);
+    nextCheck.setDate(nextCheck.getDate() + 7);
+    return nextCheck;
+  }, [currentPeriod]);
+
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
   
   // Manual override for pending total - $312 was turned in on old app
