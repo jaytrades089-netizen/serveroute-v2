@@ -36,6 +36,8 @@ export default function WorkerRouteDetail() {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editedFolderName, setEditedFolderName] = useState('');
   const editMode = urlParams.get('edit') === 'true';
+  const searchAddressId = urlParams.get('addressId');
+  const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
