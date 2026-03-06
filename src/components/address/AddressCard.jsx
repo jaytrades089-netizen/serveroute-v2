@@ -59,19 +59,11 @@ import RTOModal from './RTOModal';
 import { getCompanyId } from '@/components/utils/companyUtils';
 import { formatAddress as formatAddressUtil } from '@/components/utils/addressUtils';
 import { handleRTO as executeRTO } from './RTOHandler';
+import BossAddAttemptPanel from './BossAddAttemptPanel';
+import BossRequestAttemptPanel from './BossRequestAttemptPanel';
 
 // Re-export formatAddress for backward compatibility
 export const formatAddress = formatAddressUtil;
-
-// Outcome options for attempt logging
-const OUTCOME_OPTIONS = [
-  { value: 'no_answer', label: 'No Answer', color: 'bg-gray-100 hover:bg-gray-200 text-gray-700' },
-  { value: 'left_with_cohabitant', label: 'Left w/ Cohabitant', color: 'bg-blue-100 hover:bg-blue-200 text-blue-700' },
-  { value: 'posted', label: 'Posted', color: 'bg-purple-100 hover:bg-purple-200 text-purple-700' },
-  { value: 'refused', label: 'Refused', color: 'bg-red-100 hover:bg-red-200 text-red-700' },
-  { value: 'door_tag', label: 'Door Tag', color: 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700' },
-  { value: 'other', label: 'Other', color: 'bg-orange-100 hover:bg-orange-200 text-orange-700' }
-];
 
 export default function AddressCard({ 
   address, 
