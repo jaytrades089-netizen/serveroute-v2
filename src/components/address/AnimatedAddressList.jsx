@@ -50,7 +50,7 @@ export default function AnimatedAddressList({
     
     addresses.forEach(addr => {
       // Check if served/completed
-      if (addr.served || addr.status === 'served' || addr.receipt_status === 'approved') {
+      if (addr.served || addr.status === 'served' || addr.status === 'returned' || addr.receipt_status === 'approved') {
         served.push(addr);
       } else {
         // Get attempts for this address

@@ -50,27 +50,31 @@ export async function handleRTO({
     timestamp: now.toISOString()
   });
   
-  // Notify all boss/admin users about the RTO
-  const allUsers = await base44.entities.User.filter({ company_id: companyId });
-  const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
-  for (const boss of bosses) {
-    await base44.entities.Notification.create({
-      user_id: boss.id,
-      company_id: companyId,
-      recipient_role: 'boss',
-      type: 'address_rto',
-      title: 'Address Returned to Office',
-      body: `${user?.full_name || 'A server'} returned ${address.normalized_address || address.legal_address}: ${comment.trim()}`,
-      related_id: address.id,
-      related_type: 'address',
-      priority: 'urgent',
-      data: {
-        address_id: address.id,
-        route_id: routeId,
-        reason: comment.trim(),
-        worker_id: user?.id
-      }
-    });
+  // Notify all boss/admin users about the RTO (non-fatal)
+  try {
+    const allUsers = await base44.entities.User.filter({ company_id: companyId });
+    const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
+    for (const boss of bosses) {
+      await base44.entities.Notification.create({
+        user_id: boss.id,
+        company_id: companyId,
+        recipient_role: 'boss',
+        type: 'address_rto',
+        title: 'Address Returned to Office',
+        body: `${user?.full_name || 'A server'} returned ${address.normalized_address || address.legal_address}: ${comment.trim()}`,
+        related_id: address.id,
+        related_type: 'address',
+        priority: 'urgent',
+        data: {
+          address_id: address.id,
+          route_id: routeId,
+          reason: comment.trim(),
+          worker_id: user?.id
+        }
+      });
+    }
+  } catch (notifyError) {
+    console.warn('RTO notification step failed (non-fatal):', notifyError);
   }
   
   // Update route served count (RTO counts as "done" for route progress)
