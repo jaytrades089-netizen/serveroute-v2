@@ -1854,73 +1854,38 @@ export default function AddressCard({
 
         {/* Boss Add Attempt — Inline Panel */}
         {isBossView && showBossAddAttempt && (
-          <div className="px-4 pb-4">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <h4 className="text-sm font-bold text-amber-800 mb-3">Add Attempt</h4>
-              
-              <div className="mb-3">
-                <label className="text-xs font-semibold text-gray-600 block mb-1">DATE & TIME</label>
-                <input
-                  type="datetime-local"
-                  value={bossAttemptTime}
-                  onChange={(e) => setBossAttemptTime(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
+          <BossAddAttemptPanel
+            onClose={() => setShowBossAddAttempt(false)}
+            onCreate={async ({ time, outcome, notes }) => {
+              const attemptTime = new Date(time);
+              const qualifierData = getQualifiers(attemptTime);
+              const qualifierFields = getQualifierStorageFields(qualifierData);
+              const attemptNumber = (localAttempts?.length || 0) + 1;
+              const companyId = getCompanyId(user) || address.company_id;
 
-              <div className="mb-3">
-                <label className="text-xs font-semibold text-gray-600 block mb-1">OUTCOME</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {OUTCOME_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={(e) => { e.stopPropagation(); setBossAttemptOutcome(opt.value); }}
-                      className={`p-2 rounded-lg text-xs font-semibold transition-all ${
-                        bossAttemptOutcome === opt.value 
-                          ? 'ring-2 ring-amber-500 ' + opt.color
-                          : opt.color + ' opacity-60'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label className="text-xs font-semibold text-gray-600 block mb-1">NOTES</label>
-                <textarea
-                  value={bossAttemptNotes}
-                  onChange={(e) => setBossAttemptNotes(e.target.value)}
-                  placeholder="Optional notes..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
-                  rows={2}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); setShowBossAddAttempt(false); }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={(e) => { e.stopPropagation(); handleBossCreateAttempt(); }}
-                  disabled={!bossAttemptOutcome || !bossAttemptTime || bossCreatingAttempt}
-                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
-                >
-                  {bossCreatingAttempt ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-                  Save Attempt
-                </Button>
-              </div>
-            </div>
-          </div>
+              const newAttempt = await base44.entities.Attempt.create({
+                address_id: address.id, route_id: routeId, server_id: address.server_id || user.id,
+                company_id: companyId, attempt_number: attemptNumber, status: 'completed',
+                outcome, attempt_time: attemptTime.toISOString(), attempt_timezone: 'America/Detroit',
+                ...qualifierFields, notes: notes ? `[Added by boss] ${notes}` : '[Added by boss]',
+                manually_edited: true, photo_urls: [], synced_at: new Date().toISOString()
+              });
+              setLocalAttempts(prev => [...prev, newAttempt]);
+              await base44.entities.Address.update(address.id, {
+                attempts_count: attemptNumber,
+                status: address.status === 'pending' ? 'attempted' : address.status
+              });
+              await base44.entities.AuditLog.create({
+                company_id: companyId, action_type: 'attempt_added_by_boss', actor_id: user.id,
+                actor_role: 'boss', target_type: 'address', target_id: address.id,
+                details: { attempt_number: attemptNumber, outcome, attempt_time: attemptTime.toISOString(), route_id: routeId },
+                timestamp: new Date().toISOString()
+              });
+              toast.success(`Attempt ${attemptNumber} added`);
+              queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+              queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+            }}
+          />
         )}
 
         {/* Boss Request Attempt — Inline Panel */}
