@@ -391,15 +391,19 @@ export default function AnimatedAddressList({
                     {address.order_index || '?'}
                   </div>
                   
-                  {/* Served Banner */}
+                  {/* Served/RTO Banner */}
                   <div className="absolute -top-2 left-8 z-10">
-                    <div className="bg-green-500 text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1">
+                    <div className={`text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1 ${
+                      address.status === 'returned' ? 'bg-red-500' : 'bg-green-500'
+                    }`}>
                       <CheckCircle className="w-3 h-3" />
-                      Served
+                      {address.status === 'returned' ? 'RTO' : 'Served'}
                     </div>
                   </div>
                   
-                  <div className="pt-1 opacity-75 border-2 border-green-300 rounded-2xl">
+                  <div className={`pt-1 opacity-75 border-2 rounded-2xl ${
+                    address.status === 'returned' ? 'border-red-300' : 'border-green-300'
+                  }`}>
                     <AddressCard
                       address={address}
                       routeId={routeId}
