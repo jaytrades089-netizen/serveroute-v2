@@ -666,13 +666,38 @@ export default function WorkerRouteDetail() {
 
         <DesktopWarningBanner />
 
+        {/* Search Filter Banner */}
+        {searchFilter && (
+          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-blue-500" />
+              <span className="text-sm font-medium text-blue-700">Showing search result</span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSearchFilter(null);
+                // Remove addressId from URL without reload
+                const newParams = new URLSearchParams(window.location.search);
+                newParams.delete('addressId');
+                const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+                window.history.replaceState({}, '', newUrl);
+              }}
+              className="text-blue-600 border-blue-300 text-xs h-7"
+            >
+              Show All ({addresses.length})
+            </Button>
+          </div>
+        )}
+
         {addressesLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
           </div>
         ) : (
           <AnimatedAddressList
-            addresses={addresses}
+            addresses={searchFilter ? addresses.filter(a => a.id === searchFilter) : addresses}
             attempts={attempts}
             routeId={routeId}
             onMessageBoss={handleMessageBoss}
