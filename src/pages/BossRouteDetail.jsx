@@ -26,6 +26,8 @@ export default function BossRouteDetail() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const routeId = urlParams.get('id') || urlParams.get('routeId');
+  const searchAddressId = urlParams.get('addressId');
+  const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
