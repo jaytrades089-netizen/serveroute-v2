@@ -850,6 +850,8 @@ export default function AddressCard({
         className={`relative bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-200 ${
           !isBossView && address.has_pending_request && pendingRequest
             ? 'border-2 border-red-500 animate-request-pulse shadow-red-100 shadow-lg'
+            : isRTO
+            ? 'border-2 border-red-400 shadow-red-100'
             : 'border border-gray-300'
         }`}
       >
@@ -1022,6 +1024,7 @@ export default function AddressCard({
 
         {/* Header Section with Gradient */}
         <div className={`px-4 py-4 ${
+          isRTO ? 'bg-gradient-to-r from-red-50 to-rose-50' :
           isServed ? 'bg-gradient-to-r from-green-50 to-emerald-50' : 
           hasInProgressAttempt ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50' :
           'bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50'
@@ -1030,11 +1033,11 @@ export default function AddressCard({
             {/* Address Display - Full width vertical layout */}
             <div>
               <p className={`text-lg font-bold leading-tight ${
-                isServed ? 'text-gray-500' : 'text-gray-900'
+                isRTO ? 'text-red-700' : isServed ? 'text-gray-500' : 'text-gray-900'
               }`}>
                 {formatted.line1}
               </p>
-              <p className={`text-sm ${isServed ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-sm ${isRTO ? 'text-red-400' : isServed ? 'text-gray-400' : 'text-gray-500'}`}>
                 {formatted.line2}
               </p>
             </div>
@@ -1376,33 +1379,51 @@ export default function AddressCard({
 
         {/* Served State - Show completion info */}
         {isServed && (
-          <div className="px-4 py-3 border-t border-gray-100 bg-green-50/50">
+          <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-200 bg-red-50/60' : 'border-gray-100 bg-green-50/50'}`}>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
-                SERVED
-              </Badge>
-              {receiptApproved ? (
+              {isRTO ? (
+                <Badge className="bg-red-100 text-red-700 border border-red-300 text-[10px] font-bold px-2.5 py-1">
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  RETURNED TO OFFICE
+                </Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                  SERVED
+                </Badge>
+              )}
+              {!isRTO && receiptApproved ? (
                 <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
                   <FileCheck className="w-3 h-3 mr-1" />
                   RECEIPT APPROVED
                 </Badge>
-              ) : receiptPending ? (
+              ) : !isRTO && receiptPending ? (
                 <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-2.5 py-1">
                   <Clock className="w-3 h-3 mr-1" />
                   PENDING REVIEW
                 </Badge>
-              ) : receiptNeedsRevision ? (
+              ) : !isRTO && receiptNeedsRevision ? (
                 <Badge className="bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-bold px-2.5 py-1">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   NEEDS REVISION
                 </Badge>
               ) : null}
-              {address.served_at && (
+              {isRTO && address.rto_at && (
+                <span className="text-xs text-red-400 ml-auto">
+                  {format(new Date(address.rto_at), "M/d/yy 'at' h:mm a")}
+                </span>
+              )}
+              {!isRTO && address.served_at && (
                 <span className="text-xs text-gray-500 ml-auto">
                   {format(new Date(address.served_at), "M/d/yy 'at' h:mm a")}
                 </span>
               )}
             </div>
+            {isRTO && address.rto_reason && (
+              <div className="mt-2 bg-white border border-red-200 rounded-lg px-3 py-2">
+                <p className="text-xs font-semibold text-red-600 mb-0.5">Return Reason:</p>
+                <p className="text-xs text-red-700">{address.rto_reason}</p>
+              </div>
+            )}
             
             {/* Unserve Button */}
             <Button
