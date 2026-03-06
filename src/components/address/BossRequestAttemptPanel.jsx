@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { getCompanyId } from '@/components/utils/companyUtils';
 
 const QUALIFIER_OPTIONS = [
   { value: 'AM', label: 'AM', desc: 'Before noon', bg: 'bg-sky-100 text-sky-700 border-sky-300' },
@@ -9,19 +12,76 @@ const QUALIFIER_OPTIONS = [
   { value: 'ANYTIME', label: 'ANY', desc: 'Any time', bg: 'bg-gray-100 text-gray-700 border-gray-300' },
 ];
 
-export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
+export default function BossRequestAttemptPanel({
+  address,
+  routeId,
+  user,
+  onClose,
+  queryClient
+}) {
   const [qualifiers, setQualifiers] = useState([]);
   const [note, setNote] = useState('');
-  const [creating, setCreating] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleCreate = async () => {
+  const handleSend = async () => {
     if (qualifiers.length === 0) return;
-    setCreating(true);
+    setSaving(true);
     try {
-      await onCreateRequest({ qualifiers, note });
+      const companyId = getCompanyId(user) || address.company_id;
+
+      await base44.entities.AttemptRequest.create({
+        address_id: address.id,
+        route_id: routeId,
+        company_id: companyId,
+        requested_by: user.id,
+        assigned_to: address.server_id || null,
+        required_qualifiers: qualifiers,
+        status: 'pending',
+        boss_note: note || null
+      });
+
+      await base44.entities.Address.update(address.id, {
+        has_pending_request: true,
+        pending_request_qualifiers: qualifiers
+      });
+
+      if (address.server_id) {
+        try {
+          await base44.entities.Notification.create({
+            user_id: address.server_id,
+            company_id: companyId,
+            recipient_role: 'server',
+            type: 'attempt_requested',
+            title: 'New Attempt Requested',
+            body: `${qualifiers.join(' + ')} attempt needed at ${address.normalized_address || address.legal_address}`,
+            priority: 'urgent',
+            data: { address_id: address.id, route_id: routeId, qualifiers }
+          });
+        } catch (e) {
+          console.warn('Request notification failed (non-fatal):', e);
+        }
+      }
+
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'attempt_requested',
+        actor_id: user.id,
+        actor_role: 'boss',
+        target_type: 'address',
+        target_id: address.id,
+        details: { qualifiers, note, route_id: routeId },
+        timestamp: new Date().toISOString()
+      });
+
+      toast.success(`Request sent: ${qualifiers.join(' + ')}`);
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
       onClose();
+    } catch (error) {
+      console.error('Failed to create request:', error);
+      toast.error('Failed to send request');
     } finally {
-      setCreating(false);
+      setSaving(false);
     }
   };
 
@@ -32,7 +92,7 @@ export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
         <p className="text-xs text-red-600 mb-3">
           Worker will see this request highlighted on their route
         </p>
-        
+
         <div className="mb-3">
           <label className="text-xs font-semibold text-gray-600 block mb-2">
             REQUIRED TIME FRAME (tap all that apply)
@@ -41,7 +101,6 @@ export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
             {QUALIFIER_OPTIONS.map(q => {
               const isSelected = qualifiers.includes(q.value);
               const isAnytime = q.value === 'ANYTIME';
-              
               return (
                 <button
                   key={q.value}
@@ -59,8 +118,8 @@ export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
                     }
                   }}
                   className={`p-3 rounded-xl text-center border-2 transition-all ${
-                    isSelected 
-                      ? `${q.bg} border-current ring-2 ring-offset-1` 
+                    isSelected
+                      ? `${q.bg} border-current ring-2 ring-offset-1`
                       : 'bg-gray-50 text-gray-400 border-gray-200'
                   }`}
                 >
@@ -70,7 +129,7 @@ export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
               );
             })}
           </div>
-          
+
           <div className="flex gap-2 mt-2">
             <button
               onClick={(e) => { e.stopPropagation(); setQualifiers(['WEEKEND', 'PM']); }}
@@ -111,11 +170,11 @@ export default function BossRequestAttemptPanel({ onClose, onCreateRequest }) {
           </Button>
           <Button
             size="sm"
-            onClick={(e) => { e.stopPropagation(); handleCreate(); }}
-            disabled={qualifiers.length === 0 || creating}
+            onClick={(e) => { e.stopPropagation(); handleSend(); }}
+            disabled={qualifiers.length === 0 || saving}
             className="flex-1 bg-red-500 hover:bg-red-600 text-white"
           >
-            {creating ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
             Send Request
           </Button>
         </div>

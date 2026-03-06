@@ -1724,75 +1724,27 @@ export default function AddressCard({
           </div>
         )}
 
-        {/* Boss Add Attempt — Inline Panel */}
+        {/* Boss Add Attempt — Sub-Component */}
         {isBossView && showBossAddAttempt && (
           <BossAddAttemptPanel
+            address={address}
+            routeId={routeId}
+            user={user}
+            localAttempts={localAttempts}
+            onAttemptAdded={(newAttempt) => setLocalAttempts(prev => [...prev, newAttempt])}
             onClose={() => setShowBossAddAttempt(false)}
-            onCreate={async ({ time, outcome, notes }) => {
-              const attemptTime = new Date(time);
-              const qualifierData = getQualifiers(attemptTime);
-              const qualifierFields = getQualifierStorageFields(qualifierData);
-              const attemptNumber = (localAttempts?.length || 0) + 1;
-              const companyId = getCompanyId(user) || address.company_id;
-
-              const newAttempt = await base44.entities.Attempt.create({
-                address_id: address.id, route_id: routeId, server_id: address.server_id || user.id,
-                company_id: companyId, attempt_number: attemptNumber, status: 'completed',
-                outcome, attempt_time: attemptTime.toISOString(), attempt_timezone: 'America/Detroit',
-                ...qualifierFields, notes: notes ? `[Added by boss] ${notes}` : '[Added by boss]',
-                manually_edited: true, photo_urls: [], synced_at: new Date().toISOString()
-              });
-              setLocalAttempts(prev => [...prev, newAttempt]);
-              await base44.entities.Address.update(address.id, {
-                attempts_count: attemptNumber,
-                status: address.status === 'pending' ? 'attempted' : address.status
-              });
-              await base44.entities.AuditLog.create({
-                company_id: companyId, action_type: 'attempt_added_by_boss', actor_id: user.id,
-                actor_role: 'boss', target_type: 'address', target_id: address.id,
-                details: { attempt_number: attemptNumber, outcome, attempt_time: attemptTime.toISOString(), route_id: routeId },
-                timestamp: new Date().toISOString()
-              });
-              toast.success(`Attempt ${attemptNumber} added`);
-              queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-              queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-            }}
+            queryClient={queryClient}
           />
         )}
 
-        {/* Boss Request Attempt — Inline Panel */}
+        {/* Boss Request Attempt — Sub-Component */}
         {isBossView && showRequestAttempt && (
           <BossRequestAttemptPanel
-            onClose={() => { setShowRequestAttempt(false); }}
-            onCreateRequest={async ({ qualifiers, note }) => {
-              const companyId = getCompanyId(user) || address.company_id;
-              await base44.entities.AttemptRequest.create({
-                address_id: address.id, route_id: routeId, company_id: companyId,
-                requested_by: user.id, assigned_to: address.server_id || null,
-                required_qualifiers: qualifiers, status: 'pending', boss_note: note || null
-              });
-              await base44.entities.Address.update(address.id, {
-                has_pending_request: true, pending_request_qualifiers: qualifiers
-              });
-              if (address.server_id) {
-                try {
-                  await base44.entities.Notification.create({
-                    user_id: address.server_id, company_id: companyId, recipient_role: 'server',
-                    type: 'attempt_requested', title: 'New Attempt Requested',
-                    body: `${qualifiers.join(' + ')} attempt needed at ${address.normalized_address || address.legal_address}`,
-                    priority: 'urgent', data: { address_id: address.id, route_id: routeId, qualifiers }
-                  });
-                } catch (e) { console.warn('Request notification failed (non-fatal):', e); }
-              }
-              await base44.entities.AuditLog.create({
-                company_id: companyId, action_type: 'attempt_requested', actor_id: user.id,
-                actor_role: 'boss', target_type: 'address', target_id: address.id,
-                details: { qualifiers, note, route_id: routeId }, timestamp: new Date().toISOString()
-              });
-              toast.success(`Request sent: ${qualifiers.join(' + ')}`);
-              queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-              queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
-            }}
+            address={address}
+            routeId={routeId}
+            user={user}
+            onClose={() => setShowRequestAttempt(false)}
+            queryClient={queryClient}
           />
         )}
 
