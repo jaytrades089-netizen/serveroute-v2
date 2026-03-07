@@ -53,7 +53,8 @@ const workerPages = [
   'Notifications',
   'ComboRouteSelection',
   'SubmitReceipt',
-  'ReceiptDetail'
+  'ReceiptDetail',
+  'PayrollRecordDetail'
 ];
 
 // Known shared pages that both roles can access
