@@ -8,7 +8,7 @@ import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import RouteCard from '../components/common/RouteCard';
-import { Loader2, MapPin, Shuffle, Trash2, Archive as ArchiveIcon, Calendar } from 'lucide-react';
+import { Loader2, MapPin, Shuffle, Trash2, Archive as ArchiveIcon, Calendar, CalendarDays } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
