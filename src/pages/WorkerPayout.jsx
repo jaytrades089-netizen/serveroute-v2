@@ -240,7 +240,6 @@ export default function WorkerPayout() {
   const { currentPeriod, previousPeriod } = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
-    const currentHour = now.getHours();
     
     // Calculate days back to the MOST RECENT selected day
     let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
