@@ -14,6 +14,7 @@ export function useUserSettings(userId) {
       return settings[0] || null;
     },
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 4 * 60 * 60 * 1000,
   });
 }

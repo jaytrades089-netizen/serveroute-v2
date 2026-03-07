@@ -113,6 +113,8 @@ export default function WorkerRoutes() {
       });
     },
     enabled: !!user?.id,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 4 * 60 * 60 * 1000,
     refetchInterval: 30000
   });
 
