@@ -10,21 +10,40 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatAddress } from '@/components/utils/addressUtils';
 
-export default function ScheduledServesTab({ routeId, addresses = [] }) {
+export default function ScheduledServesTab({ routeId }) {
   const navigate = useNavigate();
 
-  const { data: serves = [], isLoading } = useQuery({
+  // Fetch open scheduled serves AND check which addresses are actually served
+  const { data: activeServes = [], isLoading } = useQuery({
     queryKey: ['scheduledServes', routeId],
     queryFn: async () => {
       if (!routeId) return [];
-      return base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
+      const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
+      if (serves.length === 0) return [];
+      
+      // Fetch fresh address data to check served status
+      const addressIds = [...new Set(serves.map(s => s.address_id))];
+      const addresses = await Promise.all(
+        addressIds.map(id => base44.entities.Address.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      const servedIds = new Set(
+        addresses.filter(a => a && (a.served || a.status === 'returned')).map(a => a.id)
+      );
+      
+      // Auto-complete any that should be completed
+      const staleServes = serves.filter(s => servedIds.has(s.address_id));
+      for (const serve of staleServes) {
+        base44.entities.ScheduledServe.update(serve.id, {
+          status: 'completed',
+          completed_at: new Date().toISOString()
+        }).catch(() => {});
+      }
+      
+      return serves.filter(s => !servedIds.has(s.address_id));
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    staleTime: 0 // Always refetch to ensure fresh data
   });
-
-  // Filter out serves whose address is already served
-  const servedAddressIds = new Set(addresses.filter(a => a.served).map(a => a.id));
-  const activeServes = serves.filter(s => !servedAddressIds.has(s.address_id));
 
   if (isLoading) {
     return (
