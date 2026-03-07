@@ -26,6 +26,9 @@ export default function CreateScheduledServe() {
   const [selectedHour, setSelectedHour] = useState('');
   const [selectedMinute, setSelectedMinute] = useState('');
   const [selectedAmPm, setSelectedAmPm] = useState('AM');
+  const [endHour, setEndHour] = useState('');
+  const [endMinute, setEndMinute] = useState('');
+  const [endAmPm, setEndAmPm] = useState('AM');
   const [notes, setNotes] = useState('');
   const [locationType, setLocationType] = useState('posting');
   const [meetingAddress, setMeetingAddress] = useState('');
@@ -59,17 +62,23 @@ export default function CreateScheduledServe() {
   const formatted = address ? formatAddress(address) : {};
   const fullPostingAddress = formatted.line1 ? `${formatted.line1}, ${formatted.line2}` : '';
 
+  // Format a single time for display
+  const formatTimeDisplay = (hour, minute, ampm) => {
+    if (!hour) return '';
+    return `${hour}:${minute || '00'} ${ampm}`;
+  };
+
   // Build the combined datetime string for display and storage
   const getDateTimeDisplay = useCallback(() => {
     if (!selectedDate || !selectedHour) return '';
-    let h = parseInt(selectedHour);
-    const m = selectedMinute || '00';
-    if (selectedAmPm === 'PM' && h !== 12) h += 12;
-    if (selectedAmPm === 'AM' && h === 12) h = 0;
-    const dt = new Date(selectedDate);
-    dt.setHours(h, parseInt(m), 0, 0);
-    return format(dt, "EEE, MMM d, yyyy 'at' h:mm a");
-  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm]);
+    const startTime = formatTimeDisplay(selectedHour, selectedMinute, selectedAmPm);
+    const endTime = endHour ? formatTimeDisplay(endHour, endMinute, endAmPm) : '';
+    const dateStr = format(selectedDate, "EEE, MMM d, yyyy");
+    if (endTime) {
+      return `${dateStr} between ${startTime} - ${endTime}`;
+    }
+    return `${dateStr} at ${startTime}`;
+  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm]);
 
   // Build the ISO datetime for saving
   const getDateTimeISO = useCallback(() => {
@@ -92,8 +101,8 @@ export default function CreateScheduledServe() {
       : (meetingAddress || '(not entered)');
     const dateTimeStr = getDateTimeDisplay() || '(not selected)';
 
-    return `Scheduled Serve\nDefendant: ${defendantName}\nLocation: ${locationLabel}\nAddress: ${locationAddress}\nDate/Time: ${dateTimeStr}`;
-  }, [address, locationType, fullPostingAddress, meetingAddress, getDateTimeDisplay]);
+    return `Scheduled Serve\nDefendant: ${defendantName}\nLocation: ${locationLabel}\nAddress: ${locationAddress}\nDate/Time: ${dateTimeStr}\nPhone: ${phoneNumber || '(not entered)'}`;
+  }, [address, locationType, fullPostingAddress, meetingAddress, getDateTimeDisplay, phoneNumber]);
 
   // Auto-populate notes on first load
   const [templateInitialized, setTemplateInitialized] = useState(false);
@@ -109,7 +118,7 @@ export default function CreateScheduledServe() {
     if (templateInitialized) {
       setNotes(buildTemplate());
     }
-  }, [locationType, meetingAddress, selectedDate, selectedHour, selectedMinute, selectedAmPm, buildTemplate, templateInitialized]);
+  }, [locationType, meetingAddress, selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm, phoneNumber, buildTemplate, templateInitialized]);
 
   const handleCopyNotes = () => {
     navigator.clipboard.writeText(notes).then(() => {
@@ -261,13 +270,16 @@ export default function CreateScheduledServe() {
           </CardContent>
         </Card>
 
-        {/* Time Picker */}
+        {/* Time Window Picker */}
         <Card>
           <CardContent className="p-4">
             <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <Clock className="w-3.5 h-3.5" /> TIME
+              <Clock className="w-3.5 h-3.5" /> TIME WINDOW
             </label>
-            <div className="flex gap-2">
+            
+            {/* Start Time */}
+            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">FROM</p>
+            <div className="flex gap-2 mb-3">
               <Select value={selectedHour} onValueChange={setSelectedHour}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Hour" />
@@ -298,8 +310,43 @@ export default function CreateScheduledServe() {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* End Time */}
+            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">TO <span className="font-normal text-gray-300">(optional)</span></p>
+            <div className="flex gap-2">
+              <Select value={endHour} onValueChange={setEndHour}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Hour" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hours.map(h => (
+                    <SelectItem key={h} value={String(h)}>{h}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={endMinute} onValueChange={setEndMinute}>
+                <SelectTrigger className="w-20">
+                  <SelectValue placeholder="Min" />
+                </SelectTrigger>
+                <SelectContent>
+                  {minutes.map(m => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={endAmPm} onValueChange={setEndAmPm}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="PM">PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {selectedDate && selectedHour && (
-              <p className="text-sm text-blue-600 font-medium mt-2">
+              <p className="text-sm text-blue-600 font-medium mt-3">
                 {getDateTimeDisplay()}
               </p>
             )}
