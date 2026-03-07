@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '@/components/hooks/useCurrentUser';
+import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
@@ -39,20 +41,8 @@ export default function WorkerRouteDetail() {
   const searchAddressId = urlParams.get('addressId');
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me()
-  });
-
-  const { data: userSettings } = useQuery({
-    queryKey: ['userSettings', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
-      return settings[0] || null;
-    },
-    enabled: !!user?.id
-  });
+  const { data: user } = useCurrentUser();
+  const { data: userSettings } = useUserSettings(user?.id);
 
   // Set worker status to active when viewing a route
   useEffect(() => {

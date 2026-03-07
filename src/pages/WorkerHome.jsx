@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCurrentUser } from '@/components/hooks/useCurrentUser';
+import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
@@ -40,12 +42,7 @@ export default function WorkerHome() {
   const queryClient = useQueryClient();
   const [currentPhase, setCurrentPhase] = useState('ntc');
 
-  const { data: user, isLoading: userLoading } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    retry: 1,
-    staleTime: 5 * 60 * 1000
-  });
+  const { data: user, isLoading: userLoading } = useCurrentUser();
 
   // Auth is handled by Layout - no redirect needed here
 
@@ -129,15 +126,7 @@ export default function WorkerHome() {
   });
 
   // Load user settings for payroll day/hour
-  const { data: userSettings } = useQuery({
-    queryKey: ['userSettings', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
-      return settings[0] || null;
-    },
-    enabled: !!user?.id
-  });
+  const { data: userSettings } = useUserSettings(user?.id);
 
   useEffect(() => {
     const timezone = user?.settings?.timezone || 'America/Detroit';

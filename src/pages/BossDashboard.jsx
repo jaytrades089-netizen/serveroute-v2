@@ -41,6 +41,8 @@ import { generateSuggestions, autoAssignAllRoutes } from '../components/services
 import { buildAddressCountsMap } from '../components/services/MetricsService';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
+import { useCurrentUser } from '@/components/hooks/useCurrentUser';
+import { useUserSettings } from '@/components/hooks/useUserSettings';
 
 // Polling configuration
 const POLLING_CONFIG = {
@@ -59,11 +61,7 @@ export default function BossDashboard() {
   const [suggestions, setSuggestions] = useState({});
   const [autoAssigning, setAutoAssigning] = useState(false);
   
-  const { data: user, isLoading: userLoading, isError: userError } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me(),
-    retry: 1
-  });
+  const { data: user, isLoading: userLoading, isError: userError } = useCurrentUser();
 
   // Handle tab visibility for polling
   useEffect(() => {
@@ -133,15 +131,7 @@ export default function BossDashboard() {
   });
 
   // Get user settings for MapQuest API key
-  const { data: userSettings } = useQuery({
-    queryKey: ['userSettings', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
-      return settings[0] || null;
-    },
-    enabled: !!user?.id
-  });
+  const { data: userSettings } = useUserSettings(user?.id);
 
   // Auto-refresh polling
   useEffect(() => {
