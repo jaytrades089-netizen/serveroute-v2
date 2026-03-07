@@ -19,8 +19,13 @@ import {
   Trash2,
   Archive,
   Pencil,
-  Eye
+  Eye,
+  Plus,
+  CalendarPlus
 } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+import { parseISO } from 'date-fns';
 import * as DropdownMenuPrimitives from "@/components/ui/dropdown-menu";
 const {
   DropdownMenu,
@@ -56,9 +61,9 @@ function ProgressBar({ served, total }) {
   );
 }
 
-function RouteCardMenu({ route, onEdit, onArchive, onDelete }) {
+function RouteCardMenu({ route, onEdit, onArchive, onDelete, onScheduleRunDate }) {
   // If no handlers provided, just show three-dot icon
-  if (!onDelete && !onArchive && !onEdit) {
+  if (!onDelete && !onArchive && !onEdit && !onScheduleRunDate) {
     return <MoreHorizontal className="w-5 h-5 text-gray-400" />;
   }
 
@@ -75,6 +80,15 @@ function RouteCardMenu({ route, onEdit, onArchive, onDelete }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-48">
+        {onScheduleRunDate && (
+          <DropdownMenuItem 
+            onClick={(e) => { e.stopPropagation(); onScheduleRunDate(route.id, '__open_picker__'); }}
+            className="cursor-pointer"
+          >
+            <CalendarPlus className="w-4 h-4 mr-2 text-blue-500" />
+            <span>Schedule Run Date</span>
+          </DropdownMenuItem>
+        )}
         {onEdit && (
           <DropdownMenuItem 
             onClick={(e) => { e.stopPropagation(); onEdit(route); }}
@@ -93,7 +107,7 @@ function RouteCardMenu({ route, onEdit, onArchive, onDelete }) {
             <span>{route.status === 'archived' ? 'Unarchive Route' : 'Archive Route'}</span>
           </DropdownMenuItem>
         )}
-        {(onEdit || onArchive) && onDelete && (
+        {(onEdit || onArchive || onScheduleRunDate) && onDelete && (
           <DropdownMenuSeparator />
         )}
         {onDelete && (
@@ -123,6 +137,7 @@ export default function RouteCard({
   onDelete,
   onArchive,
   onEdit,
+  onScheduleRunDate,
   isBossView = false,
   className = '',
   attempts = [],
@@ -131,6 +146,18 @@ export default function RouteCard({
   addresses = []
 }) {
   const navigate = useNavigate();
+  const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
+
+  // Wrapper that intercepts the special '__open_picker__' signal from the menu
+  const handleScheduleRunDate = onScheduleRunDate 
+    ? (routeId, dateOrSignal) => {
+        if (dateOrSignal === '__open_picker__') {
+          setShowRunDatePicker(true);
+        } else {
+          onScheduleRunDate(routeId, dateOrSignal);
+        }
+      }
+    : undefined;
   const progress = route.total_addresses > 0 
     ? Math.round((route.served_count / route.total_addresses) * 100) 
     : 0;
@@ -446,8 +473,47 @@ export default function RouteCard({
 
       {/* Bottom Action Bar */}
       <div className="px-4 py-3 border-t border-gray-100">
+        {/* + Schedule button row */}
+        {onScheduleRunDate && !isBossView && (
+          <div className="mb-2" onClick={(e) => e.stopPropagation()}>
+            <Popover open={showRunDatePicker} onOpenChange={setShowRunDatePicker}>
+              <PopoverTrigger asChild>
+                <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50">
+                  <Plus className="w-3.5 h-3.5" />
+                  {route.run_date ? `Run: ${format(parseISO(route.run_date), 'EEE, MMM d')}` : '+ Schedule'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <CalendarPicker
+                  mode="single"
+                  selected={route.run_date ? parseISO(route.run_date) : undefined}
+                  onSelect={(date) => {
+                    onScheduleRunDate(route.id, date);
+                    setShowRunDatePicker(false);
+                  }}
+                />
+                {route.run_date && (
+                  <div className="px-3 pb-3">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full text-red-500"
+                      onClick={() => {
+                        onScheduleRunDate(route.id, null);
+                        setShowRunDatePicker(false);
+                      }}
+                    >
+                      Clear Date
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+
         <div className="flex items-center">
-          {/* View Button - Full width with Eye icon */}
+          {/* View Button */}
           <button 
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
             onClick={(e) => {
@@ -463,13 +529,14 @@ export default function RouteCard({
             <span className="text-blue-600 font-semibold">View</span>
           </button>
           
-          {/* 3-dot menu (MoreHorizontal) */}
+          {/* 3-dot menu */}
           <div className="ml-2">
             <RouteCardMenu 
               route={route} 
               onEdit={onEdit} 
               onArchive={onArchive} 
-              onDelete={onDelete} 
+              onDelete={onDelete}
+              onScheduleRunDate={handleScheduleRunDate}
             />
           </div>
         </div>

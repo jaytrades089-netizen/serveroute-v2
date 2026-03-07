@@ -353,47 +353,18 @@ export default function WorkerRoutes() {
             const renderRouteCard = (route) => {
               const isOverdue = route.due_date && new Date(route.due_date) < new Date() && route.status !== 'completed';
               return (
-                <div key={route.id} className="relative">
-                  <RouteCard
-                    route={route}
-                    isBossView={false}
-                    attempts={attemptsByRoute[route.id] || []}
-                    addresses={allAddresses}
-                    onDelete={handleDeleteRoute}
-                    onArchive={handleArchiveRoute}
-                    onEdit={handleEditRoute}
-                    isOverdue={isOverdue}
-                  />
-                  {/* Date picker + icon on top-right of card */}
-                  <div className="absolute top-3 right-14 z-10" onClick={(e) => e.stopPropagation()}>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <button className="p-1.5 bg-white/90 rounded-full shadow-sm border border-gray-200 hover:bg-gray-100 transition-colors">
-                          <Plus className="w-4 h-4 text-blue-600" />
-                        </button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="end">
-                        <CalendarPicker
-                          mode="single"
-                          selected={route.run_date ? parseISO(route.run_date) : undefined}
-                          onSelect={(date) => handleSetRunDate(route.id, date)}
-                        />
-                        {route.run_date && (
-                          <div className="px-3 pb-3">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="w-full text-red-500"
-                              onClick={() => handleSetRunDate(route.id, null)}
-                            >
-                              Clear Date
-                            </Button>
-                          </div>
-                        )}
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
+                <RouteCard
+                  key={route.id}
+                  route={route}
+                  isBossView={false}
+                  attempts={attemptsByRoute[route.id] || []}
+                  addresses={allAddresses}
+                  onDelete={handleDeleteRoute}
+                  onArchive={handleArchiveRoute}
+                  onEdit={handleEditRoute}
+                  isOverdue={isOverdue}
+                  onScheduleRunDate={handleSetRunDate}
+                />
               );
             };
 
