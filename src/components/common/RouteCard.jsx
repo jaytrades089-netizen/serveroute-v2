@@ -147,6 +147,16 @@ export default function RouteCard({
 }) {
   const navigate = useNavigate();
   const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
+  const [pendingQualifiers, setPendingQualifiers] = React.useState(route.run_qualifiers || []);
+
+  // Sync pending qualifiers when route data changes
+  React.useEffect(() => {
+    setPendingQualifiers(route.run_qualifiers || []);
+  }, [route.run_qualifiers]);
+
+  const toggleQualifier = (q) => {
+    setPendingQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]);
+  };
 
   // Wrapper that intercepts the special '__open_picker__' signal from the menu
   const handleScheduleRunDate = onScheduleRunDate 
@@ -337,6 +347,14 @@ export default function RouteCard({
             <h3 className="text-xl font-bold text-gray-900 leading-tight">
               {route.folder_name}
             </h3>
+            {route.run_date && (
+              <p className="text-xs text-blue-600 font-medium mt-0.5 flex items-center gap-1">
+                📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
+                {route.run_qualifiers && route.run_qualifiers.length > 0 && (
+                  <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                )}
+              </p>
+            )}
             {showWorker && workerName && (
               <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
                 <User className="w-3 h-3" /> {workerName}
@@ -487,10 +505,31 @@ export default function RouteCard({
                   mode="single"
                   selected={route.run_date ? parseISO(route.run_date) : undefined}
                   onSelect={(date) => {
-                    onScheduleRunDate(route.id, date);
+                    onScheduleRunDate(route.id, date, pendingQualifiers);
                     setShowRunDatePicker(false);
                   }}
                 />
+                {/* Qualifier selector */}
+                <div className="px-3 py-2 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
+                  <div className="flex gap-2">
+                    {['AM', 'PM', 'WEEKEND'].map(q => (
+                      <button
+                        key={q}
+                        onClick={() => toggleQualifier(q)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
+                          pendingQualifiers.includes(q)
+                            ? q === 'AM' ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : q === 'PM' ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : 'bg-purple-100 text-purple-800 border-purple-300'
+                            : 'bg-gray-100 text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 {route.run_date && (
                   <div className="px-3 pb-3">
                     <Button
@@ -498,7 +537,7 @@ export default function RouteCard({
                       size="sm"
                       className="w-full text-red-500"
                       onClick={() => {
-                        onScheduleRunDate(route.id, null);
+                        onScheduleRunDate(route.id, null, []);
                         setShowRunDatePicker(false);
                       }}
                     >
