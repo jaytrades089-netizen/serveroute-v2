@@ -355,7 +355,25 @@ export default function RouteCard({
             <h3 className="text-xl font-bold text-gray-900 leading-tight">
               {route.folder_name}
             </h3>
-
+            {route.run_date && (
+              <p className="text-[11px] text-blue-600 font-medium mt-0.5 flex items-center gap-1 flex-nowrap whitespace-nowrap">
+                📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
+                {route.run_qualifiers && route.run_qualifiers.length > 0 && (
+                  <span className="ml-0.5 flex-shrink-0"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                )}
+                {onScheduleRunDate && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleRunDate(route.id, null, []);
+                    }}
+                    className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </p>
+            )}
             {showWorker && workerName && (
               <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
                 <User className="w-3 h-3" /> {workerName}
@@ -501,25 +519,27 @@ export default function RouteCard({
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50">
                   {route.run_date ? (
-                    <span className="flex items-center gap-1 flex-nowrap whitespace-nowrap">
+                    <>
                       📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
                       {route.run_qualifiers && route.run_qualifiers.length > 0 && (
-                        <span className="ml-0.5 flex-shrink-0"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                        <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
                       )}
-                    </span>
+                      {onScheduleRunDate && (
+                        <span
+                          role="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            e.preventDefault();
+                            onScheduleRunDate(route.id, null, []);
+                          }}
+                          className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </span>
+                      )}
+                    </>
                   ) : '+ Schedule'}
                 </button>
-                {route.run_date && onScheduleRunDate && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onScheduleRunDate(route.id, null, []);
-                    }}
-                    className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <CalendarPicker
