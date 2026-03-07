@@ -40,8 +40,9 @@ export default function WorkerRouteDetail() {
   const [editedFolderName, setEditedFolderName] = useState('');
   const editMode = urlParams.get('edit') === 'true';
   const searchAddressId = urlParams.get('addressId');
+  const tabParam = urlParams.get('tab');
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
-  const [activeRouteTab, setActiveRouteTab] = useState('addresses');
+  const [activeRouteTab, setActiveRouteTab] = useState(tabParam || 'addresses');
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
