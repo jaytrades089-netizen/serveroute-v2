@@ -367,6 +367,7 @@ export default function WorkerRoutes() {
                   onEdit={handleEditRoute}
                   isOverdue={isOverdue}
                   onScheduleRunDate={handleSetRunDate}
+                  onClick={() => {}}
                 />
               );
             };
