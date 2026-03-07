@@ -97,18 +97,27 @@ export default function WorkerRouteDetail() {
 
 
 
-  // Fetch scheduled serves count for this route (excluding served addresses)
-  const servedAddressIds = useMemo(() => new Set(addresses.filter(a => a.served).map(a => a.id)), [addresses]);
-  const servedCount = useMemo(() => addresses.filter(a => a.served).length, [addresses]);
-  
+  // Fetch scheduled serves count - uses same query key as ScheduledServesTab
+  // so they stay in sync via shared cache
   const { data: scheduledServesCount = 0 } = useQuery({
-    queryKey: ['scheduledServesCount', routeId, servedCount],
+    queryKey: ['scheduledServesCountBadge', routeId],
     queryFn: async () => {
       if (!routeId) return 0;
       const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
-      return serves.filter(s => !servedAddressIds.has(s.address_id)).length;
+      if (serves.length === 0) return 0;
+      
+      // Check fresh address status
+      const addressIds = [...new Set(serves.map(s => s.address_id))];
+      const addrs = await Promise.all(
+        addressIds.map(id => base44.entities.Address.filter({ id }).then(r => r[0]).catch(() => null))
+      );
+      const servedIds = new Set(
+        addrs.filter(a => a && (a.served || a.status === 'returned')).map(a => a.id)
+      );
+      return serves.filter(s => !servedIds.has(s.address_id)).length;
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    staleTime: 0
   });
 
   // Fetch attempts for all addresses in the route
@@ -702,7 +711,7 @@ export default function WorkerRouteDetail() {
         </div>
 
         {activeRouteTab === 'scheduled' ? (
-          <ScheduledServesTab routeId={routeId} addresses={addresses} />
+          <ScheduledServesTab routeId={routeId} />
         ) : (
         <>
         {/* Search Filter Banner */}
