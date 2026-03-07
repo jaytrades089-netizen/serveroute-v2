@@ -180,7 +180,11 @@ export default function RouteCard({
 
   const statusConfig = STATUS_CONFIG[route.status] || STATUS_CONFIG.draft;
 
+  // If onClick is explicitly a no-op function, disable card-level click navigation
+  const isClickDisabled = onClick && onClick.toString().replace(/\s/g, '') === '()=>{}';
+  
   const handleCardClick = () => {
+    if (isClickDisabled) return;
     if (onClick) {
       onClick(route);
     } else if (linkTo) {
@@ -286,7 +290,9 @@ export default function RouteCard({
   return (
     <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] ${
+      className={`rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
+        isClickDisabled ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]'
+      } ${
         allAddressesComplete
           ? 'bg-green-50 border-2 border-green-400 ring-2 ring-green-300 ring-offset-1'
           : isOverdue
