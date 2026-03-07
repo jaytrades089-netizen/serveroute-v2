@@ -118,6 +118,72 @@ export default function WorkerPayout() {
     savePayrollRecord(now);
   };
 
+  // Save a payroll record snapshot
+  const savePayrollRecord = async (turnInDate = null) => {
+    if (!user?.id) return;
+    try {
+      const now = new Date();
+      const snapshotAddresses = [
+        ...instantPayouts.map(a => ({
+          id: a.id,
+          address: a.normalized_address || a.legal_address,
+          defendant: a.defendant_name || '',
+          serve_type: a.serve_type,
+          amount: calculateCorrectPayRate(a.serve_type),
+          served_at: a.served_at,
+          rto_at: null,
+          bucket: 'instant'
+        })),
+        ...pendingPayouts.map(a => ({
+          id: a.id,
+          address: a.normalized_address || a.legal_address,
+          defendant: a.defendant_name || '',
+          serve_type: a.serve_type,
+          amount: calculateCorrectPayRate(a.serve_type),
+          served_at: a.served_at,
+          rto_at: a.rto_at || null,
+          bucket: 'pending'
+        })),
+        ...rtoCurrentPeriod.map(a => ({
+          id: a.id,
+          address: a.normalized_address || a.legal_address,
+          defendant: a.defendant_name || '',
+          serve_type: a.serve_type,
+          amount: calculateCorrectPayRate(a.serve_type),
+          served_at: null,
+          rto_at: a.rto_at,
+          rto_reason: a.rto_reason || '',
+          bucket: 'rto'
+        }))
+      ];
+
+      const rtoTotal = rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
+
+      await base44.entities.PayrollRecord.create({
+        user_id: user.id,
+        company_id: user.company_id || '',
+        period_start: currentPeriod.start.toISOString(),
+        period_end: currentPeriod.end.toISOString(),
+        turn_in_date: (turnInDate || now).toISOString(),
+        instant_total: instantTotal,
+        pending_total: pendingTotal,
+        rto_total: rtoTotal,
+        total_amount: instantTotal + pendingTotal,
+        address_count: snapshotAddresses.length,
+        snapshot_data: JSON.stringify(snapshotAddresses),
+        status: 'saved',
+        notes: '',
+        created_at: now.toISOString()
+      });
+
+      refetchHistory();
+      toast.success('Payroll record saved');
+    } catch (err) {
+      console.error('Failed to save payroll record:', err);
+      toast.error('Failed to save record');
+    }
+  };
+
   const { data: routes = [] } = useQuery({
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
@@ -307,7 +373,19 @@ export default function WorkerPayout() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <Header user={user} unreadCount={notifications.length} />
+      <Header
+        user={user}
+        unreadCount={notifications.length}
+        actionButton={
+          <button
+            onClick={() => savePayrollRecord()}
+            className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            title="Save payroll record"
+          >
+            <Save className="w-5 h-5 text-white" />
+          </button>
+        }
+      />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
         <h1 className="text-2xl font-bold text-gray-900 mb-4">Earnings & Turn-in</h1>
@@ -334,70 +412,20 @@ export default function WorkerPayout() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs text-blue-600 mb-1 block">Turn-in Time</label>
-                <Select value={String(selectedHour)} onValueChange={handleHourChange}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {HOURS.map(hour => (
-                      <SelectItem key={hour.value} value={hour.value}>{hour.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col justify-end">
+                <label className="text-xs text-blue-600 mb-1 block">Documentation</label>
+                <button
+                  onClick={handleTurnIn}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                  Turn In
+                </button>
               </div>
             </div>
 
-            <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2 mb-3">
-              <span className="font-medium">Current Period:</span> {format(currentPeriod.start, 'MMM d, h:mm a')} → {format(currentPeriod.end, 'MMM d, h:mm a')}
-            </div>
-
-            <div>
-              <label className="text-xs text-blue-600 mb-1 block">Previous Turn-in Date (for Next Check calculation)</label>
-              <Select 
-                value={previousTurnInDate ? previousTurnInDate.toISOString() : 'auto'}
-                onValueChange={(value) => {
-                  if (value === 'auto') {
-                    setPreviousTurnInDate(null);
-                    if (userSettings?.id) {
-                      base44.entities.UserSettings.update(userSettings.id, { previous_turn_in_date: null });
-                    }
-                  } else {
-                    const date = new Date(value);
-                    setPreviousTurnInDate(date);
-                    if (userSettings?.id) {
-                      base44.entities.UserSettings.update(userSettings.id, { previous_turn_in_date: date.toISOString() });
-                    }
-                  }
-                }}
-              >
-                <SelectTrigger className="bg-white">
-                  <SelectValue placeholder="Select previous turn-in date" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Auto (based on current settings)</SelectItem>
-                  {/* Generate last 4 weeks of potential turn-in dates */}
-                  {Array.from({ length: 4 }, (_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (7 * (i + 1)));
-                    // Find the selected day in that week
-                    const dayDiff = (date.getDay() - selectedDay + 7) % 7;
-                    date.setDate(date.getDate() - dayDiff);
-                    date.setHours(selectedHour, 0, 0, 0);
-                    return date;
-                  }).map((date, i) => (
-                    <SelectItem key={i} value={date.toISOString()}>
-                      {format(date, 'EEEE, MMM d')} at {format(date, 'h:mm a')}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {previousTurnInDate && (
-                <p className="text-xs text-blue-500 mt-1">
-                  Locked to: {format(previousTurnInDate, 'MMM d, h:mm a')}
-                </p>
-              )}
+            <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
+              <span className="font-medium">Current Period:</span> {format(currentPeriod.start, 'MMM d')} → {format(currentPeriod.end, 'MMM d, yyyy')}
             </div>
           </CardContent>
         </Card>
@@ -596,6 +624,46 @@ export default function WorkerPayout() {
               </div>
             )}
           </>
+        )}
+
+        {/* Payroll History */}
+        {payrollHistory.length > 0 && (
+          <div className="mt-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                <FileTextIcon className="w-5 h-5" />
+                Saved Records
+              </h2>
+              <span className="text-xs text-gray-500">{payrollHistory.length} record{payrollHistory.length !== 1 ? 's' : ''}</span>
+            </div>
+
+            <div className="space-y-2">
+              {payrollHistory.map((record) => (
+                <div
+                  key={record.id}
+                  className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between active:bg-gray-50 cursor-pointer"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">
+                      {record.period_start && format(new Date(record.period_start), 'MMM d')} — {record.period_end && format(new Date(record.period_end), 'MMM d, yyyy')}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Saved {record.created_at && format(new Date(record.created_at), 'MMM d, h:mm a')} · {record.address_count} item{record.address_count !== 1 ? 's' : ''}
+                    </p>
+                    <div className="flex gap-3 mt-1">
+                      <span className="text-xs text-green-600">Instant: ${record.instant_total?.toFixed(2)}</span>
+                      <span className="text-xs text-orange-600">Next: ${record.pending_total?.toFixed(2)}</span>
+                      {record.rto_total > 0 && <span className="text-xs text-red-600">RTO: ${record.rto_total?.toFixed(2)}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-lg font-bold text-gray-900">${record.total_amount?.toFixed(2)}</p>
+                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
       </main>
 
