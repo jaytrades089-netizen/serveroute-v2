@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
@@ -38,6 +40,7 @@ function calculateCorrectPayRate(serveType) {
 }
 
 export default function WorkerPayout() {
+  const navigate = useNavigate();
   // Default: Wednesday
   const [selectedDay, setSelectedDay] = useState(3);
   const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
@@ -640,6 +643,7 @@ export default function WorkerPayout() {
               {payrollHistory.map((record) => (
                 <div
                   key={record.id}
+                  onClick={() => navigate(createPageUrl(`PayrollRecordDetail?id=${record.id}`))}
                   className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between active:bg-gray-50 cursor-pointer"
                 >
                   <div>
