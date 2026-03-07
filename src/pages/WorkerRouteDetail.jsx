@@ -97,24 +97,13 @@ export default function WorkerRouteDetail() {
 
 
 
-  // Fetch scheduled serves count - uses same query key as ScheduledServesTab
-  // so they stay in sync via shared cache
+  // Badge count for scheduled serves tab
   const { data: scheduledServesCount = 0 } = useQuery({
-    queryKey: ['scheduledServesCountBadge', routeId],
+    queryKey: ['scheduledServesCount', routeId],
     queryFn: async () => {
       if (!routeId) return 0;
       const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
-      if (serves.length === 0) return 0;
-      
-      // Check fresh address status
-      const addressIds = [...new Set(serves.map(s => s.address_id))];
-      const addrs = await Promise.all(
-        addressIds.map(id => base44.entities.Address.filter({ id }).then(r => r[0]).catch(() => null))
-      );
-      const servedIds = new Set(
-        addrs.filter(a => a && (a.served || a.status === 'returned')).map(a => a.id)
-      );
-      return serves.filter(s => !servedIds.has(s.address_id)).length;
+      return serves.length;
     },
     enabled: !!routeId,
     staleTime: 0
