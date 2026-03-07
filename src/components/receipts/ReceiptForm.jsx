@@ -97,9 +97,13 @@ export default function ReceiptForm({
   const checkExistingReceipt = async () => {
     if (!address?.id || parentReceipt) return;
     try {
-      const existingReceipts = await base44.entities.Receipt.filter({ address_id: address.id });
-      if (existingReceipts.length > 0) {
-        setHasSubmitted(true);
+      // Only mark as already submitted if address is already served
+      // This prevents false "Already Submitted" when re-opening the page
+      if (address.served && address.receipt_status && address.receipt_status !== 'pending') {
+        const existingReceipts = await base44.entities.Receipt.filter({ address_id: address.id });
+        if (existingReceipts.length > 0) {
+          setHasSubmitted(true);
+        }
       }
     } catch (error) {
       console.log('Error checking receipts:', error);

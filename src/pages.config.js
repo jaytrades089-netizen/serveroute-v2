@@ -65,6 +65,7 @@ import BossWorkers from './pages/BossWorkers';
 import Chat from './pages/Chat';
 import ComboRouteSelection from './pages/ComboRouteSelection';
 import CreateRoute from './pages/CreateRoute';
+import CreateScheduledServe from './pages/CreateScheduledServe';
 import DCNBatchDetail from './pages/DCNBatchDetail';
 import DCNMatching from './pages/DCNMatching';
 import DCNUpload from './pages/DCNUpload';
@@ -98,7 +99,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import CreateScheduledServe from './pages/CreateScheduledServe';
 import __Layout from './Layout.jsx';
 
 
@@ -121,6 +121,7 @@ export const PAGES = {
     "Chat": Chat,
     "ComboRouteSelection": ComboRouteSelection,
     "CreateRoute": CreateRoute,
+    "CreateScheduledServe": CreateScheduledServe,
     "DCNBatchDetail": DCNBatchDetail,
     "DCNMatching": DCNMatching,
     "DCNUpload": DCNUpload,
@@ -154,7 +155,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "CreateScheduledServe": CreateScheduledServe,
 }
 
 export const pagesConfig = {
