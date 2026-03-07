@@ -115,6 +115,7 @@ export default function SubmitReceipt() {
     queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
     queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
     queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+    queryClient.invalidateQueries({ queryKey: ['scheduledServesCountBadge', routeId] });
     
     // Force immediate navigation back to the route detail page
     if (routeId) {
