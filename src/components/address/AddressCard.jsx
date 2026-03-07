@@ -585,6 +585,8 @@ export default function AddressCard({
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
       
     } catch (error) {
       console.error('Failed to finalize posting:', error);
