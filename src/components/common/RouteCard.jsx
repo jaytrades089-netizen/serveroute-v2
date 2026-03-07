@@ -21,7 +21,8 @@ import {
   Pencil,
   Eye,
   Plus,
-  CalendarPlus
+  CalendarPlus,
+  X
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
