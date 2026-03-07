@@ -82,61 +82,42 @@ export default function ScheduledServesTab({ routeId }) {
     <div className="space-y-3">
       {activeServes.sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime)).map((serve) => {
         const dt = new Date(serve.scheduled_datetime);
-        const navAddress = serve.location_type === 'meeting' && serve.meeting_place_address
-          ? serve.meeting_place_address
-          : null;
 
         return (
           <Card key={serve.id} className="border-blue-200 bg-blue-50/50">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  {serve.defendant_name && (
-                    <p className="font-bold text-gray-900">{serve.defendant_name}</p>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-blue-700 font-semibold mt-1">
-                    <Clock className="w-4 h-4" />
-                    {format(dt, "EEE, MMM d 'at' h:mm a")}
-                  </div>
-                </div>
-                <Badge className={serve.location_type === 'meeting' 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-blue-100 text-blue-700'
-                }>
-                  {serve.location_type === 'meeting' ? 'Meeting Place' : 'Place of Posting'}
-                </Badge>
-              </div>
-
-              {serve.phone_number && (
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                  <Phone className="w-3.5 h-3.5" /> {serve.phone_number}
-                </div>
-              )}
-
+...
               {serve.notes && (
-                <p className="text-xs text-gray-600 bg-white rounded-lg p-2 mt-2 border border-gray-100">
-                  {serve.notes}
-                </p>
+                <div className="relative mt-2">
+                  <p className="text-xs text-gray-600 bg-white rounded-lg p-2 pr-8 border border-gray-100 whitespace-pre-line">
+                    {serve.notes}
+                  </p>
+                  <button
+                    onClick={() => handleCopyNotes(serve.notes)}
+                    className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               )}
 
               <div className="flex gap-2 mt-3">
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}&addressId=${serve.address_id}`))}
+                  onClick={() => navigate(createPageUrl(`AddressDetail?id=${serve.address_id}&routeId=${routeId}`))}
                   className="flex-1"
                 >
-                  View Address
+                  <Eye className="w-4 h-4 mr-1" /> View Address
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => {
-                    const addr = navAddress || '';
+                    const addr = getNavigationAddress(serve);
                     if (addr) {
                       window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`, '_blank');
                     } else {
-                      // Fallback — navigate to address view
-                      navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}&addressId=${serve.address_id}`));
+                      toast.error('No address available for navigation');
                     }
                   }}
                   className="flex-1 bg-green-500 hover:bg-green-600"
