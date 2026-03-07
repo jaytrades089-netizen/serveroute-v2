@@ -99,9 +99,10 @@ export default function WorkerRouteDetail() {
 
   // Fetch scheduled serves count for this route (excluding served addresses)
   const servedAddressIds = useMemo(() => new Set(addresses.filter(a => a.served).map(a => a.id)), [addresses]);
+  const servedCount = useMemo(() => addresses.filter(a => a.served).length, [addresses]);
   
   const { data: scheduledServesCount = 0 } = useQuery({
-    queryKey: ['scheduledServesCount', routeId, addresses.length],
+    queryKey: ['scheduledServesCount', routeId, servedCount],
     queryFn: async () => {
       if (!routeId) return 0;
       const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
