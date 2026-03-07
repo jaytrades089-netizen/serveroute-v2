@@ -542,6 +542,22 @@ export default function AddressCard({
         served_at: now.toISOString(),
         status: 'served'
       });
+
+      // Auto-complete any open scheduled serves for this address
+      try {
+        const openServes = await base44.entities.ScheduledServe.filter({
+          address_id: address.id,
+          status: 'open'
+        });
+        for (const serve of openServes) {
+          await base44.entities.ScheduledServe.update(serve.id, {
+            status: 'completed',
+            completed_at: now.toISOString()
+          });
+        }
+      } catch (ssErr) {
+        console.warn('Failed to complete scheduled serves:', ssErr);
+      }
       
       // Create audit log
       await base44.entities.AuditLog.create({
