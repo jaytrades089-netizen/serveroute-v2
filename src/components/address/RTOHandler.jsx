@@ -77,6 +77,22 @@ export async function handleRTO({
     console.warn('RTO notification step failed (non-fatal):', notifyError);
   }
   
+  // Auto-complete any open scheduled serves for this address
+  try {
+    const openServes = await base44.entities.ScheduledServe.filter({
+      address_id: address.id,
+      status: 'open'
+    });
+    for (const serve of openServes) {
+      await base44.entities.ScheduledServe.update(serve.id, {
+        status: 'completed',
+        completed_at: now.toISOString()
+      });
+    }
+  } catch (ssErr) {
+    console.warn('Failed to complete scheduled serves:', ssErr);
+  }
+
   // Update route served count (RTO counts as "done" for route progress)
   if (routeId) {
     const routeAddresses = await base44.entities.Address.filter({
