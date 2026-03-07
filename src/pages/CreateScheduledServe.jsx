@@ -101,7 +101,7 @@ export default function CreateScheduledServe() {
       : (meetingAddress || '(not entered)');
     const dateTimeStr = getDateTimeDisplay() || '(not selected)';
 
-    return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${phoneNumber || '(not entered)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}\nPhone: ${phoneNumber || '(not entered)'}`;
+    return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${phoneNumber || '(not entered)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}`;
   }, [address, locationType, fullPostingAddress, meetingAddress, getDateTimeDisplay, phoneNumber]);
 
   // Auto-populate notes on first load

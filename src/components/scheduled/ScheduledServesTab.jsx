@@ -90,7 +90,7 @@ export default function ScheduledServesTab({ routeId }) {
     const dt = new Date(serve.scheduled_datetime);
     const dateTimeStr = format(dt, "EEE, MMM d, yyyy 'at' h:mm a");
 
-    return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${serve.phone_number || '(none)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}\nPhone: ${serve.phone_number || '(none)'}`;
+    return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${serve.phone_number || '(none)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}`;
   };
 
   return (
