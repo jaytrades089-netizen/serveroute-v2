@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatAddress } from '@/components/utils/addressUtils';
 
-export default function ScheduledServesTab({ routeId }) {
+export default function ScheduledServesTab({ routeId, addresses = [] }) {
   const navigate = useNavigate();
 
   const { data: serves = [], isLoading } = useQuery({
@@ -22,6 +22,10 @@ export default function ScheduledServesTab({ routeId }) {
     enabled: !!routeId
   });
 
+  // Filter out serves whose address is already served
+  const servedAddressIds = new Set(addresses.filter(a => a.served).map(a => a.id));
+  const activeServes = serves.filter(s => !servedAddressIds.has(s.address_id));
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
@@ -30,7 +34,7 @@ export default function ScheduledServesTab({ routeId }) {
     );
   }
 
-  if (serves.length === 0) {
+  if (activeServes.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
         <Clock className="w-10 h-10 mx-auto text-gray-300 mb-2" />
@@ -41,7 +45,7 @@ export default function ScheduledServesTab({ routeId }) {
 
   return (
     <div className="space-y-3">
-      {serves.sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime)).map((serve) => {
+      {activeServes.sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime)).map((serve) => {
         const dt = new Date(serve.scheduled_datetime);
         const navAddress = serve.location_type === 'meeting' && serve.meeting_place_address
           ? serve.meeting_place_address
