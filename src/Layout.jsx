@@ -67,7 +67,8 @@ const sharedPages = [
   'ScanPreview',
   'ScanRouteSetup',
   'ScanVerify',
-  'EditRoute'
+  'EditRoute',
+  'CreateScheduledServe'
 ];
 
 export default function Layout({ children, currentPageName }) {
