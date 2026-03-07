@@ -121,14 +121,22 @@ export default function WorkerRoutes() {
     refetchInterval: 30000
   });
 
-  // Fetch attempts for all user's routes
+  // Fetch attempts for all user's active routes (by route_id for accuracy)
+  const activeRouteIds = routes.filter(r => r.status !== 'archived').map(r => r.id);
   const { data: allAttempts = [] } = useQuery({
-    queryKey: ['workerAttempts', user?.id],
+    queryKey: ['workerAttempts', user?.id, activeRouteIds.join(',')],
     queryFn: async () => {
-      if (!user?.id) return [];
-      return base44.entities.Attempt.filter({ server_id: user.id });
+      if (!user?.id || activeRouteIds.length === 0) return [];
+      // Fetch attempts per route to avoid default limit cutting off older routes
+      const allResults = [];
+      for (const routeId of activeRouteIds) {
+        const routeAttempts = await base44.entities.Attempt.filter({ route_id: routeId });
+        allResults.push(...routeAttempts);
+      }
+      return allResults;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && activeRouteIds.length > 0,
+    staleTime: 2 * 60 * 1000
   });
 
   // Fetch all addresses for user's routes
