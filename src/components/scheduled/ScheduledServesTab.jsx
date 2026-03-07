@@ -146,7 +146,7 @@ export default function ScheduledServesTab({ routeId }) {
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => navigate(createPageUrl(`AddressDetail?id=${serve.address_id}&routeId=${routeId}`))}
+                  onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}&addressId=${serve.address_id}`))}
                   className="flex-1"
                 >
                   <Eye className="w-4 h-4 mr-1" /> View Address
