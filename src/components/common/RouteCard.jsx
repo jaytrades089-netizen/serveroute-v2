@@ -204,12 +204,14 @@ export default function RouteCard({
   const servedCount = route.served_count || 0;
   const pendingCount = totalAddresses - servedCount;
   
-  // Calculate HAS/NEEDS qualifiers
-  // Use actual address entity data for served status (not attempt outcomes)
-  const routeAddressList = (addresses || []).filter(a => a.route_id === route.id && !a.deleted_at);
-  const servedAddressIds = new Set(
-    routeAddressList.filter(a => a.served || a.status === 'served').map(a => a.id)
-  );
+  // Calculate HAS/NEEDS qualifiers - use actual address records for served status
+  const routeAddressList = (addresses || []).filter(a => a.route_id === route.id);
+  const servedAddressIds = new Set();
+  routeAddressList.forEach(addr => {
+    if (addr.served || addr.status === 'served') {
+      servedAddressIds.add(addr.id);
+    }
+  });
   
   const unservedAttemptsByAddress = {};
   (attempts || []).forEach(att => {
@@ -386,10 +388,11 @@ export default function RouteCard({
               const requiredAttempts = route.required_attempts || 3;
               if (!requiredAttempts || requiredAttempts <= 0) return null;
               
-              // Count completed attempts per unserved address (using address entity served status)
+              // Count completed attempts per unserved address (only for addresses on this route)
+              const routeAddressIds = new Set(routeAddressList.map(a => a.id));
               const attemptsByAddress = {};
               (attempts || []).forEach(att => {
-                if (!servedAddressIds.has(att.address_id)) {
+                if (att.status === 'completed' && !servedAddressIds.has(att.address_id) && routeAddressIds.has(att.address_id)) {
                   attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
                 }
               });
