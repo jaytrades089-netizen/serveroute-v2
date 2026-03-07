@@ -4,11 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Clock, MapPin, Phone, Navigation, Loader2 } from 'lucide-react';
+import { Clock, MapPin, Phone, Navigation, Loader2, Copy, Eye } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatAddress } from '@/components/utils/addressUtils';
+import { toast } from 'sonner';
 
 export default function ScheduledServesTab({ routeId }) {
   const navigate = useNavigate();
