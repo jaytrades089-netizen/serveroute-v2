@@ -23,7 +23,8 @@ import {
   Wand2,
   FileCheck,
   FileUp,
-  Camera
+  Camera,
+  Clock
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ import RecentActivityFeed from '../components/boss/dashboard/RecentActivityFeed'
 import NotificationBell from '../components/boss/NotificationBell';
 import MessageDialog from '../components/boss/MessageDialog';
 import AddressQuestionsCard from '../components/boss/AddressQuestionsCard';
+import ScheduledServesPanel from '../components/boss/ScheduledServesPanel';
 import { generateSuggestions, autoAssignAllRoutes } from '../components/services/SmartAssignmentService';
 import { buildAddressCountsMap } from '../components/services/MetricsService';
 import { toast } from 'sonner';
@@ -60,6 +62,7 @@ export default function BossDashboard() {
   const [lastUpdate, setLastUpdate] = useState(null);
   const [suggestions, setSuggestions] = useState({});
   const [autoAssigning, setAutoAssigning] = useState(false);
+  const [showScheduledServes, setShowScheduledServes] = useState(false);
   
   const { data: user, isLoading: userLoading, isError: userError } = useCurrentUser();
 
@@ -468,6 +471,26 @@ export default function BossDashboard() {
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-600 mb-3">TODAY'S OVERVIEW</h2>
           <DashboardOverview stats={dashboardStats} />
+        </div>
+
+        {/* Scheduled Serves Toggle */}
+        <div className="mb-6">
+          <Button
+            variant={showScheduledServes ? 'default' : 'outline'}
+            onClick={() => setShowScheduledServes(!showScheduledServes)}
+            className={`w-full justify-between ${showScheduledServes ? 'bg-blue-500 hover:bg-blue-600' : ''}`}
+          >
+            <span className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Scheduled Serves
+            </span>
+            <ChevronRight className={`w-4 h-4 transition-transform ${showScheduledServes ? 'rotate-90' : ''}`} />
+          </Button>
+          {showScheduledServes && (
+            <div className="mt-3">
+              <ScheduledServesPanel companyId={companyId} workers={workers} />
+            </div>
+          )}
         </div>
 
         {/* Address Questions Alert */}

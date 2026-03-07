@@ -8,11 +8,15 @@ import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import RouteCard from '../components/common/RouteCard';
-import { Loader2, MapPin, Shuffle, Trash2, Archive as ArchiveIcon } from 'lucide-react';
+import { Loader2, MapPin, Shuffle, Trash2, Archive as ArchiveIcon, Plus, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
+import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
+import { format, parseISO } from 'date-fns';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarPicker } from '@/components/ui/calendar';
 
 export default function WorkerRoutes() {
   const navigate = useNavigate();
@@ -165,6 +169,28 @@ export default function WorkerRoutes() {
   // Load user settings for payroll day/hour
   const { data: userSettings } = useUserSettings(user?.id);
 
+  // Fetch open scheduled serves for this worker
+  const { data: scheduledServes = [] } = useQuery({
+    queryKey: ['workerScheduledServes', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return base44.entities.ScheduledServe.filter({ worker_id: user.id, status: 'open' });
+    },
+    enabled: !!user?.id
+  });
+
+  // Set run date on a route
+  const handleSetRunDate = async (routeId, date) => {
+    try {
+      const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
+      await base44.entities.Route.update(routeId, { run_date: dateStr });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      toast.success(date ? `Scheduled for ${format(date, 'EEE, MMM d')}` : 'Date cleared');
+    } catch (error) {
+      toast.error('Failed to set date');
+    }
+  };
+
   // Calculate next payroll turn-in date - use saved settings or default to Wednesday at 12pm
   const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
   const selectedHour = userSettings?.payroll_turn_in_hour ?? 12;
@@ -264,37 +290,161 @@ export default function WorkerRoutes() {
             }
           />
         ) : (
-          <div className="space-y-4">
-            {[...filteredRoutes].sort((a, b) => {
-              // Active routes always at top
+          (() => {
+            // Sort routes: active first, then by run_date, then by due_date
+            const sorted = [...filteredRoutes].sort((a, b) => {
               const aActive = a.status === 'active';
               const bActive = b.status === 'active';
               if (aActive && !bActive) return -1;
               if (!aActive && bActive) return 1;
               
-              // Then sort by due date ascending (closest due date first)
+              // Then by run_date (null = unscheduled goes last)
+              const aRun = a.run_date ? new Date(a.run_date) : null;
+              const bRun = b.run_date ? new Date(b.run_date) : null;
+              if (aRun && !bRun) return -1;
+              if (!aRun && bRun) return 1;
+              if (aRun && bRun && aRun.getTime() !== bRun.getTime()) return aRun - bRun;
+              
               const aDate = a.due_date ? new Date(a.due_date) : new Date('9999-12-31');
               const bDate = b.due_date ? new Date(b.due_date) : new Date('9999-12-31');
               return aDate - bDate;
-            }).map((route) => {
-              // Check if route is overdue for red styling
+            });
+
+            // Group by run_date
+            const groups = {};
+            const unscheduled = [];
+            sorted.forEach(route => {
+              if (route.run_date) {
+                const key = route.run_date;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(route);
+              } else {
+                unscheduled.push(route);
+              }
+            });
+
+            // Sort group keys by date ascending
+            const groupKeys = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
+
+            // Map scheduled serves to their run dates
+            const servesByDate = {};
+            scheduledServes.forEach(s => {
+              const dateKey = s.scheduled_datetime ? s.scheduled_datetime.split('T')[0] : null;
+              if (dateKey) {
+                if (!servesByDate[dateKey]) servesByDate[dateKey] = [];
+                servesByDate[dateKey].push(s);
+              }
+            });
+
+            // Also include scheduled serve dates that don't have route groups
+            Object.keys(servesByDate).forEach(dateKey => {
+              if (!groups[dateKey] && !groupKeys.includes(dateKey)) {
+                groupKeys.push(dateKey);
+                groupKeys.sort((a, b) => new Date(a) - new Date(b));
+              }
+            });
+
+            // Serves that don't match any group date
+            const ungroupedServes = scheduledServes.filter(s => {
+              const dateKey = s.scheduled_datetime?.split('T')[0];
+              return !dateKey || !groupKeys.includes(dateKey);
+            });
+
+            const renderRouteCard = (route) => {
               const isOverdue = route.due_date && new Date(route.due_date) < new Date() && route.status !== 'completed';
-              
               return (
-                <RouteCard
-                  key={route.id}
-                  route={route}
-                  isBossView={false}
-                  attempts={attemptsByRoute[route.id] || []}
-                  addresses={allAddresses}
-                  onDelete={handleDeleteRoute}
-                  onArchive={handleArchiveRoute}
-                  onEdit={handleEditRoute}
-                  isOverdue={isOverdue}
-                />
+                <div key={route.id} className="relative">
+                  <RouteCard
+                    route={route}
+                    isBossView={false}
+                    attempts={attemptsByRoute[route.id] || []}
+                    addresses={allAddresses}
+                    onDelete={handleDeleteRoute}
+                    onArchive={handleArchiveRoute}
+                    onEdit={handleEditRoute}
+                    isOverdue={isOverdue}
+                  />
+                  {/* Date picker + icon on top-right of card */}
+                  <div className="absolute top-3 right-14 z-10" onClick={(e) => e.stopPropagation()}>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button className="p-1.5 bg-white/90 rounded-full shadow-sm border border-gray-200 hover:bg-gray-100 transition-colors">
+                          <Plus className="w-4 h-4 text-blue-600" />
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="end">
+                        <CalendarPicker
+                          mode="single"
+                          selected={route.run_date ? parseISO(route.run_date) : undefined}
+                          onSelect={(date) => handleSetRunDate(route.id, date)}
+                        />
+                        {route.run_date && (
+                          <div className="px-3 pb-3">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-red-500"
+                              onClick={() => handleSetRunDate(route.id, null)}
+                            >
+                              Clear Date
+                            </Button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
               );
-            })}
-          </div>
+            };
+
+            return (
+              <div className="space-y-4">
+                {/* Dated groups */}
+                {groupKeys.map(dateKey => {
+                  const dt = parseISO(dateKey);
+                  const dayLabel = format(dt, "EEEE, MMMM d");
+                  const routesInGroup = groups[dateKey] || [];
+                  const servesInGroup = servesByDate[dateKey] || [];
+
+                  return (
+                    <div key={dateKey}>
+                      <div className="flex items-center gap-2 mb-2 mt-2">
+                        <Calendar className="w-4 h-4 text-blue-500" />
+                        <h2 className="text-sm font-bold text-blue-700">
+                          Scheduled for {dayLabel}
+                        </h2>
+                      </div>
+                      <div className="space-y-3">
+                        {routesInGroup.map(renderRouteCard)}
+                        {servesInGroup.map(s => (
+                          <ScheduledServeCard key={s.id} serve={s} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Ungrouped scheduled serves */}
+                {ungroupedServes.map(s => (
+                  <ScheduledServeCard key={s.id} serve={s} />
+                ))}
+
+                {/* Unscheduled */}
+                {unscheduled.length > 0 && (
+                  <div>
+                    {groupKeys.length > 0 && (
+                      <div className="flex items-center gap-2 mb-2 mt-4">
+                        <h2 className="text-sm font-bold text-gray-500">Unscheduled</h2>
+                      </div>
+                    )}
+                    <div className="space-y-3">
+                      {unscheduled.map(renderRouteCard)}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()
         )}
       </main>
 

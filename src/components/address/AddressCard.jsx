@@ -1703,6 +1703,12 @@ export default function AddressCard({
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
                         <Pencil className="w-4 h-4 mr-2" />Edit Address
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { 
+                        e.stopPropagation(); 
+                        navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${routeId}`));
+                      }}>
+                        <Clock className="w-4 h-4 mr-2" />Schedule Serve
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }} className="text-red-600 focus:text-red-600">
                         <RotateCcw className="w-4 h-4 mr-2" /><span className="text-red-600 font-bold">RTO</span>
                       </DropdownMenuItem>

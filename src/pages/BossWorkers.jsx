@@ -89,6 +89,16 @@ export default function BossWorkers() {
     enabled: !!user
   });
 
+  // Fetch all open scheduled serves for the company
+  const { data: allScheduledServes = [] } = useQuery({
+    queryKey: ['allScheduledServes', companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      return base44.entities.ScheduledServe.filter({ company_id: companyId, status: 'open' });
+    },
+    enabled: !!companyId
+  });
+
   const pauseResumeMutation = useMutation({
     mutationFn: async ({ worker, action }) => {
       const newStatus = action === 'pause' ? 'paused' : 'active';
@@ -384,18 +394,22 @@ export default function BossWorkers() {
                     </div>
 
                     {/* Stats Row */}
-                    <div className="mt-3 pt-3 border-t grid grid-cols-3 gap-4 text-center">
+                    <div className="mt-3 pt-3 border-t grid grid-cols-4 gap-3 text-center">
                       <div>
                         <p className="text-lg font-semibold text-gray-900">{stats.todayServed}</p>
                         <p className="text-xs text-gray-500">Today</p>
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-gray-900">{stats.avgTime || '-'}</p>
-                        <p className="text-xs text-gray-500">Avg min/addr</p>
+                        <p className="text-xs text-gray-500">Avg min</p>
                       </div>
                       <div>
                         <p className="text-lg font-semibold text-gray-900">{stats.completedRoutes}</p>
-                        <p className="text-xs text-gray-500">Routes done</p>
+                        <p className="text-xs text-gray-500">Routes</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-semibold text-blue-600">{allScheduledServes.filter(s => s.worker_id === worker.id).length}</p>
+                        <p className="text-xs text-gray-500">Scheduled</p>
                       </div>
                     </div>
 

@@ -23,6 +23,7 @@ import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
 import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
 import DesktopWarningBanner from '@/components/common/DesktopWarningBanner';
+import ScheduledServesTab from '@/components/scheduled/ScheduledServesTab';
 import { Input } from '@/components/ui/input';
 
 export default function WorkerRouteDetail() {
@@ -40,6 +41,7 @@ export default function WorkerRouteDetail() {
   const editMode = urlParams.get('edit') === 'true';
   const searchAddressId = urlParams.get('addressId');
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
+  const [activeRouteTab, setActiveRouteTab] = useState('addresses');
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
@@ -94,6 +96,17 @@ export default function WorkerRouteDetail() {
   });
 
 
+
+  // Fetch scheduled serves count for this route
+  const { data: scheduledServesCount = 0 } = useQuery({
+    queryKey: ['scheduledServesCount', routeId],
+    queryFn: async () => {
+      if (!routeId) return 0;
+      const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
+      return serves.length;
+    },
+    enabled: !!routeId
+  });
 
   // Fetch attempts for all addresses in the route
   const { data: attempts = [] } = useQuery({
@@ -660,6 +673,35 @@ export default function WorkerRouteDetail() {
 
         <DesktopWarningBanner />
 
+        {/* Addresses / Scheduled Tabs */}
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
+          <button
+            onClick={() => setActiveRouteTab('addresses')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${
+              activeRouteTab === 'addresses' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Addresses ({addresses.length})
+          </button>
+          <button
+            onClick={() => setActiveRouteTab('scheduled')}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors relative ${
+              activeRouteTab === 'scheduled' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            Scheduled
+            {scheduledServesCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">
+                {scheduledServesCount}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {activeRouteTab === 'scheduled' ? (
+          <ScheduledServesTab routeId={routeId} />
+        ) : (
+        <>
         {/* Search Filter Banner */}
         {searchFilter && (
           <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
@@ -701,6 +743,9 @@ export default function WorkerRouteDetail() {
             route={route}
             showZoneLabels={userSettings?.show_zone_labels !== false}
           />
+        )}
+        
+        </>
         )}
         
         <MessageBossDialog
