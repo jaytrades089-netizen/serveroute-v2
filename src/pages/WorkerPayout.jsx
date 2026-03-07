@@ -261,17 +261,18 @@ export default function WorkerPayout() {
     const currentEnd = new Date(currentStart);
     currentEnd.setDate(currentEnd.getDate() + 7);
     
-    // PREVIOUS Period uses saved previous_turn_in_date if available
-    // This allows the previous period to stay fixed even if you change the current settings
-    let previousEnd;
+    // PREVIOUS Period = from last turn-in date to current period start
+    // "Next Check" shows work completed AFTER the last turn-in but BEFORE the current period
+    let previousStart;
     if (previousTurnInDate) {
-      previousEnd = new Date(previousTurnInDate);
+      previousStart = new Date(previousTurnInDate);
     } else {
-      previousEnd = new Date(currentStart); // Fallback to current start
+      // Fallback: previous period is 7 days before current start
+      previousStart = new Date(currentStart);
+      previousStart.setDate(previousStart.getDate() - 7);
     }
     
-    const previousStart = new Date(previousEnd);
-    previousStart.setDate(previousStart.getDate() - 7);
+    const previousEnd = new Date(currentStart);
     
     return {
       currentPeriod: { start: currentStart, end: currentEnd },
