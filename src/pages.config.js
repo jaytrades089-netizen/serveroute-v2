@@ -71,6 +71,7 @@ import DCNUpload from './pages/DCNUpload';
 import EditAddress from './pages/EditAddress';
 import EditRoute from './pages/EditRoute';
 import Notifications from './pages/Notifications';
+import PayrollRecordDetail from './pages/PayrollRecordDetail';
 import ReassignRoute from './pages/ReassignRoute';
 import ReceiptDetail from './pages/ReceiptDetail';
 import ReceiptQueue from './pages/ReceiptQueue';
@@ -97,7 +98,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import PayrollRecordDetail from './pages/PayrollRecordDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -126,6 +126,7 @@ export const PAGES = {
     "EditAddress": EditAddress,
     "EditRoute": EditRoute,
     "Notifications": Notifications,
+    "PayrollRecordDetail": PayrollRecordDetail,
     "ReassignRoute": ReassignRoute,
     "ReceiptDetail": ReceiptDetail,
     "ReceiptQueue": ReceiptQueue,
@@ -152,7 +153,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "PayrollRecordDetail": PayrollRecordDetail,
 }
 
 export const pagesConfig = {
