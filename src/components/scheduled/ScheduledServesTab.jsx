@@ -24,6 +24,43 @@ export default function ScheduledServesTab({ routeId }) {
     staleTime: 0
   });
 
+  // Fetch addresses for all scheduled serves so we can navigate to posting addresses
+  const addressIds = activeServes.map(s => s.address_id).filter(Boolean);
+  const { data: addresses = [] } = useQuery({
+    queryKey: ['scheduledServeAddresses', addressIds.join(',')],
+    queryFn: async () => {
+      if (addressIds.length === 0) return [];
+      const results = await Promise.all(
+        addressIds.map(id => base44.entities.Address.filter({ id }))
+      );
+      return results.flat();
+    },
+    enabled: addressIds.length > 0
+  });
+
+  const addressMap = {};
+  addresses.forEach(a => { addressMap[a.id] = a; });
+
+  const getNavigationAddress = (serve) => {
+    if (serve.location_type === 'meeting' && serve.meeting_place_address) {
+      return serve.meeting_place_address;
+    }
+    const addr = addressMap[serve.address_id];
+    if (addr) {
+      const formatted = formatAddress(addr);
+      return `${formatted.line1}, ${formatted.line2}`;
+    }
+    return null;
+  };
+
+  const handleCopyNotes = (notes) => {
+    navigator.clipboard.writeText(notes).then(() => {
+      toast.success('Copied', { duration: 1500 });
+    }).catch(() => {
+      toast.error('Failed to copy');
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
