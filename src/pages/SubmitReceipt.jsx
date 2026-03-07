@@ -1,6 +1,6 @@
 import React from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Loader2, ArrowLeft } from 'lucide-react';
@@ -106,15 +106,13 @@ export default function SubmitReceipt() {
     );
   }
 
-  const queryClient = useQuery({ queryKey: ['_noop_'], queryFn: () => null, enabled: false }).queryClient || null;
+  const queryClient = useQueryClient();
   
   const handleSuccess = (receipt) => {
     // Invalidate address and route caches so the card moves to completed section immediately
-    if (queryClient) {
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-    }
+    queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+    queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
     
     // Force immediate navigation back to the route detail page
     if (routeId) {
