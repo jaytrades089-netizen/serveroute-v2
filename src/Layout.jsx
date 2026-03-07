@@ -54,7 +54,8 @@ const workerPages = [
   'ComboRouteSelection',
   'SubmitReceipt',
   'ReceiptDetail',
-  'PayrollRecordDetail'
+  'PayrollRecordDetail',
+  'CreateScheduledServe'
 ];
 
 // Known shared pages that both roles can access
