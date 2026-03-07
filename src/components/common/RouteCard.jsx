@@ -205,12 +205,11 @@ export default function RouteCard({
   const pendingCount = totalAddresses - servedCount;
   
   // Calculate HAS/NEEDS qualifiers
-  const servedAddressIds = new Set();
-  (attempts || []).forEach(att => {
-    if (att.outcome === 'served') {
-      servedAddressIds.add(att.address_id);
-    }
-  });
+  // Use actual address entity data for served status (not attempt outcomes)
+  const routeAddressList = (addresses || []).filter(a => a.route_id === route.id && !a.deleted_at);
+  const servedAddressIds = new Set(
+    routeAddressList.filter(a => a.served || a.status === 'served').map(a => a.id)
+  );
   
   const unservedAttemptsByAddress = {};
   (attempts || []).forEach(att => {
