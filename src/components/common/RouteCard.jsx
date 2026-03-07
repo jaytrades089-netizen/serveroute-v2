@@ -479,8 +479,7 @@ export default function RouteCard({
             <Popover open={showRunDatePicker} onOpenChange={setShowRunDatePicker}>
               <PopoverTrigger asChild>
                 <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50">
-                  <Plus className="w-3.5 h-3.5" />
-                  {route.run_date ? `Run: ${format(parseISO(route.run_date), 'EEE, MMM d')}` : '+ Schedule'}
+                  {route.run_date ? `📅 Run: ${format(parseISO(route.run_date), 'EEE, MMM d')}` : '+ Schedule'}
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
