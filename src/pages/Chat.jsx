@@ -35,6 +35,7 @@ export default function Chat() {
   const queryClient = useQueryClient();
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
+  const companyChatChecked = useRef(false);
   
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState('');
@@ -100,22 +101,23 @@ export default function Chat() {
 
   // Ensure company chat exists
   useEffect(() => {
-    async function ensureCompanyChat() {
-      if (!user?.company_id) return;
-      const existing = conversations.find(c => c.type === 'company');
-      if (!existing && conversations.length === 0 && !conversationsLoading) {
-        await base44.entities.ChatConversation.create({
-          company_id: user.company_id,
-          type: 'company',
-          participant_ids: [],
-          last_message_at: new Date().toISOString(),
-          last_message_preview: 'Welcome to company chat!'
-        });
+    if (!user?.company_id || conversationsLoading) return;
+    if (companyChatChecked.current) return;
+    companyChatChecked.current = true;
+
+    const existing = conversations.find(c => c.type === 'company');
+    if (!existing) {
+      base44.entities.ChatConversation.create({
+        company_id: user.company_id,
+        type: 'company',
+        participant_ids: [],
+        last_message_at: new Date().toISOString(),
+        last_message_preview: 'Welcome to company chat!'
+      }).then(() => {
         queryClient.invalidateQueries({ queryKey: ['chatConversations'] });
-      }
+      });
     }
-    ensureCompanyChat();
-  }, [user, conversations, conversationsLoading, queryClient]);
+  }, [user?.company_id, conversations, conversationsLoading, queryClient]);
 
   const getUnreadCount = (conversationId) => {
     const participant = participants.find(p => p.conversation_id === conversationId);
