@@ -387,20 +387,21 @@ export default function RouteCard({
               const requiredAttempts = route.required_attempts || 3;
               if (!requiredAttempts || requiredAttempts <= 0) return null;
               
+              // Count completed attempts per unserved address
               const attemptsByAddress = {};
               (attempts || []).forEach(att => {
-                if (att.status === 'completed') {
+                if (att.status === 'completed' && !servedAddressIds.has(att.address_id)) {
                   attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
                 }
               });
               
               const counts = Object.values(attemptsByAddress);
-              const completedRound = counts.length > 0 ? Math.min(...counts) : 0;
-              const currentAttempt = Math.min(completedRound + 1, requiredAttempts);
+              // Show the minimum attempts across unserved addresses (the "round" everyone is at)
+              const minAttempts = counts.length > 0 ? Math.min(...counts) : 0;
               
               return (
                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                  {currentAttempt}/{requiredAttempts}
+                  {minAttempts}/{requiredAttempts}
                 </span>
               );
             })()}
