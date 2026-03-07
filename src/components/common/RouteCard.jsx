@@ -355,10 +355,10 @@ export default function RouteCard({
               {route.folder_name}
             </h3>
             {route.run_date && (
-              <p className="text-xs text-blue-600 font-medium mt-0.5 flex items-center gap-1">
+              <p className="text-[11px] text-blue-600 font-medium mt-0.5 flex items-center gap-1 flex-nowrap whitespace-nowrap">
                 📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
                 {route.run_qualifiers && route.run_qualifiers.length > 0 && (
-                  <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                  <span className="ml-0.5 flex-shrink-0"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
                 )}
                 {onScheduleRunDate && (
                   <button
