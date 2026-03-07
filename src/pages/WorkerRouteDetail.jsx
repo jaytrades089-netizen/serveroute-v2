@@ -97,13 +97,15 @@ export default function WorkerRouteDetail() {
 
 
 
-  // Fetch scheduled serves count for this route
+  // Fetch scheduled serves count for this route (excluding served addresses)
+  const servedAddressIds = useMemo(() => new Set(addresses.filter(a => a.served).map(a => a.id)), [addresses]);
+  
   const { data: scheduledServesCount = 0 } = useQuery({
-    queryKey: ['scheduledServesCount', routeId],
+    queryKey: ['scheduledServesCount', routeId, addresses.length],
     queryFn: async () => {
       if (!routeId) return 0;
       const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
-      return serves.length;
+      return serves.filter(s => !servedAddressIds.has(s.address_id)).length;
     },
     enabled: !!routeId
   });
@@ -699,7 +701,7 @@ export default function WorkerRouteDetail() {
         </div>
 
         {activeRouteTab === 'scheduled' ? (
-          <ScheduledServesTab routeId={routeId} />
+          <ScheduledServesTab routeId={routeId} addresses={addresses} />
         ) : (
         <>
         {/* Search Filter Banner */}
