@@ -353,6 +353,17 @@ export default function RouteCard({
                 {route.run_qualifiers && route.run_qualifiers.length > 0 && (
                   <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
                 )}
+                {onScheduleRunDate && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleRunDate(route.id, null, []);
+                    }}
+                    className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </p>
             )}
             {showWorker && workerName && (
