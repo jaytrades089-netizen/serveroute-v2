@@ -479,8 +479,24 @@ export default function ReceiptForm({
         duration: 2000,
         icon: '✅'
       });
+
+      // Complete any open scheduled serves BEFORE navigating
+      try {
+        const openServes = await base44.entities.ScheduledServe.filter({
+          address_id: address.id,
+          status: 'open'
+        });
+        for (const serve of openServes) {
+          await base44.entities.ScheduledServe.update(serve.id, {
+            status: 'completed',
+            completed_at: new Date().toISOString()
+          });
+        }
+      } catch (ssErr) {
+        console.warn('Failed to complete scheduled serves:', ssErr);
+      }
       
-      // Navigate FIRST, then do background tasks
+      // Navigate after scheduled serves are cleaned up
       if (onSuccess) {
         onSuccess(receipt);
       }
@@ -488,22 +504,6 @@ export default function ReceiptForm({
       // Background tasks - don't block navigation
       (async () => {
         try {
-          // Auto-complete any open scheduled serves for this address
-          try {
-            const openServes = await base44.entities.ScheduledServe.filter({
-              address_id: address.id,
-              status: 'open'
-            });
-            for (const serve of openServes) {
-              await base44.entities.ScheduledServe.update(serve.id, {
-                status: 'completed',
-                completed_at: new Date().toISOString()
-              });
-            }
-          } catch (ssErr) {
-            console.warn('Failed to complete scheduled serves:', ssErr);
-          }
-
           // Notify bosses/admins
           const allUsers = await base44.entities.User.filter({ 
             company_id: getCompanyId(user) 
