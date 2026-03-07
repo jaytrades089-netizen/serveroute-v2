@@ -15,8 +15,7 @@ import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
 import { format, parseISO } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar as CalendarPicker } from '@/components/ui/calendar';
+
 
 export default function WorkerRoutes() {
   const navigate = useNavigate();
