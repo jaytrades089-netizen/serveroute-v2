@@ -178,11 +178,15 @@ export default function WorkerRoutes() {
     enabled: !!user?.id
   });
 
-  // Set run date on a route
-  const handleSetRunDate = async (routeId, date) => {
+  // Set run date on a route (with optional qualifiers)
+  const handleSetRunDate = async (routeId, date, qualifiers) => {
     try {
       const dateStr = date ? format(date, 'yyyy-MM-dd') : null;
-      await base44.entities.Route.update(routeId, { run_date: dateStr });
+      const updateData = { run_date: dateStr };
+      if (qualifiers !== undefined) {
+        updateData.run_qualifiers = qualifiers;
+      }
+      await base44.entities.Route.update(routeId, updateData);
       queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       toast.success(date ? `Scheduled for ${format(date, 'EEE, MMM d')}` : 'Date cleared');
     } catch (error) {
