@@ -1,10 +1,11 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
-import { Loader2, DollarSign, CheckCircle, Clock, Calendar, RotateCcw } from 'lucide-react';
+import { Loader2, DollarSign, CheckCircle, Clock, Calendar, RotateCcw, Save, ArrowRight, ChevronRight, FileText as FileTextIcon } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -28,11 +29,6 @@ function getDaysWithDates() {
   });
 }
 
-const HOURS = Array.from({ length: 24 }, (_, i) => ({
-  value: String(i),
-  label: i === 0 ? '12:00 AM' : i < 12 ? `${i}:00 AM` : i === 12 ? '12:00 PM' : `${i - 12}:00 PM`
-}));
-
 // Calculate correct pay rate based on serve_type (overrides database values)
 function calculateCorrectPayRate(serveType) {
   if (serveType === 'posting') return 10;
@@ -42,9 +38,8 @@ function calculateCorrectPayRate(serveType) {
 }
 
 export default function WorkerPayout() {
-  // Default: Wednesday at 12:00 PM
+  // Default: Wednesday
   const [selectedDay, setSelectedDay] = useState(3);
-  const [selectedHour, setSelectedHour] = useState(12);
   const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
   const queryClient = useQueryClient();
 
@@ -70,9 +65,6 @@ export default function WorkerPayout() {
       if (userSettings.payroll_turn_in_day !== undefined && userSettings.payroll_turn_in_day !== null) {
         setSelectedDay(userSettings.payroll_turn_in_day);
       }
-      if (userSettings.payroll_turn_in_hour !== undefined && userSettings.payroll_turn_in_hour !== null) {
-        setSelectedHour(userSettings.payroll_turn_in_hour);
-      }
       if (userSettings.previous_turn_in_date) {
         setPreviousTurnInDate(new Date(userSettings.previous_turn_in_date));
       }
@@ -81,21 +73,17 @@ export default function WorkerPayout() {
 
   // Mutation to save settings
   const saveSettingsMutation = useMutation({
-    mutationFn: async ({ day, hour }) => {
+    mutationFn: async ({ day }) => {
       if (!user?.id) return;
       
       if (userSettings?.id) {
-        // Update existing settings
         await base44.entities.UserSettings.update(userSettings.id, {
-          payroll_turn_in_day: day,
-          payroll_turn_in_hour: hour
+          payroll_turn_in_day: day
         });
       } else {
-        // Create new settings
         await base44.entities.UserSettings.create({
           user_id: user.id,
-          payroll_turn_in_day: day,
-          payroll_turn_in_hour: hour
+          payroll_turn_in_day: day
         });
       }
     },
@@ -108,14 +96,26 @@ export default function WorkerPayout() {
   const handleDayChange = (value) => {
     const day = parseInt(value);
     setSelectedDay(day);
-    saveSettingsMutation.mutate({ day, hour: selectedHour });
+    saveSettingsMutation.mutate({ day });
   };
 
-  // Handle hour change and save
-  const handleHourChange = (value) => {
-    const hour = parseInt(value);
-    setSelectedHour(hour);
-    saveSettingsMutation.mutate({ day: selectedDay, hour });
+  // Handle Turn In button
+  const handleTurnIn = async () => {
+    const now = new Date();
+    setPreviousTurnInDate(now);
+    if (userSettings?.id) {
+      await base44.entities.UserSettings.update(userSettings.id, {
+        previous_turn_in_date: now.toISOString()
+      });
+    } else if (user?.id) {
+      await base44.entities.UserSettings.create({
+        user_id: user.id,
+        payroll_turn_in_day: selectedDay,
+        previous_turn_in_date: now.toISOString()
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+    savePayrollRecord(now);
   };
 
   const { data: routes = [] } = useQuery({
@@ -157,6 +157,17 @@ export default function WorkerPayout() {
     enabled: !!user?.id
   });
 
+  const { data: payrollHistory = [], refetch: refetchHistory } = useQuery({
+    queryKey: ['payrollHistory', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const records = await base44.entities.PayrollRecord.filter({ user_id: user.id });
+      return records.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
   // Calculate payroll periods based on selected day and hour
   // Current period = for instant payouts (served this week)
   // Previous period = for pending payouts (attempts completed last week, paid on THIS check)
@@ -168,16 +179,15 @@ export default function WorkerPayout() {
     // Calculate days back to the MOST RECENT selected day
     let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
     
-    // If we're on the selected day but before the selected hour, 
-    // the period hasn't ended yet - go back to PREVIOUS week's selected day
-    if (daysBack === 0 && currentHour < selectedHour) {
+    // If we're on the selected day, the period hasn't ended yet - go back to PREVIOUS week
+    if (daysBack === 0) {
       daysBack = 7;
     }
     
-    // CURRENT Period START is the most recent selected day at selected hour
+    // CURRENT Period START is the most recent selected day at midnight
     const currentStart = new Date(now);
     currentStart.setDate(currentStart.getDate() - daysBack);
-    currentStart.setHours(selectedHour, 0, 0, 0);
+    currentStart.setHours(0, 0, 0, 0);
     
     // CURRENT Period END is 7 days after start (next turn-in day)
     const currentEnd = new Date(currentStart);
@@ -199,7 +209,7 @@ export default function WorkerPayout() {
       currentPeriod: { start: currentStart, end: currentEnd },
       previousPeriod: { start: previousStart, end: previousEnd }
     };
-  }, [selectedDay, selectedHour, previousTurnInDate]);
+  }, [selectedDay, previousTurnInDate]);
 
   // Filter instant payouts (directly served addresses within CURRENT period)
   const instantPayouts = useMemo(() => {

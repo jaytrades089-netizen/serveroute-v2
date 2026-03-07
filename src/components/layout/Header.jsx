@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { FileText, Bell } from 'lucide-react';
 
-export default function Header({ user, unreadCount = 0 }) {
+export default function Header({ user, unreadCount = 0, actionButton = null }) {
   const initials = user?.full_name
     ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U';
@@ -25,6 +25,8 @@ export default function Header({ user, unreadCount = 0 }) {
             </span>
           )}
         </Link>
+
+        {actionButton && actionButton}
         
         <Link 
           to={createPageUrl('WorkerSettings')}
