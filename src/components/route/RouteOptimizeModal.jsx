@@ -527,7 +527,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         </Select>
 
         {showAddLocation && (
-          <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
+          <div className="bg-orange-50 rounded-xl p-3 mb-3 border border-orange-200">
             <Input placeholder="Label (Home, Office)" value={newLocationLabel} onChange={(e) => setNewLocationLabel(e.target.value)} className="mb-2" />
             <Input placeholder="Full address" value={newLocationAddress} onChange={(e) => setNewLocationAddress(e.target.value)} className="mb-2" />
             <div className="flex gap-2">
