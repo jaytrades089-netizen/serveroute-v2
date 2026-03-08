@@ -80,9 +80,7 @@ export default function WorkerRouteDetail() {
       const routes = await base44.entities.Route.filter({ id: routeId });
       return routes[0] || null;
     },
-    enabled: !!routeId,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000
+    enabled: !!routeId
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
@@ -93,8 +91,6 @@ export default function WorkerRouteDetail() {
       return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
     enabled: !!routeId,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
     refetchInterval: route?.status === 'active' ? 30000 : false
   });
 
