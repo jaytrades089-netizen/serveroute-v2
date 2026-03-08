@@ -165,7 +165,7 @@ export default function BossRoutes() {
         <div className="flex items-center gap-2">
           <FileText className="w-6 h-6" />
           <span className="font-bold text-lg">Routes</span>
-          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Boss</span>
+          <span className="font-bold text-lg opacity-80">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
         </div>
         <Link to={createPageUrl('Notifications')} className="relative ml-auto">
           <Bell className="w-6 h-6" />
