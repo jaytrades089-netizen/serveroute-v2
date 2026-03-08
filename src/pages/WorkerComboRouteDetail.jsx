@@ -60,23 +60,11 @@ export default function WorkerComboRouteDetail() {
       const results = await Promise.all(
         combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null }))
       );
-      // Sort by order_index within each route group, maintaining route_ids order
-      const routeOrder = combo.route_ids;
+      // Sort ALL addresses globally by order_index (the combo optimization
+      // already assigned a flat 1,2,3... sequence across all folders)
       const allAddrs = results.flat();
-      // Group by route, sort within each group, then flatten in route_ids order
-      const byRoute = {};
-      allAddrs.forEach(a => {
-        if (!byRoute[a.route_id]) byRoute[a.route_id] = [];
-        byRoute[a.route_id].push(a);
-      });
-      const ordered = [];
-      for (const rid of routeOrder) {
-        if (byRoute[rid]) {
-          byRoute[rid].sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
-          ordered.push(...byRoute[rid]);
-        }
-      }
-      return ordered;
+      allAddrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      return allAddrs;
     },
     enabled: !!combo?.route_ids,
     refetchInterval: 30000,
@@ -229,10 +217,10 @@ export default function WorkerComboRouteDetail() {
     minimum_days_spread: Math.max(...routes.map(r => r.minimum_days_spread || 10), 10),
   };
 
-  // Set zone_label to folder name so AnimatedAddressList shows folder dividers
+  // Attach folder name to each address so it shows inline on the card
   const enhancedAddresses = addresses.map(addr => ({
     ...addr,
-    zone_label: routeNameMap[addr.route_id] || addr.zone_label || ''
+    _folderName: routeNameMap[addr.route_id] || ''
   }));
 
   return (
@@ -288,7 +276,7 @@ export default function WorkerComboRouteDetail() {
           lastAttemptMap={lastAttemptMap}
           allAttemptsMap={allAttemptsMap}
           route={virtualRoute}
-          showZoneLabels={true}
+          showZoneLabels={false}
           preserveOrder={true}
         />
       </main>
