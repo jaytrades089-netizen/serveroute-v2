@@ -43,7 +43,7 @@ export default function ComboRouteReview() {
       if (!combo?.route_ids) return [];
       let all = [];
       for (const rid of combo.route_ids) {
-        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null });
+        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false });
         all = [...all, ...addrs];
       }
       return all.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
@@ -58,25 +58,29 @@ export default function ComboRouteReview() {
     return map;
   }, [routes]);
 
-  // Group addresses into consecutive blocks by route_id, preserving order_index order
+  // Group addresses by folder (one section per route_id), preserving order_index within each
   const groupedBlocks = useMemo(() => {
     if (addresses.length === 0) return [];
-    const blocks = [];
-    let currentBlock = null;
-
+    const byRoute = {};
+    // Use combo.route_ids order for consistent folder ordering
+    const routeIdOrder = combo?.route_ids || [];
+    
     for (const addr of addresses) {
-      if (!currentBlock || currentBlock.route_id !== addr.route_id) {
-        currentBlock = {
+      if (!byRoute[addr.route_id]) {
+        byRoute[addr.route_id] = {
           route_id: addr.route_id,
           folder_name: routeNameMap[addr.route_id] || 'Unknown Folder',
           addresses: []
         };
-        blocks.push(currentBlock);
       }
-      currentBlock.addresses.push(addr);
+      byRoute[addr.route_id].addresses.push(addr);
     }
-    return blocks;
-  }, [addresses, routeNameMap]);
+    
+    // Return in route_ids order
+    return routeIdOrder
+      .filter(rid => byRoute[rid])
+      .map(rid => byRoute[rid]);
+  }, [addresses, routeNameMap, combo?.route_ids]);
 
   if (comboLoading || addressesLoading) {
     return (
@@ -146,9 +150,13 @@ export default function ComboRouteReview() {
                       <p className="text-sm font-semibold text-gray-900 truncate">{formatted.line1}</p>
                       <p className="text-xs text-gray-500 truncate">{formatted.line2}</p>
                     </div>
-                    {addr.served && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-bold flex-shrink-0">
-                        SERVED
+                    {addr.serve_type && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                        addr.serve_type === 'posting' ? 'bg-green-100 text-green-700' :
+                        addr.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {addr.serve_type.toUpperCase()}
                       </span>
                     )}
                   </div>
