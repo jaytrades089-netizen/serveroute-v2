@@ -257,14 +257,14 @@ export default function WorkerRoutes() {
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
-        <div className="flex items-center gap-2 mb-4">
-          <h1 className="text-2xl font-bold text-gray-900 flex-1">My Routes</h1>
-          <Link to={createPageUrl('ComboRouteSelection')}>
+        <div className="flex items-center gap-1.5 mb-4 flex-nowrap">
+          <h1 className="text-lg font-bold text-gray-900 flex-1 whitespace-nowrap">My Routes</h1>
+          <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
             <Button
               size="sm"
-              className="bg-purple-500 hover:bg-purple-600 text-white"
+              className="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2.5 h-8"
             >
-              <Shuffle className="w-4 h-4 mr-1" />
+              <Shuffle className="w-3.5 h-3.5 mr-1" />
               Combo
             </Button>
           </Link>
@@ -272,9 +272,9 @@ export default function WorkerRoutes() {
             variant={filter === 'archived' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
-            className={filter === 'archived' ? 'bg-blue-500' : ''}
+            className={`shrink-0 text-xs px-2.5 h-8 ${filter === 'archived' ? 'bg-blue-500' : ''}`}
           >
-            <ArchiveIcon className="w-4 h-4 mr-1" />
+            <ArchiveIcon className="w-3.5 h-3.5 mr-1" />
             Archived
           </Button>
         </div>
