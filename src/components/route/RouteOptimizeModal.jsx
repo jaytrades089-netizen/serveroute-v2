@@ -546,7 +546,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <div className="bg-white rounded-xl p-3 shadow-sm mb-3 border border-gray-200">
             <h3 className="text-xs font-semibold text-gray-500 mb-2">ROUTE SUMMARY</h3>
             <div className="space-y-1.5">
-              <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-center gap-2">
+              <div className="bg-gray-100 rounded-lg p-2 flex items-center justify-center gap-2">
                 <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
                   <SelectTrigger className="border-0 bg-transparent font-semibold text-gray-700 text-sm p-0 h-auto w-auto gap-1">
                     <SelectValue />
