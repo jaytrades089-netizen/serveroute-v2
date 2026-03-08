@@ -559,7 +559,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                 </Select>
                 <span className="text-sm text-gray-600">per address</span>
               </div>
-              <div className="bg-gray-100 rounded-lg p-3 text-center">
+              <div className="bg-gray-100 rounded-lg p-2 text-center">
                 <p className="text-sm text-gray-600">
                   {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses •
                   {(() => {
