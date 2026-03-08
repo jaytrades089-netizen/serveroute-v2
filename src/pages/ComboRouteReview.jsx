@@ -60,7 +60,32 @@ export default function ComboRouteReview() {
     return map;
   }, [routes]);
 
-  // Addresses are already sorted globally by order_index from the query
+  // Group addresses by folder for physical folder organization display
+  const groupedBlocks = useMemo(() => {
+    if (addresses.length === 0) return [];
+    const byRoute = {};
+    const routeIdOrder = combo?.route_ids || [];
+    
+    for (const addr of addresses) {
+      if (!byRoute[addr.route_id]) {
+        byRoute[addr.route_id] = {
+          route_id: addr.route_id,
+          folder_name: routeNameMap[addr.route_id] || 'Unknown Folder',
+          addresses: []
+        };
+      }
+      byRoute[addr.route_id].addresses.push(addr);
+    }
+    
+    // Sort addresses within each folder by order_index
+    Object.values(byRoute).forEach(block => {
+      block.addresses.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+    });
+    
+    return routeIdOrder
+      .filter(rid => byRoute[rid])
+      .map(rid => byRoute[rid]);
+  }, [addresses, routeNameMap, combo?.route_ids]);
 
   if (comboLoading || addressesLoading) {
     return (
@@ -103,45 +128,48 @@ export default function ComboRouteReview() {
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
-        <div className="space-y-2 mb-4">
-          {addresses.map((addr) => {
-            const formatted = formatAddress(addr);
-            const folderName = routeNameMap[addr.route_id] || '';
-            return (
-              <div
-                key={addr.id}
-                className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
-                  {addr.order_index || '?'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    {addr.defendant_name && (
-                      <p className="text-xs font-medium text-gray-500 truncate">{addr.defendant_name}</p>
-                    )}
-                    {folderName && (
-                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap flex-shrink-0">
-                        {folderName}
+        {groupedBlocks.map((block, blockIdx) => (
+          <div key={`${block.route_id}-${blockIdx}`} className="mb-4">
+            {/* Folder header */}
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <FolderOpen className="w-4 h-4 text-purple-500" />
+              <h2 className="text-sm font-bold text-gray-800">{block.folder_name}</h2>
+              <span className="text-xs text-gray-400">({block.addresses.length})</span>
+            </div>
+
+            <div className="space-y-2">
+              {block.addresses.map((addr) => {
+                const formatted = formatAddress(addr);
+                return (
+                  <div
+                    key={addr.id}
+                    className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                      {addr.order_index || '?'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {addr.defendant_name && (
+                        <p className="text-xs font-medium text-gray-500 truncate">{addr.defendant_name}</p>
+                      )}
+                      <p className="text-sm font-semibold text-gray-900 truncate">{formatted.line1}</p>
+                      <p className="text-xs text-gray-500 truncate">{formatted.line2}</p>
+                    </div>
+                    {addr.serve_type && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
+                        addr.serve_type === 'posting' ? 'bg-green-100 text-green-700' :
+                        addr.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700' :
+                        'bg-blue-100 text-blue-700'
+                      }`}>
+                        {addr.serve_type.toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-semibold text-gray-900 truncate">{formatted.line1}</p>
-                  <p className="text-xs text-gray-500 truncate">{formatted.line2}</p>
-                </div>
-                {addr.serve_type && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
-                    addr.serve_type === 'posting' ? 'bg-green-100 text-green-700' :
-                    addr.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700' :
-                    'bg-blue-100 text-blue-700'
-                  }`}>
-                    {addr.serve_type.toUpperCase()}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
 
         {/* Start Button */}
         <Button
