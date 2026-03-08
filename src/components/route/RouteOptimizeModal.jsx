@@ -589,30 +589,32 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {/* Buttons */}
-        <div className="space-y-3">
+        <div className="flex gap-3">
           <Button
             onClick={handleOptimizeRoute}
             disabled={!selectedEndLocation || isOptimizing}
-            className={`w-full font-bold py-4 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
+            className={`flex-1 font-bold py-4 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
           >
             {isOptimizing ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimizing...</>
             ) : isOptimized ? (
-              <><RefreshCw className="w-5 h-5 mr-2" /> Re-Optimize Route</>
+              <><RefreshCw className="w-5 h-5 mr-2" /> Re-Optimize</>
             ) : (
-              <><Navigation className="w-5 h-5 mr-2" /> Optimize Route</>
+              <><Navigation className="w-5 h-5 mr-2" /> Optimize</>
             )}
           </Button>
 
-          {isOptimized && (
-            <Button onClick={handleStartRoute} disabled={isStarting} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4">
-              {isStarting ? (
-                <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
-              ) : (
-                <><Play className="w-5 h-5 mr-2" /> Start Route</>
-              )}
-            </Button>
-          )}
+          <Button
+            onClick={handleStartRoute}
+            disabled={!isOptimized || isStarting}
+            className={`flex-1 font-bold py-4 text-white ${isOptimized ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
+          >
+            {isStarting ? (
+              <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
+            ) : (
+              <><Play className="w-5 h-5 mr-2" /> Start Route</>
+            )}
+          </Button>
         </div>
       </div>
     </div>
