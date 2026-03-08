@@ -80,7 +80,8 @@ export default function AddressCard({
   isAttemptedToday = false,
   isCompleted = false,
   editMode = false,
-  isHighlighted = false
+  isHighlighted = false,
+  folderName
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1060,13 +1061,22 @@ export default function AddressCard({
               </p>
             </div>
             
-            {/* Separator and Defendant Name */}
-            {address.defendant_name && (
+            {/* Separator and Defendant Name + Folder */}
+            {(address.defendant_name || folderName || address._folderName) && (
               <>
                 <div className="border-t border-gray-200 my-3" />
-                <p className={`text-sm font-medium ${isServed ? 'text-gray-400' : 'text-gray-600'}`}>
-                  {address.defendant_name}
-                </p>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {address.defendant_name && (
+                    <p className={`text-sm font-medium ${isServed ? 'text-gray-400' : 'text-gray-600'}`}>
+                      {address.defendant_name}
+                    </p>
+                  )}
+                  {(folderName || address._folderName) && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap">
+                      {folderName || address._folderName}
+                    </span>
+                  )}
+                </div>
               </>
             )}
           </div>
