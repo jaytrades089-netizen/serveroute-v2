@@ -9,7 +9,7 @@ export default function Header({ user, unreadCount = 0, actionButton = null }) {
     : 'U';
 
   return (
-    <header className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between">
+    <header className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between sticky top-0 z-40">
       <div className="flex items-center gap-2">
         <FileText className="w-6 h-6" />
         <span className="font-bold text-lg">ServeRoute</span>
