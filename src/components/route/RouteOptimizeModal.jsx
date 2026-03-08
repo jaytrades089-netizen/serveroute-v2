@@ -535,18 +535,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           </div>
         )}
 
-        {/* API key status */}
-        {userSettings?.mapquest_api_key ? (
-          <div className="bg-green-50 border border-green-200 rounded-xl p-3 mb-4 flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-            <p className="text-sm text-green-800">Zone Clustering Active</p>
-          </div>
-        ) : (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
-            <p className="text-sm text-yellow-800">No API key configured. Add MapQuest key in Settings.</p>
-          </div>
-        )}
+
 
         {/* Route Metrics */}
         {isOptimized && routeMetrics && (
