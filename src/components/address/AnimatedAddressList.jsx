@@ -25,7 +25,8 @@ export default function AnimatedAddressList({
   allAttemptsMap,
   editMode = false,
   route = null,
-  showZoneLabels = true
+  showZoneLabels = true,
+  preserveOrder = false
 }) {
   // Animation state
   const [animatingCardId, setAnimatingCardId] = useState(null);
@@ -140,12 +141,22 @@ export default function AnimatedAddressList({
     // Sort by order_index for original route order (fallback)
     const sortByOrder = (a, b) => (a.order_index || 999) - (b.order_index || 999);
     
+    // When preserveOrder is true (combo routes), keep original array order
+    // which matches the optimized driving sequence
+    if (preserveOrder) {
+      return {
+        activeAddresses: active,
+        attemptedTodayAddresses: attemptedToday,
+        completedAddresses: served
+      };
+    }
+
     return {
       activeAddresses: active.sort(sortBySpreadDue),
       attemptedTodayAddresses: attemptedToday.sort(sortBySpreadDue),
       completedAddresses: served.sort(sortByOrder)
     };
-  }, [addresses, attempts, route?.minimum_days_spread]);
+  }, [addresses, attempts, route?.minimum_days_spread, preserveOrder]);
 
   // Handle when an attempt is logged (card moves to "attempted today")
   const handleAttemptLogged = async (addressId) => {
