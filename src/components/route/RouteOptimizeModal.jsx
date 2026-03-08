@@ -418,11 +418,11 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
 
-      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl p-4 pb-6 shadow-2xl animate-slide-down z-50 max-h-[85vh] overflow-y-auto">
-        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-3" />
+      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl px-4 pt-3 pb-4 shadow-2xl animate-slide-down z-50 max-h-[95vh] overflow-y-auto">
+        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-2" />
 
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold">Optimize Route</h2>
+        <div className="flex justify-between items-center mb-3">
+          <h2 className="text-lg font-bold">Optimize Route</h2>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
             <X className="w-5 h-5 text-gray-500" />
           </button>
