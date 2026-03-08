@@ -545,10 +545,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         {isOptimized && routeMetrics && (
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4 border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-500 mb-3">ROUTE SUMMARY</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
+            <div className="space-y-2">
+              <div className="bg-gray-100 rounded-lg p-3 flex items-center justify-center gap-2">
                 <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
-                  <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-2xl p-0 h-auto justify-center">
+                  <SelectTrigger className="border-0 bg-transparent font-semibold text-gray-700 text-sm p-0 h-auto w-auto gap-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -557,33 +557,30 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                     ))}
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-amber-500 font-medium mt-1">per address</p>
+                <span className="text-sm text-gray-600">per address</span>
               </div>
-              <div className="bg-green-50 rounded-xl p-3 text-center border border-green-200">
+              <div className="bg-gray-100 rounded-lg p-3 text-center">
+                <p className="text-sm text-gray-600">
+                  {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses •
+                  {(() => {
+                    const est = calculateEstCompletion();
+                    if (!est) return ' --';
+                    const hours = Math.floor(est.totalMinutes / 60);
+                    const mins = est.totalMinutes % 60;
+                    return ` ${hours}h ${mins}m total`;
+                  })()}
+                </p>
+              </div>
+              <div className="bg-gray-100 rounded-lg p-3 text-center">
                 {(() => {
                   const est = calculateEstCompletion();
                   return (
-                    <>
-                      <p className="text-2xl font-bold text-green-600">
-                        {est?.completionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '--:--'}
-                      </p>
-                      <p className="text-xs text-green-500 font-medium">est. done</p>
-                    </>
+                    <p className="text-sm text-gray-600">
+                      Est. done by <span className="font-semibold">{est?.completionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '--:--'}</span>
+                    </p>
                   );
                 })()}
               </div>
-            </div>
-            <div className="bg-gray-100 rounded-lg p-3 text-center">
-              <p className="text-sm text-gray-600">
-                {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses •
-                {(() => {
-                  const est = calculateEstCompletion();
-                  if (!est) return ' --';
-                  const hours = Math.floor(est.totalMinutes / 60);
-                  const mins = est.totalMinutes % 60;
-                  return ` ${hours}h ${mins}m total`;
-                })()}
-              </p>
             </div>
           </div>
         )}
