@@ -499,9 +499,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {/* End location */}
-        <label className="block text-sm font-medium text-gray-700 mb-2">End Location</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
         <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
-          <SelectTrigger className="w-full mb-3">
+          <SelectTrigger className="w-full mb-2">
             <SelectValue placeholder="Select where to end" />
           </SelectTrigger>
           <SelectContent>
