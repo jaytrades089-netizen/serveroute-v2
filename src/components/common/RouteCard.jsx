@@ -416,61 +416,78 @@ export default function RouteCard({
         </div>
       </div>
 
-      {/* HAS / DUE / NEEDS Row - single line */}
+      {/* HAS / DUE / NEEDS Row */}
       <div className="px-4 pb-3">
-        <div className="flex items-center gap-2 flex-nowrap overflow-x-auto">
+        <div className="grid grid-cols-3 gap-3">
           {/* HAS */}
-          <div className="flex items-center gap-1 shrink-0 bg-green-50 rounded-lg px-2 py-1.5 border border-green-200">
-            <span className="text-[10px] font-semibold text-gray-500 uppercase">Has</span>
-            {earnedBadges.length > 0 ? (
-              <QualifierBadges badges={earnedBadges} size="small" />
-            ) : (
-              <span className="text-[10px] text-gray-400">None</span>
-            )}
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Has</p>
+            <div className="bg-green-50 rounded-xl p-2.5 border border-green-200 min-h-[60px] flex items-center justify-center">
+              {earnedBadges.length > 0 ? (
+                <div className="flex flex-wrap gap-1 justify-center">
+                  <QualifierBadges badges={earnedBadges} size="small" />
+                </div>
+              ) : (
+                <span className="text-sm text-gray-400">None</span>
+              )}
+            </div>
           </div>
           
           {/* DUE */}
-          <div className={`flex items-center gap-1 shrink-0 rounded-lg px-2 py-1.5 border ${
-            isOverdue ? 'bg-red-50 border-red-200' : 'bg-purple-50 border-purple-200'
-          }`}>
-            <span className="text-[10px] font-semibold text-gray-500 uppercase">Due</span>
-            <span className={`text-[11px] font-bold whitespace-nowrap ${isOverdue ? 'text-red-600' : 'text-purple-600'}`}>
-              {route.due_date ? format(new Date(route.due_date), 'M/d') : '—'}
-            </span>
-            {route.first_attempt_date && (
-              <span className={`text-[10px] whitespace-nowrap ${isOverdue ? 'text-red-500' : 'text-purple-500'}`}>
-                ({(() => {
-                  const firstAttempt = new Date(route.first_attempt_date);
-                  const spreadDueDate = new Date(firstAttempt);
-                  spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || 14));
-                  const today = new Date();
-                  today.setHours(0, 0, 0, 0);
-                  spreadDueDate.setHours(0, 0, 0, 0);
-                  const daysLeft = Math.ceil((spreadDueDate - today) / (1000 * 60 * 60 * 24));
-                  return `${daysLeft}d spread`;
-                })()})
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Due</p>
+            <div className={`rounded-xl p-2.5 border min-h-[60px] flex flex-col items-center justify-center ${
+              isOverdue 
+                ? 'bg-red-50 border-red-200' 
+                : 'bg-purple-50 border-purple-200'
+            }`}>
+              <span className={`text-sm font-medium ${
+                isOverdue ? 'text-red-600' : 'text-purple-600'
+              }`}>
+                {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'No date'}
               </span>
-            )}
+              {route.first_attempt_date && (
+                <span className={`text-[10px] mt-0.5 ${
+                  isOverdue ? 'text-red-500' : 'text-purple-500'
+                }`}>
+                  {(() => {
+                    const firstAttempt = new Date(route.first_attempt_date);
+                    const spreadDueDate = new Date(firstAttempt);
+                    spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || 14));
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    spreadDueDate.setHours(0, 0, 0, 0);
+                    const daysLeft = Math.ceil((spreadDueDate - today) / (1000 * 60 * 60 * 24));
+                    return `Spread: ${daysLeft} Days`;
+                  })()}
+                </span>
+              )}
+            </div>
           </div>
           
           {/* NEEDS */}
-          <div className="flex items-center gap-1 shrink-0 bg-amber-50 rounded-lg px-2 py-1.5 border border-amber-200">
-            <span className="text-[10px] font-semibold text-gray-500 uppercase">Needs</span>
-            {neededBadges.length > 0 ? (
-              <QualifierBadges badges={neededBadges} size="small" />
-            ) : null}
-            {route.first_attempt_date && pendingCount > 0 ? (
-              <span className="text-[10px] font-bold text-red-700 whitespace-nowrap">
-                3rd:{format((() => {
-                  const firstAttempt = new Date(route.first_attempt_date);
-                  const spreadDueDate = new Date(firstAttempt);
-                  spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || spreadDays || 14));
-                  return spreadDueDate;
-                })(), 'M/d')}
-              </span>
-            ) : pendingCount === 0 ? (
-              <span className="text-[10px] text-green-600 font-bold">✓ Done</span>
-            ) : null}
+          <div className="text-center">
+            <p className="text-xs font-semibold text-gray-500 mb-1.5">Needs</p>
+            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 min-h-[60px] flex flex-col items-center justify-center gap-1">
+              {neededBadges.length > 0 ? (
+                <div className="flex flex-wrap gap-1 justify-center">
+                  <QualifierBadges badges={neededBadges} size="small" />
+                </div>
+              ) : null}
+              {/* Show 3rd attempt deadline based on spread */}
+              {route.first_attempt_date && pendingCount > 0 ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">
+                  3rd: {format((() => {
+                    const firstAttempt = new Date(route.first_attempt_date);
+                    const spreadDueDate = new Date(firstAttempt);
+                    spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || spreadDays || 14));
+                    return spreadDueDate;
+                  })(), 'M/d')}
+                </span>
+              ) : pendingCount === 0 ? (
+                <span className="text-sm text-green-600 font-semibold">✓ Done</span>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
