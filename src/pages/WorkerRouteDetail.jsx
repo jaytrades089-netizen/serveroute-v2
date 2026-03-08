@@ -24,6 +24,7 @@ import MessageBossDialog from '@/components/address/MessageBossDialog';
 import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
 import DesktopWarningBanner from '@/components/common/DesktopWarningBanner';
 import ScheduledServesTab from '@/components/scheduled/ScheduledServesTab';
+import StopRouteModal from '@/components/route/StopRouteModal';
 import { Input } from '@/components/ui/input';
 
 export default function WorkerRouteDetail() {
