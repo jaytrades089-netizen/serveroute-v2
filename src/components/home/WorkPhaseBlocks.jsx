@@ -57,9 +57,7 @@ export default function WorkPhaseBlocks({ currentPhase }) {
         </span>
       </div>
 
-      <p className="text-sm text-gray-500 mt-2">
-        Current Phase: <span className="font-semibold text-orange-500 uppercase">{currentPhase}</span>
-      </p>
+
     </div>
   );
 }
