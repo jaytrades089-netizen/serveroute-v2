@@ -38,8 +38,7 @@ export default function BossRouteDetail() {
     queryKey: ['route', routeId],
     queryFn: async () => {
       if (!routeId) return null;
-      const routes = await base44.entities.Route.filter({ id: routeId });
-      return routes[0] || null;
+      return await base44.entities.Route.get(routeId);
     },
     enabled: !!routeId,
     refetchInterval: 10000
