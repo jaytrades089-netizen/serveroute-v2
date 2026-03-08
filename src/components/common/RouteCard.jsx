@@ -468,7 +468,7 @@ export default function RouteCard({
           {/* NEEDS */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Needs</p>
-            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 min-h-[60px] flex flex-col items-center justify-center gap-1">
+            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 h-full flex flex-col items-center justify-center gap-1">
               {neededBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={neededBadges} size="small" />
