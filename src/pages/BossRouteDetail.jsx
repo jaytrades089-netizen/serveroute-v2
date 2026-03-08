@@ -71,8 +71,7 @@ export default function BossRouteDetail() {
     queryKey: ['routeWorker', route?.worker_id],
     queryFn: async () => {
       if (!route?.worker_id) return null;
-      const users = await base44.entities.User.filter({ id: route.worker_id });
-      return users[0] || null;
+      return await base44.entities.User.get(route.worker_id);
     },
     enabled: !!route?.worker_id
   });
