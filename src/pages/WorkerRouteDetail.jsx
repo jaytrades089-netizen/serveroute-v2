@@ -749,6 +749,14 @@ export default function WorkerRouteDetail() {
         />
       </main>
 
+      {showStopModal && (
+        <StopRouteModal
+          route={route}
+          addresses={addresses}
+          onClose={() => setShowStopModal(false)}
+        />
+      )}
+
       {showOptimizeModal && (
         <RouteOptimizeModal
           routeId={routeId}
