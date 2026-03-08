@@ -200,8 +200,8 @@ export default function ComboRouteSelection() {
 
       toast.success(`Combo route created with ${allAddresses.length} addresses!`);
       
-      // Navigate to first route in optimized order
-      navigate(createPageUrl(`WorkerRouteDetail?id=${routeOrder[0]}`));
+      // Navigate to review screen
+      navigate(createPageUrl(`ComboRouteReview?id=${combo.id}`));
 
     } catch (error) {
       console.error('Combo optimization failed:', error);

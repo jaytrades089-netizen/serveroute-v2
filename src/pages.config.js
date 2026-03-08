@@ -99,6 +99,8 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
+import ComboRouteReview from './pages/ComboRouteReview';
+import WorkerComboRouteDetail from './pages/WorkerComboRouteDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -155,6 +157,8 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
+    "ComboRouteReview": ComboRouteReview,
+    "WorkerComboRouteDetail": WorkerComboRouteDetail,
 }
 
 export const pagesConfig = {
