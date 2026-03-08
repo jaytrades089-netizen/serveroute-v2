@@ -243,7 +243,7 @@ export default function WorkerHome() {
           <h1 className="text-3xl font-extrabold text-gray-900">
             Welcome back, {firstName}
           </h1>
-          <p className="text-gray-500 mt-1">{todayDate}</p>
+
         </div>
 
         <AddressSearch
