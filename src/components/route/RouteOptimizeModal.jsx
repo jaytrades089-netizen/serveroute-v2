@@ -429,7 +429,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         </div>
 
         {/* Route info */}
-        <div className="bg-gray-50 rounded-xl p-3 mb-4 flex justify-between items-center">
+        <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex justify-between items-center">
           <div>
             <p className="font-semibold">{route?.folder_name || 'Route'}</p>
             <p className="text-sm text-gray-500">
