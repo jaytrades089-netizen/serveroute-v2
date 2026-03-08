@@ -418,9 +418,9 @@ export default function RouteCard({
 
       {/* HAS / DUE / NEEDS Row */}
       <div className="px-4 pb-3">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-3 items-stretch">
           {/* HAS */}
-          <div className="text-center">
+          <div className="text-center flex flex-col">
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Has</p>
             <div className="bg-green-50 rounded-xl p-2.5 border border-green-200 min-h-[60px] flex flex-col items-center justify-center gap-1">
               {earnedBadges.length > 0 ? (
