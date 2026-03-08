@@ -36,48 +36,40 @@ export default function WorkerComboRouteDetail() {
     enabled: !!comboId
   });
 
-  // Fetch all routes in combo
+  // Fetch all routes, addresses, and attempts in PARALLEL
   const { data: routes = [] } = useQuery({
     queryKey: ['comboDetailRoutes', combo?.route_ids],
     queryFn: async () => {
       if (!combo?.route_ids) return [];
-      const all = [];
-      for (const rid of combo.route_ids) {
-        const r = await base44.entities.Route.filter({ id: rid });
-        if (r[0]) all.push(r[0]);
-      }
-      return all;
+      const results = await Promise.all(
+        combo.route_ids.map(rid => base44.entities.Route.filter({ id: rid }))
+      );
+      return results.map(r => r[0]).filter(Boolean);
     },
     enabled: !!combo?.route_ids
   });
 
-  // Fetch all addresses across all routes
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
     queryKey: ['comboDetailAddresses', combo?.route_ids],
     queryFn: async () => {
       if (!combo?.route_ids) return [];
-      let all = [];
-      for (const rid of combo.route_ids) {
-        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false });
-        all = [...all, ...addrs];
-      }
-      return all.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      const results = await Promise.all(
+        combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null }))
+      );
+      return results.flat().sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
     enabled: !!combo?.route_ids,
     refetchInterval: 30000
   });
 
-  // Fetch all attempts across all routes
   const { data: attempts = [] } = useQuery({
     queryKey: ['comboDetailAttempts', combo?.route_ids],
     queryFn: async () => {
       if (!combo?.route_ids) return [];
-      let all = [];
-      for (const rid of combo.route_ids) {
-        const atts = await base44.entities.Attempt.filter({ route_id: rid }, '-attempt_time');
-        all = [...all, ...atts];
-      }
-      return all;
+      const results = await Promise.all(
+        combo.route_ids.map(rid => base44.entities.Attempt.filter({ route_id: rid }, '-attempt_time'))
+      );
+      return results.flat();
     },
     enabled: !!combo?.route_ids
   });
