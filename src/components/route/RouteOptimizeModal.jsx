@@ -590,7 +590,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <Button
             onClick={handleOptimizeRoute}
             disabled={!selectedEndLocation || isOptimizing}
-            className={`flex-1 font-bold py-4 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
+            className={`flex-1 font-bold py-3 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
           >
             {isOptimizing ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimizing...</>
