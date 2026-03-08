@@ -167,21 +167,14 @@ export default function BossRoutes() {
           <span className="font-bold text-lg">Routes</span>
           <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Boss</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link to={createPageUrl('Notifications')} className="relative">
-            <Bell className="w-6 h-6" />
-            {notifications.length > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {notifications.length > 9 ? '9+' : notifications.length}
-              </span>
-            )}
-          </Link>
-          <Link to={createPageUrl('CreateRoute')}>
-            <Button size="sm" variant="secondary">
-              <Plus className="w-4 h-4 mr-1" /> New
-            </Button>
-          </Link>
-        </div>
+        <Link to={createPageUrl('Notifications')} className="relative ml-auto">
+          <Bell className="w-6 h-6" />
+          {notifications.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {notifications.length > 9 ? '9+' : notifications.length}
+            </span>
+          )}
+        </Link>
       </header>
 
       <main className="px-4 py-4 max-w-4xl mx-auto">
