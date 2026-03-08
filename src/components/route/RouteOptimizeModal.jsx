@@ -571,7 +571,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                   })()}
                 </p>
               </div>
-              <div className="bg-gray-100 rounded-lg p-3 text-center">
+              <div className="bg-gray-100 rounded-lg p-2 text-center">
                 {(() => {
                   const est = calculateEstCompletion();
                   return (
