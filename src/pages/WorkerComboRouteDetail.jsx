@@ -289,6 +289,7 @@ export default function WorkerComboRouteDetail() {
           allAttemptsMap={allAttemptsMap}
           route={virtualRoute}
           showZoneLabels={true}
+          preserveOrder={true}
         />
       </main>
 
