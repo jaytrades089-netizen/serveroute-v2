@@ -42,7 +42,7 @@ export default function BossRouteDetail() {
       return routes[0] || null;
     },
     enabled: !!routeId,
-    refetchInterval: routeError ? false : 10000,
+    refetchInterval: (query) => query.state.status === 'error' ? false : 10000,
     placeholderData: (prev) => prev,
     retry: 2
   });
