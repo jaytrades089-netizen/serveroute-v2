@@ -34,7 +34,7 @@ export default function BossRouteDetail() {
     queryFn: () => base44.auth.me()
   });
 
-  const { data: route, isLoading: routeLoading } = useQuery({
+  const { data: route, isLoading: routeLoading, isError: routeError } = useQuery({
     queryKey: ['route', routeId],
     queryFn: async () => {
       if (!routeId) return null;
@@ -42,7 +42,9 @@ export default function BossRouteDetail() {
       return routes[0] || null;
     },
     enabled: !!routeId,
-    refetchInterval: 10000
+    refetchInterval: routeError ? false : 10000,
+    placeholderData: (prev) => prev,
+    retry: 2
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
@@ -109,7 +111,21 @@ export default function BossRouteDetail() {
     );
   }
 
-  if (!route) {
+  if (routeError && !route) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 flex flex-col items-center justify-center gap-3">
+        <p className="text-center text-gray-500">Unable to load route — server error</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium"
+        >
+          Try Again
+        </button>
+      </div>
+    );
+  }
+
+  if (!route && !routeLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <p className="text-center text-gray-500">Route not found</p>
