@@ -8,7 +8,6 @@ import { createPageUrl } from '@/utils';
 import { Loader2, ChevronLeft, Pause, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import AddressCard from '@/components/address/AddressCard';
 import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
 import BottomNav from '@/components/layout/BottomNav';
