@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Link2, Clock, CheckCircle, CalendarDays } from 'lucide-react';
 
-const stats = [
+const topStats = [
   { 
     id: 'active', 
-    label: 'Available Routes', 
+    label: 'Routes', 
     icon: Link2, 
     bgColor: 'bg-blue-100', 
     textColor: 'text-blue-600',
@@ -27,14 +27,6 @@ const stats = [
     bgColor: 'bg-green-100', 
     textColor: 'text-green-600',
     link: 'WorkerPayout'
-  },
-  { 
-    id: 'dueSoon', 
-    label: 'Due Soon', 
-    icon: CalendarDays, 
-    bgColor: 'bg-purple-100', 
-    textColor: 'text-purple-600',
-    link: 'WorkerRoutes?filter=due-soon'
   }
 ];
 
@@ -42,30 +34,44 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
   const values = {
     active: activeRoutes,
     addresses: addresses,
-    served: served,
-    dueSoon: dueSoon
+    served: served
   };
 
   return (
-    <div className="grid grid-cols-4 gap-2 mb-6">
-      {stats.map((stat) => {
-        const Icon = stat.icon;
-        return (
-          <Link
-            key={stat.id}
-            to={createPageUrl(stat.link)}
-            className={`${stat.bgColor} rounded-xl p-3 text-center hover:opacity-90 transition-opacity cursor-pointer`}
-          >
-            <Icon className={`w-5 h-5 mx-auto mb-1 ${stat.textColor}`} />
-            <div className={`text-2xl font-bold ${stat.textColor}`}>
-              {values[stat.id]}
-            </div>
-            <div className="text-xs text-gray-600 font-medium">
-              {stat.label}
-            </div>
-          </Link>
-        );
-      })}
+    <div className="mb-6">
+      {/* Top row: Routes / Addresses / Served */}
+      <div className="grid grid-cols-3 gap-2">
+        {topStats.map((stat) => {
+          const Icon = stat.icon;
+          return (
+            <Link
+              key={stat.id}
+              to={createPageUrl(stat.link)}
+              className={`${stat.bgColor} rounded-t-xl p-3 text-center hover:opacity-90 transition-opacity cursor-pointer`}
+            >
+              <Icon className={`w-5 h-5 mx-auto mb-1 ${stat.textColor}`} />
+              <div className={`text-2xl font-bold ${stat.textColor}`}>
+                {values[stat.id]}
+              </div>
+              <div className="text-xs text-gray-600 font-medium">
+                {stat.label}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Due Soon bar underneath */}
+      <Link
+        to={createPageUrl('WorkerRoutes?filter=due-soon')}
+        className="block bg-purple-100 rounded-b-xl px-4 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
+      >
+        <div className="flex items-center justify-center gap-2">
+          <CalendarDays className="w-4 h-4 text-purple-600" />
+          <span className="font-semibold text-sm text-purple-800">Due Soon</span>
+          <span className="text-xs text-purple-600">— {dueSoon} upcoming</span>
+        </div>
+      </Link>
     </div>
   );
 }
