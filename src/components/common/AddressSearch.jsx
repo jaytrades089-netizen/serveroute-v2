@@ -59,35 +59,24 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
 
   return (
     <div className="mb-4">
-      <div className="flex gap-2 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-          <input
-            ref={inputRef}
-            type="text"
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Search addresses across all folders..."
-            className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-          />
-          {query.length > 0 && (
-            <button
-              onClick={handleClear}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
-        <Button
-          variant={includeArchived ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => setIncludeArchived(v => !v)}
-          className={includeArchived ? 'bg-amber-500 hover:bg-amber-600 border-amber-500 text-white' : 'text-gray-500'}
-        >
-          <Archive className="w-4 h-4 mr-1" />
-          Archived
-        </Button>
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          placeholder="Search addresses across all folders..."
+          className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+        />
+        {query.length > 0 && (
+          <button
+            onClick={handleClear}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {query.trim().length >= 2 && (
