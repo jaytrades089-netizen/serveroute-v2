@@ -28,7 +28,7 @@ export default function ActiveRoutesList({ routes = [] }) {
   return (
     <div className="mb-6">
       <div className="mb-3">
-        <h2 className="text-xl font-bold text-gray-900">My Routes</h2>
+        <h2 className="text-xl font-bold text-gray-900 text-center">My Routes</h2>
       </div>
 
       {doableRoutes.length === 0 ? (
