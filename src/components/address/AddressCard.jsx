@@ -1650,51 +1650,25 @@ export default function AddressCard({
                       </Button>
                     )}
 
-                    {/* Secondary Actions Row - 3 buttons */}
-                    <div className="grid grid-cols-3 gap-2">
-                      {hasInProgressAttempt ? (
+                    {/* Secondary Actions Row */}
+                    <div className="flex gap-2">
+                      {hasInProgressAttempt && (
                         <Button 
                           onClick={handleCaptureEvidence}
-                          className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                          className="h-14 flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
                         >
                           <Plus className="w-5 h-5" />
                           <span>ADD PHOTO</span>
                         </Button>
-                      ) : selectedAttempt ? (
-                        <Button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
-                          className="h-14 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                          <span>DELETE</span>
-                        </Button>
-                      ) : (
-                        <Button 
-                          disabled
-                          className="h-14 bg-gray-300 text-gray-500 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 cursor-not-allowed"
-                        >
-                          <Trash2 className="w-5 h-5" />
-                          <span>DELETE</span>
-                        </Button>
                       )}
-                      
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
-                        }}
-                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                      >
-                        <FileText className="w-5 h-5" />
-                        <span>DETAILS</span>
-                      </Button>
                       
                       <Link 
                         to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
                         onClick={(e) => e.stopPropagation()}
+                        className="flex-1"
                       >
                         <Button 
-                          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2"
                         >
                           <Shield className="w-5 h-5" />
                           <span>SERVED</span>
