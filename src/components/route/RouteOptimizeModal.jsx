@@ -446,7 +446,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         </div>
 
         {/* Start location */}
-        <label className="block text-sm font-medium text-gray-700 mb-2">Start Location</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Start Location</label>
 
         <div className="flex items-center gap-2 mb-1">
           <Checkbox
