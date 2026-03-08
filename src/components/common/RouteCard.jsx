@@ -436,7 +436,7 @@ export default function RouteCard({
           {/* DUE */}
           <div className="text-center">
             <p className="text-xs font-semibold text-gray-500 mb-1.5">Due</p>
-            <div className={`rounded-xl p-2.5 border min-h-[60px] flex flex-col items-center justify-center ${
+            <div className={`rounded-xl p-2.5 border min-h-[60px] flex flex-col items-center justify-center gap-1 ${
               isOverdue 
                 ? 'bg-red-50 border-red-200' 
                 : 'bg-purple-50 border-purple-200'
