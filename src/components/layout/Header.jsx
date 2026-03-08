@@ -16,25 +16,14 @@ export default function Header({ user, unreadCount = 0, actionButton = null }) {
         <span className="font-bold text-lg opacity-80">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
       </div>
       
-      <div className="flex items-center gap-3">
-        <Link to={createPageUrl('Notifications')} className="relative">
-          <Bell className="w-6 h-6" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Link>
-
-        {actionButton && actionButton}
-        
-        <Link 
-          to={createPageUrl('WorkerSettings')}
-          className="w-9 h-9 bg-white text-blue-600 rounded-full flex items-center justify-center font-bold text-sm"
-        >
-          {initials}
-        </Link>
-      </div>
+      <Link to={createPageUrl('Notifications')} className="relative ml-auto">
+        <Bell className="w-6 h-6" />
+        {unreadCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </Link>
     </header>
   );
 }
