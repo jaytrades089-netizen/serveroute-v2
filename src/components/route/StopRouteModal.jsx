@@ -8,7 +8,6 @@ import { X, Clock, MapPin, Calendar as CalendarIcon, Loader2 } from 'lucide-reac
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 const QUALIFIER_OPTIONS = [
   { id: 'AM', label: 'AM', colors: 'bg-amber-100 text-amber-700 border-amber-300', activeColors: 'bg-amber-500 text-white border-amber-500' },
@@ -22,6 +21,7 @@ export default function StopRouteModal({ route, addresses, onClose }) {
   const [saving, setSaving] = useState(false);
   const [nextRunDate, setNextRunDate] = useState(null);
   const [selectedQualifiers, setSelectedQualifiers] = useState([]);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
@@ -137,30 +137,32 @@ export default function StopRouteModal({ route, addresses, onClose }) {
             <h3 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">Schedule Next Run</h3>
             
             {/* Date Picker */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <button className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50 mb-2">
-                  <CalendarIcon className="w-4 h-4 text-gray-400" />
-                  {nextRunDate ? format(nextRunDate, 'EEE, MMM d') : 'Pick a date (optional)'}
-                  {nextRunDate && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setNextRunDate(null); }}
-                      className="ml-auto p-0.5 rounded-full hover:bg-gray-200"
-                    >
-                      <X className="w-3 h-3 text-gray-400" />
-                    </button>
-                  )}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="center">
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50 mb-2"
+            >
+              <CalendarIcon className="w-4 h-4 text-gray-400" />
+              {nextRunDate ? format(nextRunDate, 'EEE, MMM d') : 'Pick a date (optional)'}
+              {nextRunDate && (
+                <span
+                  role="button"
+                  onClick={(e) => { e.stopPropagation(); setNextRunDate(null); setShowCalendar(false); }}
+                  className="ml-auto p-0.5 rounded-full hover:bg-gray-200"
+                >
+                  <X className="w-3 h-3 text-gray-400" />
+                </span>
+              )}
+            </button>
+            {showCalendar && (
+              <div className="mb-2 bg-white border border-gray-200 rounded-lg shadow-md">
                 <Calendar
                   mode="single"
                   selected={nextRunDate}
-                  onSelect={setNextRunDate}
+                  onSelect={(date) => { setNextRunDate(date); setShowCalendar(false); }}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
 
             {/* Qualifier Toggles */}
             <div className="flex gap-2">
