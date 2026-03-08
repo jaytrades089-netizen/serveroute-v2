@@ -51,6 +51,8 @@ const workerPages = [
   'Workers',
   'Notifications',
   'ComboRouteSelection',
+  'ComboRouteReview',
+  'WorkerComboRouteDetail',
   'SubmitReceipt',
   'ReceiptDetail',
   'PayrollRecordDetail',
