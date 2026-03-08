@@ -20,7 +20,9 @@ export default function ComboRouteReview() {
       const results = await base44.entities.ComboRoute.filter({ id: comboId });
       return results[0] || null;
     },
-    enabled: !!comboId
+    enabled: !!comboId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   const { data: routes = [] } = useQuery({
