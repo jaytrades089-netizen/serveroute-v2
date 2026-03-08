@@ -250,12 +250,7 @@ export default function WorkerRoutes() {
     return true;
   });
 
-  const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'due-soon', label: 'Due Soon' },
-    { id: 'completed', label: 'Completed' },
-    { id: 'archived', label: 'Archived' }
-  ];
+  // Filter is now toggled between 'all' and 'archived' via the header buttons
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
