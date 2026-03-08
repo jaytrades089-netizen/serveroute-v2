@@ -27,14 +27,8 @@ export default function ActiveRoutesList({ routes = [] }) {
 
   return (
     <div className="mb-6">
-      <div className="flex justify-between items-center mb-3">
+      <div className="mb-3">
         <h2 className="text-xl font-bold text-gray-900">My Routes</h2>
-        <Link 
-          to={createPageUrl('WorkerRoutes')} 
-          className="text-blue-600 text-sm font-medium hover:underline flex items-center"
-        >
-          View all <ChevronRight className="w-4 h-4" />
-        </Link>
       </div>
 
       {doableRoutes.length === 0 ? (
