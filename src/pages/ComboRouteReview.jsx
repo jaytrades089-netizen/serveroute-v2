@@ -27,28 +27,28 @@ export default function ComboRouteReview() {
     queryKey: ['comboRoutes', combo?.route_ids],
     queryFn: async () => {
       if (!combo?.route_ids) return [];
-      const all = [];
-      for (const rid of combo.route_ids) {
-        const r = await base44.entities.Route.filter({ id: rid });
-        if (r[0]) all.push(r[0]);
-      }
-      return all;
+      const results = await Promise.all(
+        combo.route_ids.map(rid => base44.entities.Route.filter({ id: rid }))
+      );
+      return results.map(r => r[0]).filter(Boolean);
     },
-    enabled: !!combo?.route_ids
+    enabled: !!combo?.route_ids,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
     queryKey: ['comboAddresses', combo?.route_ids],
     queryFn: async () => {
       if (!combo?.route_ids) return [];
-      let all = [];
-      for (const rid of combo.route_ids) {
-        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false });
-        all = [...all, ...addrs];
-      }
-      return all.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      const results = await Promise.all(
+        combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false }))
+      );
+      return results.flat().sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
-    enabled: !!combo?.route_ids
+    enabled: !!combo?.route_ids,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Build route name map
