@@ -476,8 +476,8 @@ export default function RouteCard({
               ) : null}
               {/* Show 3rd attempt deadline based on spread */}
               {route.first_attempt_date && pendingCount > 0 ? (
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-300">
-                  3rd: {format((() => {
+                <span className="inline-flex items-center whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-300">
+                  3rd by: {format((() => {
                     const firstAttempt = new Date(route.first_attempt_date);
                     const spreadDueDate = new Date(firstAttempt);
                     spreadDueDate.setDate(spreadDueDate.getDate() + (route.minimum_days_spread || spreadDays || 14));
