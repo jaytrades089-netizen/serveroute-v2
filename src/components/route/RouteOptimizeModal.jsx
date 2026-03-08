@@ -552,20 +552,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         {isOptimized && routeMetrics && (
           <div className="bg-white rounded-xl p-4 shadow-sm mb-4 border border-gray-200">
             <h3 className="text-sm font-semibold text-gray-500 mb-3">ROUTE SUMMARY</h3>
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="bg-purple-50 rounded-xl overflow-hidden border border-purple-200">
-                <div className="p-2 text-center border-b border-purple-200">
-                  <p className="text-2xl font-bold text-purple-600">{routeMetrics.totalMiles.toFixed(1)}<span className="text-sm ml-0.5">mi</span></p>
-                </div>
-                <div className="p-2 text-center bg-purple-100/50">
-                  <p className="text-lg font-bold text-purple-700">
-                    {routeMetrics.totalTimeMinutes >= 60
-                      ? `${Math.floor(routeMetrics.totalTimeMinutes / 60)}h ${routeMetrics.totalTimeMinutes % 60}m`
-                      : `${routeMetrics.totalTimeMinutes}m`}
-                  </p>
-                  <p className="text-xs text-purple-500">drive time</p>
-                </div>
-              </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
               <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
                 <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
                   <SelectTrigger className="border-0 bg-transparent text-center font-bold text-amber-600 text-2xl p-0 h-auto justify-center">
