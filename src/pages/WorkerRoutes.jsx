@@ -151,7 +151,9 @@ export default function WorkerRoutes() {
       });
       return addresses;
     },
-    enabled: !!user?.id && routes.length > 0
+    enabled: !!user?.id && routes.length > 0,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Group attempts by route_id
@@ -170,7 +172,9 @@ export default function WorkerRoutes() {
       if (!user?.id) return [];
       return base44.entities.Notification.filter({ user_id: user.id, read: false });
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000
   });
 
   // Load user settings for payroll day/hour
