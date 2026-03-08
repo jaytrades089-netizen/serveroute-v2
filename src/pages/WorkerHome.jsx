@@ -239,13 +239,6 @@ export default function WorkerHome() {
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-extrabold text-gray-900">
-            Welcome back, {firstName}
-          </h1>
-
-        </div>
-
         <AddressSearch
           routes={routes}
           addresses={addresses}
