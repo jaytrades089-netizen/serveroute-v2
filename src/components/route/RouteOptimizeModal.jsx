@@ -514,15 +514,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
                 </div>
               </SelectItem>
             ))}
+            <div
+              className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 px-2 text-sm outline-none hover:bg-accent border-t mt-1 pt-2"
+              onClick={(e) => { e.stopPropagation(); setShowAddLocation(true); }}
+            >
+              <div className="flex items-center gap-2 text-blue-600">
+                <Plus className="w-4 h-4" />
+                <span className="font-medium">Add New Location</span>
+              </div>
+            </div>
           </SelectContent>
         </Select>
 
-        {!showAddLocation ? (
-          <Button variant="outline" size="sm" className="w-full mb-4" onClick={() => setShowAddLocation(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add End Location
-          </Button>
-        ) : (
+        {showAddLocation && (
           <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
             <Input placeholder="Label (Home, Office)" value={newLocationLabel} onChange={(e) => setNewLocationLabel(e.target.value)} className="mb-2" />
             <Input placeholder="Full address" value={newLocationAddress} onChange={(e) => setNewLocationAddress(e.target.value)} className="mb-2" />
