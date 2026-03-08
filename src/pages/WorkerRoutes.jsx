@@ -262,29 +262,33 @@ export default function WorkerRoutes() {
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">My Routes</h1>
-
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
-          {filters.map(f => (
-            <Button
-              key={f.id}
-              variant={filter === f.id ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setFilter(f.id)}
-              className={filter === f.id ? 'bg-blue-500' : ''}
-            >
-              {f.label}
-            </Button>
-          ))}
-          <Link to={createPageUrl('ComboRouteSelection')}>
+        <div className="flex items-center gap-2 mb-4">
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter('all')}
+            className={`flex-1 ${filter === 'all' ? 'bg-blue-500' : ''}`}
+          >
+            My Routes
+          </Button>
+          <Link to={createPageUrl('ComboRouteSelection')} className="flex-1">
             <Button
               size="sm"
-              className="bg-purple-500 hover:bg-purple-600 text-white"
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white"
             >
               <Shuffle className="w-4 h-4 mr-1" />
               Combo
             </Button>
           </Link>
+          <Button
+            variant={filter === 'archived' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
+            className={`flex-1 ${filter === 'archived' ? 'bg-blue-500' : ''}`}
+          >
+            <ArchiveIcon className="w-4 h-4 mr-1" />
+            Archived
+          </Button>
         </div>
 
         {isLoading ? (
