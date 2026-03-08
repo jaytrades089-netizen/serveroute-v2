@@ -33,7 +33,9 @@ export default function WorkerComboRouteDetail() {
       const results = await base44.entities.ComboRoute.filter({ id: comboId });
       return results[0] || null;
     },
-    enabled: !!comboId
+    enabled: !!comboId,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Fetch all routes, addresses, and attempts in PARALLEL
@@ -46,7 +48,9 @@ export default function WorkerComboRouteDetail() {
       );
       return results.map(r => r[0]).filter(Boolean);
     },
-    enabled: !!combo?.route_ids
+    enabled: !!combo?.route_ids,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
@@ -89,7 +93,9 @@ export default function WorkerComboRouteDetail() {
       );
       return results.flat();
     },
-    enabled: !!combo?.route_ids
+    enabled: !!combo?.route_ids,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Build route name map

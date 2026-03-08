@@ -80,7 +80,9 @@ export default function WorkerRouteDetail() {
       const routes = await base44.entities.Route.filter({ id: routeId });
       return routes[0] || null;
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
@@ -91,7 +93,9 @@ export default function WorkerRouteDetail() {
       return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
     },
     enabled: !!routeId,
-    refetchInterval: route?.status === 'active' ? 30000 : false
+    refetchInterval: route?.status === 'active' ? 30000 : false,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
 
@@ -115,7 +119,9 @@ export default function WorkerRouteDetail() {
       if (!routeId) return [];
       return base44.entities.Attempt.filter({ route_id: routeId }, '-attempt_time');
     },
-    enabled: !!routeId
+    enabled: !!routeId,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   // Create a map of address_id to latest attempt
