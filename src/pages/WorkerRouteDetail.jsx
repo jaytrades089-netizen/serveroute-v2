@@ -577,19 +577,7 @@ export default function WorkerRouteDetail() {
         {route.status === 'active' && (
           <div className="flex gap-2 mb-4">
             <Button 
-              onClick={async () => {
-                try {
-                  await base44.entities.Route.update(routeId, {
-                    status: 'ready'
-                  });
-                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                  queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-                  toast.info('Route stopped - you can start it again later');
-                  navigate(createPageUrl('WorkerRoutes'));
-                } catch (error) {
-                  toast.error('Failed to stop route');
-                }
-              }}
+              onClick={() => setShowStopModal(true)}
               className="flex-1 bg-gray-500 hover:bg-gray-600"
             >
               <Pause className="w-4 h-4 mr-2" /> Stop Route
