@@ -59,7 +59,7 @@ export default function WorkerComboRouteDetail() {
       if (!combo?.route_ids) return [];
       let all = [];
       for (const rid of combo.route_ids) {
-        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null });
+        const addrs = await base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false });
         all = [...all, ...addrs];
       }
       return all.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
