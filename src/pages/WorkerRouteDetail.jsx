@@ -44,6 +44,7 @@ export default function WorkerRouteDetail() {
   const tabParam = urlParams.get('tab');
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
   const [activeRouteTab, setActiveRouteTab] = useState(tabParam || 'addresses');
+  const [showStopModal, setShowStopModal] = useState(false);
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
