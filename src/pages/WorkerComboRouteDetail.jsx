@@ -56,10 +56,28 @@ export default function WorkerComboRouteDetail() {
       const results = await Promise.all(
         combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null }))
       );
-      return results.flat().sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      // Sort by order_index within each route group, maintaining route_ids order
+      const routeOrder = combo.route_ids;
+      const allAddrs = results.flat();
+      // Group by route, sort within each group, then flatten in route_ids order
+      const byRoute = {};
+      allAddrs.forEach(a => {
+        if (!byRoute[a.route_id]) byRoute[a.route_id] = [];
+        byRoute[a.route_id].push(a);
+      });
+      const ordered = [];
+      for (const rid of routeOrder) {
+        if (byRoute[rid]) {
+          byRoute[rid].sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+          ordered.push(...byRoute[rid]);
+        }
+      }
+      return ordered;
     },
     enabled: !!combo?.route_ids,
-    refetchInterval: 30000
+    refetchInterval: 30000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 10 * 60 * 1000
   });
 
   const { data: attempts = [] } = useQuery({
