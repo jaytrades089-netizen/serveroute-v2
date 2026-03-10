@@ -96,11 +96,14 @@ export default function WorkerHome() {
       });
     },
     enabled: !!user?.id,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchInterval: 30000
   });
 
+  const routeIds = routes.map(r => r.id).sort().join(',');
   const { data: addresses = [] } = useQuery({
-    queryKey: ['workerAddresses', routes],
+    queryKey: ['workerAddresses', user?.id, routeIds],
     queryFn: async () => {
       if (routes.length === 0) return [];
       const addressPromises = routes.map(r => 
@@ -109,7 +112,9 @@ export default function WorkerHome() {
       const results = await Promise.all(addressPromises);
       return results.flat();
     },
-    enabled: routes.length > 0
+    enabled: routes.length > 0,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
   });
 
   const { data: notifications = [] } = useQuery({
@@ -122,6 +127,8 @@ export default function WorkerHome() {
       });
     },
     enabled: !!user?.id,
+    staleTime: 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchInterval: 30000
   });
 
