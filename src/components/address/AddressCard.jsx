@@ -476,41 +476,40 @@ export default function AddressCard({
       );
       setLocalAttempts(updatedAttempts);
       
-      // Trigger animation to move card to bottom IMMEDIATELY
+      toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
+      
+      // Write to database FIRST so the refetch in onAttemptLogged gets fresh data
+      await base44.entities.Attempt.update(inProgressAttempt.id, {
+        status: 'completed',
+        outcome: 'other'
+      });
+      
+      // Trigger animation + refetch to move card to "attempted today"
       if (onAttemptLogged) {
         onAttemptLogged();
       }
       
-      toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
-      
-      // Update the attempt to completed in background
-      await Promise.allSettled([
-        base44.entities.Attempt.update(inProgressAttempt.id, {
-          status: 'completed',
-          outcome: 'other'
-        }),
-        base44.entities.AuditLog.create({
-          company_id: companyId,
-          action_type: 'attempt_logged',
-          actor_id: user.id,
-          actor_role: user.role || 'server',
-          target_type: 'address',
-          target_id: address.id,
-          details: {
-            attempt_id: inProgressAttempt.id,
-            attempt_number: inProgressAttempt.attempt_number,
-            qualifier: inProgressAttempt.qualifier,
-            qualifier_badges: inProgressAttempt.qualifier_badges,
-            outcome: 'other',
-            route_id: routeId,
-            distance_feet: inProgressAttempt.distance_feet
-          },
-          timestamp: now.toISOString()
-        })
-      ]);
+      // Audit log in background (non-blocking)
+      base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'attempt_logged',
+        actor_id: user.id,
+        actor_role: user.role || 'server',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          attempt_id: inProgressAttempt.id,
+          attempt_number: inProgressAttempt.attempt_number,
+          qualifier: inProgressAttempt.qualifier,
+          qualifier_badges: inProgressAttempt.qualifier_badges,
+          outcome: 'other',
+          route_id: routeId,
+          distance_feet: inProgressAttempt.distance_feet
+        },
+        timestamp: now.toISOString()
+      });
       
       // Invalidate queries in background
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       
