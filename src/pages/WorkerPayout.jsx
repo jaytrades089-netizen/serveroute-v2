@@ -165,6 +165,7 @@ export default function WorkerPayout() {
       }
 
       const now = new Date();
+      const rtoTotal = rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
       const snapshotAddresses = [
         ...instantPayouts.map(a => ({
           id: a.id,
@@ -175,16 +176,6 @@ export default function WorkerPayout() {
           served_at: a.served_at,
           rto_at: null,
           bucket: 'instant'
-        })),
-        ...pendingPayouts.map(a => ({
-          id: a.id,
-          address: a.normalized_address || a.legal_address,
-          defendant: a.defendant_name || '',
-          serve_type: a.serve_type,
-          amount: calculateCorrectPayRate(a.serve_type),
-          served_at: a.served_at,
-          rto_at: a.rto_at || null,
-          bucket: 'pending'
         })),
         ...rtoCurrentPeriod.map(a => ({
           id: a.id,
@@ -198,8 +189,6 @@ export default function WorkerPayout() {
           bucket: 'rto'
         }))
       ];
-
-      const rtoTotal = rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
 
       await base44.entities.PayrollRecord.create({
         user_id: user.id,
