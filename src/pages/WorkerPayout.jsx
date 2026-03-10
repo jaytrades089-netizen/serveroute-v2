@@ -138,7 +138,7 @@ export default function WorkerPayout() {
       });
     }
     queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-    savePayrollRecord(now);
+    savePayrollRecord(now, true);
   };
 
   // Save a payroll record snapshot (with optional duplicate check bypass)
