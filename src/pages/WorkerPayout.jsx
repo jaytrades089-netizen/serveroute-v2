@@ -517,10 +517,10 @@ export default function WorkerPayout() {
               </div>
             )}
 
-            {/* Pending Payouts Section - Turned in last time, waiting for next paycheck */}
+            {/* Completed Attempts — Mailed In (Next Check) */}
             <h2 className="text-lg font-semibold text-orange-700 mb-3 flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Paid Out Next Check
+              Completed Attempts (Next Check)
             </h2>
             {previousTurnInDate && (
               <p className="text-xs text-orange-600 mb-3">
@@ -528,99 +528,107 @@ export default function WorkerPayout() {
               </p>
             )}
             
-            {pendingPayouts.length === 0 && pendingRTOs.length === 0 ? (
+            {pendingPayouts.length === 0 ? (
               <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 text-center mb-6">
                 <Clock className="w-8 h-8 text-orange-300 mx-auto mb-2" />
-                <p className="text-orange-600 text-sm">Nothing turned in yet</p>
+                <p className="text-orange-600 text-sm">No completed attempts mailed in</p>
               </div>
             ) : (
-              <>
-                {/* Served/Completed items */}
-                {pendingPayouts.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    <p className="text-xs font-medium text-orange-600">Completed Attempts — Mailed In ({pendingPayouts.length})</p>
-                    {pendingPayouts.map((address) => {
-                      const addrAttempts = addressAttemptsMap[address.id] || [];
-                      const lastAttempt = addrAttempts
-                        .filter(att => att.attempt_time)
-                        .sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time))[0];
-                      return (
-                        <div
-                          key={address.id}
-                          className="bg-white border-2 border-orange-200 rounded-xl p-4"
-                        >
-                          <div className="flex justify-between items-start">
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900 text-sm">
-                                {address.normalized_address || address.legal_address}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                Completed {lastAttempt?.attempt_time && format(new Date(lastAttempt.attempt_time), 'MMM d, h:mm a')}
-                              </p>
-                              <p className="text-xs text-orange-500 mt-0.5">
-                                {addrAttempts.length} attempt{addrAttempts.length !== 1 ? 's' : ''}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="font-semibold text-orange-600">
-                                ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                              </p>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 capitalize">
-                                {address.serve_type}
-                              </span>
-                            </div>
-                          </div>
+              <div className="space-y-2 mb-6">
+                {pendingPayouts.map((address) => {
+                  const addrAttempts = addressAttemptsMap[address.id] || [];
+                  const lastAttempt = addrAttempts
+                    .filter(att => att.attempt_time)
+                    .sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time))[0];
+                  return (
+                    <div
+                      key={address.id}
+                      className="bg-white border-2 border-orange-200 rounded-xl p-4"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-900 text-sm">
+                            {address.normalized_address || address.legal_address}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Completed {lastAttempt?.attempt_time && format(new Date(lastAttempt.attempt_time), 'MMM d, h:mm a')}
+                          </p>
+                          <p className="text-xs text-orange-500 mt-0.5">
+                            {addrAttempts.length} attempt{addrAttempts.length !== 1 ? 's' : ''}
+                          </p>
                         </div>
-                      );
-                    })}
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-center">
-                      <p className="text-xs text-orange-600">
-                        Subtotal: <span className="font-bold">${pendingTotal.toFixed(2)}</span>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Pending RTO items */}
-                {pendingRTOs.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    <p className="text-xs font-medium text-red-600">Returned to Office ({pendingRTOs.length})</p>
-                    {pendingRTOs.map((address) => (
-                      <div
-                        key={address.id}
-                        className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900 text-sm">
-                              {address.normalized_address || address.legal_address}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              RTO'd {address.rto_at && format(new Date(address.rto_at), 'MMM d, h:mm a')}
-                            </p>
-                            {address.rto_reason && (
-                              <p className="text-xs text-red-500 mt-0.5 italic">"{address.rto_reason}"</p>
-                            )}
-                          </div>
-                          <div className="text-right">
-                            <p className="font-semibold text-red-600">
-                              ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                            </p>
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
-                              RTO
-                            </span>
-                          </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-orange-600">
+                            ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
+                          </p>
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 capitalize">
+                            {address.serve_type}
+                          </span>
                         </div>
                       </div>
-                    ))}
-                    <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-                      <p className="text-xs text-red-600">
-                        RTO Subtotal: <span className="font-bold">${pendingRTOTotal.toFixed(2)}</span>
-                      </p>
+                    </div>
+                  );
+                })}
+                <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-orange-600">
+                    Subtotal: <span className="font-bold">${pendingTotal.toFixed(2)}</span>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* RTO Mailed In — Separate section */}
+            <h2 className="text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
+              <RotateCcw className="w-5 h-5" />
+              RTO Mailed In (Next Check)
+            </h2>
+            {previousTurnInDate && (
+              <p className="text-xs text-red-500 mb-3">
+                Returned to office and mailed in {format(previousTurnInDate, 'MMM d')}
+              </p>
+            )}
+
+            {pendingRTOs.length === 0 ? (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center mb-6">
+                <RotateCcw className="w-8 h-8 text-red-300 mx-auto mb-2" />
+                <p className="text-red-500 text-sm">No RTOs mailed in</p>
+              </div>
+            ) : (
+              <div className="space-y-2 mb-6">
+                {pendingRTOs.map((address) => (
+                  <div
+                    key={address.id}
+                    className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">
+                          {address.normalized_address || address.legal_address}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          RTO'd {address.rto_at && format(new Date(address.rto_at), 'MMM d, h:mm a')}
+                        </p>
+                        {address.rto_reason && (
+                          <p className="text-xs text-red-500 mt-0.5 italic">"{address.rto_reason}"</p>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-red-600">
+                          ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
+                        </p>
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
+                          RTO
+                        </span>
+                      </div>
                     </div>
                   </div>
-                )}
-              </>
+                ))}
+                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                  <p className="text-xs text-red-600">
+                    RTO Subtotal: <span className="font-bold">${pendingRTOTotal.toFixed(2)}</span>
+                  </p>
+                </div>
+              </div>
             )}
 
             {/* RTO Addresses - Current work period (will be turned in next time) */}
