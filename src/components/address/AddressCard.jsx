@@ -305,7 +305,7 @@ export default function AddressCard({
         if (user?.role === 'server') {
           // Need to check route ownership - fetch route if not passed
           try {
-            const routes = await base44.entities.Route.filter({ id: routeId });
+            const routes = await base44.entities.Route.filter({ id: actualRouteId });
             const route = routes[0];
             if (route && route.worker_id !== user.id) {
               toast.error('You are not assigned to this route');
@@ -689,7 +689,7 @@ export default function AddressCard({
       await executeRTO({
         comment,
         address,
-        routeId,
+        routeId: actualRouteId,
         user,
         attemptCount,
         queryClient
