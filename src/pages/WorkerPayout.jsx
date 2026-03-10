@@ -403,14 +403,16 @@ export default function WorkerPayout() {
     return { pendingPayouts: served, pendingRTOs: rtos };
   }, [addresses, addressAttemptsMap, previousTurnInDate, payrollHistory]);
 
-  // RTO addresses in the CURRENT period — these will appear on the NEXT paycheck (not this one)
+  // RTO addresses since last turn-in (same window as instant payouts - current work period)
   const rtoCurrentPeriod = useMemo(() => {
+    const turnInCutoff = previousTurnInDate || currentPeriod.start;
     return addresses.filter(a => {
       if (!a.rto_at) return false;
+      if (a.served) return false; // If served, it's in instant payouts
       const rtoDate = new Date(a.rto_at);
-      return rtoDate >= currentPeriod.start && rtoDate < currentPeriod.end;
+      return rtoDate >= turnInCutoff && rtoDate < currentPeriod.end;
     });
-  }, [addresses, currentPeriod]);
+  }, [addresses, currentPeriod, previousTurnInDate]);
 
   // Calculate when the next paycheck after current period is
   const nextPaycheckDate = useMemo(() => {
