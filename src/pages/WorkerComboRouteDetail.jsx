@@ -278,6 +278,7 @@ export default function WorkerComboRouteDetail() {
           route={virtualRoute}
           showZoneLabels={false}
           preserveOrder={true}
+          comboRouteIds={combo?.route_ids}
         />
       </main>
 
