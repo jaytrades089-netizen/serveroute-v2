@@ -141,10 +141,29 @@ export default function WorkerPayout() {
     savePayrollRecord(now);
   };
 
-  // Save a payroll record snapshot
-  const savePayrollRecord = async (turnInDate = null) => {
+  // Save a payroll record snapshot (with optional duplicate check bypass)
+  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
     if (!user?.id) return;
     try {
+      // Check for existing record in same period (unless already handled by caller)
+      if (!skipDuplicateCheck) {
+        const existingRecord = payrollHistory.find(r => {
+          if (!r.period_start || !r.period_end) return false;
+          const rStart = new Date(r.period_start).toDateString();
+          const rEnd = new Date(r.period_end).toDateString();
+          const cStart = currentPeriod.start.toDateString();
+          const cEnd = currentPeriod.end.toDateString();
+          return rStart === cStart && rEnd === cEnd;
+        });
+        if (existingRecord) {
+          const confirmed = window.confirm(
+            `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
+          );
+          if (!confirmed) return;
+          await base44.entities.PayrollRecord.delete(existingRecord.id);
+        }
+      }
+
       const now = new Date();
       const snapshotAddresses = [
         ...instantPayouts.map(a => ({
