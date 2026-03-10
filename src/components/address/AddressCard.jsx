@@ -450,12 +450,7 @@ export default function AddressCard({
       }
       
       // Invalidate queries in background — invalidate BOTH combo and real route keys
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      if (actualRouteId !== routeId) {
-        queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
-      }
+      invalidateAttemptQueries();
       
     } catch (error) {
       console.error('Failed to save evidence:', error);
@@ -533,11 +528,8 @@ export default function AddressCard({
       });
       
       // Invalidate queries in background
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
-      if (actualRouteId !== routeId) {
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
-      }
       
     } catch (error) {
       console.error('Failed to log attempt:', error);
@@ -608,15 +600,10 @@ export default function AddressCard({
       toast.success('Posting completed! ✓');
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
       queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
-      if (actualRouteId !== routeId) {
-        queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
-      }
       
     } catch (error) {
       console.error('Failed to finalize posting:', error);
@@ -691,7 +678,7 @@ export default function AddressCard({
       toast.success(`Time updated — ${qualifierData.display}`);
       
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      invalidateAttemptQueries();
       
     } catch (error) {
       console.error('Failed to edit attempt time:', error);
@@ -759,14 +746,9 @@ export default function AddressCard({
       
       toast.success('Address deleted');
       
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      if (actualRouteId !== routeId) {
-        queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
-        queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
-        queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
-      }
+      queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
     } catch (error) {
       console.error('Failed to delete address:', error);
       toast.error('Failed to delete address');
@@ -825,8 +807,7 @@ export default function AddressCard({
       
       toast.success(`Attempt ${attempt.attempt_number} deleted`);
       
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      invalidateAttemptQueries();
     } catch (error) {
       console.error('Failed to delete attempt:', error);
       toast.error('Failed to delete attempt');
@@ -853,7 +834,7 @@ export default function AddressCard({
       setEditingNotes(false);
       toast.success('Notes updated');
       
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      invalidateAttemptQueries();
     } catch (error) {
       console.error('Failed to save notes:', error);
       toast.error('Failed to save notes');
