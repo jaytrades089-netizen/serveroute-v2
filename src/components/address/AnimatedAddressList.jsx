@@ -27,7 +27,8 @@ export default function AnimatedAddressList({
   editMode = false,
   route = null,
   showZoneLabels = true,
-  preserveOrder = false
+  preserveOrder = false,
+  comboRouteIds = null
 }) {
   const queryClient = useQueryClient();
 
@@ -201,9 +202,12 @@ export default function AnimatedAddressList({
       // Force immediate refetch of attempts so the useMemo re-categorizes the card
       // into "attempted today" section. Without this, the card stays in active
       // because the parent's attempts prop hasn't updated yet.
-      await queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
-      // Also refetch combo route attempts if this is a combo
-      queryClient.refetchQueries({ queryKey: ['comboDetailAttempts'] });
+      if (comboRouteIds) {
+        // Combo route — refetch using the combo's actual query keys
+        await queryClient.refetchQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] });
+      } else {
+        await queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
+      }
       
       // Clear recently moved after animation
       setTimeout(() => setRecentlyMovedId(null), 500);
@@ -231,12 +235,17 @@ export default function AnimatedAddressList({
     setSlidingUpCards([]);
     
     // Force immediate refetch so address moves to completed section
-    await Promise.all([
-      queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] }),
-      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] }),
-      queryClient.refetchQueries({ queryKey: ['comboDetailAttempts'] }),
-      queryClient.refetchQueries({ queryKey: ['comboDetailAddresses'] })
-    ]);
+    if (comboRouteIds) {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] }),
+        queryClient.refetchQueries({ queryKey: ['comboDetailAddresses', comboRouteIds] })
+      ]);
+    } else {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] }),
+        queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] })
+      ]);
+    }
     
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
