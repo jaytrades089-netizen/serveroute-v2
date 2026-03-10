@@ -10,7 +10,7 @@ export function useCurrentUser() {
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me(),
     staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     retry: 1,
   });
 }
