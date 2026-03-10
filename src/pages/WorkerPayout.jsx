@@ -475,16 +475,17 @@ export default function WorkerPayout() {
           </div>
         ) : (
           <>
-            {/* Instant Payouts Section */}
+            {/* Served This Period — already paid */}
             <h2 className="text-lg font-semibold text-green-700 mb-3 flex items-center gap-2">
               <CheckCircle className="w-5 h-5" />
-              Instant Payouts (This Check)
+              Served This Period
             </h2>
+            <p className="text-xs text-green-600 mb-3">Already paid — included on this check</p>
             
             {instantPayouts.length === 0 ? (
               <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center mb-6">
                 <CheckCircle className="w-8 h-8 text-green-300 mx-auto mb-2" />
-                <p className="text-green-600 text-sm">No instant payouts this period</p>
+                <p className="text-green-600 text-sm">No serves this period yet</p>
               </div>
             ) : (
               <div className="space-y-2 mb-6">
