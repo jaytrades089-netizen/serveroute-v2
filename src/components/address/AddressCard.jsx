@@ -341,7 +341,7 @@ export default function AddressCard({
         const tempAttempt = {
           id: 'temp_' + Date.now(),
           address_id: address.id,
-          route_id: routeId,
+          route_id: actualRouteId,
           server_id: user.id,
           company_id: companyId,
           attempt_number: attemptNumber,
@@ -378,7 +378,7 @@ export default function AddressCard({
         // Create the real attempt in database
         const newAttempt = await base44.entities.Attempt.create({
           address_id: address.id,
-          route_id: routeId,
+          route_id: actualRouteId,
           server_id: user.id,
           company_id: companyId,
           attempt_number: attemptNumber,
@@ -401,11 +401,11 @@ export default function AddressCard({
         ));
         
         // Set first_attempt_date on route if this is the first attempt
-        if (attemptNumber === 1 && routeId) {
+        if (attemptNumber === 1 && actualRouteId) {
           try {
-            const currentRoute = await base44.entities.Route.filter({ id: routeId });
+            const currentRoute = await base44.entities.Route.filter({ id: actualRouteId });
             if (currentRoute[0] && !currentRoute[0].first_attempt_date) {
-              await base44.entities.Route.update(routeId, {
+              await base44.entities.Route.update(actualRouteId, {
                 first_attempt_date: now.toISOString()
               });
             }
