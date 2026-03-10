@@ -111,13 +111,13 @@ export default function ComboRouteSelection() {
     setIsOptimizing(true);
 
     try {
-      // Clean up any existing active combo routes for this user
+      // Mark any existing active combo routes as completed (not deleted)
       const existingCombos = await base44.entities.ComboRoute.filter({ 
         user_id: user.id, 
         status: 'active' 
       });
       for (const old of existingCombos) {
-        await base44.entities.ComboRoute.update(old.id, { status: 'stopped' });
+        await base44.entities.ComboRoute.update(old.id, { status: 'completed' });
       }
 
       // Get all addresses from selected routes
