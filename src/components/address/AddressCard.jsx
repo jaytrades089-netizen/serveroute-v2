@@ -729,12 +729,12 @@ export default function AddressCard({
       }
       
       // Update route address count
-      if (routeId) {
+      if (actualRouteId) {
         const remainingAddresses = await base44.entities.Address.filter({
-          route_id: routeId,
+          route_id: actualRouteId,
           deleted_at: null
         });
-        await base44.entities.Route.update(routeId, {
+        await base44.entities.Route.update(actualRouteId, {
           total_addresses: remainingAddresses.length,
           served_count: remainingAddresses.filter(a => a.served).length
         });
@@ -745,6 +745,11 @@ export default function AddressCard({
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      if (actualRouteId !== routeId) {
+        queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
+        queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
+        queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
+      }
     } catch (error) {
       console.error('Failed to delete address:', error);
       toast.error('Failed to delete address');
