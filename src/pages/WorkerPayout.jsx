@@ -548,7 +548,7 @@ export default function WorkerPayout() {
                 {/* Served/Completed items */}
                 {pendingPayouts.length > 0 && (
                   <div className="space-y-2 mb-4">
-                    <p className="text-xs font-medium text-orange-600">Served & Completed ({pendingPayouts.length})</p>
+                    <p className="text-xs font-medium text-orange-600">Completed Attempts — Mailed In ({pendingPayouts.length})</p>
                     {pendingPayouts.map((address) => {
                       return (
                         <div
