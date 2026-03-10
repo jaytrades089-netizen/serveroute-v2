@@ -14,6 +14,7 @@ import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
+import ComboRouteCard from '../components/common/ComboRouteCard';
 import { format, parseISO } from 'date-fns';
 
 
@@ -180,6 +181,17 @@ export default function WorkerRoutes() {
 
   // Load user settings for payroll day/hour
   const { data: userSettings } = useUserSettings(user?.id);
+
+  // Fetch active combo routes for this worker
+  const { data: activeComboRoutes = [] } = useQuery({
+    queryKey: ['activeComboRoutes', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' });
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000
+  });
 
   // Fetch open scheduled serves for this worker
   const { data: scheduledServes = [] } = useQuery({
@@ -379,6 +391,11 @@ export default function WorkerRoutes() {
 
             return (
               <div className="space-y-4">
+                {/* Active Combo Route Card — always at top */}
+                {filter !== 'archived' && activeComboRoutes.map(combo => (
+                  <ComboRouteCard key={combo.id} combo={combo} routes={routes} />
+                ))}
+
                 {/* Dated groups */}
                 {groupKeys.map(dateKey => {
                   const dt = parseISO(dateKey);
