@@ -422,39 +422,44 @@ export default function AnimatedAddressList({
           {/* Dropdown Content */}
           {showCompletedDropdown && (
             <div className="mt-3 space-y-4 animate-fade-in">
-              {completedAddresses.map((address) => (
+              {completedAddresses.map((address) => {
+                const isRequirementsMet = address._requirementsMet && !address.served && address.status !== 'served' && address.status !== 'returned';
+                
+                return (
                 <div key={address.id} className="relative">
                   {/* Order number badge */}
                   <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
                     {address.order_index || '?'}
                   </div>
                   
-                  {/* Served/RTO Banner */}
+                  {/* Status Banner */}
                   <div className="absolute -top-2 left-8 z-10">
                     <div className={`text-white text-[10px] font-bold py-0.5 px-2 rounded-full flex items-center gap-1 ${
                       address.status === 'returned' ? 'bg-red-500' : 'bg-green-500'
                     }`}>
                       <CheckCircle className="w-3 h-3" />
-                      {address.status === 'returned' ? 'RTO' : 'Served'}
+                      {address.status === 'returned' ? 'RTO' : isRequirementsMet ? 'READY FOR TURN-IN' : 'Served'}
                     </div>
                   </div>
                   
-                  <div className={`pt-1 opacity-75 border-2 rounded-2xl ${
+                  <div className={`pt-1 ${isRequirementsMet ? '' : 'opacity-75'} border-2 rounded-2xl ${
                     address.status === 'returned' ? 'border-red-300' : 'border-green-300'
                   }`}>
                     <AddressCard
                       address={address}
                       routeId={routeId}
-                      showActions={false}
+                      showActions={isRequirementsMet}
                       onMessageBoss={onMessageBoss}
                       lastAttempt={lastAttemptMap[address.id]}
                       allAttempts={allAttemptsMap[address.id] || []}
-                      isCompleted={true}
+                      onServed={isRequirementsMet ? () => handleAddressServed(address.id) : undefined}
+                      isCompleted={!isRequirementsMet}
                       editMode={editMode}
                     />
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           )}
         </div>
