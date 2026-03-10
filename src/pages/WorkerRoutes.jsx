@@ -116,8 +116,8 @@ export default function WorkerRoutes() {
       });
     },
     enabled: !!user?.id,
-    staleTime: 4 * 60 * 60 * 1000,
-    gcTime: 4 * 60 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
     refetchInterval: 30000
   });
 
@@ -140,8 +140,9 @@ export default function WorkerRoutes() {
   });
 
   // Fetch all addresses for user's routes
+  const allRouteIds = routes.map(r => r.id).sort().join(',');
   const { data: allAddresses = [] } = useQuery({
-    queryKey: ['workerAddresses', user?.id, routes],
+    queryKey: ['workerAddresses', user?.id, allRouteIds],
     queryFn: async () => {
       if (!user?.id || routes.length === 0) return [];
       const routeIds = routes.map(r => r.id);
@@ -153,7 +154,7 @@ export default function WorkerRoutes() {
     },
     enabled: !!user?.id && routes.length > 0,
     staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    gcTime: 24 * 60 * 60 * 1000
   });
 
   // Group attempts by route_id
