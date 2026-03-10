@@ -70,11 +70,12 @@ export default function AnimatedAddressList({
           if (addressAttempts.length < 2) return false;
           const attemptDates = addressAttempts.map(a => {
             const d = new Date(a.attempt_time);
-            return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+            // Use UTC to avoid DST issues with day calculation
+            return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
           });
           const firstDate = Math.min(...attemptDates);
           const lastDate = Math.max(...attemptDates);
-          const daysDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24);
+          const daysDiff = Math.round((lastDate - firstDate) / (1000 * 60 * 60 * 24));
           return daysDiff >= minimumDaysSpread;
         })();
         
