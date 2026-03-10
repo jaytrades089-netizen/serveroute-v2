@@ -81,7 +81,8 @@ export default function AddressCard({
   isCompleted = false,
   editMode = false,
   isHighlighted = false,
-  folderName
+  folderName,
+  comboRouteIds = null
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
