@@ -292,10 +292,12 @@ export default function WorkerPayout() {
   }, [selectedDay]);
 
   // Filter instant payouts (served addresses AFTER the last turn-in date, within current period)
+  // Excludes RTO addresses (status === 'returned') — those go in the RTO sections
   const instantPayouts = useMemo(() => {
     const turnInCutoff = previousTurnInDate || currentPeriod.start;
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
+      if (a.status === 'returned') return false; // RTO addresses are separate
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       const servedDate = new Date(a.served_at);
       // Must be after last turn-in AND within current period
