@@ -334,7 +334,8 @@ export default function WorkerPayout() {
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return;
       
       // RTO addresses from the turned-in period (mailed back to office)
-      if (a.rto_at && !a.served) {
+      // Check status === 'returned' since RTO flow also sets served=true
+      if (a.rto_at && a.status === 'returned') {
         const rtoDate = new Date(a.rto_at);
         if (rtoDate >= periodStart && rtoDate < turnInCutoff) {
           rtos.push(a);
