@@ -156,13 +156,13 @@ export default function WorkerComboRouteDetail() {
         const allServed = routeAddresses.every(a => a.served);
         
         await base44.entities.Route.update(route.id, {
-          status: allServed ? 'completed' : 'ready',
-          completed_at: allServed ? new Date().toISOString() : null,
-          started_at: null
+          status: allServed ? 'completed' : 'assigned',
+          completed_at: allServed ? new Date().toISOString() : null
         });
       }
 
-      await base44.entities.ComboRoute.delete(comboId);
+      // Mark combo as completed instead of deleting — preserves history
+      await base44.entities.ComboRoute.update(comboId, { status: 'completed' });
 
       queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       toast.success('Combo route stopped. Routes returned to folders.');
