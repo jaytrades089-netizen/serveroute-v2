@@ -85,6 +85,8 @@ export default function AddressCard({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  // In combo routes, routeId is the comboId — use address.route_id for the REAL route
+  const actualRouteId = address.route_id || routeId;
   const formatted = formatAddressUtil(address);
   const receiptStatus = address.receipt_status;
   const needsReceipt = !address.served && receiptStatus === 'pending';
