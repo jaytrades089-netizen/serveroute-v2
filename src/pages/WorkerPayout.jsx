@@ -343,49 +343,65 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // Filter pending payouts (addresses completed via attempts in PREVIOUS period)
-  // These are addresses that:
-  // 1. Have all qualifiers (AM + PM + Weekend) completed, OR
-  // 2. Are marked as RTO
-  // These were completed LAST week and turned in on the previous turn-in date
-  const pendingPayouts = useMemo(() => {
-    return addresses.filter(a => {
-      // Check if address is RTO (returned to office)
-      const isRTO = !!a.rto_at;
+  // Filter pending payouts - these are addresses that were turned in last time
+  // They include: served addresses from BEFORE the last turn-in, and completed attempts/RTOs from before turn-in
+  // Basically: everything that was turned in at the previous turn-in date, now waiting for next paycheck
+  const { pendingPayouts, pendingRTOs } = useMemo(() => {
+    if (!previousTurnInDate) return { pendingPayouts: [], pendingRTOs: [] };
+    
+    const turnInCutoff = previousTurnInDate;
+    
+    // Find the turn-in BEFORE the previous one to know the start of the turned-in period
+    // We look at payroll history for the previous record's period_start
+    const lastRecord = payrollHistory[0]; // Most recent saved record
+    const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(previousTurnInDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    
+    const served = [];
+    const rtos = [];
+    
+    addresses.forEach(a => {
+      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return;
       
-      // Check if all qualifiers are present via attempts
-      const addrAttempts = addressAttemptsMap[a.id] || [];
-      const hasAM = addrAttempts.some(att => att.has_am);
-      const hasPM = addrAttempts.some(att => att.has_pm);
-      const hasWeekend = addrAttempts.some(att => att.has_weekend);
-      const hasAllQualifiers = hasAM && hasPM && hasWeekend;
-      
-      // Must be either RTO or have all qualifiers completed
-      if (!isRTO && !hasAllQualifiers) return false;
-      
-      // Exclude addresses that were directly served (those go to instant payouts)
-      if (a.served && a.served_at) return false;
-      
-      // Determine the completion date - either RTO date or last attempt date
-      let completionDate = null;
-      
-      if (isRTO && a.rto_at) {
-        completionDate = new Date(a.rto_at);
-      } else if (hasAllQualifiers) {
-        const lastAttempt = addrAttempts
-          .filter(att => att.attempt_time)
-          .sort((x, y) => new Date(y.attempt_time) - new Date(x.attempt_time))[0];
-        if (lastAttempt?.attempt_time) {
-          completionDate = new Date(lastAttempt.attempt_time);
+      // Served addresses from the turned-in period
+      if (a.served && a.served_at) {
+        const servedDate = new Date(a.served_at);
+        if (servedDate >= periodStart && servedDate < turnInCutoff) {
+          served.push(a);
+          return;
         }
       }
       
-      if (!completionDate) return false;
+      // RTO addresses from the turned-in period
+      if (a.rto_at) {
+        const rtoDate = new Date(a.rto_at);
+        if (rtoDate >= periodStart && rtoDate < turnInCutoff) {
+          rtos.push(a);
+          return;
+        }
+      }
       
-      // Must be completed in the PREVIOUS period (last week) - turned in on previous turn-in date
-      return completionDate >= previousPeriod.start && completionDate < previousPeriod.end;
+      // Completed attempt addresses (all qualifiers met) from turned-in period
+      if (!a.served && !a.rto_at) {
+        const addrAttempts = addressAttemptsMap[a.id] || [];
+        const hasAM = addrAttempts.some(att => att.has_am);
+        const hasPM = addrAttempts.some(att => att.has_pm);
+        const hasWeekend = addrAttempts.some(att => att.has_weekend);
+        if (hasAM && hasPM && hasWeekend) {
+          const lastAttempt = addrAttempts
+            .filter(att => att.attempt_time)
+            .sort((x, y) => new Date(y.attempt_time) - new Date(x.attempt_time))[0];
+          if (lastAttempt?.attempt_time) {
+            const completionDate = new Date(lastAttempt.attempt_time);
+            if (completionDate >= periodStart && completionDate < turnInCutoff) {
+              served.push(a);
+            }
+          }
+        }
+      }
     });
-  }, [addresses, addressAttemptsMap, previousPeriod]);
+    
+    return { pendingPayouts: served, pendingRTOs: rtos };
+  }, [addresses, addressAttemptsMap, previousTurnInDate, payrollHistory]);
 
   // RTO addresses in the CURRENT period — these will appear on the NEXT paycheck (not this one)
   const rtoCurrentPeriod = useMemo(() => {
