@@ -319,15 +319,17 @@ export default function WorkerPayout() {
     };
   }, [selectedDay, previousTurnInDate]);
 
-  // Filter instant payouts (directly served addresses within CURRENT period)
+  // Filter instant payouts (served addresses AFTER the last turn-in date, within current period)
   const instantPayouts = useMemo(() => {
+    const turnInCutoff = previousTurnInDate || currentPeriod.start;
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       const servedDate = new Date(a.served_at);
-      return servedDate >= currentPeriod.start && servedDate < currentPeriod.end;
+      // Must be after last turn-in AND within current period
+      return servedDate >= turnInCutoff && servedDate < currentPeriod.end;
     });
-  }, [addresses, currentPeriod]);
+  }, [addresses, currentPeriod, previousTurnInDate]);
 
   // Create map of address attempts for pending calculation
   const addressAttemptsMap = useMemo(() => {
