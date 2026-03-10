@@ -671,20 +671,20 @@ export default function WorkerPayout() {
               </>
             )}
 
-            {/* RTO Addresses - Current Period (will appear on NEXT paycheck) */}
+            {/* RTO Addresses - Current work period (will be turned in next time) */}
             {rtoCurrentPeriod.length > 0 && (
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-3">
                   <h2 className="text-lg font-semibold text-red-700 flex items-center gap-2">
                     <RotateCcw className="w-5 h-5" />
-                    Returned to Office
+                    RTO This Period
                   </h2>
                   <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
-                    On {format(nextPaycheckDate, 'MMM d')} paycheck
+                    Turns in next week
                   </span>
                 </div>
                 <p className="text-xs text-red-500 mb-3">
-                  These addresses will be mailed in and appear on your {format(nextPaycheckDate, 'EEEE, MMM d')} paycheck
+                  These will be included when you turn in next time
                 </p>
                 
                 <div className="space-y-2">
