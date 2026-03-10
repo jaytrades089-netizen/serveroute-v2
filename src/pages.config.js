@@ -63,6 +63,7 @@ import BossSettings from './pages/BossSettings';
 import BossTeam from './pages/BossTeam';
 import BossWorkers from './pages/BossWorkers';
 import Chat from './pages/Chat';
+import ComboRouteReview from './pages/ComboRouteReview';
 import ComboRouteSelection from './pages/ComboRouteSelection';
 import CreateRoute from './pages/CreateRoute';
 import CreateScheduledServe from './pages/CreateScheduledServe';
@@ -88,6 +89,7 @@ import SubmitReceipt from './pages/SubmitReceipt';
 import UnassignRoute from './pages/UnassignRoute';
 import VacationRequests from './pages/VacationRequests';
 import WorkerAddresses from './pages/WorkerAddresses';
+import WorkerComboRouteDetail from './pages/WorkerComboRouteDetail';
 import WorkerDetail from './pages/WorkerDetail';
 import WorkerHome from './pages/WorkerHome';
 import WorkerMap from './pages/WorkerMap';
@@ -99,8 +101,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import ComboRouteReview from './pages/ComboRouteReview';
-import WorkerComboRouteDetail from './pages/WorkerComboRouteDetail';
 import __Layout from './Layout.jsx';
 
 
@@ -121,6 +121,7 @@ export const PAGES = {
     "BossTeam": BossTeam,
     "BossWorkers": BossWorkers,
     "Chat": Chat,
+    "ComboRouteReview": ComboRouteReview,
     "ComboRouteSelection": ComboRouteSelection,
     "CreateRoute": CreateRoute,
     "CreateScheduledServe": CreateScheduledServe,
@@ -146,6 +147,7 @@ export const PAGES = {
     "UnassignRoute": UnassignRoute,
     "VacationRequests": VacationRequests,
     "WorkerAddresses": WorkerAddresses,
+    "WorkerComboRouteDetail": WorkerComboRouteDetail,
     "WorkerDetail": WorkerDetail,
     "WorkerHome": WorkerHome,
     "WorkerMap": WorkerMap,
@@ -157,8 +159,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "ComboRouteReview": ComboRouteReview,
-    "WorkerComboRouteDetail": WorkerComboRouteDetail,
 }
 
 export const pagesConfig = {

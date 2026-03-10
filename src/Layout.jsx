@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useEffect, useState, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
+import { setupPersistence } from '@/components/utils/queryPersistence';
 
 // Boss pages that require boss/admin role
 const bossPages = [
@@ -74,17 +75,17 @@ const sharedPages = [
 
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [hasRedirected, setHasRedirected] = useState(false);
+  const persistenceSetup = useRef(false);
   
-  // Check for fresh app launch (PWA or new session)
+  // Set up localStorage persistence for React Query (once)
   useEffect(() => {
-    const lastSession = sessionStorage.getItem('appSessionActive');
-    if (!lastSession) {
-      // Fresh launch - mark session and redirect to dashboard
-      sessionStorage.setItem('appSessionActive', 'true');
-      sessionStorage.setItem('freshLaunch', 'true');
-    }
-  }, []);
+    if (persistenceSetup.current) return;
+    persistenceSetup.current = true;
+    const cleanup = setupPersistence(queryClient);
+    return cleanup;
+  }, [queryClient]);
   
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
