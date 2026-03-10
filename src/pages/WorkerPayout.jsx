@@ -72,6 +72,9 @@ export default function WorkerPayout() {
       if (userSettings.previous_turn_in_date) {
         setPreviousTurnInDate(new Date(userSettings.previous_turn_in_date));
       }
+      if (userSettings.prior_turn_in_date) {
+        setPriorTurnInDate(new Date(userSettings.prior_turn_in_date));
+      }
     }
   }, [userSettings]);
 
