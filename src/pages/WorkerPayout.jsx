@@ -372,7 +372,7 @@ export default function WorkerPayout() {
     const turnInCutoff = previousTurnInDate || currentPeriod.start;
     return addresses.filter(a => {
       if (!a.rto_at) return false;
-      if (a.served) return false; // If served, it's in instant payouts
+      if (a.status !== 'returned') return false; // Must be RTO status
       const rtoDate = new Date(a.rto_at);
       return rtoDate >= turnInCutoff && rtoDate < currentPeriod.end;
     });
