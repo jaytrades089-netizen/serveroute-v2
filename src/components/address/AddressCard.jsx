@@ -424,7 +424,7 @@ export default function AddressCard({
         if (isPosting) {
           toast.success('Photo saved! Review and submit the receipt.');
           navigate(createPageUrl(
-            `SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${newAttempt.id}&finalize=true`
+            `SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true`
           ));
           return; // Skip the normal toast below
         }
@@ -1528,7 +1528,7 @@ export default function AddressCard({
                   <Button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${routeId}`));
+                      navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${actualRouteId}`));
                     }}
                     className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
                   >
@@ -1574,7 +1574,7 @@ export default function AddressCard({
                   <Button 
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
                     }}
                     variant="outline"
                     className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
@@ -1641,7 +1641,7 @@ export default function AddressCard({
                       <Button 
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${routeId}`));
+                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
                         }}
                         className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
                       >
@@ -1690,7 +1690,7 @@ export default function AddressCard({
                       )}
                       
                       <Link 
-                        to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${routeId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
+                        to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
                         onClick={(e) => e.stopPropagation()}
                         className="flex-1"
                       >
@@ -1724,7 +1724,7 @@ export default function AddressCard({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => { 
                         e.stopPropagation(); 
-                        navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${routeId}`));
+                        navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${actualRouteId}`));
                       }}>
                         <Clock className="w-4 h-4 mr-2" />Schedule Serve
                       </DropdownMenuItem>
