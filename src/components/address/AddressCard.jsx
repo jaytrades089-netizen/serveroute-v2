@@ -1500,12 +1500,9 @@ export default function AddressCard({
                   }
                   
                   toast.success('Address marked as not served');
-                  queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+                  invalidateAttemptQueries();
                   queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                  if (actualRouteId !== routeId) {
-                    queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
-                    queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
-                  }
+                  queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
                 } catch (error) {
                   console.error('Failed to unserve:', error);
                   toast.error('Failed to update address');
