@@ -276,10 +276,9 @@ export default function WorkerPayout() {
     staleTime: 5 * 60 * 1000
   });
 
-  // Calculate payroll periods based on selected day and hour
-  // Current period = for instant payouts (served this week)
-  // Previous period = for pending payouts (attempts completed last week, paid on THIS check)
-  const { currentPeriod, previousPeriod } = useMemo(() => {
+  // Calculate current period boundaries
+  // The current period starts at the most recent turn-in day
+  const currentPeriod = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
     
@@ -291,33 +290,17 @@ export default function WorkerPayout() {
       daysBack = 7;
     }
     
-    // CURRENT Period START is the most recent selected day at midnight
-    const currentStart = new Date(now);
-    currentStart.setDate(currentStart.getDate() - daysBack);
-    currentStart.setHours(0, 0, 0, 0);
+    // Period START is the most recent selected day at midnight
+    const start = new Date(now);
+    start.setDate(start.getDate() - daysBack);
+    start.setHours(0, 0, 0, 0);
     
-    // CURRENT Period END is 7 days after start (next turn-in day)
-    const currentEnd = new Date(currentStart);
-    currentEnd.setDate(currentEnd.getDate() + 7);
+    // Period END is 7 days after start (next turn-in day)
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
     
-    // PREVIOUS Period = from last turn-in date to current period start
-    // "Next Check" shows work completed AFTER the last turn-in but BEFORE the current period
-    let previousStart;
-    if (previousTurnInDate) {
-      previousStart = new Date(previousTurnInDate);
-    } else {
-      // Fallback: previous period is 7 days before current start
-      previousStart = new Date(currentStart);
-      previousStart.setDate(previousStart.getDate() - 7);
-    }
-    
-    const previousEnd = new Date(currentStart);
-    
-    return {
-      currentPeriod: { start: currentStart, end: currentEnd },
-      previousPeriod: { start: previousStart, end: previousEnd }
-    };
-  }, [selectedDay, previousTurnInDate]);
+    return { start, end };
+  }, [selectedDay]);
 
   // Filter instant payouts (served addresses AFTER the last turn-in date, within current period)
   const instantPayouts = useMemo(() => {
