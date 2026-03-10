@@ -198,6 +198,13 @@ export default function AnimatedAddressList({
       setAnimatingCardId(null);
       setSlidingUpCards([]);
       
+      // Force immediate refetch of attempts so the useMemo re-categorizes the card
+      // into "attempted today" section. Without this, the card stays in active
+      // because the parent's attempts prop hasn't updated yet.
+      await queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
+      // Also refetch combo route attempts if this is a combo
+      queryClient.refetchQueries({ queryKey: ['comboDetailAttempts'] });
+      
       // Clear recently moved after animation
       setTimeout(() => setRecentlyMovedId(null), 500);
     }
