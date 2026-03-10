@@ -129,16 +129,21 @@ export default function WorkerPayout() {
     }
 
     const now = new Date();
+    // Rotate: current previous becomes prior, now becomes previous
+    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
+    setPriorTurnInDate(previousTurnInDate);
     setPreviousTurnInDate(now);
     if (userSettings?.id) {
       await base44.entities.UserSettings.update(userSettings.id, {
-        previous_turn_in_date: now.toISOString()
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
       });
     } else if (user?.id) {
       await base44.entities.UserSettings.create({
         user_id: user.id,
         payroll_turn_in_day: selectedDay,
-        previous_turn_in_date: now.toISOString()
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
       });
     }
     queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
