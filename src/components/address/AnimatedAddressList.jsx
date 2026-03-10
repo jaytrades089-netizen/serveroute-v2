@@ -161,7 +161,7 @@ export default function AnimatedAddressList({
       attemptedTodayAddresses: attemptedToday.sort(sortBySpreadDue),
       completedAddresses: served.sort(sortByOrder)
     };
-  }, [addresses, attempts, route?.minimum_days_spread, preserveOrder]);
+  }, [addresses, attempts, route?.minimum_days_spread, route?.required_attempts, preserveOrder]);
 
   // Handle when an attempt is logged (card moves to "attempted today")
   const handleAttemptLogged = async (addressId) => {
