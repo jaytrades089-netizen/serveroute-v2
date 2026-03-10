@@ -13,6 +13,7 @@ import StatBoxes from '../components/home/StatBoxes';
 import ActiveRoutesList from '../components/home/ActiveRoutesList';
 import LocationTracker from '../components/worker/LocationTracker';
 import AddressSearch from '../components/common/AddressSearch';
+import ComboRouteCard from '../components/common/ComboRouteCard';
 import { Loader2 } from 'lucide-react';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
@@ -130,6 +131,17 @@ export default function WorkerHome() {
     staleTime: 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
     refetchInterval: 30000
+  });
+
+  // Fetch active combo routes
+  const { data: activeComboRoutes = [] } = useQuery({
+    queryKey: ['activeComboRoutes', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      return base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' });
+    },
+    enabled: !!user?.id,
+    staleTime: 60 * 1000
   });
 
   // Load user settings for payroll day/hour
@@ -261,6 +273,13 @@ export default function WorkerHome() {
           dueSoon={dueSoonRoutes.length}
         />
         
+        {/* Active Combo Route Card */}
+        {activeComboRoutes.map(combo => (
+          <div key={combo.id} className="mb-4">
+            <ComboRouteCard combo={combo} routes={routes} />
+          </div>
+        ))}
+
         <ActiveRoutesList routes={activeRoutes} />
       </main>
 
