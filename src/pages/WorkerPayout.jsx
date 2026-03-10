@@ -326,17 +326,15 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // "Paid Out Next Check" = items that were MAILED IN at the last turn-in
-  // This is ONLY: completed attempts (all qualifiers met) + RTOs from the previous period
-  // Served/instant payouts are already paid and do NOT appear here — they're done
+  // "Next Check" = items mailed in at the LAST turn-in
+  // Window: from prior_turn_in_date (the turn-in before last) to previous_turn_in_date (latest turn-in)
+  // If no prior date, fall back to 7 days before the last turn-in
   const { pendingPayouts, pendingRTOs } = useMemo(() => {
     if (!previousTurnInDate) return { pendingPayouts: [], pendingRTOs: [] };
     
     const turnInCutoff = previousTurnInDate;
-    
-    // Find the start of the turned-in period
-    const lastRecord = payrollHistory[0]; // Most recent saved record
-    const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(previousTurnInDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // The window starts at the PRIOR turn-in (the one before this one)
+    const periodStart = priorTurnInDate || new Date(previousTurnInDate.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     const completedAttempts = [];
     const rtos = [];
@@ -345,7 +343,6 @@ export default function WorkerPayout() {
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return;
       
       // RTO addresses from the turned-in period (mailed back to office)
-      // Check status === 'returned' since RTO flow also sets served=true
       if (a.rto_at && a.status === 'returned') {
         const rtoDate = new Date(a.rto_at);
         if (rtoDate >= periodStart && rtoDate < turnInCutoff) {
@@ -354,9 +351,8 @@ export default function WorkerPayout() {
         }
       }
       
-      // Completed attempt addresses (all qualifiers met, spread done) — NOT served
-      // These are the ones you physically mailed the paperwork for
-      if (!a.served && !a.rto_at) {
+      // Completed attempt addresses (all qualifiers met) — NOT served, NOT RTO
+      if (!a.served && a.status !== 'returned') {
         const addrAttempts = addressAttemptsMap[a.id] || [];
         const hasAM = addrAttempts.some(att => att.has_am);
         const hasPM = addrAttempts.some(att => att.has_pm);
@@ -376,7 +372,7 @@ export default function WorkerPayout() {
     });
     
     return { pendingPayouts: completedAttempts, pendingRTOs: rtos };
-  }, [addresses, addressAttemptsMap, previousTurnInDate, payrollHistory]);
+  }, [addresses, addressAttemptsMap, previousTurnInDate, priorTurnInDate]);
 
   // RTO addresses since last turn-in (same window as instant payouts - current work period)
   const rtoCurrentPeriod = useMemo(() => {
