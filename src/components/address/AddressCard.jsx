@@ -1755,7 +1755,10 @@ export default function AddressCard({
             routeId={routeId}
             user={user}
             localAttempts={localAttempts}
-            onAttemptAdded={(newAttempt) => setLocalAttempts(prev => [...prev, newAttempt])}
+            onAttemptAdded={(newAttempt) => {
+              setLocalAttempts(prev => [...prev, newAttempt]);
+              invalidateAttemptQueries();
+            }}
             onClose={() => setShowBossAddAttempt(false)}
             queryClient={queryClient}
           />
