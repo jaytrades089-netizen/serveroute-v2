@@ -317,6 +317,7 @@ export default function AnimatedAddressList({
                       onServed={() => handleAddressServed(address.id)}
                       editMode={editMode}
                       isHighlighted={highlightedAddressId === address.id}
+                      comboRouteIds={comboRouteIds}
                     />
                   </div>
                 </React.Fragment>
@@ -388,6 +389,7 @@ export default function AnimatedAddressList({
                     isAttemptedToday={true}
                     editMode={editMode}
                     isHighlighted={highlightedAddressId === address.id}
+                    comboRouteIds={comboRouteIds}
                   />
                 </div>
               </div>
@@ -456,6 +458,7 @@ export default function AnimatedAddressList({
                       onServed={isRequirementsMet ? () => handleAddressServed(address.id) : undefined}
                       isCompleted={!isRequirementsMet}
                       editMode={editMode}
+                      comboRouteIds={comboRouteIds}
                     />
                   </div>
                 </div>
