@@ -230,6 +230,14 @@ export default function AnimatedAddressList({
     setAnimatingCardId(null);
     setSlidingUpCards([]);
     
+    // Force immediate refetch so address moves to completed section
+    await Promise.all([
+      queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] }),
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] }),
+      queryClient.refetchQueries({ queryKey: ['comboDetailAttempts'] }),
+      queryClient.refetchQueries({ queryKey: ['comboDetailAddresses'] })
+    ]);
+    
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
     
