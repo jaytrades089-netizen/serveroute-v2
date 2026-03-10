@@ -445,12 +445,12 @@ export default function WorkerPayout() {
         </Card>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <Card className="border-green-200">
             <CardContent className="pt-3 pb-3 px-3">
               <div className="flex items-center gap-1 text-green-600 mb-1">
                 <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-medium">This Check</span>
+                <span className="text-xs font-medium">Served (Paid)</span>
               </div>
               <p className="text-xl font-bold text-green-700">${instantTotal.toFixed(2)}</p>
               <p className="text-xs text-gray-500">{instantPayouts.length} item{instantPayouts.length !== 1 ? 's' : ''}</p>
@@ -461,21 +461,10 @@ export default function WorkerPayout() {
             <CardContent className="pt-3 pb-3 px-3">
               <div className="flex items-center gap-1 text-orange-600 mb-1">
                 <Clock className="w-4 h-4" />
-                <span className="text-xs font-medium">Next Check</span>
+                <span className="text-xs font-medium">Mailed In (Next Check)</span>
               </div>
               <p className="text-xl font-bold text-orange-700">${(pendingTotal + pendingRTOTotal).toFixed(2)}</p>
               <p className="text-xs text-gray-500">{pendingPayouts.length + pendingRTOs.length} item{(pendingPayouts.length + pendingRTOs.length) !== 1 ? 's' : ''}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-purple-200 bg-purple-50">
-            <CardContent className="pt-3 pb-3 px-3">
-              <div className="flex items-center gap-1 text-purple-600 mb-1">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-medium">Est. Total</span>
-              </div>
-              <p className="text-xl font-bold text-purple-700">${(instantTotal + pendingTotal + pendingRTOTotal).toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{instantPayouts.length + pendingPayouts.length + pendingRTOs.length} items</p>
             </CardContent>
           </Card>
         </div>
