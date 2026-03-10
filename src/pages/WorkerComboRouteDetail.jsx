@@ -10,7 +10,6 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import AnimatedAddressList from '@/components/address/AnimatedAddressList';
 import MessageBossDialog from '@/components/address/MessageBossDialog';
-import BottomNav from '@/components/layout/BottomNav';
 
 export default function WorkerComboRouteDetail() {
   const navigate = useNavigate();
@@ -224,7 +223,7 @@ export default function WorkerComboRouteDetail() {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-gray-50 pb-6">
       {/* Purple header */}
       <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
         <Link to={createPageUrl('WorkerRoutes')}>
@@ -293,7 +292,6 @@ export default function WorkerComboRouteDetail() {
         />
       )}
 
-      <BottomNav currentPage="WorkerRoutes" />
     </div>
   );
 }
