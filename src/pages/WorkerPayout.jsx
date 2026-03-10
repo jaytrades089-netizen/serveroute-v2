@@ -550,6 +550,10 @@ export default function WorkerPayout() {
                   <div className="space-y-2 mb-4">
                     <p className="text-xs font-medium text-orange-600">Completed Attempts — Mailed In ({pendingPayouts.length})</p>
                     {pendingPayouts.map((address) => {
+                      const addrAttempts = addressAttemptsMap[address.id] || [];
+                      const lastAttempt = addrAttempts
+                        .filter(att => att.attempt_time)
+                        .sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time))[0];
                       return (
                         <div
                           key={address.id}
@@ -561,14 +565,17 @@ export default function WorkerPayout() {
                                 {address.normalized_address || address.legal_address}
                               </p>
                               <p className="text-xs text-gray-500 mt-1">
-                                {address.served_at && format(new Date(address.served_at), 'MMM d, h:mm a')}
+                                Completed {lastAttempt?.attempt_time && format(new Date(lastAttempt.attempt_time), 'MMM d, h:mm a')}
+                              </p>
+                              <p className="text-xs text-orange-500 mt-0.5">
+                                {addrAttempts.length} attempt{addrAttempts.length !== 1 ? 's' : ''}
                               </p>
                             </div>
                             <div className="text-right">
                               <p className="font-semibold text-orange-600">
                                 ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
                               </p>
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 capitalize">
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 capitalize">
                                 {address.serve_type}
                               </span>
                             </div>
