@@ -143,6 +143,22 @@ export default function AddressCard({
     serve_type: address.serve_type || 'serve'
   });
 
+  // Helper to invalidate the correct attempt/address queries
+  // In combo routes, the query keys are different from regular routes
+  const invalidateAttemptQueries = () => {
+    if (comboRouteIds) {
+      queryClient.invalidateQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] });
+      queryClient.invalidateQueries({ queryKey: ['comboDetailAddresses', comboRouteIds] });
+    }
+    // Always invalidate the real route's queries too
+    queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
+    queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
+    if (routeId !== actualRouteId) {
+      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    }
+  };
+
   // Get current user
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
