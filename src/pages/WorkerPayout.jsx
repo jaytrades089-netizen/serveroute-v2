@@ -44,6 +44,7 @@ export default function WorkerPayout() {
   // Default: Wednesday
   const [selectedDay, setSelectedDay] = useState(3);
   const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
+  const [priorTurnInDate, setPriorTurnInDate] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
