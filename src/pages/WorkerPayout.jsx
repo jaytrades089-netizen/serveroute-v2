@@ -104,6 +104,26 @@ export default function WorkerPayout() {
 
   // Handle Turn In button
   const handleTurnIn = async () => {
+    // Check for existing record in the same period
+    const existingRecord = payrollHistory.find(r => {
+      if (!r.period_start || !r.period_end) return false;
+      const rStart = new Date(r.period_start).toDateString();
+      const rEnd = new Date(r.period_end).toDateString();
+      const cStart = currentPeriod.start.toDateString();
+      const cEnd = currentPeriod.end.toDateString();
+      return rStart === cStart && rEnd === cEnd;
+    });
+
+    if (existingRecord) {
+      const confirmed = window.confirm(
+        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
+      );
+      if (!confirmed) return;
+
+      // Delete the existing record before saving new one
+      await base44.entities.PayrollRecord.delete(existingRecord.id);
+    }
+
     const now = new Date();
     setPreviousTurnInDate(now);
     if (userSettings?.id) {
