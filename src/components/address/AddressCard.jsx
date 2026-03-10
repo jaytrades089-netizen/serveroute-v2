@@ -1490,13 +1490,13 @@ export default function AddressCard({
                   });
                   
                   // Update route served count
-                  if (routeId) {
+                  if (actualRouteId) {
                     const routeAddresses = await base44.entities.Address.filter({
-                      route_id: routeId,
+                      route_id: actualRouteId,
                       deleted_at: null
                     });
                     const newServedCount = routeAddresses.filter(a => a.served && a.id !== address.id).length;
-                    await base44.entities.Route.update(routeId, {
+                    await base44.entities.Route.update(actualRouteId, {
                       served_count: newServedCount
                     });
                   }
@@ -1504,6 +1504,10 @@ export default function AddressCard({
                   toast.success('Address marked as not served');
                   queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
                   queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                  if (actualRouteId !== routeId) {
+                    queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
+                    queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
+                  }
                 } catch (error) {
                   console.error('Failed to unserve:', error);
                   toast.error('Failed to update address');
