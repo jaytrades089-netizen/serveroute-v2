@@ -29,6 +29,8 @@ export default function AnimatedAddressList({
   showZoneLabels = true,
   preserveOrder = false
 }) {
+  const queryClient = useQueryClient();
+
   // Animation state
   const [animatingCardId, setAnimatingCardId] = useState(null);
   const [slidingUpCards, setSlidingUpCards] = useState([]);
