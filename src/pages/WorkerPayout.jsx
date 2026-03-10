@@ -508,8 +508,8 @@ export default function WorkerPayout() {
                 <Clock className="w-4 h-4" />
                 <span className="text-xs font-medium">Next Check</span>
               </div>
-              <p className="text-xl font-bold text-orange-700">${pendingTotal.toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{pendingPayouts.length} item{pendingPayouts.length !== 1 ? 's' : ''}</p>
+              <p className="text-xl font-bold text-orange-700">${(pendingTotal + pendingRTOTotal).toFixed(2)}</p>
+              <p className="text-xs text-gray-500">{pendingPayouts.length + pendingRTOs.length} item{(pendingPayouts.length + pendingRTOs.length) !== 1 ? 's' : ''}</p>
             </CardContent>
           </Card>
 
@@ -519,8 +519,8 @@ export default function WorkerPayout() {
                 <DollarSign className="w-4 h-4" />
                 <span className="text-xs font-medium">Est. Total</span>
               </div>
-              <p className="text-xl font-bold text-purple-700">${(instantTotal + pendingTotal).toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{instantPayouts.length + pendingPayouts.length} items</p>
+              <p className="text-xl font-bold text-purple-700">${(instantTotal + pendingTotal + pendingRTOTotal).toFixed(2)}</p>
+              <p className="text-xs text-gray-500">{instantPayouts.length + pendingPayouts.length + pendingRTOs.length} items</p>
             </CardContent>
           </Card>
         </div>
