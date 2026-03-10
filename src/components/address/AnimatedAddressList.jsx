@@ -87,9 +87,9 @@ export default function AnimatedAddressList({
         const isReadyForTurnIn = qualifiersComplete && hasEnoughAttempts && spreadMet;
         
         if (isReadyForTurnIn) {
-          // This address has met ALL requirements - keep in attemptedToday with special flag
+          // This address has met ALL requirements - move to completed section
           addr._requirementsMet = true;
-          attemptedToday.push(addr);
+          served.push(addr);
         } else {
           // Check if has a COMPLETED attempt today (not in_progress)
           const hasCompletedAttemptToday = addressAttempts.some(a => 
