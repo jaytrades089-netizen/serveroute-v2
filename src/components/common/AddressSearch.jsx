@@ -36,12 +36,16 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
     const trimmed = query.trim();
     if (trimmed.length < 2) return [];
     const lower = trimmed.toLowerCase();
+    const words = lower.split(/\s+/).filter(w => w.length > 0);
     return addresses
       .filter(addr => {
         if (!validRouteIds.has(addr.route_id)) return false;
         const legal = (addr.legal_address || '').toLowerCase();
         const normalized = (addr.normalized_address || '').toLowerCase();
-        return legal.includes(lower) || normalized.includes(lower);
+        const defendant = (addr.defendant_name || '').toLowerCase();
+        const searchable = `${legal} ${normalized} ${defendant}`;
+        // Every word in query must appear somewhere in the searchable text
+        return words.every(word => searchable.includes(word));
       })
       .slice(0, 20);
   }, [query, addresses, validRouteIds]);
@@ -66,7 +70,7 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
           type="text"
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Search addresses across all folders..."
+          placeholder="Search addresses..."
           className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
         />
         {query.length > 0 && (
@@ -77,10 +81,9 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
             <X className="w-4 h-4" />
           </button>
         )}
-      </div>
 
       {query.trim().length >= 2 && (
-        <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
           {results.length === 0 ? (
             <div className="px-4 py-5 text-center text-sm text-gray-500">
               No addresses found{!includeArchived ? ' in active routes' : ''}.
@@ -136,6 +139,7 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
