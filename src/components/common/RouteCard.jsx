@@ -523,13 +523,25 @@ export default function RouteCard({
                   ) : '+ Schedule'}
                 </button>
               </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
+              <PopoverContent className="w-[calc(100vw-2rem)] max-w-lg p-0" align="center" side="top" sideOffset={8}>
                 <CalendarPicker
                   mode="single"
                   selected={route.run_date ? parseISO(route.run_date) : undefined}
                   onSelect={(date) => {
                     onScheduleRunDate(route.id, date, pendingQualifiers);
                     setShowRunDatePicker(false);
+                  }}
+                  className="w-full"
+                  classNames={{
+                    months: "w-full",
+                    month: "w-full",
+                    table: "w-full",
+                    head_row: "w-full",
+                    row: "w-full",
+                    cell: "h-12 w-12 text-center text-base",
+                    day: "h-12 w-12 text-base",
+                    nav_button: "h-10 w-10",
+                    caption: "text-base"
                   }}
                 />
                 {/* Qualifier selector */}
