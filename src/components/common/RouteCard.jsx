@@ -574,6 +574,17 @@ export default function RouteCard({
         )}
 
         <div className="flex items-center">
+          {/* 3-dot menu */}
+          <div className="mr-2">
+            <RouteCardMenu 
+              route={route} 
+              onEdit={onEdit} 
+              onArchive={onArchive} 
+              onDelete={onDelete}
+              onScheduleRunDate={handleScheduleRunDate}
+            />
+          </div>
+
           {/* View Button */}
           <button 
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -589,17 +600,6 @@ export default function RouteCard({
             <Eye className="w-5 h-5 text-blue-600" />
             <span className="text-blue-600 font-semibold">View</span>
           </button>
-          
-          {/* 3-dot menu */}
-          <div className="ml-2">
-            <RouteCardMenu 
-              route={route} 
-              onEdit={onEdit} 
-              onArchive={onArchive} 
-              onDelete={onDelete}
-              onScheduleRunDate={handleScheduleRunDate}
-            />
-          </div>
         </div>
       </div>
     </div>
