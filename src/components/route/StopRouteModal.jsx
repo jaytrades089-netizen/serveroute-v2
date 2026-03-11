@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { base44 } from '@/api/base44Client';
@@ -15,7 +15,7 @@ const QUALIFIER_OPTIONS = [
   { id: 'WEEKEND', label: 'WEEKEND', colors: 'bg-white text-purple-700 border-purple-300', activeColors: 'bg-purple-500 text-white border-purple-500' },
 ];
 
-export default function StopRouteModal({ route, addresses, onClose }) {
+export default function StopRouteModal({ route, addresses, onClose, attempts = [] }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -153,16 +153,79 @@ export default function StopRouteModal({ route, addresses, onClose }) {
                 </span>
               )}
             </button>
-            {showCalendar && (
-              <div className="mb-2 bg-white border border-gray-200 rounded-lg shadow-md">
-                <Calendar
-                  mode="single"
-                  selected={nextRunDate}
-                  onSelect={(date) => { setNextRunDate(date); }}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </div>
-            )}
+            {showCalendar && (() => {
+              const dueDateObj = route.due_date ? new Date(route.due_date) : null;
+              let spreadDueDateObj = null;
+              if (route.first_attempt_date) {
+                spreadDueDateObj = new Date(route.first_attempt_date);
+                spreadDueDateObj.setDate(spreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+              }
+              
+              const calendarModifiers = {};
+              const calendarModifiersClassNames = {};
+              if (dueDateObj) {
+                calendarModifiers.dueDate = dueDateObj;
+                calendarModifiersClassNames.dueDate = 'stop-cal-due-date';
+              }
+              if (spreadDueDateObj) {
+                calendarModifiers.spreadDate = spreadDueDateObj;
+                calendarModifiersClassNames.spreadDate = 'stop-cal-spread-date';
+              }
+
+              return (
+                <div className="mb-2 bg-white border border-gray-200 rounded-lg shadow-md">
+                  <style>{`
+                    .stop-cal-due-date { position: relative; }
+                    .stop-cal-due-date::after {
+                      content: '';
+                      position: absolute;
+                      bottom: 2px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      width: 18px;
+                      height: 3px;
+                      border-radius: 2px;
+                      background-color: #ef4444;
+                    }
+                    .stop-cal-spread-date { position: relative; }
+                    .stop-cal-spread-date::after {
+                      content: '';
+                      position: absolute;
+                      bottom: 2px;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      width: 18px;
+                      height: 3px;
+                      border-radius: 2px;
+                      background-color: #22c55e;
+                    }
+                  `}</style>
+                  <Calendar
+                    mode="single"
+                    selected={nextRunDate}
+                    onSelect={(date) => { setNextRunDate(date); }}
+                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    modifiers={calendarModifiers}
+                    modifiersClassNames={calendarModifiersClassNames}
+                  />
+                  {/* Legend */}
+                  <div className="flex items-center justify-center gap-6 px-3 pb-3">
+                    {dueDateObj && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
+                        <span className="text-xs text-gray-500">D. Date</span>
+                      </div>
+                    )}
+                    {spreadDueDateObj && (
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
+                        <span className="text-xs text-gray-500">Spread D. Date</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Qualifier Toggles */}
             <div className="flex gap-2">
