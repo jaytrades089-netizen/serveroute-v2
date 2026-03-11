@@ -37,14 +37,22 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
     if (trimmed.length < 2) return [];
     const lower = trimmed.toLowerCase();
     const words = lower.split(/\s+/).filter(w => w.length > 0);
+    // If query is all letters/spaces (looks like a name), only match word-starts
+    const isNameQuery = /^[a-zA-Z\s]+$/.test(trimmed);
     return addresses
       .filter(addr => {
         if (!validRouteIds.has(addr.route_id)) return false;
+        if (isNameQuery) {
+          // For name searches, only match beginning of words in defendant name
+          const defendant = (addr.defendant_name || '').toLowerCase();
+          const defWords = defendant.split(/\s+/);
+          return words.every(w => defWords.some(dw => dw.startsWith(w)));
+        }
+        // For address/number searches, match anywhere in address fields
         const legal = (addr.legal_address || '').toLowerCase();
         const normalized = (addr.normalized_address || '').toLowerCase();
         const defendant = (addr.defendant_name || '').toLowerCase();
         const searchable = `${legal} ${normalized} ${defendant}`;
-        // Every word in query must appear somewhere in the searchable text
         return words.every(word => searchable.includes(word));
       })
       .slice(0, 20);
