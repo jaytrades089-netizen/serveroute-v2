@@ -567,12 +567,15 @@ export default function WorkerRouteDetail() {
         )}
 
         {(route.status === 'assigned' || route.status === 'ready') && !needsVerification && (
-          <Button 
+          <div
             onClick={() => setShowOptimizeModal(true)}
-            className="w-full bg-orange-500 hover:bg-orange-600 mb-4"
+            className="bg-orange-500 hover:bg-orange-600 rounded-b-xl px-4 py-3 mb-4 cursor-pointer transition-colors"
           >
-            <Play className="w-4 h-4 mr-2" /> Start Route
-          </Button>
+            <div className="flex items-center justify-center gap-2">
+              <Play className="w-5 h-5 text-white" />
+              <span className="font-bold text-white">Start Route</span>
+            </div>
+          </div>
         )}
 
         {route.status === 'active' && (
