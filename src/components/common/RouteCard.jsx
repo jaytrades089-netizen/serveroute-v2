@@ -395,7 +395,7 @@ export default function RouteCard({
         </div>
       </div>
 
-      {/* Stats Row: Total / Served / Pending + Start Route bar */}
+      {/* Stats: Total / Served / Pending + Start Route bar */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-2">
           {/* Total */}
@@ -404,14 +404,12 @@ export default function RouteCard({
             <p className="text-2xl font-bold text-blue-600">{totalAddresses}</p>
             <p className="text-xs text-gray-600 font-medium">Total</p>
           </div>
-          
           {/* Served */}
           <div className="bg-green-100 rounded-t-xl p-3 text-center">
             <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
             <p className="text-2xl font-bold text-green-600">{servedCount}</p>
             <p className="text-xs text-gray-600 font-medium">Served</p>
           </div>
-          
           {/* Pending */}
           <div className="bg-orange-100 rounded-t-xl p-3 text-center">
             <Clock className="w-5 h-5 mx-auto mb-1 text-orange-600" />
