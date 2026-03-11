@@ -443,7 +443,7 @@ export default function WorkerRouteDetail() {
         {route?.status === 'active' && route?.started_at ? (
           // ACTIVE ROUTE: Show 3 metric boxes
           <>
-            <div className="grid grid-cols-2 gap-1.5 mb-3">
+            <div className="grid grid-cols-3 gap-1.5 mb-3">
               {/* Start Time */}
               <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
                 <p className="text-sm font-bold text-blue-600">
@@ -454,6 +454,15 @@ export default function WorkerRouteDetail() {
                   })}
                 </p>
                 <p className="text-[10px] text-blue-500 font-medium">Started</p>
+              </div>
+              
+              {/* Stop Route */}
+              <div 
+                className="bg-red-50 rounded-lg p-2 text-center border border-red-300 cursor-pointer hover:bg-red-100 transition-colors flex flex-col items-center justify-center"
+                onClick={() => setShowStopModal(true)}
+              >
+                <Pause className="w-5 h-5 text-red-500 mb-0.5" />
+                <p className="text-[10px] text-red-600 font-bold">Stop Route</p>
               </div>
               
               {/* Est Completion */}
@@ -559,73 +568,62 @@ export default function WorkerRouteDetail() {
           </div>
         )}
 
-        {route.status === 'active' && (
-          <div className="flex gap-2 mb-4">
+        {route.status === 'active' && pendingAddresses.length === 0 && (
+          <div className="mb-4">
             <Button 
-              onClick={() => setShowStopModal(true)}
-              className="flex-1 bg-gray-500 hover:bg-gray-600"
-            >
-              <Pause className="w-4 h-4 mr-2" /> Stop Route
-            </Button>
-            
-            {pendingAddresses.length === 0 && (
-              <Button 
-                onClick={async () => {
-                  try {
-                    await base44.entities.Route.update(routeId, {
-                      status: 'completed',
-                      completed_at: new Date().toISOString()
-                    });
-                    
-                    // Notify boss(es)
-                    const allUsers = await base44.entities.User.filter({ 
-                      company_id: route.company_id || user?.company_id 
-                    });
-                    const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
-                    
-                    for (const boss of bosses) {
-                      await base44.entities.Notification.create({
-                        user_id: boss.id,
-                        company_id: route.company_id || user?.company_id,
-                        recipient_role: 'boss',
-                        type: 'route_completed',
-                        title: 'Route Completed ✓',
-                        body: `${user?.full_name || 'Worker'} completed ${route.folder_name}`,
-                        data: { route_id: routeId },
-                        action_url: `/BossRouteDetail?id=${routeId}`,
-                        priority: 'normal'
-                      });
-                    }
-                    
-                    // Audit log
-                    await base44.entities.AuditLog.create({
+              onClick={async () => {
+                try {
+                  await base44.entities.Route.update(routeId, {
+                    status: 'completed',
+                    completed_at: new Date().toISOString()
+                  });
+                  
+                  const allUsers = await base44.entities.User.filter({ 
+                    company_id: route.company_id || user?.company_id 
+                  });
+                  const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
+                  
+                  for (const boss of bosses) {
+                    await base44.entities.Notification.create({
+                      user_id: boss.id,
                       company_id: route.company_id || user?.company_id,
-                      action_type: 'route_completed',
-                      actor_id: user?.id,
-                      actor_role: 'server',
-                      target_type: 'route',
-                      target_id: routeId,
-                      details: {
-                        route_name: route.folder_name,
-                        total_addresses: route.total_addresses,
-                        served_count: route.served_count
-                      },
-                      timestamp: new Date().toISOString()
+                      recipient_role: 'boss',
+                      type: 'route_completed',
+                      title: 'Route Completed ✓',
+                      body: `${user?.full_name || 'Worker'} completed ${route.folder_name}`,
+                      data: { route_id: routeId },
+                      action_url: `/BossRouteDetail?id=${routeId}`,
+                      priority: 'normal'
                     });
-                    
-                    queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-                    toast.success('Route completed! All addresses served.');
-                    navigate(createPageUrl('WorkerRoutes'));
-                  } catch (error) {
-                    toast.error('Failed to complete route');
                   }
-                }}
-                className="flex-1 bg-green-500 hover:bg-green-600"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" /> Complete
-              </Button>
-            )}
+                  
+                  await base44.entities.AuditLog.create({
+                    company_id: route.company_id || user?.company_id,
+                    action_type: 'route_completed',
+                    actor_id: user?.id,
+                    actor_role: 'server',
+                    target_type: 'route',
+                    target_id: routeId,
+                    details: {
+                      route_name: route.folder_name,
+                      total_addresses: route.total_addresses,
+                      served_count: route.served_count
+                    },
+                    timestamp: new Date().toISOString()
+                  });
+                  
+                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                  queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+                  toast.success('Route completed! All addresses served.');
+                  navigate(createPageUrl('WorkerRoutes'));
+                } catch (error) {
+                  toast.error('Failed to complete route');
+                }
+              }}
+              className="w-full bg-green-500 hover:bg-green-600"
+            >
+              <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
+            </Button>
           </div>
         )}
 
