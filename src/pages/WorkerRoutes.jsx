@@ -295,6 +295,7 @@ export default function WorkerRoutes() {
               routes={routes}
               addresses={allAddresses}
               isBossView={false}
+              className=""
             />
           </div>
         </div>
