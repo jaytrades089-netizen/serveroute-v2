@@ -158,7 +158,7 @@ export default function StopRouteModal({ route, addresses, onClose }) {
                 <Calendar
                   mode="single"
                   selected={nextRunDate}
-                  onSelect={(date) => { setNextRunDate(date); setShowCalendar(false); }}
+                  onSelect={(date) => { setNextRunDate(date); }}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 />
               </div>
