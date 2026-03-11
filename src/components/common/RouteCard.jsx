@@ -497,91 +497,118 @@ export default function RouteCard({
         {/* + Schedule button row */}
         {onScheduleRunDate && !isBossView && (
           <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-            <Popover open={showRunDatePicker} onOpenChange={setShowRunDatePicker}>
-              <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50">
-                  {route.run_date ? (
-                    <>
-                      📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
-                      {route.run_qualifiers && route.run_qualifiers.length > 0 && (
-                        <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
-                      )}
-                      {onScheduleRunDate && (
-                        <span
-                          role="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            e.preventDefault();
-                            onScheduleRunDate(route.id, null, []);
-                          }}
-                          className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </span>
-                      )}
-                    </>
-                  ) : '+ Schedule'}
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[calc(100vw-2rem)] max-w-lg p-0" align="center" side="top" sideOffset={8}>
-                <CalendarPicker
-                  mode="single"
-                  selected={route.run_date ? parseISO(route.run_date) : undefined}
-                  onSelect={(date) => {
-                    onScheduleRunDate(route.id, date, pendingQualifiers);
-                    setShowRunDatePicker(false);
-                  }}
-                  className="w-full"
-                  classNames={{
-                    months: "w-full",
-                    month: "w-full",
-                    table: "w-full",
-                    head_row: "w-full",
-                    row: "w-full",
-                    cell: "h-12 w-12 text-center text-base",
-                    day: "h-12 w-12 text-base",
-                    nav_button: "h-10 w-10",
-                    caption: "text-base"
-                  }}
-                />
-                {/* Qualifier selector */}
-                <div className="px-3 py-2 border-t border-gray-100">
-                  <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
-                  <div className="flex gap-2">
-                    {['AM', 'PM', 'WEEKEND'].map(q => (
-                      <button
-                        key={q}
-                        onClick={() => toggleQualifier(q)}
-                        className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${
-                          pendingQualifiers.includes(q)
-                            ? q === 'AM' ? 'bg-amber-100 text-amber-800 border-amber-300'
-                              : q === 'PM' ? 'bg-blue-100 text-blue-800 border-blue-300'
-                              : 'bg-purple-100 text-purple-800 border-purple-300'
-                            : 'bg-gray-100 text-gray-400 border-gray-200'
-                        }`}
-                      >
-                        {q}
-                      </button>
-                    ))}
+            <button 
+              className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50"
+              onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(true); }}
+            >
+              {route.run_date ? (
+                <>
+                  📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
+                  {route.run_qualifiers && route.run_qualifiers.length > 0 && (
+                    <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                  )}
+                  {onScheduleRunDate && (
+                    <span
+                      role="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onScheduleRunDate(route.id, null, []);
+                      }}
+                      className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </span>
+                  )}
+                </>
+              ) : '+ Schedule'}
+            </button>
+
+            {/* Full-screen overlay calendar */}
+            {showRunDatePicker && (
+              <div 
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+                onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(false); }}
+              >
+                <div 
+                  className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="p-4">
+                    <CalendarPicker
+                      mode="single"
+                      selected={route.run_date ? parseISO(route.run_date) : undefined}
+                      onSelect={(date) => {
+                        onScheduleRunDate(route.id, date, pendingQualifiers);
+                        setShowRunDatePicker(false);
+                      }}
+                      className="w-full mx-auto"
+                      classNames={{
+                        months: "w-full flex justify-center",
+                        month: "w-full",
+                        table: "w-full border-collapse",
+                        head_row: "flex w-full justify-between",
+                        head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
+                        row: "flex w-full justify-between mt-1",
+                        cell: "flex-1 flex items-center justify-center p-0",
+                        day: "h-11 w-11 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors",
+                        day_selected: "bg-blue-600 text-white hover:bg-blue-700",
+                        day_today: "bg-gray-100 font-bold",
+                        nav: "flex items-center justify-between px-2 pb-2",
+                        nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
+                        caption: "text-base font-semibold text-center py-2"
+                      }}
+                    />
                   </div>
-                </div>
-                {route.run_date && (
-                  <div className="px-3 pb-3">
+                  
+                  {/* Qualifier selector */}
+                  <div className="px-4 py-3 border-t border-gray-100">
+                    <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
+                    <div className="flex gap-2">
+                      {['AM', 'PM', 'WEEKEND'].map(q => (
+                        <button
+                          key={q}
+                          onClick={() => toggleQualifier(q)}
+                          className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+                            pendingQualifiers.includes(q)
+                              ? q === 'AM' ? 'bg-amber-100 text-amber-800 border-amber-300'
+                                : q === 'PM' ? 'bg-blue-100 text-blue-800 border-blue-300'
+                                : 'bg-purple-100 text-purple-800 border-purple-300'
+                              : 'bg-gray-100 text-gray-400 border-gray-200'
+                          }`}
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="px-4 pb-4 flex gap-2">
+                    {route.run_date && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-red-500"
+                        onClick={() => {
+                          onScheduleRunDate(route.id, null, []);
+                          setShowRunDatePicker(false);
+                        }}
+                      >
+                        Clear Date
+                      </Button>
+                    )}
                     <Button
                       variant="outline"
                       size="sm"
-                      className="w-full text-red-500"
-                      onClick={() => {
-                        onScheduleRunDate(route.id, null, []);
-                        setShowRunDatePicker(false);
-                      }}
+                      className="flex-1"
+                      onClick={() => setShowRunDatePicker(false)}
                     >
-                      Clear Date
+                      Cancel
                     </Button>
                   </div>
-                )}
-              </PopoverContent>
-            </Popover>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
