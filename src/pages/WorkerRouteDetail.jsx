@@ -443,9 +443,9 @@ export default function WorkerRouteDetail() {
         {route?.status === 'active' && route?.started_at ? (
           // ACTIVE ROUTE: Show 3 metric boxes
           <>
-            <div className="grid grid-cols-3 gap-1.5 mb-3">
+            <div className="grid grid-cols-2 gap-1.5 mb-3">
               {/* Start Time */}
-              <div className="bg-blue-50 rounded-lg p-1.5 text-center border border-blue-200">
+              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
                 <p className="text-sm font-bold text-blue-600">
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
                     hour: 'numeric',
@@ -456,27 +456,8 @@ export default function WorkerRouteDetail() {
                 <p className="text-[10px] text-blue-500 font-medium">Started</p>
               </div>
               
-              {/* Miles + Duration (SPLIT BOX) */}
-              <div className="bg-purple-50 rounded-lg overflow-hidden border border-purple-200">
-                {/* Top Half - Remaining Miles */}
-                <div className="p-1 text-center border-b border-purple-200">
-                  <p className="text-sm font-bold text-purple-600">
-                    {calculateRemainingMiles.toFixed(1)}
-                    <span className="text-[10px] ml-0.5">mi</span>
-                  </p>
-                  <p className="text-[10px] text-purple-400">remaining</p>
-                </div>
-                {/* Bottom Half - Total Duration */}
-                <div className="p-1 text-center bg-purple-100/50">
-                  <p className="text-xs font-bold text-purple-700">
-                    {calculateRouteDuration || '--'}
-                  </p>
-                  <p className="text-[10px] text-purple-500">total</p>
-                </div>
-              </div>
-              
               {/* Est Completion */}
-              <div className="bg-green-50 rounded-lg p-1.5 text-center border border-green-200">
+              <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
                 <p className="text-sm font-bold text-green-600">
                   {getUpdatedEstCompletion?.estCompletion 
                     ? getUpdatedEstCompletion.estCompletion.toLocaleTimeString('en-US', {
