@@ -10,9 +10,9 @@ import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 
 const QUALIFIER_OPTIONS = [
-  { id: 'AM', label: 'AM', colors: 'bg-amber-100 text-amber-700 border-amber-300', activeColors: 'bg-amber-500 text-white border-amber-500' },
-  { id: 'PM', label: 'PM', colors: 'bg-blue-100 text-blue-700 border-blue-300', activeColors: 'bg-blue-500 text-white border-blue-500' },
-  { id: 'WEEKEND', label: 'WEEKEND', colors: 'bg-purple-100 text-purple-700 border-purple-300', activeColors: 'bg-purple-500 text-white border-purple-500' },
+  { id: 'AM', label: 'AM', colors: 'bg-white text-amber-700 border-amber-300', activeColors: 'bg-amber-500 text-white border-amber-500' },
+  { id: 'PM', label: 'PM', colors: 'bg-white text-blue-700 border-blue-300', activeColors: 'bg-blue-500 text-white border-blue-500' },
+  { id: 'WEEKEND', label: 'WEEKEND', colors: 'bg-white text-purple-700 border-purple-300', activeColors: 'bg-purple-500 text-white border-purple-500' },
 ];
 
 export default function StopRouteModal({ route, addresses, onClose }) {
