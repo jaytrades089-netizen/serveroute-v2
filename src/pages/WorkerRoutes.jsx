@@ -8,13 +8,14 @@ import { createPageUrl } from '@/utils';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import RouteCard from '../components/common/RouteCard';
-import { Loader2, MapPin, Trash2, Calendar } from 'lucide-react';
+import { Loader2, MapPin, Trash2, Calendar, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
 import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
 import ComboRouteCard from '../components/common/ComboRouteCard';
+import AddressSearch from '../components/common/AddressSearch';
 import { format, parseISO } from 'date-fns';
 
 
@@ -279,6 +280,24 @@ export default function WorkerRoutes() {
       />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
+        <div className="flex items-center gap-2 mb-4">
+          <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
+            <Button
+              size="sm"
+              className="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2.5 h-[38px]"
+            >
+              <Shuffle className="w-3.5 h-3.5 mr-1" />
+              Combo
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <AddressSearch
+              routes={routes}
+              addresses={allAddresses}
+              isBossView={false}
+            />
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="space-y-3">
