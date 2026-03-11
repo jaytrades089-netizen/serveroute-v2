@@ -395,43 +395,25 @@ export default function RouteCard({
         </div>
       </div>
 
-      {/* Stats: Total / Served / Pending + Start Route bar */}
+      {/* Stats Row: Total / Served / Pending */}
       <div className="px-4 pb-3">
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-3">
           {/* Total */}
-          <div className="bg-blue-100 rounded-t-xl p-3 text-center">
-            <MapPin className="w-5 h-5 mx-auto mb-1 text-blue-600" />
-            <p className="text-2xl font-bold text-blue-600">{totalAddresses}</p>
-            <p className="text-xs text-gray-600 font-medium">Total</p>
+          <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+            <p className="text-3xl font-bold text-blue-600">{totalAddresses}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Total</p>
           </div>
+          
           {/* Served */}
-          <div className="bg-green-100 rounded-t-xl p-3 text-center">
-            <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
-            <p className="text-2xl font-bold text-green-600">{servedCount}</p>
-            <p className="text-xs text-gray-600 font-medium">Served</p>
+          <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+            <p className="text-3xl font-bold text-green-600">{servedCount}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Served</p>
           </div>
+          
           {/* Pending */}
-          <div className="bg-orange-100 rounded-t-xl p-3 text-center">
-            <Clock className="w-5 h-5 mx-auto mb-1 text-orange-600" />
-            <p className="text-2xl font-bold text-orange-600">{pendingCount}</p>
-            <p className="text-xs text-gray-600 font-medium">Pending</p>
-          </div>
-        </div>
-        {/* Start Route bar */}
-        <div
-          className="bg-orange-100 rounded-b-xl px-4 py-2.5 cursor-pointer hover:opacity-90 transition-opacity"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isBossView) {
-              navigate(createPageUrl(`BossRouteDetail?id=${route.id}`));
-            } else {
-              navigate(createPageUrl(`WorkerRouteDetail?id=${route.id}`));
-            }
-          }}
-        >
-          <div className="flex items-center justify-center gap-2">
-            <Play className="w-4 h-4 text-orange-600" />
-            <span className="font-semibold text-sm text-orange-800">Start Route</span>
+          <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+            <p className="text-3xl font-bold text-orange-500">{pendingCount}</p>
+            <p className="text-xs text-gray-500 font-medium mt-0.5">Pending</p>
           </div>
         </div>
       </div>
