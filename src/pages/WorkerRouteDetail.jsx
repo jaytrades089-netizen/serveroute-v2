@@ -520,18 +520,18 @@ export default function WorkerRouteDetail() {
         ) : (
           // NOT ACTIVE: Show regular stats (Total, Served, Pending) + Start Route bar
           <>
-          <div className="grid grid-cols-3 gap-2 mb-0">
-            <div className="bg-blue-100 rounded-t-xl p-3 text-center">
+          <div className={`grid grid-cols-3 gap-2 ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'mb-0' : 'mb-3'}`}>
+            <div className={`bg-blue-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
               <MapPin className="w-5 h-5 mx-auto mb-1 text-blue-600" />
               <p className="text-2xl font-bold text-blue-600">{addresses.length}</p>
               <p className="text-xs text-gray-600 font-medium">Total</p>
             </div>
-            <div className="bg-green-100 rounded-t-xl p-3 text-center">
+            <div className={`bg-green-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
               <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
               <p className="text-2xl font-bold text-green-600">{servedAddresses.length}</p>
               <p className="text-xs text-gray-600 font-medium">Served</p>
             </div>
-            <div className="bg-orange-100 rounded-t-xl p-3 text-center">
+            <div className={`bg-orange-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
               <Clock className="w-5 h-5 mx-auto mb-1 text-orange-600" />
               <p className="text-2xl font-bold text-orange-600">{pendingAddresses.length}</p>
               <p className="text-xs text-gray-600 font-medium">Pending</p>
