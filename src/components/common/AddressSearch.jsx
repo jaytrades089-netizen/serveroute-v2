@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Search, Archive, X, FolderOpen, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-export default function AddressSearch({ routes = [], addresses = [], workers = [], isBossView = false }) {
+export default function AddressSearch({ routes = [], addresses = [], workers = [], isBossView = false, className }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -58,7 +58,7 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
   };
 
   return (
-    <div className="mb-4">
+    <div className={className !== undefined ? className : "mb-4"}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         <input
