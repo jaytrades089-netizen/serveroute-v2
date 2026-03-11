@@ -4,19 +4,6 @@ import { CheckCircle, ChevronDown, Clock, MapPin } from 'lucide-react';
 import AddressCard from './AddressCard';
 import { getNeededQualifiers } from '@/components/services/QualifierService';
 
-// Zone divider component - non-interactive label row
-function ZoneDivider({ label }) {
-  return (
-    <div className="flex items-center gap-3 py-2 px-1">
-      <div className="flex-1 h-px bg-gray-300" />
-      <span className="text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">
-        {label}
-      </span>
-      <div className="flex-1 h-px bg-gray-300" />
-    </div>
-  );
-}
-
 export default function AnimatedAddressList({
   addresses,
   attempts,
@@ -283,18 +270,8 @@ export default function AnimatedAddressList({
         <div>
           <div className="space-y-4">
             {activeAddresses.map((address, index) => {
-              // Check if this address starts a new zone
-              const prevAddress = index > 0 ? activeAddresses[index - 1] : null;
-              const showZoneDivider = showZoneLabels && 
-                address.zone_label && 
-                (!prevAddress || prevAddress.zone_label !== address.zone_label);
-              
               return (
                 <React.Fragment key={address.id}>
-                  {/* Zone divider - appears before first address of each zone */}
-                  {showZoneDivider && (
-                    <ZoneDivider label={address.zone_label} />
-                  )}
                   <div
                     className={`
                       relative transition-all duration-300
