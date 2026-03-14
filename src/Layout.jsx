@@ -69,6 +69,7 @@ const sharedPages = [
   'ScanCamera',
   'ScanPreview',
   'ScanRouteSetup',
+  'ScanAddToRoute',
   'ScanVerify',
   'EditRoute'
 ];
