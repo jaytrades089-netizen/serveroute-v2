@@ -248,23 +248,23 @@ export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) 
 }
 
 export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey) {
-  console.log(`Optimizing ${addresses.length} addresses — nearest-neighbor from GPS...`);
+  console.log(`Optimizing ${addresses.length} addresses — GPS-locked MapQuest sequencing...`);
   if (!apiKey) throw new Error('MapQuest API key required for route optimization');
-  
+
+  const CHUNK_SIZE = 23; // MapQuest max 25 total; start + end = 2 fixed, so 23 middle
+
   const validAddresses = addresses.filter(addr => (addr.lat || addr.latitude) && (addr.lng || addr.longitude));
   const invalidAddresses = addresses.filter(addr => !(addr.lat || addr.latitude) || !(addr.lng || addr.longitude));
-  
+
   if (validAddresses.length === 0) { console.warn('No addresses with coordinates to optimize'); return addresses; }
 
   console.log(`  Start GPS: ${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
   console.log(`  End point: ${endLat?.toFixed(5)}, ${endLng?.toFixed(5)}`);
   console.log(`  ${validAddresses.length} geocoded, ${invalidAddresses.length} without coords`);
 
-  // Step 1: Cluster addresses for zone labels only (cosmetic grouping)
-  console.log('Step 1: Clustering for zone labels...');
+  // Step 1: Zone labels (cosmetic only — does not affect sequence)
+  console.log('Step 1: Building zone labels...');
   const clusters = clusterAddresses(validAddresses);
-  
-  // Build a map: address id → zone label
   const zoneLabelMap = {};
   for (const cluster of clusters) {
     for (const addr of cluster.addresses) {
@@ -272,33 +272,83 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     }
   }
 
-  // Step 2: Pure nearest-neighbor sort starting from GPS position
-  // This GUARANTEES address #1 is closest to you, #2 closest to #1, etc.
-  console.log('Step 2: Nearest-neighbor ordering from your current location...');
-  const sorted = nearestNeighborSort(validAddresses, startLat, startLng);
+  // Step 2: Nearest-neighbor pre-sort from GPS
+  // Anchors the list so chunk 1 starts near the worker.
+  // MapQuest then resequences within each chunk using real road network.
+  console.log('Step 2: Nearest-neighbor pre-sort from GPS...');
+  const preSorted = nearestNeighborSort(validAddresses, startLat, startLng);
 
-  // Step 3: Log the result for debugging
-  if (sorted.length > 0) {
-    const firstAddr = sorted[0];
-    const lastAddr = sorted[sorted.length - 1];
-    const distToFirst = calculateDistanceFeet(startLat, startLng, firstAddr.lat || firstAddr.latitude, firstAddr.lng || firstAddr.longitude);
-    const distToLast = calculateDistanceFeet(startLat, startLng, lastAddr.lat || lastAddr.latitude, lastAddr.lng || lastAddr.longitude);
-    console.log(`  First stop: ${(distToFirst / 5280).toFixed(1)} mi from you`);
-    console.log(`  Last stop: ${(distToLast / 5280).toFixed(1)} mi from you`);
+  // Resolve end point — if not set, use last address in pre-sort
+  let effectiveEndLat = endLat;
+  let effectiveEndLng = endLng;
+  if (!effectiveEndLat || !effectiveEndLng) {
+    const lastPreSorted = preSorted[preSorted.length - 1];
+    effectiveEndLat = lastPreSorted.lat || lastPreSorted.latitude;
+    effectiveEndLng = lastPreSorted.lng || lastPreSorted.longitude;
+    console.log('  No end location set — using last pre-sorted address as end point');
   }
 
-  // Step 4: Build final order with zone labels and order indices
-  console.log('Step 3: Assigning order indices...');
+  // Step 3: Split into chunks and run MapQuest on each
+  console.log('Step 3: MapQuest road-network sequencing by chunk...');
+  const chunks = [];
+  for (let i = 0; i < preSorted.length; i += CHUNK_SIZE) {
+    chunks.push(preSorted.slice(i, i + CHUNK_SIZE));
+  }
+
+  const sequencedAddresses = [];
+  let chunkStartLat = startLat;
+  let chunkStartLng = startLng;
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i];
+    console.log(`  Chunk ${i + 1}/${chunks.length}: ${chunk.length} addresses`);
+
+    const mqResult = await optimizeChunkWithMapQuest(
+      chunk,
+      chunkStartLat,
+      chunkStartLng,
+      effectiveEndLat,
+      effectiveEndLng,
+      apiKey
+    );
+
+    if (mqResult && mqResult.length > 0) {
+      console.log(`  Chunk ${i + 1}: MapQuest succeeded`);
+      sequencedAddresses.push(...mqResult);
+      const lastAddr = mqResult[mqResult.length - 1];
+      chunkStartLat = lastAddr.lat || lastAddr.latitude;
+      chunkStartLng = lastAddr.lng || lastAddr.longitude;
+    } else {
+      console.warn(`  Chunk ${i + 1}: MapQuest failed — using nearest-neighbor fallback`);
+      sequencedAddresses.push(...chunk);
+      const lastAddr = chunk[chunk.length - 1];
+      chunkStartLat = lastAddr.lat || lastAddr.latitude;
+      chunkStartLng = lastAddr.lng || lastAddr.longitude;
+    }
+  }
+
+  // Step 4: Log first/last stop distances for debugging
+  if (sequencedAddresses.length > 0) {
+    const firstAddr = sequencedAddresses[0];
+    const lastAddr = sequencedAddresses[sequencedAddresses.length - 1];
+    const distToFirst = calculateDistanceFeet(startLat, startLng, firstAddr.lat || firstAddr.latitude, firstAddr.lng || firstAddr.longitude);
+    const distToLast = calculateDistanceFeet(startLat, startLng, lastAddr.lat || lastAddr.latitude, lastAddr.lng || lastAddr.longitude);
+    console.log(`  First stop: ${(distToFirst / 5280).toFixed(1)} mi from your GPS`);
+    console.log(`  Last stop: ${(distToLast / 5280).toFixed(1)} mi from your GPS`);
+  }
+
+  // Step 5: Assign order_index and zone labels to final sequence
+  console.log('Step 4: Assigning order indices...');
   const finalOrder = [];
   let orderIndex = 1;
-  for (const addr of sorted) {
+  for (const addr of sequencedAddresses) {
     finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: zoneLabelMap[addr.id] || null });
   }
   for (const addr of invalidAddresses) {
     finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: 'No Location' });
   }
-  
+
   if (invalidAddresses.length > 0) console.warn(`${invalidAddresses.length} addresses had no coordinates — appended to end`);
-  console.log(`Optimization complete! ${finalOrder.length} addresses ordered from your location.`);
+  console.log(`Optimization complete! ${finalOrder.length} addresses sequenced from your GPS.`);
   return finalOrder;
 }
