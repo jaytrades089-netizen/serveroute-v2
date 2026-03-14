@@ -257,6 +257,8 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   const clusters = clusterAddresses(validAddresses);
   console.log(`  Created ${clusters.length} clusters`);
   console.log('Step 2: Ordering clusters by proximity to start point...');
+  console.log(`  Start: ${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+  console.log(`  End: ${endLat?.toFixed(5)}, ${endLng?.toFixed(5)}`);
   const orderedClusters = orderClusters(clusters, startLat, startLng, endLat, endLng);
   for (let i = 0; i < orderedClusters.length; i++) {
     const distFromStart = calculateDistanceFeet(startLat, startLng, orderedClusters[i].centroid.lat, orderedClusters[i].centroid.lng);
