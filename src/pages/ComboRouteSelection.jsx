@@ -180,7 +180,49 @@ export default function ComboRouteSelection() {
         }
       }
 
-      // Create ComboRoute record
+      // Calculate route metrics via MapQuest Directions
+      let totalMiles = 0;
+      let totalDriveTimeMinutes = 0;
+      
+      try {
+        const geocodedAddrs = optimizedAddresses.filter(a => (a.lat || a.latitude) && (a.lng || a.longitude));
+        if (geocodedAddrs.length > 0) {
+          // Build waypoints: start → all addresses → end
+          const waypoints = [
+            `${startLat},${startLng}`,
+            ...geocodedAddrs.map(a => `${a.lat || a.latitude},${a.lng || a.longitude}`),
+            `${endLocation.latitude},${endLocation.longitude}`
+          ];
+          
+          // MapQuest Directions limit is ~100 waypoints per call; chunk if needed
+          const CHUNK_SIZE = 90;
+          for (let i = 0; i < waypoints.length - 1; i += CHUNK_SIZE) {
+            const chunk = waypoints.slice(i, Math.min(i + CHUNK_SIZE + 1, waypoints.length));
+            if (chunk.length < 2) continue;
+            
+            const dirUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
+            const dirResponse = await fetch(dirUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                locations: chunk,
+                options: { routeType: 'fastest', unit: 'm' }
+              })
+            });
+            const dirData = await dirResponse.json();
+            if (dirData.route) {
+              totalMiles += dirData.route.distance || 0;
+              totalDriveTimeMinutes += Math.round((dirData.route.time || 0) / 60);
+            }
+          }
+        }
+      } catch (dirError) {
+        console.warn('Failed to calculate route metrics:', dirError);
+      }
+
+      const startedAtNow = new Date().toISOString();
+
+      // Create ComboRoute record with metrics
       const combo = await base44.entities.ComboRoute.create({
         user_id: user.id,
         company_id: user.company_id,
@@ -189,7 +231,10 @@ export default function ComboRouteSelection() {
         route_order: routeOrder,
         end_location_id: selectedEndLocation,
         status: 'active',
-        total_addresses: allAddresses.length
+        total_addresses: allAddresses.length,
+        started_at: startedAtNow,
+        total_miles: Math.round(totalMiles * 10) / 10,
+        total_drive_time_minutes: totalDriveTimeMinutes
       });
 
       // Update address orders across all routes
@@ -203,7 +248,7 @@ export default function ComboRouteSelection() {
       for (const routeId of selectedRoutes) {
         await base44.entities.Route.update(routeId, { 
           status: 'active',
-          started_at: new Date().toISOString()
+          started_at: startedAtNow
         });
       }
 

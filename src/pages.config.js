@@ -80,6 +80,7 @@ import ReceiptQueue from './pages/ReceiptQueue';
 import ReceiptReview from './pages/ReceiptReview';
 import RouteEditor from './pages/RouteEditor';
 import RouteHandoff from './pages/RouteHandoff';
+import ScanAddToRoute from './pages/ScanAddToRoute';
 import ScanCamera from './pages/ScanCamera';
 import ScanDocumentType from './pages/ScanDocumentType';
 import ScanPreview from './pages/ScanPreview';
@@ -101,7 +102,6 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import ScanAddToRoute from './pages/ScanAddToRoute';
 import __Layout from './Layout.jsx';
 
 
@@ -139,6 +139,7 @@ export const PAGES = {
     "ReceiptReview": ReceiptReview,
     "RouteEditor": RouteEditor,
     "RouteHandoff": RouteHandoff,
+    "ScanAddToRoute": ScanAddToRoute,
     "ScanCamera": ScanCamera,
     "ScanDocumentType": ScanDocumentType,
     "ScanPreview": ScanPreview,
@@ -160,7 +161,6 @@ export const PAGES = {
     "WorkerStats": WorkerStats,
     "WorkerVacationRequest": WorkerVacationRequest,
     "Workers": Workers,
-    "ScanAddToRoute": ScanAddToRoute,
 }
 
 export const pagesConfig = {

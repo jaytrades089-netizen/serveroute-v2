@@ -123,20 +123,11 @@ export default function WorkerComboRouteDetail() {
     return { total, served, remaining: total - served, pct };
   }, [addresses]);
 
-  // Aggregate route metrics for the combo
+  // Use combo-level metrics (calculated during optimization) instead of individual routes
   const comboMetrics = useMemo(() => {
-    let totalMiles = 0;
-    let totalDriveMinutes = 0;
-    let startedAt = null;
-
-    routes.forEach(r => {
-      if (r.total_miles) totalMiles += r.total_miles;
-      if (r.total_drive_time_minutes) totalDriveMinutes += r.total_drive_time_minutes;
-      if (r.started_at) {
-        const t = new Date(r.started_at);
-        if (!startedAt || t < startedAt) startedAt = t;
-      }
-    });
+    const totalMiles = combo?.total_miles || 0;
+    const totalDriveMinutes = combo?.total_drive_time_minutes || 0;
+    const startedAt = combo?.started_at ? new Date(combo.started_at) : null;
 
     // Remaining miles proportional to remaining addresses
     const remainingMiles = progress.total > 0
@@ -152,7 +143,7 @@ export default function WorkerComboRouteDetail() {
     const estCompletion = new Date(Date.now() + remainingMinutes * 60000);
 
     return { totalMiles, totalDriveMinutes, startedAt, remainingMiles, remainingMinutes, estCompletion };
-  }, [routes, progress]);
+  }, [combo, progress]);
 
   // Set worker status to active
   useEffect(() => {
