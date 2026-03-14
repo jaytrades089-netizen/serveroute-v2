@@ -330,14 +330,6 @@ export default function ScanCamera() {
     // Capture the image
     const imageBase64 = captureAndCompressImage(videoRef.current);
     
-    // Check for duplicate capture - compare first 200 chars of base64
-    const signature = imageBase64.substring(0, 200);
-    if (lastCaptureRef.current === signature) {
-      toast.warning('Same image detected — please move to the next document');
-      return;
-    }
-    lastCaptureRef.current = signature;
-    
     // Shutter effect — black out camera, pause video
     setShowShutter(true);
     if (videoRef.current) {
