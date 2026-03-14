@@ -458,16 +458,20 @@ export default function ScanCamera() {
         
         {cameraStatus === 'active' && (
                         <>
-                          {/* Blur overlay - top */}
-                          <div className="absolute top-0 left-0 right-0 h-[7.5%] backdrop-blur-sm bg-black/30" />
-                          {/* Blur overlay - bottom */}
-                          <div className="absolute bottom-0 left-0 right-0 h-[7.5%] backdrop-blur-sm bg-black/30" />
+                          {/* Blur overlay - top (covers 20% from top) */}
+                          <div className="absolute top-0 left-0 right-0 h-[20%] backdrop-blur-sm bg-black/40" />
+                          {/* Blur overlay - bottom (covers 20% from bottom) */}
+                          <div className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-sm bg-black/40" />
                           {/* Blur overlay - left */}
-                          <div className="absolute top-[7.5%] left-0 w-[5%] h-[85%] backdrop-blur-sm bg-black/30" />
+                          <div className="absolute top-[20%] left-0 w-[5%] h-[60%] backdrop-blur-sm bg-black/40" />
                           {/* Blur overlay - right */}
-                          <div className="absolute top-[7.5%] right-0 w-[5%] h-[85%] backdrop-blur-sm bg-black/30" />
-                          {/* Clear center box with border */}
-                          <div className="absolute top-[7.5%] left-[5%] w-[90%] h-[85%] border-2 border-white/70 rounded-lg pointer-events-none" />
+                          <div className="absolute top-[20%] right-0 w-[5%] h-[60%] backdrop-blur-sm bg-black/40" />
+                          {/* Clear center box with border — only this area gets sent to OCR */}
+                          <div className="absolute top-[20%] left-[5%] w-[90%] h-[60%] border-2 border-white/70 rounded-lg pointer-events-none" />
+                          {/* Center crosshair hint */}
+                          <div className="absolute top-[48%] left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium pointer-events-none">
+                            Center document here
+                          </div>
                         </>
                       )}
 
