@@ -79,7 +79,7 @@ export default function ScanCamera() {
     if (sessionId) {
       const existingSession = loadScanSession(sessionId);
       if (existingSession) {
-        setSession(existingSession);
+        updateSession(existingSession);
         setDocumentType(existingSession.documentType);
         return;
       }
@@ -89,7 +89,7 @@ export default function ScanCamera() {
     if (['serve', 'garnishment', 'posting'].includes(type)) {
       setDocumentType(type);
       const newSession = createNewSession(user.id, getCompanyId(user), type);
-      setSession(newSession);
+      updateSession(newSession);
       
       base44.entities.ScanSession.create({
         user_id: user.id,
@@ -100,7 +100,7 @@ export default function ScanCamera() {
         last_activity_at: new Date().toISOString()
       }).then(dbSession => {
         const updatedSession = { ...newSession, dbSessionId: dbSession.id };
-        setSession(updatedSession);
+        updateSession(updatedSession);
         saveScanSession(updatedSession);
       });
     }
