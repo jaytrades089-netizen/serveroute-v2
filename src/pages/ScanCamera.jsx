@@ -547,7 +547,7 @@ export default function ScanCamera() {
           <Button
             className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
             onClick={handleCapture}
-            disabled={isProcessing}
+            disabled={isProcessing || showShutter}
           >
             <Camera className="w-5 h-5" />
             Capture
