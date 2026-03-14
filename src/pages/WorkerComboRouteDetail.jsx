@@ -5,7 +5,7 @@ import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Loader2, ChevronLeft, Pause, AlertCircle } from 'lucide-react';
+import { Loader2, ChevronLeft, Pause, AlertCircle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import AnimatedAddressList from '@/components/address/AnimatedAddressList';
@@ -123,6 +123,37 @@ export default function WorkerComboRouteDetail() {
     return { total, served, remaining: total - served, pct };
   }, [addresses]);
 
+  // Aggregate route metrics for the combo
+  const comboMetrics = useMemo(() => {
+    let totalMiles = 0;
+    let totalDriveMinutes = 0;
+    let startedAt = null;
+
+    routes.forEach(r => {
+      if (r.total_miles) totalMiles += r.total_miles;
+      if (r.total_drive_time_minutes) totalDriveMinutes += r.total_drive_time_minutes;
+      if (r.started_at) {
+        const t = new Date(r.started_at);
+        if (!startedAt || t < startedAt) startedAt = t;
+      }
+    });
+
+    // Remaining miles proportional to remaining addresses
+    const remainingMiles = progress.total > 0
+      ? totalMiles * (progress.remaining / progress.total)
+      : totalMiles;
+
+    // Est remaining time: proportional drive time + 2 min per remaining address
+    const remainingDriveMinutes = progress.total > 0
+      ? totalDriveMinutes * (progress.remaining / progress.total)
+      : totalDriveMinutes;
+    const remainingMinutes = Math.round(remainingDriveMinutes + progress.remaining * 2);
+
+    const estCompletion = new Date(Date.now() + remainingMinutes * 60000);
+
+    return { totalMiles, totalDriveMinutes, startedAt, remainingMiles, remainingMinutes, estCompletion };
+  }, [routes, progress]);
+
   // Set worker status to active
   useEffect(() => {
     if (!user?.id) return;
@@ -238,33 +269,63 @@ export default function WorkerComboRouteDetail() {
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
-        {/* Progress bar */}
-        <div className="mb-4">
-          <div className="flex justify-between text-xs text-gray-500 mb-1">
-            <span>{progress.served} of {progress.total} served</span>
-            <span className="text-purple-600 font-medium">{progress.pct}%</span>
+        {/* Started / Stop / Est Done boxes */}
+        <div className="grid grid-cols-3 gap-1.5 mb-3">
+          {/* Start Time */}
+          <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
+            <p className="text-sm font-bold text-blue-600">
+              {comboMetrics.startedAt
+                ? comboMetrics.startedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+                : new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+            </p>
+            <p className="text-[10px] text-blue-500 font-medium">Started</p>
           </div>
-          <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+
+          {/* Stop Route */}
+          <div
+            className="bg-red-50 rounded-lg p-2 text-center border border-red-300 cursor-pointer hover:bg-red-100 transition-colors flex flex-col items-center justify-center"
+            onClick={handleStopCombo}
+          >
+            {stopping ? (
+              <Loader2 className="w-5 h-5 text-red-500 animate-spin mb-0.5" />
+            ) : (
+              <Pause className="w-5 h-5 text-red-500 mb-0.5" />
+            )}
+            <p className="text-[10px] text-red-600 font-bold">Stop Combo</p>
+          </div>
+
+          {/* Est Completion */}
+          <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
+            <p className="text-sm font-bold text-green-600">
+              {comboMetrics.estCompletion.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+            </p>
+            <p className="text-[10px] text-green-500 font-medium">Est. Done</p>
+          </div>
+        </div>
+
+        {/* Progress bar with miles and time */}
+        <div className="mb-4">
+          <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
+            <span>{progress.served} of {progress.total} complete</span>
+            <span className="text-purple-600 font-medium">
+              {comboMetrics.remainingMiles.toFixed(1)} mi left
+            </span>
+          </div>
+          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
               style={{ width: `${progress.pct}%` }}
             />
           </div>
+          <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+            <span>{progress.pct}% done</span>
+            <span>
+              {comboMetrics.remainingMinutes >= 60
+                ? `${Math.floor(comboMetrics.remainingMinutes / 60)}h ${comboMetrics.remainingMinutes % 60}m left`
+                : `${comboMetrics.remainingMinutes}m left`}
+            </span>
+          </div>
         </div>
-
-        {/* Stop button */}
-        <Button
-          onClick={handleStopCombo}
-          disabled={stopping}
-          className="w-full bg-gray-500 hover:bg-gray-600 mb-4"
-        >
-          {stopping ? (
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Pause className="w-4 h-4 mr-2" />
-          )}
-          Stop Combo Route
-        </Button>
 
         {/* Address list — uses the SAME AnimatedAddressList as regular routes */}
         <AnimatedAddressList
