@@ -55,7 +55,7 @@ export default function ScanCamera() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingText, setProcessingText] = useState('');
   const [showShutter, setShowShutter] = useState(false);
-  const lastCaptureRef = useRef(null);
+  const processingLockRef = useRef(false);
 
   // Helper to update both state and ref atomically
   const updateSession = (newSession) => {
