@@ -367,14 +367,15 @@ export default function ScanCamera() {
   };
 
   const handleRemoveAddress = (tempId) => {
-    if (!session) return;
-    const updatedAddresses = session.addresses.filter(a => a.tempId !== tempId);
+    const current = sessionRef.current;
+    if (!current) return;
+    const updatedAddresses = current.addresses.filter(a => a.tempId !== tempId);
     const updatedSession = {
-      ...session,
+      ...current,
       addresses: updatedAddresses,
       lastUpdated: new Date().toISOString()
     };
-    setSession(updatedSession);
+    updateSession(updatedSession);
     saveScanSession(updatedSession);
   };
 
@@ -391,18 +392,19 @@ export default function ScanCamera() {
   };
 
   const handleDocTypeChange = (newType) => {
-    if (!session) return;
+    const current = sessionRef.current;
+    if (!current) return;
     setDocumentType(newType);
     const updatedSession = {
-      ...session,
+      ...current,
       documentType: newType,
       lastUpdated: new Date().toISOString()
     };
-    setSession(updatedSession);
+    updateSession(updatedSession);
     saveScanSession(updatedSession);
     
-    if (session.dbSessionId) {
-      base44.entities.ScanSession.update(session.dbSessionId, {
+    if (current.dbSessionId) {
+      base44.entities.ScanSession.update(current.dbSessionId, {
         document_type: newType,
         last_activity_at: new Date().toISOString()
       });
