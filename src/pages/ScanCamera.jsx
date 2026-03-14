@@ -325,9 +325,11 @@ export default function ScanCamera() {
   };
 
   const handleCapture = async () => {
-    if (!videoRef.current || isProcessing) return;
+    // Hard lock — prevents double-tap before React state updates
+    if (!videoRef.current || processingLockRef.current) return;
+    processingLockRef.current = true;
     
-    // Capture the image
+    // Capture the image FIRST, then freeze
     const imageBase64 = captureAndCompressImage(videoRef.current);
     
     // Shutter effect — black out camera, pause video
@@ -338,11 +340,18 @@ export default function ScanCamera() {
     
     await processImage(imageBase64);
     
-    // Resume video after processing
+    // Hold shutter 800ms after processing so user moves to next document
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Resume video
     setShowShutter(false);
     if (videoRef.current) {
       videoRef.current.play().catch(() => {});
     }
+    
+    // Release lock after a brief cooldown so the camera gets a fresh frame
+    await new Promise(resolve => setTimeout(resolve, 200));
+    processingLockRef.current = false;
   };
 
   const handleFileUpload = async (event) => {
