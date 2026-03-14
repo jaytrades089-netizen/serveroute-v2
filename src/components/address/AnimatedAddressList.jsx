@@ -130,7 +130,7 @@ export default function AnimatedAddressList({
       return aSpreadDue - bSpreadDue;
     };
     
-    // Sort by order_index for original route order (fallback)
+    // Sort by order_index for optimized driving order
     const sortByOrder = (a, b) => (a.order_index || 999) - (b.order_index || 999);
     
     // When preserveOrder is true (combo routes), keep original array order
@@ -143,8 +143,13 @@ export default function AnimatedAddressList({
       };
     }
 
+    // If route is active/optimized, use order_index (GPS-based driving order)
+    // Otherwise fall back to spread due date sorting
+    const isActiveRoute = route?.status === 'active' && route?.optimized;
+    const activeSort = isActiveRoute ? sortByOrder : sortBySpreadDue;
+
     return {
-      activeAddresses: active.sort(sortBySpreadDue),
+      activeAddresses: active.sort(activeSort),
       attemptedTodayAddresses: attemptedToday.sort(sortBySpreadDue),
       completedAddresses: served.sort(sortByOrder)
     };
