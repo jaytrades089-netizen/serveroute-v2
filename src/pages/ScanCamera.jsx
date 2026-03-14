@@ -53,6 +53,8 @@ export default function ScanCamera() {
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingText, setProcessingText] = useState('');
+  const [showShutter, setShowShutter] = useState(false);
+  const lastCaptureRef = useRef(null);
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
@@ -319,8 +321,31 @@ export default function ScanCamera() {
 
   const handleCapture = async () => {
     if (!videoRef.current || isProcessing) return;
+    
+    // Capture the image
     const imageBase64 = captureAndCompressImage(videoRef.current);
+    
+    // Check for duplicate capture - compare first 200 chars of base64
+    const signature = imageBase64.substring(0, 200);
+    if (lastCaptureRef.current === signature) {
+      toast.warning('Same image detected — please move to the next document');
+      return;
+    }
+    lastCaptureRef.current = signature;
+    
+    // Shutter effect — black out camera, pause video
+    setShowShutter(true);
+    if (videoRef.current) {
+      videoRef.current.pause();
+    }
+    
     await processImage(imageBase64);
+    
+    // Resume video after processing
+    setShowShutter(false);
+    if (videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
   };
 
   const handleFileUpload = async (event) => {
@@ -482,12 +507,17 @@ export default function ScanCamera() {
           </div>
         )}
 
-        {isProcessing && (
-          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-            <div className="text-center text-white">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
-              <p className="text-sm">{processingText}</p>
-            </div>
+        {/* Shutter / Processing overlay */}
+        {(showShutter || isProcessing) && (
+          <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-150 ${
+            showShutter ? 'bg-black' : 'bg-black/70'
+          }`}>
+            {isProcessing && (
+              <div className="text-center text-white">
+                <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                <p className="text-sm">{processingText}</p>
+              </div>
+            )}
           </div>
         )}
       </div>
