@@ -63,6 +63,29 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
         const originalIndex = sequence[i] - 1;
         if (addresses[originalIndex]) optimized.push(addresses[originalIndex]);
       }
+      
+      // Sanity check: make sure the first address in the result is actually near
+      // the start point, not the end point. MapQuest optimizedroute can sometimes
+      // produce a path that goes far from start then returns, especially when
+      // start and end are near each other. If the LAST address is closer to start
+      // than the first, reverse the order.
+      if (optimized.length >= 2) {
+        const firstAddr = optimized[0];
+        const lastAddr = optimized[optimized.length - 1];
+        const firstLat = firstAddr.lat || firstAddr.latitude;
+        const firstLng = firstAddr.lng || firstAddr.longitude;
+        const lastLat = lastAddr.lat || lastAddr.latitude;
+        const lastLng = lastAddr.lng || lastAddr.longitude;
+        
+        const distToFirst = calculateDistanceFeet(startLat, startLng, firstLat, firstLng);
+        const distToLast = calculateDistanceFeet(startLat, startLng, lastLat, lastLng);
+        
+        if (distToLast < distToFirst * 0.6) {
+          console.log('MapQuest returned reversed order — flipping to start from nearest address');
+          optimized.reverse();
+        }
+      }
+      
       return optimized;
     }
     console.warn('MapQuest optimization failed, returning null');
