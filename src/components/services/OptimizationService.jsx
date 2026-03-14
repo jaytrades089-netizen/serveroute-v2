@@ -248,72 +248,57 @@ export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) 
 }
 
 export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, endLng, apiKey) {
-  console.log(`Optimizing ${addresses.length} addresses with zone clustering...`);
+  console.log(`Optimizing ${addresses.length} addresses — nearest-neighbor from GPS...`);
   if (!apiKey) throw new Error('MapQuest API key required for route optimization');
+  
   const validAddresses = addresses.filter(addr => (addr.lat || addr.latitude) && (addr.lng || addr.longitude));
   const invalidAddresses = addresses.filter(addr => !(addr.lat || addr.latitude) || !(addr.lng || addr.longitude));
+  
   if (validAddresses.length === 0) { console.warn('No addresses with coordinates to optimize'); return addresses; }
-  console.log('Step 1: Clustering addresses by geography...');
+
+  console.log(`  Start GPS: ${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+  console.log(`  End point: ${endLat?.toFixed(5)}, ${endLng?.toFixed(5)}`);
+  console.log(`  ${validAddresses.length} geocoded, ${invalidAddresses.length} without coords`);
+
+  // Step 1: Cluster addresses for zone labels only (cosmetic grouping)
+  console.log('Step 1: Clustering for zone labels...');
   const clusters = clusterAddresses(validAddresses);
-  console.log(`  Created ${clusters.length} clusters`);
-  console.log('Step 2: Ordering clusters by proximity to start point...');
-  console.log(`  Start: ${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
-  console.log(`  End: ${endLat?.toFixed(5)}, ${endLng?.toFixed(5)}`);
-  const orderedClusters = orderClusters(clusters, startLat, startLng, endLat, endLng);
-  for (let i = 0; i < orderedClusters.length; i++) {
-    const distFromStart = calculateDistanceFeet(startLat, startLng, orderedClusters[i].centroid.lat, orderedClusters[i].centroid.lng);
-    console.log(`  Zone ${i + 1}: ${orderedClusters[i].label} (${orderedClusters[i].addresses.length} addresses) - ${(distFromStart / 5280).toFixed(1)} miles from start`);
-  }
-  console.log('Step 3: Optimizing within each zone with MapQuest...');
-  const optimizedClusters = [];
-  for (let i = 0; i < orderedClusters.length; i++) {
-    const cluster = orderedClusters[i];
-    let zoneStartLat, zoneStartLng;
-    if (i === 0) { zoneStartLat = startLat; zoneStartLng = startLng; }
-    else {
-      const lastAddr = optimizedClusters[i - 1].addresses[optimizedClusters[i - 1].addresses.length - 1];
-      zoneStartLat = lastAddr.lat || lastAddr.latitude;
-      zoneStartLng = lastAddr.lng || lastAddr.longitude;
+  
+  // Build a map: address id → zone label
+  const zoneLabelMap = {};
+  for (const cluster of clusters) {
+    for (const addr of cluster.addresses) {
+      zoneLabelMap[addr.id] = cluster.label;
     }
-    let zoneEndLat, zoneEndLng;
-    if (i === orderedClusters.length - 1) { zoneEndLat = endLat || cluster.centroid.lat; zoneEndLng = endLng || cluster.centroid.lng; }
-    else { zoneEndLat = orderedClusters[i + 1].centroid.lat; zoneEndLng = orderedClusters[i + 1].centroid.lng; }
-    if (cluster.addresses.length > MAPQUEST_LIMIT) {
-      const chunks = splitIntoChunks(cluster.addresses, MAPQUEST_LIMIT);
-      let optimizedAddrs = [], chunkStartLat = zoneStartLat, chunkStartLng = zoneStartLng;
-      for (let j = 0; j < chunks.length; j++) {
-        const chunkEndLat = j === chunks.length - 1 ? zoneEndLat : chunks[j + 1][0].lat || chunks[j + 1][0].latitude;
-        const chunkEndLng = j === chunks.length - 1 ? zoneEndLng : chunks[j + 1][0].lng || chunks[j + 1][0].longitude;
-        const optimized = await optimizeChunkWithMapQuest(chunks[j], chunkStartLat, chunkStartLng, chunkEndLat, chunkEndLng, apiKey);
-        if (optimized) {
-          optimizedAddrs.push(...optimized);
-          const lastAddr = optimized[optimized.length - 1];
-          chunkStartLat = lastAddr.lat || lastAddr.latitude; chunkStartLng = lastAddr.lng || lastAddr.longitude;
-        } else {
-          const nnSorted = nearestNeighborSort(chunks[j], chunkStartLat, chunkStartLng);
-          optimizedAddrs.push(...nnSorted);
-          if (nnSorted.length > 0) { const lastAddr = nnSorted[nnSorted.length - 1]; chunkStartLat = lastAddr.lat || lastAddr.latitude; chunkStartLng = lastAddr.lng || lastAddr.longitude; }
-        }
-      }
-      optimizedClusters.push({ ...cluster, addresses: optimizedAddrs });
-    } else {
-      const optimized = await optimizeChunkWithMapQuest(cluster.addresses, zoneStartLat, zoneStartLng, zoneEndLat, zoneEndLng, apiKey);
-      if (optimized) optimizedClusters.push({ ...cluster, addresses: optimized });
-      else {
-        const nnSorted = nearestNeighborSort(cluster.addresses, zoneStartLat, zoneStartLng);
-        optimizedClusters.push({ ...cluster, addresses: nnSorted });
-      }
-    }
-    console.log(`  Zone ${i + 1}/${orderedClusters.length} optimized: ${cluster.label}`);
   }
-  console.log('Step 4: Stitching zones together...');
+
+  // Step 2: Pure nearest-neighbor sort starting from GPS position
+  // This GUARANTEES address #1 is closest to you, #2 closest to #1, etc.
+  console.log('Step 2: Nearest-neighbor ordering from your current location...');
+  const sorted = nearestNeighborSort(validAddresses, startLat, startLng);
+
+  // Step 3: Log the result for debugging
+  if (sorted.length > 0) {
+    const firstAddr = sorted[0];
+    const lastAddr = sorted[sorted.length - 1];
+    const distToFirst = calculateDistanceFeet(startLat, startLng, firstAddr.lat || firstAddr.latitude, firstAddr.lng || firstAddr.longitude);
+    const distToLast = calculateDistanceFeet(startLat, startLng, lastAddr.lat || lastAddr.latitude, lastAddr.lng || lastAddr.longitude);
+    console.log(`  First stop: ${(distToFirst / 5280).toFixed(1)} mi from you`);
+    console.log(`  Last stop: ${(distToLast / 5280).toFixed(1)} mi from you`);
+  }
+
+  // Step 4: Build final order with zone labels and order indices
+  console.log('Step 3: Assigning order indices...');
   const finalOrder = [];
   let orderIndex = 1;
-  for (const cluster of optimizedClusters) {
-    for (const addr of cluster.addresses) finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: cluster.label });
+  for (const addr of sorted) {
+    finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: zoneLabelMap[addr.id] || null });
   }
-  for (const addr of invalidAddresses) finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: 'No Location' });
-  if (invalidAddresses.length > 0) console.warn(`${invalidAddresses.length} addresses had no coordinates - appended to end`);
-  console.log('Zone-based optimization complete!');
+  for (const addr of invalidAddresses) {
+    finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: 'No Location' });
+  }
+  
+  if (invalidAddresses.length > 0) console.warn(`${invalidAddresses.length} addresses had no coordinates — appended to end`);
+  console.log(`Optimization complete! ${finalOrder.length} addresses ordered from your location.`);
   return finalOrder;
 }
