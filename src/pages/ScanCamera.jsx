@@ -380,6 +380,8 @@ export default function ScanCamera() {
     saveScanSession(updatedSession);
   };
 
+  const isAddToRouteMode = urlParams.get('mode') === 'addToRoute';
+
   const handleSaveRoute = () => {
     if (!session || session.addresses.length === 0) return;
     
@@ -389,7 +391,12 @@ export default function ScanCamera() {
       lastUpdated: new Date().toISOString()
     };
     saveScanSession(updatedSession);
-    navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}`));
+    
+    if (isAddToRouteMode) {
+      navigate(createPageUrl(`ScanAddToRoute?sessionId=${session.id}`));
+    } else {
+      navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}`));
+    }
   };
 
   const handleDocTypeChange = (newType) => {
@@ -690,12 +697,15 @@ export default function ScanCamera() {
       {/* Save Route Button - Fixed Bottom */}
       <div className="bg-white border-t p-4">
         <Button
-          className="w-full bg-orange-500 hover:bg-orange-600 text-white h-12 text-base"
+          className={`w-full h-12 text-base text-white ${isAddToRouteMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600'}`}
           onClick={handleSaveRoute}
           disabled={session.addresses.length === 0}
         >
           <Save className="w-5 h-5 mr-2" />
-          Save Route ({session.addresses.length} address{session.addresses.length !== 1 ? 'es' : ''})
+          {isAddToRouteMode 
+            ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})` 
+            : `Save Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
+          }
         </Button>
       </div>
     </div>
