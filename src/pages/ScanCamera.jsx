@@ -49,6 +49,7 @@ export default function ScanCamera() {
   const fileInputRef = useRef(null);
   
   const [session, setSession] = useState(null);
+  const sessionRef = useRef(null);
   const [documentType, setDocumentType] = useState('serve');
   const [cameraStatus, setCameraStatus] = useState('initializing');
   const [isProcessing, setIsProcessing] = useState(false);
