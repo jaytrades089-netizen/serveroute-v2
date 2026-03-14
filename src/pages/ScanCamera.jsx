@@ -231,7 +231,9 @@ export default function ScanCamera() {
   }, [session]);
 
   const processImage = async (imageBase64) => {
-    if (!session) return;
+    // Always read from ref to avoid stale closure
+    const currentSession = sessionRef.current;
+    if (!currentSession) return;
 
     setIsProcessing(true);
     setProcessingText('Processing image...');
@@ -256,8 +258,8 @@ export default function ScanCamera() {
 
       const response = await base44.functions.invoke('processOCR', {
         imageBase64,
-        documentType: session.documentType,
-        sessionId: session.dbSessionId
+        documentType: currentSession.documentType,
+        sessionId: currentSession.dbSessionId
       });
 
       const result = response.data;
@@ -268,16 +270,16 @@ export default function ScanCamera() {
       }
 
       const newAddress = {
-        tempId: `temp_${Date.now()}`,
+        tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
         imageBase64,
         ocrRawText: result.rawText,
         extractedData: {
           street: result.parsedAddress.street,
-                  city: result.parsedAddress.city,
-                  state: result.parsedAddress.state,
-                  zip: result.parsedAddress.zip,
-                  fullAddress: `${result.parsedAddress.street}, ${result.parsedAddress.city}, ${result.parsedAddress.state} ${result.parsedAddress.zip}`,
-                  documentType: session.documentType
+          city: result.parsedAddress.city,
+          state: result.parsedAddress.state,
+          zip: result.parsedAddress.zip,
+          fullAddress: `${result.parsedAddress.street}, ${result.parsedAddress.city}, ${result.parsedAddress.state} ${result.parsedAddress.zip}`,
+          documentType: currentSession.documentType
         },
         defendantName: result.defendantName,
         confidence: result.confidence,
@@ -288,18 +290,20 @@ export default function ScanCamera() {
         error: null
       };
 
-      const updatedAddresses = [newAddress, ...session.addresses];
+      // Re-read ref to get the absolute latest (in case another capture completed between await calls)
+      const latestSession = sessionRef.current;
+      const updatedAddresses = [newAddress, ...latestSession.addresses];
       const updatedSession = {
-        ...session,
+        ...latestSession,
         addresses: updatedAddresses,
         lastUpdated: new Date().toISOString()
       };
 
-      setSession(updatedSession);
+      updateSession(updatedSession);
       saveScanSession(updatedSession);
 
-      if (session.dbSessionId) {
-        base44.entities.ScanSession.update(session.dbSessionId, {
+      if (latestSession.dbSessionId) {
+        base44.entities.ScanSession.update(latestSession.dbSessionId, {
           address_count: updatedAddresses.length,
           completed_count: updatedAddresses.filter(a => a.status === 'extracted').length,
           failed_count: updatedAddresses.filter(a => a.status === 'failed').length,
@@ -307,15 +311,9 @@ export default function ScanCamera() {
         });
       }
 
-      if (result.success) {
-        // Record successful OCR call for rate limiting
-        ocrRateLimiter.record();
-        toast.success('Address extracted');
-      } else {
-        toast.warning('Could not extract address - try again or adjust the document');
-        // Don't add failed scans to the list
-        return;
-      }
+      // Record successful OCR call for rate limiting
+      ocrRateLimiter.record();
+      toast.success('Address extracted');
 
     } catch (error) {
       console.error('OCR error:', error);
