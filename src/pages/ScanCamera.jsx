@@ -57,6 +57,12 @@ export default function ScanCamera() {
   const [showShutter, setShowShutter] = useState(false);
   const lastCaptureRef = useRef(null);
 
+  // Helper to update both state and ref atomically
+  const updateSession = (newSession) => {
+    sessionRef.current = newSession;
+    setSession(newSession);
+  };
+
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
   const sessionId = urlParams.get('sessionId');
