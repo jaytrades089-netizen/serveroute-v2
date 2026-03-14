@@ -33,7 +33,16 @@ export default function WorkerAddresses() {
         base44.entities.Address.filter({ route_id: r.id, deleted_at: null })
       );
       const results = await Promise.all(addressPromises);
-      return results.flat().filter(a => !a.served);
+      return results.flat()
+        .filter(a => !a.served)
+        .sort((a, b) => {
+          const aIdx = (a.order_index && a.order_index > 0) ? a.order_index : null;
+          const bIdx = (b.order_index && b.order_index > 0) ? b.order_index : null;
+          if (aIdx !== null && bIdx !== null) return aIdx - bIdx;
+          if (aIdx !== null) return -1;
+          if (bIdx !== null) return 1;
+          return new Date(a.created_date || 0) - new Date(b.created_date || 0);
+        });
     },
     enabled: activeRoutes.length > 0
   });

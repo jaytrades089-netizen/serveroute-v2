@@ -90,7 +90,14 @@ export default function WorkerRouteDetail() {
     queryFn: async () => {
       if (!routeId) return [];
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
-      return addrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      return addrs.sort((a, b) => {
+        const aIdx = (a.order_index && a.order_index > 0) ? a.order_index : null;
+        const bIdx = (b.order_index && b.order_index > 0) ? b.order_index : null;
+        if (aIdx !== null && bIdx !== null) return aIdx - bIdx;
+        if (aIdx !== null) return -1;
+        if (bIdx !== null) return 1;
+        return new Date(a.created_date || 0) - new Date(b.created_date || 0);
+      });
     },
     enabled: !!routeId,
     refetchInterval: route?.status === 'active' ? 30000 : false,
@@ -647,6 +654,19 @@ export default function WorkerRouteDetail() {
         )}
 
         <DesktopWarningBanner />
+
+        {/* Unoptimized addresses warning */}
+        {route?.optimized && addresses.some(a => !a.order_index || a.order_index <= 0) && activeRouteTab === 'addresses' && (
+          <div className="mb-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3 flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-yellow-800">Some stops weren't fully optimized</p>
+              <p className="text-xs text-yellow-700 mt-0.5">
+                {addresses.filter(a => !a.order_index || a.order_index <= 0).length} address{addresses.filter(a => !a.order_index || a.order_index <= 0).length !== 1 ? 'es' : ''} couldn't be located and are shown at the end. Re-optimize to fix.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Addresses / Scheduled Tabs */}
         <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
