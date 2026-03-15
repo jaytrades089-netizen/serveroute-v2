@@ -304,6 +304,20 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         apiKey
       );
 
+      // Show debug info about optimization result
+      if (optimizedAddresses.length > 0) {
+        const first = optimizedAddresses[0];
+        const firstLabel = (first.normalized_address || first.legal_address || '').substring(0, 40);
+        const distFeet = Math.round(
+          Math.sqrt(
+            Math.pow((first.lat - startLat) * 364000, 2) + 
+            Math.pow((first.lng - startLng) * 288200, 2)
+          )
+        );
+        const distMiles = (distFeet / 5280).toFixed(1);
+        toast.success(`First stop: ${firstLabel} (${distMiles} mi from GPS)`, { duration: 8000 });
+      }
+
       // Calculate route metrics
       const locations = [
         `${startLat},${startLng}`,
