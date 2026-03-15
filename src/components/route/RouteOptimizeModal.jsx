@@ -415,9 +415,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         est_completion_time: estCompletion.completionTime.toISOString(),
         est_total_minutes: estCompletion.totalMinutes
       });
-      await queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       toast.success('Route started!');
       if (onOptimized) onOptimized();
     } catch (error) {
