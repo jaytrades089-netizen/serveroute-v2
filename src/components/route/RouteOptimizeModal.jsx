@@ -290,7 +290,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
-      console.log(`Optimizing ${validAddresses.length} addresses using zone clustering...`);
+      console.log(`Optimizing ${validAddresses.length} addresses...`);
+      console.log('GPS start:', startLat, startLng);
+      console.log('End location:', endLocation.address, endLocation.latitude, endLocation.longitude);
+      toast.info(`Optimizing ${validAddresses.length} stops from GPS (${startLat.toFixed(4)}, ${startLng.toFixed(4)})...`);
 
       const optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
