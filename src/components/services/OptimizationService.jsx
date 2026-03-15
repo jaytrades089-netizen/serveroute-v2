@@ -49,6 +49,9 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
     { latLng: { lat: endLat, lng: endLng } }
   ];
   const url = `https://www.mapquestapi.com/directions/v2/optimizedroute?key=${apiKey}`;
+  
+  console.log(`  MapQuest optimizedroute: ${locations.length} locations (1 start + ${addresses.length} stops + 1 end)`);
+  
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -56,19 +59,25 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
       body: JSON.stringify({ locations, options: { routeType: 'fastest' } })
     });
     const result = await response.json();
+    
+    console.log(`  MapQuest response status: ${response.status}, info: ${result.info?.statuscode}, messages: ${JSON.stringify(result.info?.messages || [])}`);
+    
     if (result.route?.locationSequence) {
       const sequence = result.route.locationSequence;
+      console.log(`  MapQuest locationSequence: [${sequence.join(', ')}]`);
+      
       const optimized = [];
       for (let i = 1; i < sequence.length - 1; i++) {
         const originalIndex = sequence[i] - 1;
-        if (addresses[originalIndex]) optimized.push(addresses[originalIndex]);
+        if (originalIndex >= 0 && originalIndex < addresses.length) {
+          optimized.push(addresses[originalIndex]);
+        } else {
+          console.warn(`  MapQuest sequence index ${sequence[i]} out of bounds (addresses: ${addresses.length})`);
+        }
       }
       
-      // Sanity check: make sure the first address in the result is actually near
-      // the start point, not the end point. MapQuest optimizedroute can sometimes
-      // produce a path that goes far from start then returns, especially when
-      // start and end are near each other. If the LAST address is closer to start
-      // than the first, reverse the order.
+      // Sanity check: if the last address is significantly closer to GPS start
+      // than the first address, MapQuest may have produced a reversed path.
       if (optimized.length >= 2) {
         const firstAddr = optimized[0];
         const lastAddr = optimized[optimized.length - 1];
@@ -80,18 +89,21 @@ async function optimizeChunkWithMapQuest(addresses, startLat, startLng, endLat, 
         const distToFirst = calculateDistanceFeet(startLat, startLng, firstLat, firstLng);
         const distToLast = calculateDistanceFeet(startLat, startLng, lastLat, lastLng);
         
+        console.log(`  Distance to first stop: ${(distToFirst / 5280).toFixed(1)} mi, to last: ${(distToLast / 5280).toFixed(1)} mi`);
+        
         if (distToLast < distToFirst * 0.6) {
-          console.log('MapQuest returned reversed order — flipping to start from nearest address');
+          console.log('  MapQuest returned reversed order — flipping to start from nearest address');
           optimized.reverse();
         }
       }
       
       return optimized;
     }
-    console.warn('MapQuest optimization failed, returning null');
+    
+    console.warn(`  MapQuest optimization failed — no locationSequence. Full response info: ${JSON.stringify(result.info || {})}`);
     return null;
   } catch (error) {
-    console.error('MapQuest API error:', error);
+    console.error('  MapQuest API error:', error.message || error);
     return null;
   }
 }
