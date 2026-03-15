@@ -307,13 +307,21 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     chunks.push(preSorted.slice(i, i + CHUNK_SIZE));
   }
 
+  // DEBUG: Log pre-sort order so we can compare with MapQuest result
+  console.log('  Pre-sort order (nearest-neighbor from GPS):');
+  preSorted.forEach((addr, idx) => {
+    const addrLabel = (addr.normalized_address || addr.legal_address || '').substring(0, 30);
+    console.log(`    ${idx + 1}. ${addrLabel} (${(addr.lat || addr.latitude)?.toFixed(4)}, ${(addr.lng || addr.longitude)?.toFixed(4)})`);
+  });
+
   const sequencedAddresses = [];
   let chunkStartLat = startLat;
   let chunkStartLng = startLng;
+  let mapquestUsed = false;
 
   for (let i = 0; i < chunks.length; i++) {
     const chunk = chunks[i];
-    console.log(`  Chunk ${i + 1}/${chunks.length}: ${chunk.length} addresses`);
+    console.log(`  Chunk ${i + 1}/${chunks.length}: ${chunk.length} addresses, start: ${chunkStartLat.toFixed(5)}, ${chunkStartLng.toFixed(5)}`);
 
     const mqResult = await optimizeChunkWithMapQuest(
       chunk,
@@ -325,19 +333,27 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     );
 
     if (mqResult && mqResult.length > 0) {
-      console.log(`  Chunk ${i + 1}: MapQuest succeeded`);
+      console.log(`  Chunk ${i + 1}: MapQuest succeeded — resequenced ${mqResult.length} addresses`);
+      mapquestUsed = true;
       sequencedAddresses.push(...mqResult);
       const lastAddr = mqResult[mqResult.length - 1];
       chunkStartLat = lastAddr.lat || lastAddr.latitude;
       chunkStartLng = lastAddr.lng || lastAddr.longitude;
     } else {
-      console.warn(`  Chunk ${i + 1}: MapQuest failed — using nearest-neighbor fallback`);
+      console.warn(`  Chunk ${i + 1}: MapQuest FAILED — using nearest-neighbor fallback`);
       sequencedAddresses.push(...chunk);
       const lastAddr = chunk[chunk.length - 1];
       chunkStartLat = lastAddr.lat || lastAddr.latitude;
       chunkStartLng = lastAddr.lng || lastAddr.longitude;
     }
   }
+
+  // DEBUG: Log final order
+  console.log(`  Final sequence (${mapquestUsed ? 'MapQuest' : 'nearest-neighbor ONLY'}):`);
+  sequencedAddresses.forEach((addr, idx) => {
+    const addrLabel = (addr.normalized_address || addr.legal_address || '').substring(0, 30);
+    console.log(`    ${idx + 1}. ${addrLabel}`);
+  });
 
   // Step 4: Log first/last stop distances for debugging
   if (sequencedAddresses.length > 0) {
