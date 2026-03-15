@@ -379,7 +379,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         last_used: new Date().toISOString()
       });
 
-      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      // Force immediate refetch so the address list updates right away
+      await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      await queryClient.refetchQueries({ queryKey: ['route', routeId] });
       toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {
