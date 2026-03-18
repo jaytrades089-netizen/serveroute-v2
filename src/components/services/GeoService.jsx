@@ -103,7 +103,7 @@ export function getCurrentPosition(options = {}) {
       {
         enableHighAccuracy: !isMobile, // High accuracy more important on desktop
         timeout: isMobile ? 10000 : 20000, // Longer timeout for PC
-        maximumAge: isMobile ? 0 : 60000, // Allow cached position on PC (up to 1 minute)
+        maximumAge: isMobile ? 30000 : 60000, // Allow 30s cached position on mobile, 60s on PC
         ...options
       }
     );
