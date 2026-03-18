@@ -521,10 +521,16 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             <SelectContent>
               {savedLocations.map(loc => (
                 <SelectItem key={loc.id} value={loc.id}>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 w-full">
                     {getLocationIcon(loc.label)}
                     <span className="font-medium">{loc.label}</span>
-                    <span className="text-gray-400 text-sm truncate max-w-[150px]">- {loc.address}</span>
+                    <span className="text-gray-400 text-sm truncate max-w-[120px]">- {loc.address}</span>
+                    <button
+                      className="ml-auto p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
+                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
+                    >
+                      <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
+                    </button>
                   </div>
                 </SelectItem>
               ))}
@@ -541,10 +547,16 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <SelectContent>
             {savedLocations.map(loc => (
               <SelectItem key={loc.id} value={loc.id}>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full">
                   {getLocationIcon(loc.label)}
                   <span className="font-medium">{loc.label}</span>
-                  <span className="text-gray-400 text-sm truncate max-w-[150px]">- {loc.address}</span>
+                  <span className="text-gray-400 text-sm truncate max-w-[120px]">- {loc.address}</span>
+                  <button
+                    className="ml-auto p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
+                  >
+                    <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
+                  </button>
                 </div>
               </SelectItem>
             ))}
