@@ -49,6 +49,20 @@ export default function Chat() {
 
   const isBoss = user?.role === 'boss' || user?.role === 'admin';
 
+  // Presence ping — update last_active_at when Chat opens
+  useEffect(() => {
+    if (!user?.id) return;
+    base44.auth.updateMe({ last_active_at: new Date().toISOString() });
+  }, [user?.id]);
+
+  // Returns true if the user has been active in the last 30 minutes
+  const isUserActive = (u) => {
+    if (!u) return false;
+    if (u.worker_status === 'active') return true;
+    if (!u.last_active_at) return false;
+    return (Date.now() - new Date(u.last_active_at).getTime()) < 30 * 60 * 1000;
+  };
+
   // Get all conversations for this company
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery({
     queryKey: ['chatConversations', user?.company_id],
@@ -58,7 +72,7 @@ export default function Chat() {
       return convos;
     },
     enabled: !!user?.company_id,
-    refetchInterval: 15000
+    refetchInterval: isUserActive(user) ? 15000 : false
   });
 
   // Get company users for starting new chats
@@ -80,7 +94,15 @@ export default function Chat() {
       return base44.entities.ChatMessage.filter({ conversation_id: selectedConversation.id }, 'created_date');
     },
     enabled: !!selectedConversation?.id,
-    refetchInterval: 3000
+    refetchInterval: (() => {
+      if (!isUserActive(user)) return false;
+      if (selectedConversation?.type === 'direct') {
+        const otherUserId = selectedConversation.participant_ids?.find(id => id !== user?.id);
+        const otherUser = companyUsers.find(u => u.id === otherUserId);
+        if (otherUser && !isUserActive(otherUser)) return 60000;
+      }
+      return 10000;
+    })()
   });
 
   // Get unread counts
@@ -91,7 +113,7 @@ export default function Chat() {
       return base44.entities.ChatParticipant.filter({ user_id: user.id });
     },
     enabled: !!user?.id,
-    refetchInterval: 5000
+    refetchInterval: isUserActive(user) ? 10000 : false
   });
 
   // Scroll to bottom when messages change

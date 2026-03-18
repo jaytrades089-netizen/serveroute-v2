@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ArrowLeft, Loader2 } from 'lucide-react';
@@ -18,6 +18,7 @@ import BossBottomNav from '../components/boss/BossBottomNav';
 
 export default function CreateRoute() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   
   const [form, setForm] = useState({
     folder_name: '',
@@ -64,6 +65,8 @@ export default function CreateRoute() {
     },
     onSuccess: (newRoute) => {
       toast.success('Route created');
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
       navigate(createPageUrl(`RouteEditor?id=${newRoute.id}`));
     },
     onError: (error) => {

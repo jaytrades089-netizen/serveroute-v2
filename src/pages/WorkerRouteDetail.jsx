@@ -100,7 +100,6 @@ export default function WorkerRouteDetail() {
       });
     },
     enabled: !!routeId,
-    refetchInterval: route?.status === 'active' ? 30000 : false,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000
   });
@@ -619,8 +618,8 @@ export default function WorkerRouteDetail() {
                     timestamp: new Date().toISOString()
                   });
                   
-                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                  queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+                  await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+                  await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
                   toast.success('Route completed! All addresses served.');
                   navigate(createPageUrl('WorkerRoutes'));
                 } catch (error) {
