@@ -660,6 +660,23 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           </Button>
         </div>
       </div>
+
+      <AlertDialog open={!!deletingLocationId} onOpenChange={(open) => { if (!open) setDeletingLocationId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete saved location?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove this location from your saved list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-red-500 hover:bg-red-600" onClick={() => handleDeleteLocation(deletingLocationId)}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
