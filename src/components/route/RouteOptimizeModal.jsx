@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertCircle } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { optimizeWithHybrid, geocodeAddress } from '@/components/services/OptimizationService';
 
 const TIME_AT_ADDRESS_OPTIONS = [
@@ -36,6 +37,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [timeAtAddress, setTimeAtAddress] = useState(2);
   const [isOptimized, setIsOptimized] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [deletingLocationId, setDeletingLocationId] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -71,6 +73,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     },
     enabled: !!user?.id
   });
+
+  const handleDeleteLocation = async (locId) => {
+    try {
+      await base44.entities.SavedLocation.delete(locId);
+      if (selectedEndLocation === locId) setSelectedEndLocation('');
+      if (selectedStartLocation === locId) setSelectedStartLocation('');
+      refetchLocations();
+      toast.success('Location deleted');
+    } catch (error) {
+      toast.error('Failed to delete location');
+    }
+    setDeletingLocationId(null);
+  };
 
   const getLocationIcon = (label) => {
     const lower = label.toLowerCase();
