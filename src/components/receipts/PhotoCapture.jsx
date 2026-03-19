@@ -238,7 +238,11 @@ export default function PhotoCapture({ photos, onPhotosChange, maxPhotos = 5, mi
 
       {/* Camera Modal */}
       <Dialog open={showCamera} onOpenChange={(open) => !open && closeCamera()}>
-        <DialogContent className="max-w-md p-0 overflow-hidden">
+        <DialogContent
+          className="max-w-md p-0 overflow-hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <div className="relative bg-black">
             <video
               ref={videoRef}

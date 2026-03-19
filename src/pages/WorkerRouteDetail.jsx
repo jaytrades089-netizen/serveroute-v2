@@ -45,6 +45,7 @@ export default function WorkerRouteDetail() {
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
   const [activeRouteTab, setActiveRouteTab] = useState(tabParam || 'addresses');
   const [showStopModal, setShowStopModal] = useState(false);
+  const [isCompletingRoute, setIsCompletingRoute] = useState(false);
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
@@ -578,7 +579,10 @@ export default function WorkerRouteDetail() {
         {route.status === 'active' && pendingAddresses.length === 0 && (
           <div className="mb-4">
             <Button 
+              disabled={isCompletingRoute}
               onClick={async () => {
+                if (isCompletingRoute) return;
+                setIsCompletingRoute(true);
                 try {
                   await base44.entities.Route.update(routeId, {
                     status: 'completed',
@@ -625,9 +629,11 @@ export default function WorkerRouteDetail() {
                   navigate(createPageUrl('WorkerRoutes'));
                 } catch (error) {
                   toast.error('Failed to complete route');
+                } finally {
+                  setIsCompletingRoute(false);
                 }
-              }}
-              className="w-full bg-green-500 hover:bg-green-600"
+                }}
+                className="w-full bg-green-500 hover:bg-green-600"
             >
               <CheckCircle className="w-4 h-4 mr-2" /> Complete Route
             </Button>

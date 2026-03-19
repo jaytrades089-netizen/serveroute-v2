@@ -24,7 +24,11 @@ export default function RTOModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md mx-4">
+      <DialogContent
+        className="max-w-md mx-4"
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-red-600">
             <RotateCcw className="w-5 h-5" />
