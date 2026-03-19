@@ -83,12 +83,25 @@ export function restoreFromDevice(queryClient) {
       return false;
     }
 
+    const HIGH_CHURN_PREFIXES = [
+      'workerRoutes',
+      'routeAddresses',
+      'routeAttempts',
+      'workerAttempts',
+      'route',
+    ];
+
+    const isHighChurn = (queryKey) => {
+      const keyStr = Array.isArray(queryKey) ? queryKey[0] : queryKey;
+      return HIGH_CHURN_PREFIXES.some(prefix => keyStr === prefix || keyStr?.startsWith?.(prefix));
+    };
+
     let restored = 0;
     for (const [, entry] of Object.entries(payload.queries)) {
       if (!entry.data || !entry.queryKey) continue;
 
       queryClient.setQueryData(entry.queryKey, entry.data, {
-        updatedAt: entry.dataUpdatedAt,
+        updatedAt: isHighChurn(entry.queryKey) ? 0 : entry.dataUpdatedAt,
       });
       restored++;
     }
