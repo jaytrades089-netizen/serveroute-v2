@@ -198,9 +198,15 @@ export default function AddressCard({
     enabled: !!address.has_pending_request
   });
   
-  // Sync local attempts with props
+  // Sync local attempts with props — preserve any pending temp attempts
   React.useEffect(() => {
-    setLocalAttempts(allAttempts);
+    setLocalAttempts(prev => {
+      const pendingTemps = prev.filter(a => a.id?.startsWith('temp_'));
+      if (pendingTemps.length === 0) return allAttempts;
+      // Keep temps that don't yet exist on the server, merge with server data
+      const serverIds = new Set(allAttempts.map(a => a.id));
+      return [...allAttempts, ...pendingTemps.filter(t => !serverIds.has(t.id))];
+    });
   }, [allAttempts]);
 
   // Hide bottom nav when camera is open
@@ -282,6 +288,7 @@ export default function AddressCard({
     const photoToUpload = capturedPhoto;
     setCapturedPhoto(null);
     setShowCommentModal(false);
+    setSavingEvidence(true);
     
     // Show instant feedback
     toast.success('Saving evidence...', { duration: 1500 });
@@ -455,6 +462,8 @@ export default function AddressCard({
     } catch (error) {
       console.error('Failed to save evidence:', error);
       toast.error('Failed to save - please try again');
+    } finally {
+      setSavingEvidence(false);
     }
   };
 

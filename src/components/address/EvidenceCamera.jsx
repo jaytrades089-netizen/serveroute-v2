@@ -139,7 +139,12 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && handleClose()}>
-      <DialogContent className="max-w-lg p-0 overflow-hidden bg-black" aria-describedby={undefined}>
+      <DialogContent
+        className="max-w-lg p-0 overflow-hidden bg-black"
+        aria-describedby={undefined}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <DialogTitle className="sr-only">Capture Evidence</DialogTitle>
         {/* Hidden file input for upload fallback */}
         <input 
