@@ -94,17 +94,34 @@ export default function Layout({ children, currentPageName }) {
       try {
         const isAuthenticated = await base44.auth.isAuthenticated();
         if (!isAuthenticated) {
+          const localToken = localStorage.getItem('base44_access_token');
+          if (localToken) {
+            return null;
+          }
           return null;
         }
         return await base44.auth.me();
       } catch (err) {
         console.warn('Auth check failed:', err);
+        const localToken = localStorage.getItem('base44_access_token');
+        if (localToken) {
+          const cached = queryClient.getQueryData(['currentUser']);
+          if (cached && cached.id) return cached;
+          try {
+            return await base44.auth.me();
+          } catch {
+            return queryClient.getQueryData(['currentUser']) || null;
+          }
+        }
         return null;
       }
     },
-    retry: 1,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false
+    retry: 2,
+    retryDelay: 2000,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true
   });
 
   // Compute role flags
@@ -121,6 +138,13 @@ export default function Layout({ children, currentPageName }) {
     
     // Skip if on auth-related path
     if (currentPath.includes('auth') || currentPath === '/login' || currentPath === '/Login') {
+      return;
+    }
+
+    // Do not redirect if a local token exists — the query may still be resolving
+    // or the network may be temporarily unavailable.
+    const localToken = localStorage.getItem('base44_access_token');
+    if (localToken) {
       return;
     }
 
