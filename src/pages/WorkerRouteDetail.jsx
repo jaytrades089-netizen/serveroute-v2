@@ -222,7 +222,8 @@ export default function WorkerRouteDetail() {
     const now = new Date();
     const elapsedMinutes = Math.round((now - startTime) / 60000);
     
-    const remainingAddresses = progress.total - progress.completed;
+    const visitedCount = addresses.filter(a => a.served || a.status !== 'pending').length;
+    const remainingAddresses = Math.max(0, progress.total - visitedCount);
     const timeAtAddress = route.time_at_address_minutes || 2;
     
     // Estimate remaining drive time proportionally
