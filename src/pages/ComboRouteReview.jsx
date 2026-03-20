@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { ChevronLeft, Loader2, MapPin, AlertCircle, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatAddress } from '@/components/utils/addressUtils';
-import BottomNav from '@/components/layout/BottomNav';
+
 
 export default function ComboRouteReview() {
   const navigate = useNavigate();
