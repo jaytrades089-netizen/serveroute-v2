@@ -180,7 +180,7 @@ export default function ComboRouteReview() {
         </Button>
       </main>
 
-      <BottomNav currentPage="WorkerRoutes" />
+
     </div>
   );
 }
