@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -75,6 +75,34 @@ export default function EvidenceCommentModal({
           <p className="text-xs text-red-500 mt-1">
             Comment required
           </p>
+        )}
+
+        {saving && (
+          <div className="mt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <Loader2 className="w-4 h-4 animate-spin text-green-600" />
+              <span className="text-sm font-semibold text-green-700">Uploading evidence...</span>
+            </div>
+            <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-green-500 rounded-full transition-all duration-500 ease-out"
+                style={{ 
+                  width: '90%',
+                  animation: 'progress-fill 3s ease-out forwards'
+                }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1.5 text-center">Please wait — do not close</p>
+            <style>{`
+              @keyframes progress-fill {
+                0% { width: 5%; }
+                30% { width: 40%; }
+                60% { width: 65%; }
+                80% { width: 80%; }
+                100% { width: 90%; }
+              }
+            `}</style>
+          </div>
         )}
 
         <div className="flex gap-3 mt-4">
