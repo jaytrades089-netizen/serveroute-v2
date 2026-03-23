@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
 import ComboRouteCard from '../components/common/ComboRouteCard';
 import AddressSearch from '../components/common/AddressSearch';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 
 export default function WorkerRoutes() {
@@ -408,20 +408,20 @@ export default function WorkerRoutes() {
                   const servesInGroup = servesByDate[dateKey] || [];
 
                   return (
-                    <div key={dateKey}>
-                      <div className="flex items-center gap-2 mb-2 mt-2">
-                        <Calendar className="w-4 h-4 text-blue-500" />
-                        <h2 className="text-sm font-bold text-blue-700">
-                          Scheduled for {dayLabel}
-                        </h2>
-                      </div>
-                      <div className="space-y-3">
-                        {routesInGroup.map(renderRouteCard)}
-                        {servesInGroup.map(s => (
-                          <ScheduledServeCard key={s.id} serve={s} />
-                        ))}
-                      </div>
+                  <div key={dateKey}>
+                    <div className="bg-blue-600 text-white rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-white flex-shrink-0" />
+                      <h2 className="text-sm font-bold truncate">
+                        {isToday(dt) ? `Today — ${format(dt, 'EEE, MMM d')}` : isTomorrow(dt) ? `Tomorrow — ${format(dt, 'EEE, MMM d')}` : format(dt, 'EEEE, MMM d')}
+                      </h2>
                     </div>
+                    <div className="space-y-3">
+                      {routesInGroup.map(renderRouteCard)}
+                      {servesInGroup.map(s => (
+                        <ScheduledServeCard key={s.id} serve={s} />
+                      ))}
+                    </div>
+                  </div>
                   );
                 })}
 
