@@ -284,14 +284,9 @@ export default function AddressCard({
       return;
     }
     
-    // OPTIMISTIC: Close modal immediately for instant feedback
+    // Keep modal open with progress bar while saving
     const photoToUpload = capturedPhoto;
-    setCapturedPhoto(null);
-    setShowCommentModal(false);
     setSavingEvidence(true);
-    
-    // Show instant feedback
-    toast.success('Saving evidence...', { duration: 1500 });
     
     // Continue upload in background
     try {
