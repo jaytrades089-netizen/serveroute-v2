@@ -700,7 +700,15 @@ export default function WorkerRouteDetail() {
         </div>
 
         {activeRouteTab === 'scheduled' ? (
-          <ScheduledServesTab routeId={routeId} />
+          <ScheduledServesTab routeId={routeId} onViewAddress={(addressId) => {
+            setSearchFilter(addressId);
+            setActiveRouteTab('addresses');
+            // Update URL params
+            const newParams = new URLSearchParams(window.location.search);
+            newParams.set('addressId', addressId);
+            newParams.set('tab', 'addresses');
+            window.history.replaceState({}, '', `${window.location.pathname}?${newParams.toString()}`);
+          }} />
         ) : (
         <>
         {/* Search Filter Banner */}
