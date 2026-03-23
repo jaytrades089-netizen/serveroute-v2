@@ -294,6 +294,10 @@ export default function AddressCard({
       const { file_url } = await base44.integrations.Core.UploadFile({ 
         file: photoToUpload.file 
       });
+
+      // Close modal now that upload is done
+      setCapturedPhoto(null);
+      setShowCommentModal(false);
       
       if (hasInProgressAttempt) {
         // Add photo to existing in_progress attempt
@@ -457,6 +461,7 @@ export default function AddressCard({
     } catch (error) {
       console.error('Failed to save evidence:', error);
       toast.error('Failed to save - please try again');
+      // Keep modal open on error so user can retry
     } finally {
       setSavingEvidence(false);
     }
