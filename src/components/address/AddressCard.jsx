@@ -1689,11 +1689,11 @@ export default function AddressCard({
                     <div className="flex gap-2">
                       {hasInProgressAttempt && (
                         <Button 
-                          onClick={handleCaptureEvidence}
-                          className="h-14 flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(inProgressAttempt); }}
+                          className="h-14 w-14 shrink-0 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-0.5"
                         >
-                          <Plus className="w-5 h-5" />
-                          <span>ADD PHOTO</span>
+                          <Trash2 className="w-4 h-4" />
+                          <span className="text-[9px]">DELETE</span>
                         </Button>
                       )}
                       
