@@ -1400,6 +1400,16 @@ export default function AddressCard({
                 Add More Photos
               </Button>
             )}
+            
+            {/* Delete Attempt Button */}
+            <Button
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+              className="w-full mt-2 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete Attempt {activeTab}
+            </Button>
             </div>
             )}
 
@@ -1687,16 +1697,6 @@ export default function AddressCard({
 
                     {/* Secondary Actions Row */}
                     <div className="flex gap-2">
-                      {hasInProgressAttempt && (
-                        <Button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(inProgressAttempt); }}
-                          className="h-14 w-14 shrink-0 bg-red-500 hover:bg-red-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-0.5"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          <span className="text-[9px]">DELETE</span>
-                        </Button>
-                      )}
-                      
                       <Link 
                         to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
                         onClick={(e) => e.stopPropagation()}
