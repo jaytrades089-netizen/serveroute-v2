@@ -1377,39 +1377,36 @@ export default function AddressCard({
               </div>
             ) : null}
 
-            {/* View Photos Button */}
-            {selectedAttempt.photo_urls?.length > 0 && (
+            {/* Action Buttons Row: Delete / Add Photos / View Photos */}
+            <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
-                onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }}
-                className="w-full mb-3"
+                onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+                className="h-12 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
               >
-                <Camera className="w-4 h-4 mr-2" />
-                View Evidence Photos ({selectedAttempt.photo_urls.length})
+                <Trash2 className="w-4 h-4" />
+                <span>Delete</span>
               </Button>
-            )}
-            
-            {/* Add More Photos button for in_progress attempts */}
-            {selectedAttempt.status === 'in_progress' && (
+              
               <Button
                 variant="outline"
                 onClick={handleCaptureEvidence}
-                className="w-full border-amber-300 text-amber-700 hover:bg-amber-50"
+                className="h-12 border-amber-300 text-amber-700 hover:bg-amber-50 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
               >
-                <Plus className="w-4 h-4 mr-2" />
-                Add More Photos
+                <Plus className="w-4 h-4" />
+                <span>Add Photo</span>
               </Button>
-            )}
-            
-            {/* Delete Attempt Button */}
-            <Button
-              variant="outline"
-              onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
-              className="w-full mt-2 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete Attempt {activeTab}
-            </Button>
+              
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }}
+                disabled={!selectedAttempt.photo_urls?.length}
+                className="h-12 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Photos{selectedAttempt.photo_urls?.length ? ` (${selectedAttempt.photo_urls.length})` : ''}</span>
+              </Button>
+            </div>
             </div>
             )}
 
