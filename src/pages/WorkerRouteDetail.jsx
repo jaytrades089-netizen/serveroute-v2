@@ -378,7 +378,7 @@ export default function WorkerRouteDetail() {
   return (
     <div className="min-h-screen bg-gray-50 pb-6">
       <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
-        <Link to={createPageUrl('WorkerRoutes')}>
+        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 border-2 border-white/60 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors">
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div className="flex-1">
