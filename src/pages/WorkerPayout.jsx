@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
-import { Loader2, DollarSign, CheckCircle, Clock, Calendar, RotateCcw, Save, ArrowRight, ChevronRight, FileText as FileTextIcon } from 'lucide-react';
+import { Loader2, DollarSign, CheckCircle, Clock, Calendar, RotateCcw, Save, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -393,6 +393,68 @@ export default function WorkerPayout() {
 
   const isLoading = addressesLoading || attemptsLoading;
 
+  // Undo RTO — restore address to its original folder as pending/attempted
+  const handleUndoRTO = async (address) => {
+    const confirmed = window.confirm(
+      `Undo RTO for this address?\n\n${address.normalized_address || address.legal_address}\n\nThis will move it back to its route as an active address.`
+    );
+    if (!confirmed) return;
+
+    try {
+      const addrAttempts = addressAttemptsMap[address.id] || [];
+      const newStatus = addrAttempts.length > 0 ? 'attempted' : 'pending';
+
+      await base44.entities.Address.update(address.id, {
+        status: newStatus,
+        served: false,
+        served_at: null,
+        receipt_status: 'pending',
+        rto_at: null,
+        rto_reason: null,
+        rto_by: null
+      });
+
+      // Update route served count
+      if (address.route_id) {
+        const routeAddresses = await base44.entities.Address.filter({
+          route_id: address.route_id,
+          deleted_at: null
+        });
+        const doneCount = routeAddresses.filter(a =>
+          a.id === address.id ? false : (a.served || a.status === 'returned')
+        ).length;
+        await base44.entities.Route.update(address.route_id, {
+          served_count: doneCount
+        });
+      }
+
+      // Audit log
+      const companyId = user?.company_id || address.company_id;
+      await base44.entities.AuditLog.create({
+        company_id: companyId,
+        action_type: 'address_updated',
+        actor_id: user?.id,
+        actor_role: user?.role || 'server',
+        target_type: 'address',
+        target_id: address.id,
+        details: {
+          action: 'undo_rto',
+          route_id: address.route_id,
+          restored_status: newStatus
+        },
+        timestamp: new Date().toISOString()
+      });
+
+      queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
+      queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
+      toast.success('RTO undone — address returned to route');
+    } catch (error) {
+      console.error('Failed to undo RTO:', error);
+      toast.error('Failed to undo RTO');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <Header
@@ -629,6 +691,13 @@ export default function WorkerPayout() {
                         </span>
                       </div>
                     </div>
+                    <button
+                      onClick={() => handleUndoRTO(address)}
+                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-blue-300 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-50 active:bg-blue-100 transition-colors"
+                    >
+                      <Undo2 className="w-4 h-4" />
+                      Undo RTO — Return to Route
+                    </button>
                   </div>
                 ))}
                 <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
@@ -685,6 +754,13 @@ export default function WorkerPayout() {
                           </span>
                         </div>
                       </div>
+                      <button
+                        onClick={() => handleUndoRTO(address)}
+                        className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-blue-300 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-50 active:bg-blue-100 transition-colors"
+                      >
+                        <Undo2 className="w-4 h-4" />
+                        Undo RTO — Return to Route
+                      </button>
                     </div>
                   ))}
                   <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
