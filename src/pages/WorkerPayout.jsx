@@ -414,18 +414,27 @@ export default function WorkerPayout() {
         rto_by: null
       });
 
-      // Update route served count
+      // Update route: re-activate if completed/archived, fix served count
       if (address.route_id) {
-        const routeAddresses = await base44.entities.Address.filter({
-          route_id: address.route_id,
-          deleted_at: null
-        });
-        const doneCount = routeAddresses.filter(a =>
-          a.id === address.id ? false : (a.served || a.status === 'returned')
-        ).length;
-        await base44.entities.Route.update(address.route_id, {
-          served_count: doneCount
-        });
+        const routeArr = await base44.entities.Route.filter({ id: address.route_id });
+        const route = routeArr[0];
+        if (route) {
+          const routeAddresses = await base44.entities.Address.filter({
+            route_id: address.route_id,
+            deleted_at: null
+          });
+          const doneCount = routeAddresses.filter(a =>
+            a.id === address.id ? false : (a.served || a.status === 'returned')
+          ).length;
+
+          const updates = { served_count: doneCount };
+          // If route was completed or archived, reactivate it so the address is visible
+          if (route.status === 'completed' || route.status === 'archived') {
+            updates.status = 'active';
+            updates.completed_at = null;
+          }
+          await base44.entities.Route.update(address.route_id, updates);
+        }
       }
 
       // Audit log
@@ -445,7 +454,10 @@ export default function WorkerPayout() {
         timestamp: new Date().toISOString()
       });
 
+      // Invalidate all relevant queries so the address shows up everywhere
       queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+      queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
       queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
       toast.success('RTO undone — address returned to route');
