@@ -106,48 +106,62 @@ export default function WorkerPayout() {
     saveSettingsMutation.mutate({ day });
   };
 
+  const [turningIn, setTurningIn] = useState(false);
+
   // Handle Turn In button
   const handleTurnIn = async () => {
-    // Check for existing record in the same period
-    const existingRecord = payrollHistory.find(r => {
-      if (!r.period_start || !r.period_end) return false;
-      const rStart = new Date(r.period_start).toDateString();
-      const rEnd = new Date(r.period_end).toDateString();
-      const cStart = currentPeriod.start.toDateString();
-      const cEnd = currentPeriod.end.toDateString();
-      return rStart === cStart && rEnd === cEnd;
-    });
-
-    if (existingRecord) {
-      const confirmed = window.confirm(
-        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
-      );
-      if (!confirmed) return;
-
-      // Delete the existing record before saving new one
-      await base44.entities.PayrollRecord.delete(existingRecord.id);
-    }
-
-    const now = new Date();
-    // Rotate: current previous becomes prior, now becomes previous
-    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
-    setPriorTurnInDate(previousTurnInDate);
-    setPreviousTurnInDate(now);
-    if (userSettings?.id) {
-      await base44.entities.UserSettings.update(userSettings.id, {
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
+    if (turningIn) return;
+    setTurningIn(true);
+    try {
+      // Check for existing record in the same period
+      const existingRecord = payrollHistory.find(r => {
+        if (!r.period_start || !r.period_end) return false;
+        const rStart = new Date(r.period_start).toDateString();
+        const rEnd = new Date(r.period_end).toDateString();
+        const cStart = currentPeriod.start.toDateString();
+        const cEnd = currentPeriod.end.toDateString();
+        return rStart === cStart && rEnd === cEnd;
       });
-    } else if (user?.id) {
-      await base44.entities.UserSettings.create({
-        user_id: user.id,
-        payroll_turn_in_day: selectedDay,
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
+
+      if (existingRecord) {
+        const confirmed = window.confirm(
+          `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
+        );
+        if (!confirmed) {
+          setTurningIn(false);
+          return;
+        }
+
+        // Delete the existing record before saving new one
+        await base44.entities.PayrollRecord.delete(existingRecord.id);
+      }
+
+      const now = new Date();
+      // Rotate: current previous becomes prior, now becomes previous
+      const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
+      setPriorTurnInDate(previousTurnInDate);
+      setPreviousTurnInDate(now);
+      if (userSettings?.id) {
+        await base44.entities.UserSettings.update(userSettings.id, {
+          previous_turn_in_date: now.toISOString(),
+          prior_turn_in_date: oldPrevious
+        });
+      } else if (user?.id) {
+        await base44.entities.UserSettings.create({
+          user_id: user.id,
+          payroll_turn_in_day: selectedDay,
+          previous_turn_in_date: now.toISOString(),
+          prior_turn_in_date: oldPrevious
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+      await savePayrollRecord(now, true);
+    } catch (error) {
+      console.error('Turn-in failed:', error);
+      toast.error('Turn-in failed — please try again');
+    } finally {
+      setTurningIn(false);
     }
-    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-    savePayrollRecord(now, true);
   };
 
   // Save a payroll record snapshot (with optional duplicate check bypass)
@@ -512,10 +526,11 @@ export default function WorkerPayout() {
                 <label className="text-xs text-blue-600 mb-1 block">Documentation</label>
                 <button
                   onClick={handleTurnIn}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
+                  disabled={turningIn}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
                 >
-                  <ArrowRight className="w-4 h-4" />
-                  Turn In
+                  {turningIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                  {turningIn ? 'Saving...' : 'Turn In'}
                 </button>
               </div>
             </div>
