@@ -67,6 +67,7 @@ import ComboRouteReview from './pages/ComboRouteReview';
 import ComboRouteSelection from './pages/ComboRouteSelection';
 import CreateRoute from './pages/CreateRoute';
 import CreateScheduledServe from './pages/CreateScheduledServe';
+import EditScheduledServe from './pages/EditScheduledServe';
 import DCNBatchDetail from './pages/DCNBatchDetail';
 import DCNMatching from './pages/DCNMatching';
 import DCNUpload from './pages/DCNUpload';
@@ -126,6 +127,7 @@ export const PAGES = {
     "ComboRouteSelection": ComboRouteSelection,
     "CreateRoute": CreateRoute,
     "CreateScheduledServe": CreateScheduledServe,
+    "EditScheduledServe": EditScheduledServe,
     "DCNBatchDetail": DCNBatchDetail,
     "DCNMatching": DCNMatching,
     "DCNUpload": DCNUpload,

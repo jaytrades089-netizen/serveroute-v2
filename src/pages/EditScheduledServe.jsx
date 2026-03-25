@@ -1,0 +1,477 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { base44 } from '@/api/base44Client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { ChevronLeft, Phone, Calendar as CalendarIcon, MapPin, FileText, Loader2, Copy, Clock, Trash2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { toast } from 'sonner';
+import { formatAddress } from '@/components/utils/addressUtils';
+import { getCompanyId } from '@/components/utils/companyUtils';
+import { format } from 'date-fns';
+
+function parseExistingDateTime(isoString) {
+  if (!isoString) return {};
+  const dt = new Date(isoString);
+  let hours = dt.getHours();
+  const minutes = dt.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  if (hours > 12) hours -= 12;
+  if (hours === 0) hours = 12;
+  
+  const roundedMinute = [0, 15, 30, 45].reduce((prev, curr) =>
+    Math.abs(curr - minutes) < Math.abs(prev - minutes) ? curr : prev
+  );
+  
+  return {
+    date: new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()),
+    hour: String(hours),
+    minute: String(roundedMinute).padStart(2, '0'),
+    ampm
+  };
+}
+
+export default function EditScheduledServe() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const urlParams = new URLSearchParams(window.location.search);
+  const serveId = urlParams.get('serveId');
+  const routeId = urlParams.get('routeId');
+
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedHour, setSelectedHour] = useState('');
+  const [selectedMinute, setSelectedMinute] = useState('');
+  const [selectedAmPm, setSelectedAmPm] = useState('AM');
+  const [endHour, setEndHour] = useState('');
+  const [endMinute, setEndMinute] = useState('');
+  const [endAmPm, setEndAmPm] = useState('AM');
+  const [notes, setNotes] = useState('');
+  const [locationType, setLocationType] = useState('posting');
+  const [meetingAddress, setMeetingAddress] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [initialized, setInitialized] = useState(false);
+
+  const { data: serve, isLoading: serveLoading } = useQuery({
+    queryKey: ['scheduledServe', serveId],
+    queryFn: async () => {
+      if (!serveId) return null;
+      const serves = await base44.entities.ScheduledServe.filter({ id: serveId });
+      return serves[0] || null;
+    },
+    enabled: !!serveId
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: () => base44.auth.me()
+  });
+
+  const addressId = serve?.address_id;
+
+  const { data: address } = useQuery({
+    queryKey: ['address', addressId],
+    queryFn: async () => {
+      if (!addressId) return null;
+      const addresses = await base44.entities.Address.filter({ id: addressId });
+      return addresses[0] || null;
+    },
+    enabled: !!addressId
+  });
+
+  const { data: route } = useQuery({
+    queryKey: ['route', routeId],
+    queryFn: async () => {
+      if (!routeId) return null;
+      const routes = await base44.entities.Route.filter({ id: routeId });
+      return routes[0] || null;
+    },
+    enabled: !!routeId
+  });
+
+  // Pre-populate form from existing serve data
+  useEffect(() => {
+    if (serve && !initialized) {
+      setPhoneNumber(serve.phone_number || '');
+      setLocationType(serve.location_type || 'posting');
+      setMeetingAddress(serve.meeting_place_address || '');
+      setNotes(serve.notes || '');
+
+      const parsed = parseExistingDateTime(serve.scheduled_datetime);
+      if (parsed.date) setSelectedDate(parsed.date);
+      if (parsed.hour) setSelectedHour(parsed.hour);
+      if (parsed.minute) setSelectedMinute(parsed.minute);
+      if (parsed.ampm) setSelectedAmPm(parsed.ampm);
+
+      setInitialized(true);
+    }
+  }, [serve, initialized]);
+
+  const formatted = address ? formatAddress(address) : {};
+  const fullPostingAddress = formatted.line1 ? `${formatted.line1}, ${formatted.line2}` : '';
+
+  const formatTimeDisplay = (hour, minute, ampm) => {
+    if (!hour) return '';
+    return `${hour}:${minute || '00'} ${ampm}`;
+  };
+
+  const getDateTimeDisplay = useCallback(() => {
+    if (!selectedDate || !selectedHour) return '';
+    const startTime = formatTimeDisplay(selectedHour, selectedMinute, selectedAmPm);
+    const endTime = endHour ? formatTimeDisplay(endHour, endMinute, endAmPm) : '';
+    const dateStr = format(selectedDate, "EEE, MMM d, yyyy");
+    if (endTime) return `${dateStr} between ${startTime} - ${endTime}`;
+    return `${dateStr} at ${startTime}`;
+  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm]);
+
+  const getDateTimeISO = useCallback(() => {
+    if (!selectedDate || !selectedHour) return null;
+    let h = parseInt(selectedHour);
+    const m = parseInt(selectedMinute || '0');
+    if (selectedAmPm === 'PM' && h !== 12) h += 12;
+    if (selectedAmPm === 'AM' && h === 12) h = 0;
+    const dt = new Date(selectedDate);
+    dt.setHours(h, m, 0, 0);
+    return dt.toISOString();
+  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm]);
+
+  const buildTemplate = useCallback(() => {
+    const defendantName = address?.defendant_name || serve?.defendant_name || '(unknown)';
+    const locationLabel = locationType === 'posting' ? 'Place of Posting' : 'Meeting Place';
+    const locationAddress = locationType === 'posting'
+      ? fullPostingAddress
+      : (meetingAddress || '(not entered)');
+    const dateTimeStr = getDateTimeDisplay() || '(not selected)';
+    return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${phoneNumber || '(not entered)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}`;
+  }, [address, serve, locationType, fullPostingAddress, meetingAddress, getDateTimeDisplay, phoneNumber]);
+
+  // Update notes when fields change (after initialization)
+  useEffect(() => {
+    if (initialized && address) {
+      setNotes(buildTemplate());
+    }
+  }, [locationType, meetingAddress, selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm, phoneNumber, buildTemplate, initialized, address]);
+
+  const handleCopyNotes = () => {
+    navigator.clipboard.writeText(notes).then(() => {
+      toast.success('Copied', { duration: 1500 });
+    }).catch(() => {
+      toast.error('Failed to copy');
+    });
+  };
+
+  const handleSave = async () => {
+    const isoDate = getDateTimeISO();
+    if (!isoDate) {
+      toast.error('Please select a date and time');
+      return;
+    }
+    if (locationType === 'meeting' && !meetingAddress.trim()) {
+      toast.error('Please enter a meeting place address');
+      return;
+    }
+
+    setSaving(true);
+
+    let meetingLat = serve?.meeting_place_lat || null;
+    let meetingLng = serve?.meeting_place_lng || null;
+
+    // Re-geocode only if meeting address changed
+    if (locationType === 'meeting' && meetingAddress.trim() && meetingAddress !== serve?.meeting_place_address) {
+      const geocodeResult = await base44.integrations.Core.InvokeLLM({
+        prompt: `Geocode this address and return lat/lng coordinates: "${meetingAddress}". If you cannot geocode it, return null values.`,
+        response_json_schema: {
+          type: "object",
+          properties: {
+            lat: { type: "number" },
+            lng: { type: "number" },
+            valid: { type: "boolean" }
+          }
+        }
+      });
+      if (!geocodeResult.valid) {
+        toast.error('Could not geocode meeting place address.');
+        setSaving(false);
+        return;
+      }
+      meetingLat = geocodeResult.lat;
+      meetingLng = geocodeResult.lng;
+    }
+
+    try {
+      await base44.entities.ScheduledServe.update(serveId, {
+        phone_number: phoneNumber,
+        scheduled_datetime: isoDate,
+        notes: notes,
+        location_type: locationType,
+        meeting_place_address: locationType === 'meeting' ? meetingAddress : null,
+        meeting_place_lat: locationType === 'meeting' ? meetingLat : null,
+        meeting_place_lng: locationType === 'meeting' ? meetingLng : null,
+        defendant_name: address?.defendant_name || serve?.defendant_name || '',
+        folder_name: route?.folder_name || serve?.folder_name || ''
+      });
+
+      toast.success('Scheduled serve updated');
+      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+      navigate(-1);
+    } catch (error) {
+      console.error('Failed to update scheduled serve:', error);
+      toast.error('Failed to update');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = window.confirm('Delete this scheduled serve? This cannot be undone.');
+    if (!confirmed) return;
+
+    setDeleting(true);
+    try {
+      await base44.entities.ScheduledServe.delete(serveId);
+      toast.success('Scheduled serve deleted');
+      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+      navigate(-1);
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      toast.error('Failed to delete');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  if (serveLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    );
+  }
+
+  if (!serve) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 text-center text-gray-500">
+        Scheduled serve not found
+      </div>
+    );
+  }
+
+  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  const minutes = ['00', '15', '30', '45'];
+
+  return (
+    <div className="min-h-screen bg-gray-50 pb-8">
+      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
+        <button onClick={() => navigate(-1)}>
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+        <h1 className="font-bold text-lg flex-1">Edit Scheduled Serve</h1>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="p-2 hover:bg-blue-600 rounded-full transition-colors"
+        >
+          {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+        </button>
+      </header>
+
+      <main className="px-4 py-4 max-w-lg mx-auto space-y-4">
+        {/* Address Info */}
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs font-semibold text-gray-500 mb-1">ADDRESS</p>
+            <p className="font-bold text-gray-900">{formatted.line1 || serve.defendant_name}</p>
+            <p className="text-sm text-gray-500">{formatted.line2}</p>
+            {address?.defendant_name && (
+              <p className="text-sm text-gray-600 mt-1">{address.defendant_name}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Phone Number */}
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-2">
+              <Phone className="w-3.5 h-3.5" /> PHONE NUMBER
+            </label>
+            <Input
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Date Picker */}
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
+              <CalendarIcon className="w-3.5 h-3.5" /> DATE
+            </label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-full justify-start text-left font-normal">
+                  <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
+                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Pick a date'}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                />
+              </PopoverContent>
+            </Popover>
+          </CardContent>
+        </Card>
+
+        {/* Time Window Picker */}
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
+              <Clock className="w-3.5 h-3.5" /> TIME WINDOW
+            </label>
+            
+            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">FROM</p>
+            <div className="flex gap-2 mb-3">
+              <Select value={selectedHour} onValueChange={setSelectedHour}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Hour" /></SelectTrigger>
+                <SelectContent>
+                  {hours.map(h => <SelectItem key={h} value={String(h)}>{h}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={selectedMinute} onValueChange={setSelectedMinute}>
+                <SelectTrigger className="w-20"><SelectValue placeholder="Min" /></SelectTrigger>
+                <SelectContent>
+                  {minutes.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={selectedAmPm} onValueChange={setSelectedAmPm}>
+                <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="PM">PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">TO <span className="font-normal text-gray-300">(optional)</span></p>
+            <div className="flex gap-2">
+              <Select value={endHour} onValueChange={setEndHour}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Hour" /></SelectTrigger>
+                <SelectContent>
+                  {hours.map(h => <SelectItem key={h} value={String(h)}>{h}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={endMinute} onValueChange={setEndMinute}>
+                <SelectTrigger className="w-20"><SelectValue placeholder="Min" /></SelectTrigger>
+                <SelectContent>
+                  {minutes.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={endAmPm} onValueChange={setEndAmPm}>
+                <SelectTrigger className="w-20"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="AM">AM</SelectItem>
+                  <SelectItem value="PM">PM</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedDate && selectedHour && (
+              <p className="text-sm text-blue-600 font-medium mt-3">
+                {getDateTimeDisplay()}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Location Toggle */}
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
+              <MapPin className="w-3.5 h-3.5" /> LOCATION
+            </label>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button
+                onClick={() => setLocationType('posting')}
+                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  locationType === 'posting'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                Place of Posting
+              </button>
+              <button
+                onClick={() => setLocationType('meeting')}
+                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  locationType === 'meeting'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                Meeting Place
+              </button>
+            </div>
+            {locationType === 'posting' ? (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                Will use: {formatted.line1}, {formatted.line2}
+              </div>
+            ) : (
+              <Input
+                placeholder="Enter meeting place address..."
+                value={meetingAddress}
+                onChange={(e) => setMeetingAddress(e.target.value)}
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> NOTES
+              </label>
+              <button
+                onClick={handleCopyNotes}
+                className="flex items-center gap-1 text-xs text-blue-600 font-medium hover:text-blue-800 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy
+              </button>
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+              rows={6}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Save Button */}
+        <Button
+          onClick={handleSave}
+          disabled={saving || !selectedDate || !selectedHour}
+          className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm"
+        >
+          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+          Save Changes
+        </Button>
+      </main>
+    </div>
+  );
+}

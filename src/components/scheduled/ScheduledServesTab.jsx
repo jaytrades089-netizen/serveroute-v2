@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Clock, MapPin, Phone, Navigation, Loader2, Copy, Eye } from 'lucide-react';
+import { Clock, MapPin, Phone, Navigation, Loader2, Copy, Eye, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -153,7 +153,17 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   }}
                   className="flex-1"
                 >
-                  <Eye className="w-4 h-4 mr-1" /> View Address
+                  <Eye className="w-4 h-4 mr-1" /> View
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigate(createPageUrl(`EditScheduledServe?serveId=${serve.id}&routeId=${routeId}`));
+                  }}
+                  className="flex-1"
+                >
+                  <Pencil className="w-4 h-4 mr-1" /> Edit
                 </Button>
                 <Button
                   size="sm"
@@ -167,7 +177,7 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   }}
                   className="flex-1 bg-green-500 hover:bg-green-600"
                 >
-                  <Navigation className="w-4 h-4 mr-1" /> Navigate
+                  <Navigation className="w-4 h-4 mr-1" /> Nav
                 </Button>
               </div>
             </CardContent>
