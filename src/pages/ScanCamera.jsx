@@ -350,8 +350,12 @@ export default function ScanCamera() {
       setShowShutter(true);
       await processImage(imageBase64);
       await new Promise(resolve => setTimeout(resolve, 800));
-      setShowShutter(false);
+    } catch (err) {
+      console.error('Capture error:', err);
+      toast.error(err.message || 'Capture failed — please try again');
     } finally {
+      // Always clear shutter and release lock, even on error
+      setShowShutter(false);
       await new Promise(resolve => setTimeout(resolve, 200));
       processingLockRef.current = false;
     }

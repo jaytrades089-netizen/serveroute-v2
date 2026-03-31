@@ -340,8 +340,8 @@ export async function checkImageQuality(imageBase64) {
         issues.push({ type: 'bright', message: 'Image is too bright/washed out.' });
       }
       
-      // Blur check - threshold tuned for document scanning
-      const BLUR_THRESHOLD = 100;
+      // Blur check — lowered threshold for Android cameras with slower autofocus
+      const BLUR_THRESHOLD = 25;
       if (laplacianVariance < BLUR_THRESHOLD) {
         issues.push({ type: 'blur', message: 'Image appears blurry. Hold steady and try again.' });
       }
@@ -351,7 +351,7 @@ export async function checkImageQuality(imageBase64) {
         issues,
         brightness: avgBrightness,
         sharpness: laplacianVariance,
-        canProcess: avgBrightness >= 30 && avgBrightness <= 240 && laplacianVariance >= BLUR_THRESHOLD * 0.5
+        canProcess: avgBrightness >= 30 && avgBrightness <= 240 && laplacianVariance >= BLUR_THRESHOLD
       });
     };
     img.onerror = () => resolve({ quality: 'unknown', issues: [], canProcess: true });
