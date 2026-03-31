@@ -55,6 +55,7 @@ export default function ScanCamera() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingText, setProcessingText] = useState('');
   const [showShutter, setShowShutter] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
   const processingLockRef = useRef(false);
 
   // Helper to update both state and ref atomically
@@ -62,6 +63,22 @@ export default function ScanCamera() {
     sessionRef.current = newSession;
     setSession(newSession);
   };
+
+  const debugLog = (level, message) => {
+    const time = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    setDebugLogs(prev => [...prev.slice(-20), { level, message, time }]);
+  };
+
+  // Intercept console methods to capture all logs on-screen (temp diagnostic)
+  useEffect(() => {
+    const origError = console.error;
+    const origWarn = console.warn;
+    const origLog = console.log;
+    console.error = (...args) => { origError(...args); debugLog('error', args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')); };
+    console.warn = (...args) => { origWarn(...args); debugLog('warn', args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')); };
+    console.log = (...args) => { origLog(...args); debugLog('log', args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')); };
+    return () => { console.error = origError; console.warn = origWarn; console.log = origLog; };
+  }, []);
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
@@ -332,6 +349,7 @@ export default function ScanCamera() {
 
     } catch (error) {
       console.error('OCR error:', error);
+      debugLog('error', 'processImage catch: ' + (error?.message || String(error)));
       toast.error(error.message || ERROR_MESSAGES.ocr_failed);
     } finally {
       setIsProcessing(false);
@@ -352,6 +370,7 @@ export default function ScanCamera() {
       await new Promise(resolve => setTimeout(resolve, 800));
     } catch (err) {
       console.error('Capture error:', err);
+      debugLog('error', 'handleCapture catch: ' + (err?.message || String(err)));
       toast.error(err.message || 'Capture failed — please try again');
     } finally {
       // Always clear shutter and release lock, even on error
@@ -715,6 +734,33 @@ export default function ScanCamera() {
           }
         </Button>
       </div>
+
+      {/* TEMP DEBUG PANEL — remove after Android Chrome camera bug is diagnosed */}
+      {debugLogs.length > 0 && (
+        <div style={{
+          position: 'fixed', bottom: 80, left: 0, right: 0, maxHeight: '35vh',
+          overflowY: 'auto', background: 'rgba(0,0,0,0.92)', zIndex: 9999,
+          padding: '8px', fontSize: '10px', fontFamily: 'monospace'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+            <span style={{ color: '#aaa', fontWeight: 'bold' }}>DEBUG LOG</span>
+            <button
+              onClick={() => setDebugLogs([])}
+              style={{ color: '#f87171', background: 'none', border: 'none', fontSize: 10, cursor: 'pointer' }}
+            >
+              CLEAR
+            </button>
+          </div>
+          {debugLogs.map((entry, i) => (
+            <div key={i} style={{
+              color: entry.level === 'error' ? '#f87171' : entry.level === 'warn' ? '#fbbf24' : '#86efac',
+              borderBottom: '1px solid #333', paddingBottom: 2, marginBottom: 2, wordBreak: 'break-all'
+            }}>
+              [{entry.time}] {entry.message}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
