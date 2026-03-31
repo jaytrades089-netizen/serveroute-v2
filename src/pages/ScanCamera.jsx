@@ -279,7 +279,9 @@ export default function ScanCamera() {
       }
 
       const quality = await checkImageQuality(imageBase64);
+      debugLog('log', `Quality check: brightness=${quality.brightness?.toFixed(1)} sharpness=${quality.sharpness?.toFixed(1)} canProcess=${quality.canProcess} issues=${quality.issues.map(i=>i.type).join(',') || 'none'}`);
       if (!quality.canProcess) {
+        debugLog('warn', 'Quality check BLOCKED: ' + (quality.issues[0]?.message || 'unknown'));
         toast.error(quality.issues[0]?.message || 'Poor image quality');
         setIsProcessing(false);
         return;
@@ -294,6 +296,7 @@ export default function ScanCamera() {
       });
 
       const result = response.data;
+      debugLog('log', `OCR result: success=${result.success} confidence=${result.confidence?.toFixed(3)} level=${result.confidenceLevel} hasAddress=${!!result.parsedAddress} street=${result.parsedAddress?.street || 'none'}`);
 
       // Only add successful extractions to the list
       if (!result.success || !result.parsedAddress) {
