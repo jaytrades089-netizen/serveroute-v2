@@ -233,52 +233,79 @@ export function clearScanSession(sessionId) {
   }
 }
 
-// Image processing - crops to center focus area only (middle 60% height)
-// This prevents capturing documents stacked above/below the target
-export function captureAndCompressImage(videoElement) {
+// Crop and compress an image blob to the center guide-box region
+async function cropAndCompressBlob(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      const cropX = Math.round(img.width * 0.05);
+      const cropY = Math.round(img.height * 0.20);
+      const cropWidth = Math.round(img.width * 0.90);
+      const cropHeight = Math.round(img.height * 0.60);
+      let outputWidth = cropWidth;
+      let outputHeight = cropHeight;
+      const maxWidth = 1920, maxHeight = 1080;
+      if (outputWidth > maxWidth || outputHeight > maxHeight) {
+        const ratio = Math.min(maxWidth / outputWidth, maxHeight / outputHeight);
+        outputWidth = Math.round(outputWidth * ratio);
+        outputHeight = Math.round(outputHeight * ratio);
+      }
+      canvas.width = outputWidth;
+      canvas.height = outputHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
+      resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+// Image processing — async to support ImageCapture API (Chrome Android)
+// Chrome Android hardware-decodes video in a sandbox; canvas.drawImage produces a black frame.
+// ImageCapture.takePhoto() bypasses that and returns a real JPEG directly from the camera.
+export async function captureAndCompressImage(videoElement) {
+  // Primary path: ImageCapture API (Chrome Android, Edge)
+  if (videoElement.srcObject && typeof window.ImageCapture !== 'undefined') {
+    try {
+      const track = videoElement.srcObject.getVideoTracks()[0];
+      if (track) {
+        const imageCapture = new ImageCapture(track);
+        const blob = await imageCapture.takePhoto();
+        return await cropAndCompressBlob(blob);
+      }
+    } catch (e) {
+      console.warn('ImageCapture failed, falling back to canvas:', e.name, e.message);
+    }
+  }
+
+  // Fallback: canvas drawImage (Firefox, Safari, desktop Chrome)
   const videoWidth = videoElement.videoWidth;
   const videoHeight = videoElement.videoHeight;
-
-  // Bug 1 fix: Android returns 0x0 when video is paused — guard against silent blank canvas
   if (!videoWidth || !videoHeight) {
     throw new Error('Video stream not ready — dimensions unavailable');
   }
-
   const canvas = document.createElement('canvas');
-  
-  // Crop to center band: 90% width, 60% height, vertically centered
-  // This matches the visible guide box and excludes stacked documents above/below
-  const cropX = Math.round(videoWidth * 0.05);   // 5% from left
-  const cropY = Math.round(videoHeight * 0.20);   // 20% from top
-  const cropWidth = Math.round(videoWidth * 0.90); // 90% width
-  const cropHeight = Math.round(videoHeight * 0.60); // 60% height
-  
-  // Set max output dimensions
-  const maxWidth = 1920;
-  const maxHeight = 1080;
-  
+  const cropX = Math.round(videoWidth * 0.05);
+  const cropY = Math.round(videoHeight * 0.20);
+  const cropWidth = Math.round(videoWidth * 0.90);
+  const cropHeight = Math.round(videoHeight * 0.60);
   let outputWidth = cropWidth;
   let outputHeight = cropHeight;
-  
+  const maxWidth = 1920, maxHeight = 1080;
   if (outputWidth > maxWidth || outputHeight > maxHeight) {
     const ratio = Math.min(maxWidth / outputWidth, maxHeight / outputHeight);
     outputWidth = Math.round(outputWidth * ratio);
     outputHeight = Math.round(outputHeight * ratio);
   }
-  
   canvas.width = outputWidth;
   canvas.height = outputHeight;
-  
   const ctx = canvas.getContext('2d');
-  // Draw only the cropped region (inside the clear box)
-  ctx.drawImage(
-    videoElement, 
-    cropX, cropY, cropWidth, cropHeight,  // Source rectangle
-    0, 0, outputWidth, outputHeight        // Destination rectangle
-  );
-  
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-  return dataUrl.split(',')[1];
+  ctx.drawImage(videoElement, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
+  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 }
 
 export async function checkImageQuality(imageBase64) {

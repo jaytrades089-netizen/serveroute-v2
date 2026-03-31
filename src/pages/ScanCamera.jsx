@@ -346,7 +346,7 @@ export default function ScanCamera() {
       // Capture image while video is still playing — no pause/play cycle needed.
       // setShowShutter provides the visual freeze via solid black overlay.
       // pause() + play() causes AbortError in Android Chrome, killing the stream.
-      const imageBase64 = captureAndCompressImage(videoRef.current);
+      const imageBase64 = await captureAndCompressImage(videoRef.current);
       setShowShutter(true);
       await processImage(imageBase64);
       await new Promise(resolve => setTimeout(resolve, 800));
