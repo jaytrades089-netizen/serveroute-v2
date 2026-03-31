@@ -255,7 +255,7 @@ async function cropAndCompressBlob(blob) {
       }
       canvas.width = outputWidth;
       canvas.height = outputHeight;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
       resolve(canvas.toDataURL('image/jpeg', 0.85).split(',')[1]);
     };
@@ -303,7 +303,7 @@ export async function captureAndCompressImage(videoElement) {
   }
   canvas.width = outputWidth;
   canvas.height = outputHeight;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(videoElement, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
   return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
 }
@@ -316,7 +316,7 @@ export async function checkImageQuality(imageBase64) {
       const sampleSize = 100;
       canvas.width = Math.min(img.width, sampleSize);
       canvas.height = Math.min(img.height, sampleSize);
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
