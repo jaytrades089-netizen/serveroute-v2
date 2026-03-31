@@ -130,11 +130,25 @@ export default function ScanCamera() {
         
         // Try multiple fallback strategies for Android compatibility
         const constraints = [
-          // Strategy 1: Exact rear camera
-          { video: { facingMode: { exact: 'environment' } }, audio: false },
-          // Strategy 2: Preferred rear camera
-          { video: { facingMode: 'environment' }, audio: false },
-          // Strategy 3: Any camera
+          // Strategy 1: Exact rear camera with resolution hints for Android stability
+          { 
+            video: { 
+              facingMode: { exact: 'environment' },
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }, 
+            audio: false 
+          },
+          // Strategy 2: Preferred rear camera with resolution hints
+          { 
+            video: { 
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }, 
+            audio: false 
+          },
+          // Strategy 3: Any camera (fallback)
           { video: true, audio: false }
         ];
 
@@ -181,13 +195,32 @@ export default function ScanCamera() {
 
           if (videoRef.current.readyState >= 2) {
             // Video already has enough data
-            playVideo();
+            playVideo().then(() => {
+              // Allow autofocus to settle before first capture (Android needs this)
+              processingLockRef.current = true;
+              setTimeout(() => {
+                processingLockRef.current = false;
+              }, 500);
+            });
           } else {
-            videoRef.current.onloadeddata = playVideo;
+            videoRef.current.onloadeddata = () => {
+              playVideo().then(() => {
+                // Allow autofocus to settle before first capture (Android needs this)
+                processingLockRef.current = true;
+                setTimeout(() => {
+                  processingLockRef.current = false;
+                }, 500);
+              });
+            };
             // Fallback timeout
             setTimeout(() => {
               if (mounted && cameraStatus === 'initializing') {
-                playVideo();
+                playVideo().then(() => {
+                  processingLockRef.current = true;
+                  setTimeout(() => {
+                    processingLockRef.current = false;
+                  }, 500);
+                });
               }
             }, 1000);
           }
@@ -343,10 +376,34 @@ export default function ScanCamera() {
     // Hold shutter 800ms after processing so user moves to next document
     await new Promise(resolve => setTimeout(resolve, 800));
     
-    // Resume video
+    // Resume video with proper error handling for Android
     setShowShutter(false);
-    if (videoRef.current) {
-      videoRef.current.play().catch(() => {});
+    if (videoRef.current && streamRef.current) {
+      try {
+        await videoRef.current.play();
+      } catch (error) {
+        console.warn('Video play failed after capture, attempting stream restart:', error);
+        
+        // Stop current stream tracks
+        streamRef.current.getTracks().forEach(track => track.stop());
+        
+        // Attempt to restart stream with simpler constraints
+        try {
+          const newStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment' }, 
+            audio: false 
+          });
+          streamRef.current = newStream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = newStream;
+            await videoRef.current.play();
+          }
+          console.log('Stream restarted successfully after play failure');
+        } catch (restartError) {
+          console.error('Failed to restart camera after play() error:', restartError);
+          setCameraStatus('error');
+        }
+      }
     }
     
     // Release lock after a brief cooldown so the camera gets a fresh frame
