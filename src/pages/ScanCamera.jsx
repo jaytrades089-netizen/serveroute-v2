@@ -226,7 +226,7 @@ export default function ScanCamera() {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
     };
-  }, [session]);
+  }, [session?.id]);
 
   // Auto-save session
   useEffect(() => {
