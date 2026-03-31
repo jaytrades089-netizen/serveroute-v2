@@ -340,94 +340,19 @@ export default function ScanCamera() {
   };
 
   const handleCapture = async () => {
-    // Hard lock — prevents double-tap before React state updates
     if (!videoRef.current || processingLockRef.current) return;
     processingLockRef.current = true;
-    
     try {
-      // Guard: video must have valid dimensions (Android can have 0x0 before stream is ready)
-      if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) {
-        toast.error('Camera not ready — please wait a moment and try again');
-        return;
-      }
-
-      // Capture the image FIRST, then freeze
+      // Capture image while video is still playing — no pause/play cycle needed.
+      // setShowShutter provides the visual freeze via solid black overlay.
+      // pause() + play() causes AbortError in Android Chrome, killing the stream.
       const imageBase64 = captureAndCompressImage(videoRef.current);
-      
-      // Shutter effect — black out camera, pause video
       setShowShutter(true);
-      if (videoRef.current) {
-        videoRef.current.pause();
-      }
-      
       await processImage(imageBase64);
-      
-      // Hold shutter 800ms after processing so user moves to next document
       await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Resume video with proper error handling for Android
       setShowShutter(false);
-      if (videoRef.current && streamRef.current) {
-        try {
-          await videoRef.current.play();
-        } catch (error) {
-          console.warn('Video play failed after capture, attempting stream restart:', error);
-          
-          // Stop current stream tracks
-          streamRef.current.getTracks().forEach(track => track.stop());
-
-          // Bug 3 fix: same three-constraint fallback as initial startCamera
-          const restartConstraints = [
-            { video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-            { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
-            { video: true, audio: false }
-          ];
-          let newStream = null;
-          for (const constraint of restartConstraints) {
-            try {
-              newStream = await navigator.mediaDevices.getUserMedia(constraint);
-              break;
-            } catch (e) {
-              console.log('Restart failed constraint:', e.name);
-            }
-          }
-
-          if (newStream && videoRef.current) {
-            streamRef.current = newStream;
-            videoRef.current.srcObject = newStream;
-            // Bug 3 fix: wait for stream ready before play() — avoids immediate-play failure on Android
-            await new Promise((resolve) => {
-              if (videoRef.current.readyState >= 2) {
-                resolve();
-              } else {
-                videoRef.current.onloadeddata = resolve;
-                setTimeout(resolve, 1500);
-              }
-            });
-            try {
-              await videoRef.current.play();
-              console.log('Stream restarted successfully after play failure');
-            } catch (playErr) {
-              console.error('Failed to play restarted stream:', playErr);
-              setCameraStatus('error');
-            }
-            // Bug 3 fix: 600ms settle so autofocus locks before next capture
-            await new Promise(resolve => setTimeout(resolve, 600));
-          } else {
-            console.error('Failed to restart camera: no stream available');
-            setCameraStatus('error');
-          }
-        }
-      }
-      
-      // Brief cooldown so the camera gets a fresh frame
-      await new Promise(resolve => setTimeout(resolve, 200));
-    } catch (err) {
-      console.error('Capture failed:', err);
-      setShowShutter(false);
-      toast.error('Capture failed — please try again');
     } finally {
-      // ALWAYS release the lock, even if something threw
+      await new Promise(resolve => setTimeout(resolve, 200));
       processingLockRef.current = false;
     }
   };
