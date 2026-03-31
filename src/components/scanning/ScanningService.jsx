@@ -236,10 +236,15 @@ export function clearScanSession(sessionId) {
 // Image processing - crops to center focus area only (middle 60% height)
 // This prevents capturing documents stacked above/below the target
 export function captureAndCompressImage(videoElement) {
-  const canvas = document.createElement('canvas');
-  
   const videoWidth = videoElement.videoWidth;
   const videoHeight = videoElement.videoHeight;
+
+  // Bug 1 fix: Android returns 0x0 when video is paused — guard against silent blank canvas
+  if (!videoWidth || !videoHeight) {
+    throw new Error('Video stream not ready — dimensions unavailable');
+  }
+
+  const canvas = document.createElement('canvas');
   
   // Crop to center band: 90% width, 60% height, vertically centered
   // This matches the visible guide box and excludes stacked documents above/below

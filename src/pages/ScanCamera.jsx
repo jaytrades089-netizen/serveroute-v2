@@ -375,21 +375,46 @@ export default function ScanCamera() {
           
           // Stop current stream tracks
           streamRef.current.getTracks().forEach(track => track.stop());
-          
-          // Attempt to restart stream with simpler constraints
-          try {
-            const newStream = await navigator.mediaDevices.getUserMedia({ 
-              video: { facingMode: 'environment' }, 
-              audio: false 
-            });
-            streamRef.current = newStream;
-            if (videoRef.current) {
-              videoRef.current.srcObject = newStream;
-              await videoRef.current.play();
+
+          // Bug 3 fix: same three-constraint fallback as initial startCamera
+          const restartConstraints = [
+            { video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+            { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+            { video: true, audio: false }
+          ];
+          let newStream = null;
+          for (const constraint of restartConstraints) {
+            try {
+              newStream = await navigator.mediaDevices.getUserMedia(constraint);
+              break;
+            } catch (e) {
+              console.log('Restart failed constraint:', e.name);
             }
-            console.log('Stream restarted successfully after play failure');
-          } catch (restartError) {
-            console.error('Failed to restart camera after play() error:', restartError);
+          }
+
+          if (newStream && videoRef.current) {
+            streamRef.current = newStream;
+            videoRef.current.srcObject = newStream;
+            // Bug 3 fix: wait for stream ready before play() — avoids immediate-play failure on Android
+            await new Promise((resolve) => {
+              if (videoRef.current.readyState >= 2) {
+                resolve();
+              } else {
+                videoRef.current.onloadeddata = resolve;
+                setTimeout(resolve, 1500);
+              }
+            });
+            try {
+              await videoRef.current.play();
+              console.log('Stream restarted successfully after play failure');
+            } catch (playErr) {
+              console.error('Failed to play restarted stream:', playErr);
+              setCameraStatus('error');
+            }
+            // Bug 3 fix: 600ms settle so autofocus locks before next capture
+            await new Promise(resolve => setTimeout(resolve, 600));
+          } else {
+            console.error('Failed to restart camera: no stream available');
             setCameraStatus('error');
           }
         }
