@@ -361,7 +361,11 @@ export default function ScanCamera() {
   };
 
   const handleCapture = async () => {
-    if (!videoRef.current || processingLockRef.current) return;
+    debugLog('log', `handleCapture called — locked=${processingLockRef.current} hasVideo=${!!videoRef.current} videoW=${videoRef.current?.videoWidth} videoH=${videoRef.current?.videoHeight}`);
+    if (!videoRef.current || processingLockRef.current) {
+      debugLog('warn', `handleCapture BLOCKED — locked=${processingLockRef.current} hasVideo=${!!videoRef.current}`);
+      return;
+    }
     processingLockRef.current = true;
     try {
       // Capture image while video is still playing — no pause/play cycle needed.
