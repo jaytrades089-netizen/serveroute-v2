@@ -280,6 +280,7 @@ export default function ScanCamera() {
 
       // Only add successful extractions to the list
       if (!result.success || !result.parsedAddress) {
+        toast.error('No address found — try centering the document and scanning again');
         return;
       }
 
@@ -343,53 +344,67 @@ export default function ScanCamera() {
     if (!videoRef.current || processingLockRef.current) return;
     processingLockRef.current = true;
     
-    // Capture the image FIRST, then freeze
-    const imageBase64 = captureAndCompressImage(videoRef.current);
-    
-    // Shutter effect — black out camera, pause video
-    setShowShutter(true);
-    if (videoRef.current) {
-      videoRef.current.pause();
-    }
-    
-    await processImage(imageBase64);
-    
-    // Hold shutter 800ms after processing so user moves to next document
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Resume video with proper error handling for Android
-    setShowShutter(false);
-    if (videoRef.current && streamRef.current) {
-      try {
-        await videoRef.current.play();
-      } catch (error) {
-        console.warn('Video play failed after capture, attempting stream restart:', error);
-        
-        // Stop current stream tracks
-        streamRef.current.getTracks().forEach(track => track.stop());
-        
-        // Attempt to restart stream with simpler constraints
+    try {
+      // Guard: video must have valid dimensions (Android can have 0x0 before stream is ready)
+      if (!videoRef.current.videoWidth || !videoRef.current.videoHeight) {
+        toast.error('Camera not ready — please wait a moment and try again');
+        return;
+      }
+
+      // Capture the image FIRST, then freeze
+      const imageBase64 = captureAndCompressImage(videoRef.current);
+      
+      // Shutter effect — black out camera, pause video
+      setShowShutter(true);
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
+      
+      await processImage(imageBase64);
+      
+      // Hold shutter 800ms after processing so user moves to next document
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      // Resume video with proper error handling for Android
+      setShowShutter(false);
+      if (videoRef.current && streamRef.current) {
         try {
-          const newStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' }, 
-            audio: false 
-          });
-          streamRef.current = newStream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = newStream;
-            await videoRef.current.play();
+          await videoRef.current.play();
+        } catch (error) {
+          console.warn('Video play failed after capture, attempting stream restart:', error);
+          
+          // Stop current stream tracks
+          streamRef.current.getTracks().forEach(track => track.stop());
+          
+          // Attempt to restart stream with simpler constraints
+          try {
+            const newStream = await navigator.mediaDevices.getUserMedia({ 
+              video: { facingMode: 'environment' }, 
+              audio: false 
+            });
+            streamRef.current = newStream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = newStream;
+              await videoRef.current.play();
+            }
+            console.log('Stream restarted successfully after play failure');
+          } catch (restartError) {
+            console.error('Failed to restart camera after play() error:', restartError);
+            setCameraStatus('error');
           }
-          console.log('Stream restarted successfully after play failure');
-        } catch (restartError) {
-          console.error('Failed to restart camera after play() error:', restartError);
-          setCameraStatus('error');
         }
       }
+      
+      // Brief cooldown so the camera gets a fresh frame
+      await new Promise(resolve => setTimeout(resolve, 200));
+    } catch (err) {
+      console.error('Capture failed:', err);
+      setShowShutter(false);
+      toast.error('Capture failed — please try again');
+    } finally {
+      // ALWAYS release the lock, even if something threw
+      processingLockRef.current = false;
     }
-    
-    // Release lock after a brief cooldown so the camera gets a fresh frame
-    await new Promise(resolve => setTimeout(resolve, 200));
-    processingLockRef.current = false;
   };
 
   const handleFileUpload = async (event) => {
