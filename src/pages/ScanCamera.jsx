@@ -195,32 +195,13 @@ export default function ScanCamera() {
 
           if (videoRef.current.readyState >= 2) {
             // Video already has enough data
-            playVideo().then(() => {
-              // Allow autofocus to settle before first capture (Android needs this)
-              processingLockRef.current = true;
-              setTimeout(() => {
-                processingLockRef.current = false;
-              }, 500);
-            });
+            playVideo();
           } else {
-            videoRef.current.onloadeddata = () => {
-              playVideo().then(() => {
-                // Allow autofocus to settle before first capture (Android needs this)
-                processingLockRef.current = true;
-                setTimeout(() => {
-                  processingLockRef.current = false;
-                }, 500);
-              });
-            };
+            videoRef.current.onloadeddata = playVideo;
             // Fallback timeout
             setTimeout(() => {
               if (mounted && cameraStatus === 'initializing') {
-                playVideo().then(() => {
-                  processingLockRef.current = true;
-                  setTimeout(() => {
-                    processingLockRef.current = false;
-                  }, 500);
-                });
+                playVideo();
               }
             }, 1000);
           }
