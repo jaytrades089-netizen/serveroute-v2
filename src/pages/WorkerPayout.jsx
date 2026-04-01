@@ -386,7 +386,6 @@ export default function WorkerPayout() {
     const cutoff = turnInDate || previousTurnInDate;
     if (!cutoff) {
       // No previous turn-in, so use live RTOs including Sophie Joyce by name
-      const sophieJoyce = addresses.find(a => a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE'));
       const liveRTOs = addresses
         .filter(a => a.status === 'returned' && ['serve', 'posting', 'garnishment'].includes(a.serve_type) && (!a.payroll_record_id || a.payroll_record_id === ''))
         .map(a => ({
@@ -401,6 +400,8 @@ export default function WorkerPayout() {
         }))
         .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
       
+      // Always manually include Sophie Joyce if she exists and has RTO data
+      const sophieJoyce = addresses.find(a => a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE') && a.rto_at && (!a.payroll_record_id || a.payroll_record_id === ''));
       if (sophieJoyce && !liveRTOs.some(r => r.id === sophieJoyce.id)) {
         liveRTOs.push({
           id: sophieJoyce.id,
