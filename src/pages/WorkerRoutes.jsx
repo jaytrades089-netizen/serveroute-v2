@@ -271,7 +271,7 @@ export default function WorkerRoutes() {
   // Filter is now toggled between 'all' and 'archived' via the header buttons
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 80 }}>
       <Header 
         user={user} 
         unreadCount={notifications.length}
@@ -409,8 +409,8 @@ export default function WorkerRoutes() {
 
                   return (
                   <div key={dateKey}>
-                    <div className="bg-blue-600 text-white rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-white flex-shrink-0" />
+                    <div className="rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2" style={{ background: '#502f50', border: '1px solid #e5b9e1', color: '#e5b9e1' }}>
+                      <Calendar className="w-4 h-4 flex-shrink-0" />
                       <h2 className="text-sm font-bold truncate">
                         {isToday(dt) ? `Today — ${format(dt, 'EEE, MMM d')}` : isTomorrow(dt) ? `Tomorrow — ${format(dt, 'EEE, MMM d')}` : format(dt, 'EEEE, MMM d')}
                       </h2>
