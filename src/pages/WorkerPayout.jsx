@@ -870,12 +870,9 @@ export default function WorkerPayout() {
                     </div>
                   ) : (
                     mailedItems.map((item, i) => (
-                      <div key={i} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.accentPlum, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#0F0B10', zIndex: 10 }}>{i + 1}</div>
-                        <SnapshotCard key={i} item={item} />
-                      </div>
+                      <SnapshotCard key={i} item={item} index={i} />
                     ))
-                  )}
+                  )
                 </>
               )}
 
@@ -901,10 +898,7 @@ export default function WorkerPayout() {
                   ) : rtoTabItems ? (
                     // Show snapshot RTOs (post-turn-in)
                     rtoTabItems.map((item, i) => (
-                      <div key={i} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.rto, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', zIndex: 10 }}>{i + 1}</div>
-                        <SnapshotCard key={i} item={item} />
-                      </div>
+                      <SnapshotCard key={i} item={item} index={i} />
                     ))
                   ) : (
                     // Show live unstamped RTOs (pre-turn-in)
