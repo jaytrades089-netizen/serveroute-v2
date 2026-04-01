@@ -237,11 +237,17 @@ export default function ComboRouteSelection() {
         total_drive_time_minutes: totalDriveTimeMinutes
       });
 
-      // Update address orders across all routes
-      for (let i = 0; i < optimizedAddresses.length; i++) {
-        await base44.entities.Address.update(optimizedAddresses[i].id, { 
-          order_index: i + 1 
-        });
+      // Update address orders in batches of 10 to avoid N+1 sequential API calls
+      const BATCH_SIZE = 10;
+      for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
+        const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
+        await Promise.all(
+          batch.map((addr, i) =>
+            base44.entities.Address.update(addr.id, {
+              order_index: start + i + 1
+            })
+          )
+        );
       }
 
       // Set all selected routes to active
