@@ -478,20 +478,21 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         {/* Start location */}
         <label className="block text-xs font-medium text-gray-700 mb-1">Start Location</label>
 
-        <div className="flex items-center gap-2 mb-1">
-          <Checkbox
-            id="useCurrentLocation"
-            checked={useCurrentLocation}
-            onCheckedChange={(val) => {
-              setUseCurrentLocation(val);
-              if (!val) { setCurrentLocationAddress(null); setLocationError(null); }
-            }}
-          />
-          <label htmlFor="useCurrentLocation" className="text-sm text-gray-600 flex items-center gap-1 cursor-pointer">
-            <LocateFixed className="w-4 h-4 text-blue-500" />
-            Use current location
-          </label>
-        </div>
+        <button
+          onClick={() => {
+            const val = !useCurrentLocation;
+            setUseCurrentLocation(val);
+            if (!val) { setCurrentLocationAddress(null); setLocationError(null); }
+          }}
+          className={`w-full mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
+            useCurrentLocation
+              ? 'bg-green-500 border-green-500 text-white'
+              : 'bg-white border-green-500 text-green-600'
+          }`}
+        >
+          <LocateFixed className="w-4 h-4" />
+          Use Current Location
+        </button>
 
         {useCurrentLocation && currentLocationAddress && !locationError && (
           <div className="flex items-center gap-1.5 mb-3 ml-6">
