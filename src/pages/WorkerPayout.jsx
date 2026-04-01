@@ -359,8 +359,8 @@ export default function WorkerPayout() {
     if (lastRecord?.snapshot_data) {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
-    const snapshotPending = snapshot.filter(a => a.bucket === 'pending');
-    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto');
+    const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting');
+    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto' && a.serve_type !== 'posting');
     if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
@@ -382,7 +382,7 @@ export default function WorkerPayout() {
     });
 
     const liveMailed = candidates
-      .filter(a => a.served && a.status !== 'returned')
+      .filter(a => a.served && a.status !== 'returned' && a.serve_type !== 'posting')
       .map(a => ({
         id: a.id,
         address: a.normalized_address || a.legal_address,
@@ -446,8 +446,11 @@ export default function WorkerPayout() {
     const now = new Date();
     const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
 
+    // Only include serve/garnishment in mailed snapshot — postings are already instant pay
+    const mailedPayouts = instantPayouts.filter(a => a.serve_type !== 'posting');
+
     const snapshotAddresses = [
-      ...instantPayouts.map(a => ({
+      ...mailedPayouts.map(a => ({
         id: a.id,
         address: a.normalized_address || a.legal_address,
         defendant: a.defendant_name || '',
@@ -455,7 +458,7 @@ export default function WorkerPayout() {
         amount: calcPay(a.serve_type),
         served_at: a.served_at,
         rto_at: null,
-        bucket: 'pending'  // 'pending payment' = shows in Mailed tab
+        bucket: 'pending'
       })),
       ...currentRTOs.map(a => ({
         id: a.id,
@@ -490,7 +493,7 @@ export default function WorkerPayout() {
     // Stamp payroll_record_id on every included address (sequential to avoid rate limits)
     if (newRecord?.id) {
       const addressesToStamp = [
-        ...instantPayouts.map(a => a.id),
+        ...instantPayouts.map(a => a.id), // stamp all including postings
         ...currentRTOs.map(a => a.id)
       ];
       for (const addressId of addressesToStamp) {
