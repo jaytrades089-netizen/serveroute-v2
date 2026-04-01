@@ -269,7 +269,6 @@ export default function ScanCamera() {
       const quality = await checkImageQuality(imageBase64);
 
       if (!quality.canProcess) {
-
         toast.error(quality.issues[0]?.message || 'Poor image quality');
         setIsProcessing(false);
         return;
@@ -277,14 +276,35 @@ export default function ScanCamera() {
 
       setProcessingText('Extracting address...');
 
-      const response = await base44.functions.invoke('processOCR', {
-        imageBase64,
-        documentType: currentSession.documentType,
-        sessionId: currentSession.dbSessionId
-      });
+      let response;
+      try {
+        response = await base44.functions.invoke('processOCR', {
+          imageBase64,
+          documentType: currentSession.documentType,
+          sessionId: currentSession.dbSessionId
+        });
+      } catch (invokeError) {
+        console.error('Function invoke error:', invokeError);
+        toast.error('Network error — check your connection and try again');
+        setIsProcessing(false);
+        return;
+      }
+
+      if (!response || !response.data) {
+        console.error('Invalid response from processOCR:', response);
+        toast.error('Server error — please try again');
+        setIsProcessing(false);
+        return;
+      }
 
       const result = response.data;
 
+      if (result.error) {
+        console.error('OCR error:', result.error, result.details);
+        toast.error(result.error === 'OCR service not configured' ? 'OCR not available' : 'Failed to process image');
+        setIsProcessing(false);
+        return;
+      }
 
       // Only add successful extractions to the list
       if (!result.success || !result.parsedAddress) {
