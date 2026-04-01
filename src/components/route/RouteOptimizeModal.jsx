@@ -518,12 +518,14 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             <SelectContent>
               {savedLocations.map(loc => (
                 <SelectItem key={loc.id} value={loc.id}>
-                  <div className="flex items-center gap-2 w-full">
-                    {getLocationIcon(loc.label)}
-                    <span className="font-medium">{loc.label}</span>
-                    <span className="text-gray-400 text-sm truncate max-w-[120px]">- {loc.address}</span>
+                  <div className="flex items-center justify-between w-full gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      {getLocationIcon(loc.label)}
+                      <span className="font-medium truncate">{loc.label}</span>
+                      <span className="text-gray-400 text-sm truncate">- {loc.address}</span>
+                    </div>
                     <button
-                      className="ml-auto p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
+                      className="p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
                       onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
                     >
                       <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
@@ -544,12 +546,14 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <SelectContent>
             {savedLocations.map(loc => (
               <SelectItem key={loc.id} value={loc.id}>
-                <div className="flex items-center gap-2 w-full">
-                  {getLocationIcon(loc.label)}
-                  <span className="font-medium">{loc.label}</span>
-                  <span className="text-gray-400 text-sm truncate max-w-[120px]">- {loc.address}</span>
+                <div className="flex items-center justify-between w-full gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    {getLocationIcon(loc.label)}
+                    <span className="font-medium truncate">{loc.label}</span>
+                    <span className="text-gray-400 text-sm truncate">- {loc.address}</span>
+                  </div>
                   <button
-                    className="ml-auto p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
+                    className="p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
                     onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
                   >
                     <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
