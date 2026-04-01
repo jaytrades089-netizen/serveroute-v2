@@ -709,7 +709,7 @@ export default function WorkerPayout() {
                 }}
               >
                 <ArrowRight size={16} />
-                Turn In: ${instantTotal.toFixed(2)}
+                Turn In: ${(instantTotal + nextCheckTotal).toFixed(2)}
               </button>
             </div>
           </div>
