@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { 
   Loader2, ChevronLeft, DollarSign, CheckCircle, Clock, RotateCcw, 
-  ChevronRight, Edit2, Check, X, Trash2
+  ChevronRight, Edit2, Check, X, Search, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -100,34 +100,33 @@ export default function PayrollRecordDetail() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   if (!record) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', padding: '16px' }}>
         <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
           <ChevronLeft className="w-5 h-5 mr-1" /> Back
         </Button>
-        <p className="text-center text-gray-500 mt-10">Record not found</p>
+        <p className="text-center mt-10" style={{ color: '#8a7f87' }}>Record not found</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      {/* Header */}
-      <div className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 96 }}>
+      <div style={{ background: '#0F0B10', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #363436' }}>
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-1">
             <ChevronLeft className="w-6 h-6" />
           </button>
           <div>
             <p className="font-bold text-sm">Payroll Record</p>
-            <p className="text-xs text-blue-200">
+            <p className="text-xs" style={{ color: '#8a7f87' }}>
               {record.period_start && format(new Date(record.period_start), 'MMM d')} — {record.period_end && format(new Date(record.period_end), 'MMM d, yyyy')}
             </p>
           </div>
@@ -166,41 +165,41 @@ export default function PayrollRecordDetail() {
       <main className="px-4 py-5 max-w-lg mx-auto">
         {/* Summary totals */}
         <div className="grid grid-cols-3 gap-3 mb-5">
-          <div className="bg-white border border-green-200 rounded-xl p-3">
+          <div className="border border-green-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
             <p className="text-xs text-green-600 font-medium flex items-center gap-1">
               <CheckCircle className="w-3 h-3" /> Instant
             </p>
             <p className="text-lg font-bold text-green-700">${record.instant_total?.toFixed(2)}</p>
-            <p className="text-xs text-gray-400">{instantItems.length} items</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{instantItems.length} items</p>
           </div>
-          <div className="bg-white border border-orange-200 rounded-xl p-3">
+          <div className="border border-orange-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
             <p className="text-xs text-orange-600 font-medium flex items-center gap-1">
               <Clock className="w-3 h-3" /> Next
             </p>
             <p className="text-lg font-bold text-orange-700">${record.pending_total?.toFixed(2)}</p>
-            <p className="text-xs text-gray-400">{pendingItems.length} items</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{pendingItems.length} items</p>
           </div>
-          <div className="bg-white border border-purple-200 rounded-xl p-3">
+          <div className="border border-purple-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
             <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
               <DollarSign className="w-3 h-3" /> Total
             </p>
             <p className="text-lg font-bold text-purple-700">${record.total_amount?.toFixed(2)}</p>
-            <p className="text-xs text-gray-400">{record.address_count} items</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{record.address_count} items</p>
           </div>
         </div>
 
         {/* Meta info */}
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-5">
+        <div style={{ background: '#1c1b1d', border: '1px solid #363436', borderRadius: 12, padding: 16, marginBottom: 20 }}>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-xs text-gray-500">Saved</p>
-              <p className="font-medium text-gray-900 text-xs">
+              <p className="text-xs" style={{ color: '#8a7f87' }}>Saved</p>
+              <p className="font-medium text-xs" style={{ color: '#e6e1e4' }}>
                 {record.created_at && format(new Date(record.created_at), 'MMM d, yyyy h:mm a')}
               </p>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Turned In</p>
-              <p className="font-medium text-gray-900 text-xs">
+              <p className="text-xs" style={{ color: '#8a7f87' }}>Turned In</p>
+              <p className="font-medium text-xs" style={{ color: '#e6e1e4' }}>
                 {record.turn_in_date ? format(new Date(record.turn_in_date), 'MMM d, yyyy h:mm a') : '—'}
               </p>
             </div>
@@ -208,19 +207,20 @@ export default function PayrollRecordDetail() {
 
           {/* Edit mode: status + notes */}
           {editMode && (
-            <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
+            <div className="mt-4 space-y-3" style={{ borderTop: '1px solid #363436', paddingTop: 16 }}>
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">STATUS</label>
+                <label className="text-xs font-semibold block mb-1" style={{ color: '#d0c3cb' }}>STATUS</label>
                 <div className="flex gap-2">
                   {['saved', 'paid'].map(s => (
                     <button
                       key={s}
                       onClick={() => setEditStatus(s)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all ${
-                        editStatus === s
-                          ? s === 'paid' ? 'bg-green-100 border-green-400 text-green-700' : 'bg-blue-100 border-blue-400 text-blue-700'
-                          : 'bg-gray-50 border-gray-200 text-gray-400'
-                      }`}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-all"
+                      style={{
+                        background: editStatus === s ? (s === 'paid' ? '#22c55e' : '#502f50') : '#1c1b1d',
+                        borderColor: editStatus === s ? (s === 'paid' ? '#22c55e' : '#e9c349') : '#363436',
+                        color: editStatus === s ? (s === 'paid' ? '#fff' : '#e9c349') : '#8a7f87'
+                      }}
                     >
                       {s.toUpperCase()}
                     </button>
@@ -228,23 +228,22 @@ export default function PayrollRecordDetail() {
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600 block mb-1">NOTES</label>
+                <label className="text-xs font-semibold block mb-1" style={{ color: '#d0c3cb' }}>NOTES</label>
                 <textarea
                   value={editNotes}
                   onChange={(e) => setEditNotes(e.target.value)}
                   placeholder="Add notes about this pay period..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4', borderRadius: 8, padding: '8px 12px', width: '100%', resize: 'none' }}
                   rows={3}
                 />
               </div>
             </div>
           )}
 
-          {/* Notes display (not edit mode) */}
           {!editMode && record.notes && (
-            <div className="mt-3 border-t border-gray-100 pt-3">
-              <p className="text-xs text-gray-500 mb-1">Notes</p>
-              <p className="text-sm text-gray-700">{record.notes}</p>
+            <div className="mt-3" style={{ borderTop: '1px solid #363436', paddingTop: 12 }}>
+              <p className="text-xs mb-1" style={{ color: '#8a7f87' }}>Notes</p>
+              <p className="text-sm" style={{ color: '#d0c3cb' }}>{record.notes}</p>
             </div>
           )}
         </div>
@@ -260,13 +259,14 @@ export default function PayrollRecordDetail() {
                 <div
                   key={i}
                   onClick={() => handleAddressPress(item.id)}
-                  className="bg-white border border-green-200 rounded-xl p-3 flex items-center justify-between cursor-pointer active:bg-green-50"
+                  className="border border-green-200 rounded-xl p-3 flex items-center justify-between cursor-pointer"
+                  style={{ background: '#1c1b1d' }}
                 >
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{item.address}</p>
-                    {item.defendant && <p className="text-xs text-gray-500">{item.defendant}</p>}
+                    <p className="text-sm font-medium" style={{ color: '#e6e1e4' }}>{item.address}</p>
+                    {item.defendant && <p className="text-xs" style={{ color: '#8a7f87' }}>{item.defendant}</p>}
                     {item.served_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs mt-0.5" style={{ color: '#8a7f87' }}>
                         {format(new Date(item.served_at), 'MMM d, h:mm a')}
                       </p>
                     )}
@@ -276,7 +276,7 @@ export default function PayrollRecordDetail() {
                   </div>
                   <div className="flex items-center gap-2 ml-3">
                     <p className="font-bold text-green-600">${item.amount?.toFixed(2)}</p>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                    <ChevronRight className="w-4 h-4" style={{ color: '#363436' }} />
                   </div>
                 </div>
               ))}
@@ -295,18 +295,19 @@ export default function PayrollRecordDetail() {
                 <div
                   key={i}
                   onClick={() => handleAddressPress(item.id)}
-                  className="bg-white border border-orange-200 rounded-xl p-3 flex items-center justify-between cursor-pointer active:bg-orange-50"
+                  className="border border-orange-200 rounded-xl p-3 flex items-center justify-between cursor-pointer"
+                  style={{ background: '#1c1b1d' }}
                 >
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{item.address}</p>
-                    {item.defendant && <p className="text-xs text-gray-500">{item.defendant}</p>}
+                    <p className="text-sm font-medium" style={{ color: '#e6e1e4' }}>{item.address}</p>
+                    {item.defendant && <p className="text-xs" style={{ color: '#8a7f87' }}>{item.defendant}</p>}
                     <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full mt-1 inline-block">
                       {item.rto_at ? 'RTO' : 'Attempt'}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 ml-3">
                     <p className="font-bold text-orange-600">${item.amount?.toFixed(2)}</p>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                    <ChevronRight className="w-4 h-4" style={{ color: '#363436' }} />
                   </div>
                 </div>
               ))}
@@ -325,23 +326,24 @@ export default function PayrollRecordDetail() {
                 <div
                   key={i}
                   onClick={() => handleAddressPress(item.id)}
-                  className="bg-red-50 border border-red-200 rounded-xl p-3 flex items-center justify-between cursor-pointer active:bg-red-100"
+                  className="border border-red-200 rounded-xl p-3 flex items-center justify-between cursor-pointer"
+                  style={{ background: '#1c1b1d' }}
                 >
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">{item.address}</p>
-                    {item.defendant && <p className="text-xs text-gray-500">{item.defendant}</p>}
+                    <p className="text-sm font-medium" style={{ color: '#e6e1e4' }}>{item.address}</p>
+                    {item.defendant && <p className="text-xs" style={{ color: '#8a7f87' }}>{item.defendant}</p>}
                     {item.rto_reason && (
                       <p className="text-xs text-red-500 mt-0.5 italic">"{item.rto_reason}"</p>
                     )}
                     {item.rto_at && (
-                      <p className="text-xs text-gray-400 mt-0.5">
+                      <p className="text-xs mt-0.5" style={{ color: '#8a7f87' }}>
                         {format(new Date(item.rto_at), 'MMM d, h:mm a')}
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 ml-3">
                     <p className="font-bold text-red-600">${item.amount?.toFixed(2)}</p>
-                    <ChevronRight className="w-4 h-4 text-gray-300" />
+                    <ChevronRight className="w-4 h-4" style={{ color: '#363436' }} />
                   </div>
                 </div>
               ))}
@@ -350,7 +352,7 @@ export default function PayrollRecordDetail() {
         )}
 
         {/* Delete */}
-        <div className="mt-8 border-t border-gray-200 pt-6">
+        <div className="mt-8 pt-6" style={{ borderTop: '1px solid #363436' }}>
           {!confirmDelete ? (
             <button
               onClick={() => setConfirmDelete(true)}
