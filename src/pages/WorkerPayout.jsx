@@ -439,18 +439,15 @@ export default function WorkerPayout() {
       created_at: now.toISOString()
     });
 
-    // Stamp payroll_record_id on every included address
+    // Stamp payroll_record_id on every included address (sequential to avoid rate limits)
     if (newRecord?.id) {
       const addressesToStamp = [
         ...instantPayouts.map(a => a.id),
         ...currentRTOs.map(a => a.id)
       ];
-      await Promise.all(
-        addressesToStamp.map(addressId =>
-          base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id })
-            .catch(err => console.error('Failed to stamp address', addressId, err))
-        )
-      );
+      for (const addressId of addressesToStamp) {
+        await base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id });
+      }
     }
 
     queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
