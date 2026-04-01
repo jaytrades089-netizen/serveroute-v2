@@ -754,10 +754,7 @@ export default function WorkerPayout() {
               ${nextCheckTotal.toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {lastTurnInDate
-                ? `${nextCheckCount - nextCheckRTOCount} attempt${nextCheckCount - nextCheckRTOCount !== 1 ? 's' : ''}${nextCheckRTOCount > 0 ? ` · ${nextCheckRTOCount} RTO` : ''}`
-                : 'Mail in to update'
-              }
+              ${pendingTotal.toFixed(2)} + ${pendingRTOTotal.toFixed(2)} RTO
             </p>
           </div>
         </div>
