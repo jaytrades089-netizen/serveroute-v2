@@ -464,7 +464,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
 
-      <div className="absolute top-0 left-0 right-0 bg-white rounded-b-3xl px-4 pt-3 pb-4 shadow-2xl animate-slide-down z-50 max-h-[95vh] overflow-y-auto">
+      <div className={`absolute top-0 left-0 right-0 bg-white rounded-b-3xl px-4 pt-3 pb-4 shadow-2xl animate-slide-down z-50 ${isOptimized ? '' : 'max-h-[95vh] overflow-y-auto'}`}>
         <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-2" />
 
         <div className="flex justify-between items-center mb-3">
@@ -474,11 +474,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           </button>
         </div>
 
+        {!isOptimized && (
+        <>
         {/* Route info */}
         <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex justify-between items-center">
           <div>
             <p className="font-semibold">{route?.folder_name || 'Route'}</p>
-
           </div>
           <Button variant="outline" size="icon" onClick={handleShuffle} disabled={isShuffling}>
             {isShuffling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
@@ -592,50 +593,19 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             </div>
           </div>
         )}
-
-
+        </>
+        )}
 
         {/* Route Metrics */}
         {isOptimized && routeMetrics && (
-          <div className="bg-white rounded-xl p-3 shadow-sm mb-3 border border-gray-200">
-            <h3 className="text-xs font-semibold text-gray-500 mb-2">ROUTE SUMMARY</h3>
-            <div className="space-y-1.5">
-              <div className="bg-gray-100 rounded-lg p-2 flex items-center justify-center gap-2">
-                <Select value={timeAtAddress.toString()} onValueChange={(v) => setTimeAtAddress(parseInt(v))}>
-                  <SelectTrigger className="border-0 bg-transparent font-semibold text-gray-700 text-sm p-0 h-auto w-auto gap-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TIME_AT_ADDRESS_OPTIONS.map(opt => (
-                      <SelectItem key={opt.value} value={opt.value.toString()}>{opt.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <span className="text-sm text-gray-600">per address</span>
-              </div>
-              <div className="bg-gray-100 rounded-lg p-2 text-center">
-                <p className="text-sm text-gray-600">
-                  {routeMetrics.totalMiles.toFixed(1)} miles • {optimizedCount} addresses •
-                  {(() => {
-                    const est = calculateEstCompletion();
-                    if (!est) return ' --';
-                    const hours = Math.floor(est.totalMinutes / 60);
-                    const mins = est.totalMinutes % 60;
-                    return ` ${hours}h ${mins}m total`;
-                  })()}
-                </p>
-              </div>
-              <div className="bg-gray-100 rounded-lg p-2 text-center">
-                {(() => {
-                  const est = calculateEstCompletion();
-                  return (
-                    <p className="text-sm text-gray-600">
-                      Est. done by <span className="font-semibold">{est?.completionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '--:--'}</span>
-                    </p>
-                  );
-                })()}
-              </div>
-            </div>
+          <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600 justify-center">
+            <span>{routeMetrics.totalMiles.toFixed(1)} mi</span>
+            <span>•</span>
+            <span>{optimizedCount} stops</span>
+            <span>•</span>
+            <span>{(() => { const est = calculateEstCompletion(); if (!est) return '--'; const h = Math.floor(est.totalMinutes/60); const m = est.totalMinutes%60; return `${h}h ${m}m`; })()}</span>
+            <span>•</span>
+            <span>Done ~{(() => { const est = calculateEstCompletion(); return est?.completionTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) || '--'; })()}</span>
           </div>
         )}
 
