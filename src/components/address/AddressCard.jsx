@@ -1096,15 +1096,771 @@ export default function AddressCard({
                     </p>
                   )}
                   {(folderName || address._folderName) && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#502f50', color: '#e5b9e1', border: '1px solid #e5b9e1' }}>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap">
                       {folderName || address._folderName}
                     </span>
                   )}
                 </div>
               </>
             )}
+          </div>
+        </div>
+
+        {/* HOME TAB - Summary with all qualifiers/times */}
+        {attemptCount > 0 && !isServed && activeTab === 0 && (
+          <div className="px-4 py-3 border-t border-gray-100">
+            {address.serve_type === 'posting' ? (
+              /* ===== POSTING SUMMARY — simplified, no qualifiers ===== */
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                    POSTED SUMMARY
+                  </span>
+                </div>
+
+                {/* Posting Timeline — just date/time + photo icon */}
+                <div className="space-y-2">
+                  {sortedAttempts.map((attempt, idx) => (
+                    <div 
+                      key={attempt.id} 
+                      className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (attempt.photo_urls?.length > 0) {
+                          setShowPhotoViewer(true);
+                        }
+                      }}
+                    >
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-purple-100 text-purple-600">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                        </div>
+                        <span className="text-[10px] text-purple-600 font-bold">
+                          POSTED
+                        </span>
+                      </div>
+                      {attempt.photo_urls?.length > 0 && (
+                        <ImageIcon className="w-4 h-4 text-blue-500" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                    POSTING
+                  </Badge>
+                  {isVerified && (
+                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                      VERIFIED
+                    </Badge>
+                  )}
+                  {address.has_dcn && (
+                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                      DCN
+                    </Badge>
+                  )}
+                </div>
+              </>
+            ) : (
+              /* ===== REGULAR SERVE SUMMARY — unchanged ===== */
+              <>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                    ATTEMPTS SUMMARY
+                  </span>
+                </div>
+
+                {/* Attempt Timeline */}
+                <div className="space-y-2">
+                  {sortedAttempts.map((attempt, idx) => {
+                    const isInProgress = attempt.status === 'in_progress';
+                    return (
+                      <div 
+                        key={attempt.id} 
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
+                          isInProgress 
+                            ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' 
+                            : 'bg-gray-50 hover:bg-gray-100'
+                        }`}
+                        onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                          isInProgress 
+                            ? 'bg-amber-200 text-amber-700' 
+                            : 'bg-indigo-100 text-indigo-600'
+                        }`}>
+                          A{idx + 1}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold text-gray-900">
+                            {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <QualifierBadges 
+                              badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
+                              size="small" 
+                            />
+                            {isInProgress && (
+                              <span className="text-[10px] text-amber-600 font-bold">
+                                AWAITING OUTCOME
+                              </span>
+                            )}
+                            {attempt.distance_feet && (
+                              <span className="text-[10px] text-blue-500">
+                                {attempt.distance_feet} ft from address
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {attempt.photo_urls?.length > 0 && (
+                          <ImageIcon className="w-4 h-4 text-blue-500" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex items-center gap-2 flex-wrap mt-3">
+                  {isVerified && (
+                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                      VERIFIED
+                    </Badge>
+                  )}
+                  {address.has_dcn && (
+                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                      DCN
+                    </Badge>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ATTEMPT TAB - Individual attempt details (not for postings) */}
+        {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
+          <div className="px-4 py-3 border-t border-gray-100">
+            {/* Header with qualifier badges */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-500">
+                ATTEMPT {activeTab} {selectedAttempt.status === 'in_progress' && '(IN PROGRESS)'}
+              </h3>
+              <QualifierBadges 
+                badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} 
+                size="default" 
+              />
+            </div>
+
+            {/* Date & Time — editable when allowed */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-gray-500 font-medium">DATE & TIME</p>
+                {canEditAttemptTimes && selectedAttempt.status === 'completed' ? (
+                  <input
+                    type="datetime-local"
+                    value={(() => {
+                      const d = new Date(selectedAttempt.attempt_time);
+                      const offset = d.getTimezoneOffset();
+                      const local = new Date(d.getTime() - offset * 60000);
+                      return local.toISOString().slice(0, 16);
+                    })()}
+                    onChange={(e) => handleEditAttemptTime(selectedAttempt, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                ) : (
+                  <p className="text-base font-semibold">
+                    {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
+                      weekday: 'short',
+                      month: 'numeric',
+                      day: 'numeric',
+                      year: '2-digit',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                      hour12: true
+                    })}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Coordinates */}
+            {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">COORDINATES</p>
+                  <p className="text-base font-semibold">
+                    {selectedAttempt.user_latitude?.toFixed(6)}, {selectedAttempt.user_longitude?.toFixed(6)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Distance */}
+            {selectedAttempt.distance_feet != null && (
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
+                  <Navigation className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">DISTANCE</p>
+                  <p className="text-base font-semibold">
+                    {selectedAttempt.distance_feet?.toLocaleString()} feet from address
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Notes (editable) */}
+            {editingNotes ? (
+              <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                  <span className="text-xs text-blue-600 font-medium">EDIT NOTES</span>
+                </div>
+                <textarea
+                  value={editedNotesText}
+                  onChange={(e) => setEditedNotesText(e.target.value)}
+                  className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={4}
+                  autoFocus
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      navigator.clipboard.writeText(editedNotesText);
+                      toast.success('Notes copied to clipboard');
+                    }}
+                    className="flex-1"
+                  >
+                    <Copy className="w-4 h-4 mr-1" />
+                    Copy
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); handleSaveNotes(); }}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            ) : selectedAttempt.notes ? (
+              <div 
+                onClick={handleEditNotes}
+                className="bg-gray-50 rounded-xl p-4 mb-4 cursor-pointer hover:bg-gray-100 transition"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <span className="text-xs text-gray-500 font-medium">NOTES</span>
+                </div>
+                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                  {selectedAttempt.notes}
+                </p>
+                <p className="text-xs text-blue-500 mt-2">Tap to edit</p>
+              </div>
+            ) : null}
+
+            {/* Action Buttons Row: Delete / Add Photos / View Photos */}
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+                className="h-12 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Delete</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={handleCaptureEvidence}
+                className="h-12 border-amber-300 text-amber-700 hover:bg-amber-50 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Photo</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }}
+                disabled={!selectedAttempt.photo_urls?.length}
+                className="h-12 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Photos{selectedAttempt.photo_urls?.length ? ` (${selectedAttempt.photo_urls.length})` : ''}</span>
+              </Button>
             </div>
             </div>
+            )}
+
+        {/* No Attempts Yet - Show badges */}
+        {attemptCount === 0 && !isServed && (
+          <div className="px-4 py-3 border-t border-gray-100">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Badge className={`text-[10px] font-bold px-2.5 py-1 ${
+                address.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
+                address.serve_type === 'posting' ? 'bg-green-100 text-green-700 border border-green-200' :
+                'bg-blue-100 text-blue-700 border border-blue-200'
+              }`}>
+                {(address.serve_type || 'serve').toUpperCase()}
+              </Badge>
+              {isVerified && (
+                <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                  VERIFIED
+                </Badge>
+              )}
+              {address.has_dcn && (
+                <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                  DCN
+                </Badge>
+              )}
+              <span className="text-xs text-gray-500 ml-auto">No attempts yet</span>
+            </div>
+          </div>
+        )}
+
+        {/* Served State - Show completion info */}
+        {isServed && (
+          <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-200 bg-red-50/60' : 'border-gray-100 bg-green-50/50'}`}>
+            <div className="flex items-center gap-2 flex-wrap">
+              {isRTO ? (
+                <Badge className="bg-red-100 text-red-700 border border-red-300 text-[10px] font-bold px-2.5 py-1">
+                  <RotateCcw className="w-3 h-3 mr-1" />
+                  RETURNED TO OFFICE
+                </Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                  SERVED
+                </Badge>
+              )}
+              {!isRTO && receiptApproved ? (
+                <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                  <FileCheck className="w-3 h-3 mr-1" />
+                  RECEIPT APPROVED
+                </Badge>
+              ) : !isRTO && receiptPending ? (
+                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-2.5 py-1">
+                  <Clock className="w-3 h-3 mr-1" />
+                  PENDING REVIEW
+                </Badge>
+              ) : !isRTO && receiptNeedsRevision ? (
+                <Badge className="bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-bold px-2.5 py-1">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  NEEDS REVISION
+                </Badge>
+              ) : null}
+              {isRTO && address.rto_at && (
+                <span className="text-xs text-red-400 ml-auto">
+                  {format(new Date(address.rto_at), "M/d/yy 'at' h:mm a")}
+                </span>
+              )}
+              {!isRTO && address.served_at && (
+                <span className="text-xs text-gray-500 ml-auto">
+                  {format(new Date(address.served_at), "M/d/yy 'at' h:mm a")}
+                </span>
+              )}
+            </div>
+            {isRTO && address.rto_reason && (
+              <div className="mt-2 bg-white border border-red-200 rounded-lg px-3 py-2">
+                <p className="text-xs font-semibold text-red-600 mb-0.5">Return Reason:</p>
+                <p className="text-xs text-red-700">{address.rto_reason}</p>
+              </div>
+            )}
+            
+            {/* Unserve Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async (e) => {
+                e.stopPropagation();
+                const confirmed = window.confirm(
+                  'Mark this address as NOT served?\n\nThis will move it back to your active addresses.'
+                );
+                if (!confirmed) return;
+                
+                try {
+                  await base44.entities.Address.update(address.id, {
+                    served: false,
+                    served_at: null,
+                    status: localAttempts.length > 0 ? 'attempted' : 'pending',
+                    receipt_status: 'pending'
+                  });
+                  
+                  // Update route served count
+                  if (actualRouteId) {
+                    const routeAddresses = await base44.entities.Address.filter({
+                      route_id: actualRouteId,
+                      deleted_at: null
+                    });
+                    const newServedCount = routeAddresses.filter(a => a.served && a.id !== address.id).length;
+                    await base44.entities.Route.update(actualRouteId, {
+                      served_count: newServedCount
+                    });
+                  }
+                  
+                  toast.success('Address marked as not served');
+                  invalidateAttemptQueries();
+                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+                  queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
+                } catch (error) {
+                  console.error('Failed to unserve:', error);
+                  toast.error('Failed to update address');
+                }
+              }}
+              className="mt-3 w-full text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Mark as NOT Served
+            </Button>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {showActions && !isServed && (
+          <div className="px-4 py-3 space-y-2">
+            {isBossView ? (
+              /* ========== BOSS ACTIONS ========== */
+              <>
+                {/* Primary row: 3 equal buttons */}
+                <div className="grid grid-cols-3 gap-2">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${actualRouteId}`));
+                    }}
+                    className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                  >
+                    <Pencil className="w-5 h-5" />
+                    <span>EDIT</span>
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowBossAddAttempt(!showBossAddAttempt);
+                      setShowRequestAttempt(false);
+                    }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
+                      showBossAddAttempt 
+                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
+                        : 'bg-amber-500 hover:bg-amber-600 text-white'
+                    }`}
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>ADD ATTEMPT</span>
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowRequestAttempt(!showRequestAttempt);
+                      setShowBossAddAttempt(false);
+                    }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
+                      showRequestAttempt 
+                        ? 'bg-red-600 hover:bg-red-700 text-white' 
+                        : 'bg-red-500 hover:bg-red-600 text-white'
+                    }`}
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                    <span>REQUEST</span>
+                  </Button>
+                </div>
+
+                {/* Secondary row: 2 buttons */}
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
+                    }}
+                    variant="outline"
+                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <FileText className="w-4 h-4" />
+                    DETAILS
+                  </Button>
+
+                  <Button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowMoveModal(true);
+                    }}
+                    variant="outline"
+                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <ArrowRightLeft className="w-4 h-4" />
+                    MOVE
+                  </Button>
+                </div>
+              </>
+            ) : (
+              /* ========== WORKER ACTIONS ========== */
+              <>
+                {address.serve_type === 'posting' ? (
+                  /* === POSTING BUTTONS === */
+                  <>
+                    {/* Main Action Button */}
+                    {attemptCount > 0 ? (
+                      /* Evidence already taken — show FINALIZE POSTING */
+                      <Button 
+                        onClick={handleFinalizePosting}
+                        disabled={finalizingAttempt}
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                      >
+                        {finalizingAttempt ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Shield className="w-4 h-4 mr-2" />
+                        )}
+                        FINALIZE POSTING
+                      </Button>
+                    ) : (
+                      /* No evidence yet — show TAKE PHOTO */
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        TAKE PHOTO
+                      </Button>
+                    )}
+
+                    {/* Posting: 2 buttons — ADD PHOTO + DETAILS */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                      >
+                        <Plus className="w-5 h-5" />
+                        <span>ADD PHOTO</span>
+                      </Button>
+                      
+                      <Button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
+                        }}
+                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
+                      >
+                        <FileText className="w-5 h-5" />
+                        <span>DETAILS</span>
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  /* === REGULAR SERVE BUTTONS === */
+                  <>
+                    {/* Main Action - Changes based on state */}
+                    {hasInProgressAttempt ? (
+                      <Button 
+                        onClick={handleLogAttempt}
+                        disabled={finalizingAttempt}
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                      >
+                        {finalizingAttempt ? (
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        ) : (
+                          <Zap className="w-4 h-4 mr-2" />
+                        )}
+                        LOG ATTEMPT {inProgressAttempt.attempt_number}
+                      </Button>
+                    ) : (
+                      <Button 
+                        onClick={handleCaptureEvidence}
+                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                      >
+                        <Camera className="w-4 h-4 mr-2" />
+                        TAKE EVIDENCE
+                      </Button>
+                    )}
+
+                    {/* Secondary Actions Row */}
+                    <div className="flex gap-2">
+                      <Link 
+                        to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1"
+                      >
+                        <Button 
+                          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2"
+                        >
+                          <Shield className="w-5 h-5" />
+                          <span>SERVED</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  </>
+                )}
+
+                {/* Navigate Button — ONLY in worker view */}
+                <div className={`flex items-center border border-gray-200 rounded-xl overflow-hidden ${isHighlighted ? 'flash-purple' : ''}`}>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors">
+                        <MoreVertical className="w-5 h-5 text-gray-400" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" side="top">
+                      {onMessageBoss && (
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }}>
+                          <MessageCircle className="w-4 h-4 mr-2" />Message Boss
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
+                        <Pencil className="w-4 h-4 mr-2" />Edit Address
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { 
+                        e.stopPropagation(); 
+                        navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${actualRouteId}`));
+                      }}>
+                        <Clock className="w-4 h-4 mr-2" />Schedule Serve
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }} className="text-red-600 focus:text-red-600">
+                        <RotateCcw className="w-4 h-4 mr-2" /><span className="text-red-600 font-bold">RTO</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDeleteAddress(); }} className="text-red-600 focus:text-red-600">
+                        <Trash2 className="w-4 h-4 mr-2" />Delete Address
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <button 
+                    onClick={handleNavigate}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}
+                  >
+                    <Navigation className={`w-5 h-5 ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`} />
+                    <span className={`font-bold tracking-wide ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`}>NAVIGATE</span>
+                  </button>
+                </div>
+                </>
+                )}
+          </div>
+        )}
+
+        {/* Boss Add Attempt — Sub-Component */}
+        {isBossView && showBossAddAttempt && (
+          <BossAddAttemptPanel
+            address={address}
+            routeId={routeId}
+            user={user}
+            localAttempts={localAttempts}
+            onAttemptAdded={(newAttempt) => {
+              setLocalAttempts(prev => [...prev, newAttempt]);
+              invalidateAttemptQueries();
+            }}
+            onClose={() => setShowBossAddAttempt(false)}
+            queryClient={queryClient}
+          />
+        )}
+
+        {/* Boss Request Attempt — Sub-Component */}
+        {isBossView && showRequestAttempt && (
+          <BossRequestAttemptPanel
+            address={address}
+            routeId={routeId}
+            user={user}
+            onClose={() => setShowRequestAttempt(false)}
+            queryClient={queryClient}
+          />
+        )}
+
+        {/* Edit Panel — shows when editMode + user taps edit */}
+        {isEditing && (
+          <div className="px-4 py-3 border-t border-blue-200 bg-blue-50" onClick={(e) => e.stopPropagation()}>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Defendant Name</label>
+                <input
+                  type="text"
+                  value={editFields.defendant_name}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, defendant_name: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  placeholder="Defendant name"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Street Address</label>
+                <input
+                  type="text"
+                  value={editFields.normalized_address}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, normalized_address: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">City</label>
+                  <input
+                    type="text"
+                    value={editFields.city}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">State</label>
+                  <input
+                    type="text"
+                    value={editFields.state}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-gray-600">Zip</label>
+                  <input
+                    type="text"
+                    value={editFields.zip}
+                    onChange={(e) => setEditFields(prev => ({ ...prev, zip: e.target.value }))}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-gray-600">Serve Type</label>
+                <select
+                  value={editFields.serve_type}
+                  onChange={(e) => setEditFields(prev => ({ ...prev, serve_type: e.target.value }))}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                >
+                  <option value="serve">Serve</option>
+                  <option value="garnishment">Garnishment</option>
+                  <option value="posting">Posting</option>
+                </select>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleSaveEdit}
+                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Receipt Status Alert */}
