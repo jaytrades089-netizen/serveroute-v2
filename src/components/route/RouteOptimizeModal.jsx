@@ -35,6 +35,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [savingLocation, setSavingLocation] = useState(false);
   
   const [routeMetrics, setRouteMetrics] = useState(null);
+  const [optimizedCount, setOptimizedCount] = useState(0);
   const [timeAtAddress, setTimeAtAddress] = useState(2);
   const [isOptimized, setIsOptimized] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -163,7 +164,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const calculateEstCompletion = () => {
     if (!routeMetrics) return null;
     const driveTimeMinutes = routeMetrics.totalTimeMinutes;
-    const addressTimeMinutes = timeAtAddress * addresses.length;
+    const addressTimeMinutes = timeAtAddress * optimizedCount;
     const totalMinutes = driveTimeMinutes + addressTimeMinutes;
     const now = new Date();
     const completionTime = new Date(now.getTime() + totalMinutes * 60000);
@@ -368,6 +369,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       }
 
       setRouteMetrics(metrics);
+      setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
       // Save order_index in batches of 10
@@ -613,7 +615,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
               </div>
               <div className="bg-gray-100 rounded-lg p-2 text-center">
                 <p className="text-sm text-gray-600">
-                  {routeMetrics.totalMiles.toFixed(1)} miles • {addresses.length} addresses •
+                  {routeMetrics.totalMiles.toFixed(1)} miles • {optimizedCount} addresses •
                   {(() => {
                     const est = calculateEstCompletion();
                     if (!est) return ' --';
