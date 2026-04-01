@@ -407,7 +407,7 @@ export default function WorkerPayout() {
         amount: calcPay(a.serve_type),
         served_at: a.served_at,
         rto_at: null,
-        bucket: 'instant'
+        bucket: 'pending'  // 'pending payment' = shows in Mailed tab
       })),
       ...currentRTOs.map(a => ({
         id: a.id,
@@ -429,9 +429,9 @@ export default function WorkerPayout() {
       period_end: currentPeriod.end.toISOString(),
       turn_in_date: (turnInDate || now).toISOString(),
       instant_total: instantTotal,
-      pending_total: 0,
+      pending_total: instantTotal,
       rto_total: rtoTotal,
-      total_amount: instantTotal,
+      total_amount: instantTotal + rtoTotal,
       address_count: snapshotAddresses.length,
       snapshot_data: JSON.stringify(snapshotAddresses),
       status: 'saved',
