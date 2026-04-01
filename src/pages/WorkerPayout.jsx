@@ -361,8 +361,8 @@ export default function WorkerPayout() {
     };
   }, [payrollHistory]);
 
-  // Combined mailed items for display
-  const mailedItems = [...pendingPayouts, ...pendingRTOs];
+  // Mailed tab = served addresses from snapshot only (RTOs shown in their own tab)
+  const mailedItems = pendingPayouts;
 
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
   // pendingPayouts/pendingRTOs are snapshot objects with pre-computed `amount` field
@@ -552,11 +552,15 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
+  // After a turn-in, RTO tab shows snapshot RTOs; before turn-in shows live unstamped RTOs
+  const rtoTabItems = pendingRTOs.length > 0 ? pendingRTOs : null; // null = use live currentRTOs
+  const rtoTabCount = pendingRTOs.length > 0 ? pendingRTOs.length : currentRTOs.length;
+
   // ─── Tab definitions ─────────────────────────────────────────────────────────
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
-    { id: 'mailed', label: 'Mailed', count: mailedItems.length },
-    { id: 'rto',    label: 'RTO',    count: currentRTOs.length },
+    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
+    { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
   return (
@@ -797,9 +801,11 @@ export default function WorkerPayout() {
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    These will be included when you tap Turn In.
+                    {rtoTabItems
+                      ? `Returned documents from your last turn-in on ${lastTurnInDate ? format(lastTurnInDate, 'MMM d') : 'last period'}.`
+                      : 'These will be included when you tap Turn In.'}
                   </p>
-                  {currentRTOs.length === 0 ? (
+                  {rtoTabCount === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -810,7 +816,11 @@ export default function WorkerPayout() {
                       <RotateCcw size={28} color={C.textMuted} style={{ margin: '0 auto 8px' }} />
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
+                  ) : rtoTabItems ? (
+                    // Show snapshot RTOs (post-turn-in)
+                    rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} />)
                   ) : (
+                    // Show live unstamped RTOs (pre-turn-in)
                     currentRTOs.map(a => (
                       <AddressCard
                         key={a.id}
