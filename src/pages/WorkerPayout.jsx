@@ -475,7 +475,6 @@ export default function WorkerPayout() {
         defendant: a.defendant_name || '',
         serve_type: a.serve_type,
         amount: calcPay(a.serve_type),
-        served_at: null,
         rto_at: a.rto_at,
         rto_reason: a.rto_reason || '',
         bucket: 'rto'
