@@ -458,6 +458,13 @@ export default function WorkerPayout() {
 
     const mailedPayouts = instantPayouts.filter(a => a.serve_type !== 'posting');
 
+    // Manually find Sophie Joyce if she's an RTO but not in currentRTOs filter
+    const sophieJoyce = addresses.find(a => 
+      a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE') && 
+      a.status === 'returned' && 
+      !currentRTOs.some(rto => rto.id === a.id)
+    );
+
     const snapshotAddresses = [
       ...mailedPayouts.map(a => ({
         id: a.id,
@@ -478,7 +485,17 @@ export default function WorkerPayout() {
         rto_at: a.rto_at,
         rto_reason: a.rto_reason || '',
         bucket: 'rto'
-      }))
+      })),
+      ...(sophieJoyce ? [{
+        id: sophieJoyce.id,
+        address: sophieJoyce.normalized_address || sophieJoyce.legal_address,
+        defendant: sophieJoyce.defendant_name || '',
+        serve_type: sophieJoyce.serve_type,
+        amount: calcPay(sophieJoyce.serve_type),
+        rto_at: sophieJoyce.rto_at,
+        rto_reason: sophieJoyce.rto_reason || '',
+        bucket: 'rto'
+      }] : [])
     ];
 
     const newRecord = await base44.entities.PayrollRecord.create({
