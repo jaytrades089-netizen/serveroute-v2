@@ -842,11 +842,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No direct serves yet this period</p>
                     </div>
                   ) : (
-                    instantPayouts.map((a, idx) => (
-                      <div key={a.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.accentGold, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#0F0B10', zIndex: 10 }}>{idx + 1}</div>
-                        <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
-                      </div>
+                    instantPayouts.map(a => (
+                      <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
                     ))
                   )}
                 </>
@@ -911,18 +908,15 @@ export default function WorkerPayout() {
                     ))
                   ) : (
                     // Show live unstamped RTOs (pre-turn-in)
-                    currentRTOs.map((a, idx) => (
-                      <div key={a.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.rto, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', zIndex: 10 }}>{idx + 1}</div>
-                        <AddressCard
-                          key={a.id}
-                          address={a}
-                          accentColor={C.rto}
-                          badge="RTO"
-                          onUndo={handleUndoRTO}
-                          showUndo={true}
-                        />
-                      </div>
+                    currentRTOs.map(a => (
+                      <AddressCard
+                        key={a.id}
+                        address={a}
+                        accentColor={C.rto}
+                        badge="RTO"
+                        onUndo={handleUndoRTO}
+                        showUndo={true}
+                      />
                     ))
                   )}
                 </>
