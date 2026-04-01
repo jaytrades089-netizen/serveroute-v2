@@ -25,14 +25,15 @@ export default function WorkPhaseBlocks({ currentPhase }) {
               className={`rounded-t-xl p-3 text-center transition-all ${
                 isActive
                   ? 'bg-orange-500 text-white shadow-lg'
-                  : 'bg-gray-100 text-gray-600'
+                  : ''
               }`}
+              style={!isActive ? { background: '#1c1b1d' } : {}}
             >
-              <Icon className={`w-5 h-5 mx-auto mb-1 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-              <div className={`font-semibold text-sm ${isActive ? 'text-white' : 'text-gray-800'}`}>
+              <Icon className={`w-5 h-5 mx-auto mb-1 ${isActive ? 'text-white' : ''}`} style={!isActive ? { color: '#8a7f87' } : {}} />
+              <div className={`font-semibold text-sm ${isActive ? 'text-white' : ''}`} style={!isActive ? { color: '#d0c3cb' } : {}}>
                 {phase.label}
               </div>
-              <div className={`text-xs ${isActive ? 'text-orange-100' : 'text-gray-500'}`}>
+              <div className={`text-xs ${isActive ? 'text-orange-100' : ''}`} style={!isActive ? { color: '#8a7f87' } : {}}>
                 {phase.time}
               </div>
             </div>
@@ -45,14 +46,15 @@ export default function WorkPhaseBlocks({ currentPhase }) {
         className={`rounded-b-xl px-4 py-2.5 flex items-center justify-center gap-2 transition-all ${
           isNtcActive
             ? 'bg-orange-500 text-white shadow-lg'
-            : 'bg-amber-100 text-amber-700'
+            : ''
         }`}
+        style={!isNtcActive ? { background: '#201f21', border: '1px solid #363436', borderTop: 'none' } : {}}
       >
-        <Clock className={`w-4 h-4 ${isNtcActive ? 'text-white' : 'text-amber-600'}`} />
-        <span className={`font-semibold text-sm ${isNtcActive ? 'text-white' : 'text-amber-800'}`}>
+        <Clock className={`w-4 h-4 ${isNtcActive ? 'text-white' : ''}`} style={!isNtcActive ? { color: '#e9c349' } : {}} />
+        <span className={`font-semibold text-sm ${isNtcActive ? 'text-white' : ''}`} style={!isNtcActive ? { color: '#e9c349' } : {}}>
           NTC
         </span>
-        <span className={`text-xs ${isNtcActive ? 'text-orange-100' : 'text-amber-600'}`}>
+        <span className={`text-xs ${isNtcActive ? 'text-orange-100' : ''}`} style={!isNtcActive ? { color: '#8a7f87' } : {}}>
           — {ntcPhase.time}
         </span>
       </div>

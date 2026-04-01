@@ -8,16 +8,16 @@ const topStats = [
     id: 'active', 
     label: 'Routes', 
     icon: Link2, 
-    bgColor: 'bg-blue-100', 
-    textColor: 'text-blue-600',
+    bgColor: 'bg-[#201f21]', 
+    textColor: 'text-[#e9c349]',
     link: 'WorkerRoutes'
   },
   { 
     id: 'addresses', 
     label: 'Addresses', 
     icon: Clock, 
-    bgColor: 'bg-orange-100', 
-    textColor: 'text-orange-600',
+    bgColor: 'bg-[#201f21]', 
+    textColor: 'text-[#e5b9e1]',
     link: 'WorkerAddresses'
   },
   { 
@@ -53,7 +53,7 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
               <div className={`text-2xl font-bold ${stat.textColor}`}>
                 {values[stat.id]}
               </div>
-              <div className="text-xs text-gray-600 font-medium">
+              <div className="text-xs font-medium" style={{ color: '#8a7f87' }}>
                 {stat.label}
               </div>
             </Link>
@@ -64,12 +64,13 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
       {/* Due Soon bar underneath */}
       <Link
         to={createPageUrl('WorkerRoutes?filter=due-soon')}
-        className="block bg-purple-100 rounded-b-xl px-4 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
+        className="block rounded-b-xl px-4 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
+        style={{ background: '#201f21', border: '1px solid #363436', borderTop: 'none' }}
       >
         <div className="flex items-center justify-center gap-2">
-          <CalendarDays className="w-4 h-4 text-purple-600" />
-          <span className="font-semibold text-sm text-purple-800">Due Soon</span>
-          <span className="text-xs text-purple-600">— {dueSoon} upcoming</span>
+          <CalendarDays className="w-4 h-4" style={{ color: '#e5b9e1' }} />
+          <span className="font-semibold text-sm" style={{ color: '#e5b9e1' }}>Due Soon</span>
+          <span className="text-xs" style={{ color: '#8a7f87' }}>— {dueSoon} upcoming</span>
         </div>
       </Link>
     </div>
