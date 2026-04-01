@@ -740,7 +740,7 @@ export default function WorkerPayout() {
               ${instantTotal.toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {instantPayouts.length} serve{instantPayouts.length !== 1 ? 's' : ''}
+              {instantPayouts.length} item{instantPayouts.length !== 1 ? 's' : ''} served/posted
             </p>
           </div>
 
