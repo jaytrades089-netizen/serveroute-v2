@@ -372,10 +372,14 @@ export default function WorkerPayout() {
     // If we have a record, try payroll_record_id match first
     const stamped = lastRecord?.id ? addresses.filter(a => a.payroll_record_id === lastRecord.id) : [];
 
-    // If stamping worked, use those; otherwise fall back to date-based
-    const candidates = stamped.length > 0 ? stamped : addresses.filter(a =>
-      new Date(a.served_at || a.rto_at || 0) <= cutoff
-    );
+    // Lower bound: use period_start from the payroll record
+    const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // If stamping worked, use those; otherwise fall back to date-range
+    const candidates = stamped.length > 0 ? stamped : addresses.filter(a => {
+      const date = new Date(a.served_at || a.rto_at || 0);
+      return date >= periodStart && date <= cutoff;
+    });
 
     const liveMailed = candidates
       .filter(a => a.served && a.status !== 'returned')
