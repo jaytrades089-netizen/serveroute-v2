@@ -1,0 +1,270 @@
+{
+  "name": "Address",
+  "type": "object",
+  "properties": {
+    "route_id": {
+      "type": "string",
+      "description": "FK to Routes - null means in address pool"
+    },
+    "company_id": {
+      "type": "string",
+      "description": "FK for multi-tenancy"
+    },
+    "legal_address": {
+      "type": "string",
+      "description": "Original scanned address - NEVER modify"
+    },
+    "normalized_address": {
+      "type": "string",
+      "description": "Cleaned/standardized for display"
+    },
+    "city": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
+    "zip": {
+      "type": "string"
+    },
+    "lat": {
+      "type": "number",
+      "description": "Latitude coordinate"
+    },
+    "lng": {
+      "type": "number",
+      "description": "Longitude coordinate"
+    },
+    "geocode_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "exact",
+        "approximate",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Geocoding accuracy"
+    },
+    "serve_type": {
+      "type": "string",
+      "enum": [
+        "serve",
+        "garnishment",
+        "posting"
+      ],
+      "description": "Type of service"
+    },
+    "pay_rate": {
+      "type": "number",
+      "description": "Pay rate for this address"
+    },
+    "completion_rule": {
+      "type": "string",
+      "enum": [
+        "10d",
+        "14d"
+      ],
+      "description": "Completion rule"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "attempted",
+        "served",
+        "returned"
+      ],
+      "default": "pending"
+    },
+    "served": {
+      "type": "boolean",
+      "default": false
+    },
+    "served_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "attempts_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "attempts_summary": {
+      "type": "array",
+      "description": "Cached attempt summaries"
+    },
+    "evidence_photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Photos taken before any attempt is logged"
+    },
+    "receipt_status": {
+      "type": "string",
+      "enum": [
+        "not_required",
+        "pending",
+        "pending_review",
+        "approved",
+        "rejected",
+        "needs_revision"
+      ],
+      "default": "pending",
+      "description": "Phase 5A receipt tracking status"
+    },
+    "latest_receipt_id": {
+      "type": "string",
+      "description": "FK to Receipts"
+    },
+    "receipt_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "receipt_submitted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receipt_approved_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scanned_legal_address": {
+      "type": "string",
+      "description": "OCR result for receipt verification"
+    },
+    "received_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "order_index": {
+      "type": "integer",
+      "description": "Order in route for optimization"
+    },
+    "zone_label": {
+      "type": "string",
+      "description": "Area zone label from cluster optimization (e.g. Brighton Area)"
+    },
+    "deleted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deleted_by": {
+      "type": "string"
+    },
+    "ocr_raw_text": {
+      "type": "string",
+      "description": "Raw OCR text from document scan"
+    },
+    "confidence_score": {
+      "type": "number",
+      "description": "OCR confidence score 0.0 - 1.0"
+    },
+    "manual_edit_flag": {
+      "type": "boolean",
+      "default": false,
+      "description": "True if address was manually edited after OCR"
+    },
+    "scanned_by": {
+      "type": "string",
+      "description": "FK to Users - who scanned this address"
+    },
+    "scanned_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scan_session_id": {
+      "type": "string",
+      "description": "FK to ScanSessions"
+    },
+    "defendant_name": {
+      "type": "string",
+      "description": "Defendant name extracted from document"
+    },
+    "normalized_key": {
+      "type": "string",
+      "description": "Normalized key for duplicate detection"
+    },
+    "has_related_addresses": {
+      "type": "boolean",
+      "default": false
+    },
+    "related_address_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "dcn_id": {
+      "type": "string",
+      "description": "Phase 5B - FK to DCNRecords"
+    },
+    "has_dcn": {
+      "type": "boolean",
+      "default": false,
+      "description": "Phase 5B - whether address has linked DCN"
+    },
+    "dcn_linked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Phase 5B - when DCN was linked"
+    },
+    "dcn_linked_by": {
+      "type": "string",
+      "description": "Phase 5B - FK to Users or 'system'"
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "unverified",
+        "verified",
+        "missing"
+      ],
+      "default": "unverified",
+      "description": "Document verification status"
+    },
+    "verified_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "verified_by": {
+      "type": "string",
+      "description": "FK to Users"
+    },
+    "server_id": {
+      "type": "string",
+      "description": "FK to User - assigned worker"
+    },
+    "has_pending_request": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether address has pending attempt request"
+    },
+    "pending_request_qualifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Required qualifiers for pending request"
+    },
+    "rto_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When address was returned to office"
+    },
+    "rto_reason": {
+      "type": "string",
+      "description": "Reason for return to office"
+    },
+    "rto_by": {
+      "type": "string",
+      "description": "FK to User who initiated RTO"
+    },
+    "payroll_record_id": {
+      "type": "string",
+      "description": "FK to PayrollRecord \u2014 stamped at Turn In to lock address into that pay period"
+    }
+  },
+  "required": [
+    "legal_address",
+    "company_id"
+  ]
+}

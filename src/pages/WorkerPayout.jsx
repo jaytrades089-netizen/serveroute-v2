@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -6,45 +6,203 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
-import { Loader2, DollarSign, CheckCircle, Clock, Calendar, RotateCcw, Save, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2 } from 'lucide-react';
+import { Loader2, DollarSign, Clock, Calendar, RotateCcw, Save, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+// ─── Brand colors ────────────────────────────────────────────────────────────
+const C = {
+  bg: 'linear-gradient(to bottom, #0F0B10, #1A141D)',
+  card: '#1c1b1d',
+  cardElevated: '#201f21',
+  cardHighest: '#363436',
+  textPrimary: '#e6e1e4',
+  textSecondary: '#d0c3cb',
+  textMuted: '#8a7f87',
+  accentGold: '#e9c349',
+  accentPlum: '#e5b9e1',
+  containerPlum: '#502f50',
+  rto: '#c97070',
+  border: '#363436',
+  nav: '#0F0B10',
+};
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-// Generate days with dates for the next turn-in
 function getDaysWithDates() {
   const today = new Date();
   const currentDay = today.getDay();
-  
   return DAY_NAMES.map((name, dayIndex) => {
-    // Calculate the next occurrence of this day
     let daysUntil = (dayIndex - currentDay + 7) % 7;
-    if (daysUntil === 0) daysUntil = 7; // If it's today, show next week's date
-    
+    if (daysUntil === 0) daysUntil = 7;
     const nextDate = new Date(today);
     nextDate.setDate(today.getDate() + daysUntil);
-    
-    const dateStr = format(nextDate, 'M/d');
-    return { value: String(dayIndex), label: `${name} ${dateStr}` };
+    return { value: String(dayIndex), label: `${name} ${format(nextDate, 'M/d')}` };
   });
 }
 
-// Calculate correct pay rate based on serve_type (overrides database values)
-function calculateCorrectPayRate(serveType) {
+function calcPay(serveType) {
   if (serveType === 'posting') return 10;
-  if (serveType === 'serve') return 24;
-  if (serveType === 'garnishment') return 24;
+  if (serveType === 'serve' || serveType === 'garnishment') return 24;
   return 0;
 }
 
+// ─── Address card ─────────────────────────────────────────────────────────────
+function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
+  return (
+    <div style={{
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderLeft: `3px solid ${accentColor}`,
+      borderRadius: 12,
+      padding: '12px 14px',
+      marginBottom: 8,
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ flex: 1, marginRight: 8 }}>
+          <p style={{ color: C.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+            {address.normalized_address || address.legal_address}
+          </p>
+          {address.defendant_name && (
+            <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 2 }}>{address.defendant_name}</p>
+          )}
+          {address.served_at && (
+            <p style={{ color: C.textMuted, fontSize: 11 }}>
+              Served {format(new Date(address.served_at), 'MMM d, h:mm a')}
+            </p>
+          )}
+          {address.rto_at && (
+            <p style={{ color: C.textMuted, fontSize: 11 }}>
+              RTO'd {format(new Date(address.rto_at), 'MMM d, h:mm a')}
+            </p>
+          )}
+          {address.rto_reason && (
+            <p style={{ color: C.rto, fontSize: 11, fontStyle: 'italic', marginTop: 2 }}>"{address.rto_reason}"</p>
+          )}
+        </div>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <p style={{ color: accentColor, fontWeight: 700, fontSize: 15 }}>
+            ${calcPay(address.serve_type).toFixed(2)}
+          </p>
+          {badge && (
+            <span style={{
+              fontSize: 9, fontWeight: 700,
+              background: accentColor + '22',
+              color: accentColor,
+              border: `1px solid ${accentColor}`,
+              borderRadius: 4,
+              padding: '2px 5px',
+              display: 'inline-block',
+              marginTop: 2,
+            }}>
+              {badge}
+            </span>
+          )}
+          <span style={{
+            fontSize: 9,
+            color: C.textMuted,
+            display: 'block',
+            textTransform: 'capitalize',
+            marginTop: 2,
+          }}>{address.serve_type}</span>
+        </div>
+      </div>
+      {showUndo && (
+        <button
+          onClick={() => onUndo(address)}
+          style={{
+            marginTop: 10,
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            padding: '8px 12px',
+            background: 'transparent',
+            border: `1px solid ${C.textMuted}`,
+            borderRadius: 8,
+            color: C.textSecondary,
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <Undo2 size={13} />
+          Undo RTO — Return to Route
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Snapshot address card (from PayrollRecord JSON) ──────────────────────────
+function SnapshotCard({ item }) {
+  const isRTO = item.bucket === 'rto';
+  const accentColor = isRTO ? C.rto : C.accentPlum;
+  const badge = isRTO ? 'RTO' : 'Attempt';
+  return (
+    <div style={{
+      background: C.card,
+      border: `1px solid ${C.border}`,
+      borderLeft: `3px solid ${accentColor}`,
+      borderRadius: 12,
+      padding: '12px 14px',
+      marginBottom: 8,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+    }}>
+      <div style={{ flex: 1, marginRight: 8 }}>
+        <p style={{ color: C.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
+          {item.address}
+        </p>
+        {item.defendant && (
+          <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 2 }}>{item.defendant}</p>
+        )}
+        {item.served_at && (
+          <p style={{ color: C.textMuted, fontSize: 11 }}>
+            Served {format(new Date(item.served_at), 'MMM d, h:mm a')}
+          </p>
+        )}
+        {item.rto_at && (
+          <p style={{ color: C.textMuted, fontSize: 11 }}>
+            RTO'd {format(new Date(item.rto_at), 'MMM d, h:mm a')}
+          </p>
+        )}
+        {item.rto_reason && (
+          <p style={{ color: C.rto, fontSize: 11, fontStyle: 'italic', marginTop: 2 }}>"{item.rto_reason}"</p>
+        )}
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <p style={{ color: accentColor, fontWeight: 700, fontSize: 15 }}>
+          ${(item.amount || 0).toFixed(2)}
+        </p>
+        <span style={{
+          fontSize: 9, fontWeight: 700,
+          background: accentColor + '22',
+          color: accentColor,
+          border: `1px solid ${accentColor}`,
+          borderRadius: 4,
+          padding: '2px 5px',
+          display: 'inline-block',
+          marginTop: 2,
+        }}>{badge}</span>
+        <span style={{
+          fontSize: 9, color: C.textMuted,
+          display: 'block', textTransform: 'capitalize', marginTop: 2,
+        }}>{item.serve_type}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
 export default function WorkerPayout() {
   const navigate = useNavigate();
-  // Default: Wednesday
   const [selectedDay, setSelectedDay] = useState(3);
   const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
   const [priorTurnInDate, setPriorTurnInDate] = useState(null);
+  const [activeTab, setActiveTab] = useState('served');
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -52,7 +210,6 @@ export default function WorkerPayout() {
     queryFn: () => base44.auth.me()
   });
 
-  // Load user settings for payroll day/hour
   const { data: userSettings } = useQuery({
     queryKey: ['userSettings', user?.id],
     queryFn: async () => {
@@ -63,172 +220,38 @@ export default function WorkerPayout() {
     enabled: !!user?.id
   });
 
-  // Initialize state from saved settings
   useEffect(() => {
     if (userSettings) {
       if (userSettings.payroll_turn_in_day !== undefined && userSettings.payroll_turn_in_day !== null) {
         setSelectedDay(userSettings.payroll_turn_in_day);
       }
-      if (userSettings.previous_turn_in_date) {
-        setPreviousTurnInDate(new Date(userSettings.previous_turn_in_date));
-      }
-      if (userSettings.prior_turn_in_date) {
-        setPriorTurnInDate(new Date(userSettings.prior_turn_in_date));
-      }
+      if (userSettings.previous_turn_in_date) setPreviousTurnInDate(new Date(userSettings.previous_turn_in_date));
+      if (userSettings.prior_turn_in_date) setPriorTurnInDate(new Date(userSettings.prior_turn_in_date));
     }
   }, [userSettings]);
 
-  // Mutation to save settings
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ day }) => {
       if (!user?.id) return;
-      
       if (userSettings?.id) {
-        await base44.entities.UserSettings.update(userSettings.id, {
-          payroll_turn_in_day: day
-        });
+        await base44.entities.UserSettings.update(userSettings.id, { payroll_turn_in_day: day });
       } else {
-        await base44.entities.UserSettings.create({
-          user_id: user.id,
-          payroll_turn_in_day: day
-        });
+        await base44.entities.UserSettings.create({ user_id: user.id, payroll_turn_in_day: day });
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-    }
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] }); }
   });
 
-  // Handle day change and save
   const handleDayChange = (value) => {
     const day = parseInt(value);
     setSelectedDay(day);
     saveSettingsMutation.mutate({ day });
   };
 
-  // Handle Turn In button
-  const handleTurnIn = async () => {
-    // Check for existing record in the same period
-    const existingRecord = payrollHistory.find(r => {
-      if (!r.period_start || !r.period_end) return false;
-      const rStart = new Date(r.period_start).toDateString();
-      const rEnd = new Date(r.period_end).toDateString();
-      const cStart = currentPeriod.start.toDateString();
-      const cEnd = currentPeriod.end.toDateString();
-      return rStart === cStart && rEnd === cEnd;
-    });
-
-    if (existingRecord) {
-      const confirmed = window.confirm(
-        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
-      );
-      if (!confirmed) return;
-
-      // Delete the existing record before saving new one
-      await base44.entities.PayrollRecord.delete(existingRecord.id);
-    }
-
-    const now = new Date();
-    // Rotate: current previous becomes prior, now becomes previous
-    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
-    setPriorTurnInDate(previousTurnInDate);
-    setPreviousTurnInDate(now);
-    if (userSettings?.id) {
-      await base44.entities.UserSettings.update(userSettings.id, {
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    } else if (user?.id) {
-      await base44.entities.UserSettings.create({
-        user_id: user.id,
-        payroll_turn_in_day: selectedDay,
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-    savePayrollRecord(now, true);
-  };
-
-  // Save a payroll record snapshot (with optional duplicate check bypass)
-  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
-    if (!user?.id) return;
-    try {
-      // Check for existing record in same period (unless already handled by caller)
-      if (!skipDuplicateCheck) {
-        const existingRecord = payrollHistory.find(r => {
-          if (!r.period_start || !r.period_end) return false;
-          const rStart = new Date(r.period_start).toDateString();
-          const rEnd = new Date(r.period_end).toDateString();
-          const cStart = currentPeriod.start.toDateString();
-          const cEnd = currentPeriod.end.toDateString();
-          return rStart === cStart && rEnd === cEnd;
-        });
-        if (existingRecord) {
-          const confirmed = window.confirm(
-            `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
-          );
-          if (!confirmed) return;
-          await base44.entities.PayrollRecord.delete(existingRecord.id);
-        }
-      }
-
-      const now = new Date();
-      const rtoTotal = rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
-      const snapshotAddresses = [
-        ...instantPayouts.map(a => ({
-          id: a.id,
-          address: a.normalized_address || a.legal_address,
-          defendant: a.defendant_name || '',
-          serve_type: a.serve_type,
-          amount: calculateCorrectPayRate(a.serve_type),
-          served_at: a.served_at,
-          rto_at: null,
-          bucket: 'instant'
-        })),
-        ...rtoCurrentPeriod.map(a => ({
-          id: a.id,
-          address: a.normalized_address || a.legal_address,
-          defendant: a.defendant_name || '',
-          serve_type: a.serve_type,
-          amount: calculateCorrectPayRate(a.serve_type),
-          served_at: null,
-          rto_at: a.rto_at,
-          rto_reason: a.rto_reason || '',
-          bucket: 'rto'
-        }))
-      ];
-
-      await base44.entities.PayrollRecord.create({
-        user_id: user.id,
-        company_id: user.company_id || '',
-        period_start: currentPeriod.start.toISOString(),
-        period_end: currentPeriod.end.toISOString(),
-        turn_in_date: (turnInDate || now).toISOString(),
-        instant_total: instantTotal,
-        pending_total: pendingTotal,
-        rto_total: rtoTotal,
-        total_amount: instantTotal + pendingTotal,
-        address_count: snapshotAddresses.length,
-        snapshot_data: JSON.stringify(snapshotAddresses),
-        status: 'saved',
-        notes: '',
-        created_at: now.toISOString()
-      });
-
-      refetchHistory();
-      toast.success('Payroll record saved');
-    } catch (err) {
-      console.error('Failed to save payroll record:', err);
-      toast.error('Failed to save record');
-    }
-  };
-
   const { data: routes = [] } = useQuery({
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      // Include ALL routes (including archived) to capture completed work
       return base44.entities.Route.filter({ worker_id: user.id, deleted_at: null });
     },
     enabled: !!user?.id
@@ -239,13 +262,13 @@ export default function WorkerPayout() {
     queryFn: async () => {
       if (routes.length === 0) return [];
       const routeIds = routes.map(r => r.id);
-      const allAddresses = await base44.entities.Address.filter({ deleted_at: null });
-      return allAddresses.filter(a => routeIds.includes(a.route_id));
+      const all = await base44.entities.Address.filter({ deleted_at: null });
+      return all.filter(a => routeIds.includes(a.route_id));
     },
     enabled: routes.length > 0
   });
 
-  const { data: attempts = [], isLoading: attemptsLoading } = useQuery({
+  const { data: attempts = [] } = useQuery({
     queryKey: ['workerAttempts', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -274,552 +297,574 @@ export default function WorkerPayout() {
     staleTime: 5 * 60 * 1000
   });
 
-  // Calculate current period boundaries
-  // The current period starts at the most recent turn-in day
+  // Current period boundaries
   const currentPeriod = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
-    
-    // Calculate days back to the MOST RECENT selected day
     let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
-    
-    // If we're on the selected day, the period hasn't ended yet - go back to PREVIOUS week
-    if (daysBack === 0) {
-      daysBack = 7;
-    }
-    
-    // Period START is the most recent selected day at midnight
+    if (daysBack === 0) daysBack = 7;
     const start = new Date(now);
     start.setDate(start.getDate() - daysBack);
     start.setHours(0, 0, 0, 0);
-    
-    // Period END is 7 days after start (next turn-in day)
     const end = new Date(start);
     end.setDate(end.getDate() + 7);
-    
     return { start, end };
   }, [selectedDay]);
 
-  // Filter instant payouts (served addresses AFTER the last turn-in date, within current period)
-  // Excludes RTO addresses (status === 'returned') — those go in the RTO sections
-  const instantPayouts = useMemo(() => {
-    const turnInCutoff = previousTurnInDate || currentPeriod.start;
-    return addresses.filter(a => {
-      if (!a.served || !a.served_at) return false;
-      if (a.status === 'returned') return false; // RTO addresses are separate
-      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      const servedDate = new Date(a.served_at);
-      // Must be after last turn-in AND within current period
-      return servedDate >= turnInCutoff && servedDate < currentPeriod.end;
-    });
-  }, [addresses, currentPeriod, previousTurnInDate]);
-
-  // Create map of address attempts for pending calculation
   const addressAttemptsMap = useMemo(() => {
     const map = {};
-    attempts.forEach(attempt => {
-      if (!map[attempt.address_id]) {
-        map[attempt.address_id] = [];
-      }
-      map[attempt.address_id].push(attempt);
+    attempts.forEach(att => {
+      if (!map[att.address_id]) map[att.address_id] = [];
+      map[att.address_id].push(att);
     });
     return map;
   }, [attempts]);
 
-  // "Next Check" = items mailed in at the LAST turn-in
-  // Window: from prior_turn_in_date (the turn-in before last) to previous_turn_in_date (latest turn-in)
-  // If no prior date, fall back to 7 days before the last turn-in
-  const { pendingPayouts, pendingRTOs } = useMemo(() => {
-    if (!previousTurnInDate) return { pendingPayouts: [], pendingRTOs: [] };
-    
-    const turnInCutoff = previousTurnInDate;
-    // The window starts at the PRIOR turn-in (the one before this one)
-    const periodStart = priorTurnInDate || new Date(previousTurnInDate.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
-    const completedAttempts = [];
-    const rtos = [];
-    
-    addresses.forEach(a => {
-      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return;
-      
-      // RTO addresses from the turned-in period (mailed back to office)
-      if (a.rto_at && a.status === 'returned') {
-        const rtoDate = new Date(a.rto_at);
-        if (rtoDate >= periodStart && rtoDate < turnInCutoff) {
-          rtos.push(a);
-          return;
-        }
-      }
-      
-      // Completed attempt addresses (all qualifiers met) — NOT served, NOT RTO
-      if (!a.served && a.status !== 'returned') {
-        const addrAttempts = addressAttemptsMap[a.id] || [];
-        const hasAM = addrAttempts.some(att => att.has_am);
-        const hasPM = addrAttempts.some(att => att.has_pm);
-        const hasWeekend = addrAttempts.some(att => att.has_weekend);
-        if (hasAM && hasPM && hasWeekend) {
-          const lastAttempt = addrAttempts
-            .filter(att => att.attempt_time)
-            .sort((x, y) => new Date(y.attempt_time) - new Date(x.attempt_time))[0];
-          if (lastAttempt?.attempt_time) {
-            const completionDate = new Date(lastAttempt.attempt_time);
-            if (completionDate >= periodStart && completionDate < turnInCutoff) {
-              completedAttempts.push(a);
-            }
-          }
-        }
-      }
-    });
-    
-    return { pendingPayouts: completedAttempts, pendingRTOs: rtos };
-  }, [addresses, addressAttemptsMap, previousTurnInDate, priorTurnInDate]);
-
-  // RTO addresses since last turn-in (same window as instant payouts - current work period)
-  const rtoCurrentPeriod = useMemo(() => {
-    const turnInCutoff = previousTurnInDate || currentPeriod.start;
+  // ── NEW: instantPayouts — served, no payroll_record_id, not returned ─────────
+  const instantPayouts = useMemo(() => {
     return addresses.filter(a => {
-      if (!a.rto_at) return false;
-      if (a.status !== 'returned') return false; // Must be RTO status
-      const rtoDate = new Date(a.rto_at);
-      return rtoDate >= turnInCutoff && rtoDate < currentPeriod.end;
+      if (!a.served || !a.served_at) return false;
+      if (a.status === 'returned') return false;
+      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
+      if (a.payroll_record_id) return false; // already locked into a past record
+      return true;
     });
-  }, [addresses, currentPeriod, previousTurnInDate]);
+  }, [addresses]);
 
+  // ── NEW: currentRTOs — status returned, no payroll_record_id ──────────────
+  const currentRTOs = useMemo(() => {
+    return addresses.filter(a => {
+      if (a.status !== 'returned') return false;
+      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
+      if (a.payroll_record_id) return false; // already turned in
+      return true;
+    });
+  }, [addresses]);
 
-  const instantTotal = instantPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
-  
-  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
-  const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0);
+  // ── Mailed tab: read from last PayrollRecord snapshot ───────────────────────
+  const lastRecord = payrollHistory[0] || null;
+  const mailedItems = useMemo(() => {
+    if (!lastRecord?.snapshot_data) return [];
+    try {
+      const parsed = JSON.parse(lastRecord.snapshot_data);
+      return parsed.filter(item => item.bucket === 'pending' || item.bucket === 'rto');
+    } catch { return []; }
+  }, [lastRecord]);
 
-  const isLoading = addressesLoading || attemptsLoading;
+  // Summary totals
+  const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+  const nextCheckTotal = useMemo(() => {
+    return mailedItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+  }, [mailedItems]);
+  const nextCheckCount = mailedItems.length;
+  const nextCheckRTOCount = mailedItems.filter(i => i.bucket === 'rto').length;
 
-  // Undo RTO — restore address to its original folder as pending/attempted
+  // ── Turn In ──────────────────────────────────────────────────────────────────
+  const handleTurnIn = async () => {
+    const existingRecord = payrollHistory.find(r => {
+      if (!r.period_start || !r.period_end) return false;
+      return (
+        new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
+        new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
+      );
+    });
+
+    if (existingRecord) {
+      const confirmed = window.confirm(
+        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
+      );
+      if (!confirmed) return;
+      await base44.entities.PayrollRecord.delete(existingRecord.id);
+    }
+
+    const now = new Date();
+    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
+    setPriorTurnInDate(previousTurnInDate);
+    setPreviousTurnInDate(now);
+
+    if (userSettings?.id) {
+      await base44.entities.UserSettings.update(userSettings.id, {
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
+      });
+    } else if (user?.id) {
+      await base44.entities.UserSettings.create({
+        user_id: user.id,
+        payroll_turn_in_day: selectedDay,
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+
+    await savePayrollRecord(now, true);
+  };
+
+  // ── Save Payroll Record + stamp payroll_record_id ────────────────────────────
+  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
+    if (!user?.id) return;
+
+    if (!skipDuplicateCheck) {
+      const existingRecord = payrollHistory.find(r => {
+        if (!r.period_start || !r.period_end) return false;
+        return (
+          new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
+          new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
+        );
+      });
+      if (existingRecord) {
+        const confirmed = window.confirm(
+          `You already have a saved pay stub for this period.\n\nOverride with updated data?`
+        );
+        if (!confirmed) return;
+        await base44.entities.PayrollRecord.delete(existingRecord.id);
+      }
+    }
+
+    const now = new Date();
+    const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+
+    const snapshotAddresses = [
+      ...instantPayouts.map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        served_at: a.served_at,
+        rto_at: null,
+        bucket: 'instant'
+      })),
+      ...currentRTOs.map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        served_at: null,
+        rto_at: a.rto_at,
+        rto_reason: a.rto_reason || '',
+        bucket: 'rto'
+      }))
+    ];
+
+    const newRecord = await base44.entities.PayrollRecord.create({
+      user_id: user.id,
+      company_id: user.company_id || '',
+      period_start: currentPeriod.start.toISOString(),
+      period_end: currentPeriod.end.toISOString(),
+      turn_in_date: (turnInDate || now).toISOString(),
+      instant_total: instantTotal,
+      pending_total: 0,
+      rto_total: rtoTotal,
+      total_amount: instantTotal,
+      address_count: snapshotAddresses.length,
+      snapshot_data: JSON.stringify(snapshotAddresses),
+      status: 'saved',
+      notes: '',
+      created_at: now.toISOString()
+    });
+
+    // Stamp payroll_record_id on every address in snapshot (in parallel)
+    const allSnapshotAddresses = [...instantPayouts, ...currentRTOs];
+    const stampResults = await Promise.allSettled(
+      allSnapshotAddresses.map(a =>
+        base44.entities.Address.update(a.id, { payroll_record_id: newRecord.id })
+      )
+    );
+    stampResults.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.error('Failed to stamp payroll_record_id on address', allSnapshotAddresses[i]?.id, r.reason);
+      }
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+    refetchHistory();
+    toast.success('Turned in successfully');
+  };
+
+  // ── Undo RTO ─────────────────────────────────────────────────────────────────
   const handleUndoRTO = async (address) => {
     const confirmed = window.confirm(
       `Undo RTO for this address?\n\n${address.normalized_address || address.legal_address}\n\nThis will move it back to its route as an active address.`
     );
     if (!confirmed) return;
 
-    try {
-      const addrAttempts = addressAttemptsMap[address.id] || [];
-      const newStatus = addrAttempts.length > 0 ? 'attempted' : 'pending';
+    const addrAttempts = addressAttemptsMap[address.id] || [];
+    const newStatus = addrAttempts.length > 0 ? 'attempted' : 'pending';
 
-      await base44.entities.Address.update(address.id, {
-        status: newStatus,
-        served: false,
-        served_at: null,
-        receipt_status: 'pending',
-        rto_at: null,
-        rto_reason: null,
-        rto_by: null
-      });
+    await base44.entities.Address.update(address.id, {
+      status: newStatus,
+      served: false,
+      served_at: null,
+      receipt_status: 'pending',
+      rto_at: null,
+      rto_reason: null,
+      rto_by: null
+    });
 
-      // Update route: re-activate if completed/archived, fix served count
-      if (address.route_id) {
-        const routeArr = await base44.entities.Route.filter({ id: address.route_id });
-        const route = routeArr[0];
-        if (route) {
-          const routeAddresses = await base44.entities.Address.filter({
-            route_id: address.route_id,
-            deleted_at: null
-          });
-          const doneCount = routeAddresses.filter(a =>
-            a.id === address.id ? false : (a.served || a.status === 'returned')
-          ).length;
-
-          const updates = { served_count: doneCount };
-          // If route was completed or archived, reactivate it so the address is visible
-          if (route.status === 'completed' || route.status === 'archived') {
-            updates.status = 'active';
-            updates.completed_at = null;
-          }
-          await base44.entities.Route.update(address.route_id, updates);
+    if (address.route_id) {
+      const routeArr = await base44.entities.Route.filter({ id: address.route_id });
+      const route = routeArr[0];
+      if (route) {
+        const routeAddresses = await base44.entities.Address.filter({ route_id: address.route_id, deleted_at: null });
+        const doneCount = routeAddresses.filter(a =>
+          a.id === address.id ? false : (a.served || a.status === 'returned')
+        ).length;
+        const updates = { served_count: doneCount };
+        if (route.status === 'completed' || route.status === 'archived') {
+          updates.status = 'active';
+          updates.completed_at = null;
         }
+        await base44.entities.Route.update(address.route_id, updates);
       }
-
-      // Audit log
-      const companyId = user?.company_id || address.company_id;
-      await base44.entities.AuditLog.create({
-        company_id: companyId,
-        action_type: 'address_updated',
-        actor_id: user?.id,
-        actor_role: user?.role || 'server',
-        target_type: 'address',
-        target_id: address.id,
-        details: {
-          action: 'undo_rto',
-          route_id: address.route_id,
-          restored_status: newStatus
-        },
-        timestamp: new Date().toISOString()
-      });
-
-      // Invalidate all relevant queries so the address shows up everywhere
-      queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
-      queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
-      queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
-      toast.success('RTO undone — address returned to route');
-    } catch (error) {
-      console.error('Failed to undo RTO:', error);
-      toast.error('Failed to undo RTO');
     }
+
+    await base44.entities.AuditLog.create({
+      company_id: user?.company_id || address.company_id,
+      action_type: 'address_updated',
+      actor_id: user?.id,
+      actor_role: user?.role || 'server',
+      target_type: 'address',
+      target_id: address.id,
+      details: { action: 'undo_rto', route_id: address.route_id, restored_status: newStatus },
+      timestamp: new Date().toISOString()
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+    queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
+    queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
+    toast.success('RTO undone — address returned to route');
   };
 
+  const isLoading = addressesLoading;
+
+  // ─── Tab definitions ─────────────────────────────────────────────────────────
+  const tabs = [
+    { id: 'served', label: 'Served', count: instantPayouts.length },
+    { id: 'mailed', label: 'Mailed', count: mailedItems.length },
+    { id: 'rto',    label: 'RTO',    count: currentRTOs.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 80 }}>
       <Header
         user={user}
         unreadCount={notifications.length}
         actionButton={
           <button
             onClick={() => savePayrollRecord()}
-            className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+            style={{ padding: 8, background: 'rgba(255,255,255,0.15)', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
             title="Save payroll record"
           >
-            <Save className="w-5 h-5 text-white" />
+            <Save size={18} color="#fff" />
           </button>
         }
       />
-      
-      <main className="px-4 py-6 max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Earnings & Turn-in</h1>
 
-        {/* Payroll Period Selector */}
-        <Card className="mb-6 border-blue-200 bg-blue-50">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2 text-blue-700 mb-3">
-              <Calendar className="w-5 h-5" />
-              <span className="font-semibold">Payroll Period</span>
+      <main style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}>
+        <h1 style={{ color: C.textPrimary, fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Earnings &amp; Turn-in</h1>
+
+        {/* Pay Period card */}
+        <div style={{
+          background: C.cardElevated,
+          border: `1px solid ${C.border}`,
+          borderRadius: 14,
+          padding: '14px 16px',
+          marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+            <Calendar size={16} color={C.accentGold} />
+            <span style={{ color: C.textSecondary, fontWeight: 600, fontSize: 13 }}>Pay Period</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={{ color: C.textMuted, fontSize: 10, fontWeight: 600, display: 'block', marginBottom: 4 }}>MAIL-IN DAY</label>
+              <Select value={String(selectedDay)} onValueChange={handleDayChange}>
+                <SelectTrigger style={{ background: C.card, border: `1px solid ${C.border}`, color: C.textPrimary, fontSize: 13 }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {getDaysWithDates().map(day => (
+                    <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="text-xs text-blue-600 mb-1 block">Turn-in Day</label>
-                <Select value={String(selectedDay)} onValueChange={handleDayChange}>
-                  <SelectTrigger className="bg-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getDaysWithDates().map(day => (
-                      <SelectItem key={day.value} value={day.value}>{day.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col justify-end">
-                <label className="text-xs text-blue-600 mb-1 block">Documentation</label>
-                <button
-                  onClick={handleTurnIn}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-sm flex items-center justify-center gap-2 transition-colors"
-                >
-                  <ArrowRight className="w-4 h-4" />
-                  Turn In
-                </button>
-              </div>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+              <button
+                onClick={handleTurnIn}
+                style={{
+                  width: '100%',
+                  background: C.accentGold,
+                  color: C.bg.replace('linear-gradient(to bottom, ', '').split(',')[0],
+                  fontWeight: 700,
+                  fontSize: 14,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                }}
+              >
+                <ArrowRight size={16} />
+                Turn In →
+              </button>
             </div>
+          </div>
 
-            <div className="text-sm text-blue-700 bg-blue-100 rounded-lg px-3 py-2">
-              <span className="font-medium">Current Period:</span> {format(currentPeriod.start, 'MMM d')} → {format(currentPeriod.end, 'MMM d, yyyy')}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Card className="border-green-200">
-            <CardContent className="pt-3 pb-3 px-3">
-              <div className="flex items-center gap-1 text-green-600 mb-1">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-medium">Served (Paid)</span>
-              </div>
-              <p className="text-xl font-bold text-green-700">${instantTotal.toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{instantPayouts.length} item{instantPayouts.length !== 1 ? 's' : ''}</p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-orange-200">
-            <CardContent className="pt-3 pb-3 px-3">
-              <div className="flex items-center gap-1 text-orange-600 mb-1">
-                <Clock className="w-4 h-4" />
-                <span className="text-xs font-medium">Mailed In (Next Check)</span>
-              </div>
-              <p className="text-xl font-bold text-orange-700">${(pendingTotal + pendingRTOTotal).toFixed(2)}</p>
-              <p className="text-xs text-gray-500">{pendingPayouts.length + pendingRTOs.length} item{(pendingPayouts.length + pendingRTOs.length) !== 1 ? 's' : ''}</p>
-            </CardContent>
-          </Card>
+          <div style={{
+            background: C.card,
+            border: `1px solid ${C.border}`,
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontSize: 12,
+          }}>
+            <span style={{ color: C.textMuted }}>This Period: </span>
+            <span style={{ color: C.accentGold, fontWeight: 600 }}>
+              {format(currentPeriod.start, 'MMM d')} → {format(currentPeriod.end, 'MMM d, yyyy')}
+            </span>
+          </div>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        {/* Summary cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+          {/* This Check */}
+          <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+              <DollarSign size={13} color={C.accentGold} />
+              <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>This Check</span>
+            </div>
+            <p style={{ color: C.accentGold, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
+              ${instantTotal.toFixed(2)}
+            </p>
+            <p style={{ color: C.textMuted, fontSize: 11 }}>
+              {instantPayouts.length} serve{instantPayouts.length !== 1 ? 's' : ''}
+            </p>
           </div>
-        ) : (
-          <>
-            {/* Served This Period — already paid */}
-            <h2 className="text-lg font-semibold text-green-700 mb-3 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Served This Period
-            </h2>
-            <p className="text-xs text-green-600 mb-3">Already paid — included on this check</p>
-            
-            {instantPayouts.length === 0 ? (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center mb-6">
-                <CheckCircle className="w-8 h-8 text-green-300 mx-auto mb-2" />
-                <p className="text-green-600 text-sm">No serves this period yet</p>
-              </div>
-            ) : (
-              <div className="space-y-2 mb-6">
-                {instantPayouts.map((address) => (
-                  <div
-                    key={address.id}
-                    className="bg-white border-2 border-green-200 rounded-xl p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
-                          {address.normalized_address || address.legal_address}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {address.served_at && format(new Date(address.served_at), 'MMM d, h:mm a')}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-green-600">
-                          ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                        </p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 capitalize">
-                          {address.serve_type}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
 
-            {/* Completed Attempts — Mailed In (Next Check) */}
-            <h2 className="text-lg font-semibold text-orange-700 mb-3 flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Completed Attempts (Next Check)
-            </h2>
-            {previousTurnInDate && (
-              <p className="text-xs text-orange-600 mb-3">
-                Turned in {format(previousTurnInDate, 'MMM d, h:mm a')}
-              </p>
-            )}
-            
-            {pendingPayouts.length === 0 ? (
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-6 text-center mb-6">
-                <Clock className="w-8 h-8 text-orange-300 mx-auto mb-2" />
-                <p className="text-orange-600 text-sm">No completed attempts mailed in</p>
-              </div>
-            ) : (
-              <div className="space-y-2 mb-6">
-                {pendingPayouts.map((address) => {
-                  const addrAttempts = addressAttemptsMap[address.id] || [];
-                  const lastAttempt = addrAttempts
-                    .filter(att => att.attempt_time)
-                    .sort((a, b) => new Date(b.attempt_time) - new Date(a.attempt_time))[0];
-                  return (
-                    <div
-                      key={address.id}
-                      className="bg-white border-2 border-orange-200 rounded-xl p-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">
-                            {address.normalized_address || address.legal_address}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            Completed {lastAttempt?.attempt_time && format(new Date(lastAttempt.attempt_time), 'MMM d, h:mm a')}
-                          </p>
-                          <p className="text-xs text-orange-500 mt-0.5">
-                            {addrAttempts.length} attempt{addrAttempts.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-orange-600">
-                            ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                          </p>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 capitalize">
-                            {address.serve_type}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                <div className="bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-orange-600">
-                    Subtotal: <span className="font-bold">${pendingTotal.toFixed(2)}</span>
+          {/* Next Check */}
+          <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+              <Clock size={13} color={C.accentPlum} />
+              <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Next Check</span>
+            </div>
+            <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
+              ${nextCheckTotal.toFixed(2)}
+            </p>
+            <p style={{ color: C.textMuted, fontSize: 11 }}>
+              {lastRecord
+                ? `${nextCheckCount - nextCheckRTOCount} attempt${nextCheckCount - nextCheckRTOCount !== 1 ? 's' : ''}${nextCheckRTOCount > 0 ? ` · ${nextCheckRTOCount} RTO` : ''}`
+                : 'Mail in to update'
+              }
+            </p>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderBottom: `1px solid ${C.border}`,
+          borderRadius: '12px 12px 0 0',
+          display: 'flex',
+        }}>
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  flex: 1,
+                  padding: '11px 8px',
+                  background: isActive ? C.containerPlum : 'transparent',
+                  border: 'none',
+                  borderBottom: isActive ? `2px solid ${C.accentPlum}` : '2px solid transparent',
+                  color: isActive ? C.accentPlum : C.textMuted,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  borderRadius: isActive ? '10px 10px 0 0' : '10px 10px 0 0',
+                  transition: 'all 0.15s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 5,
+                }}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span style={{
+                    background: isActive ? C.accentPlum : C.textMuted,
+                    color: isActive ? '#0F0B10' : '#0F0B10',
+                    fontSize: 9,
+                    fontWeight: 700,
+                    borderRadius: '99px',
+                    padding: '1px 5px',
+                    minWidth: 16,
+                    textAlign: 'center',
+                  }}>{tab.count}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab content */}
+        <div style={{
+          background: C.card,
+          border: `1px solid ${C.border}`,
+          borderTop: 'none',
+          borderRadius: '0 0 12px 12px',
+          padding: '14px 12px',
+          marginBottom: 20,
+        }}>
+          {isLoading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+              <Loader2 size={28} color={C.accentPlum} className="animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* ── SERVED TAB ── */}
+              {activeTab === 'served' && (
+                <>
+                  <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
+                    These were completed in the app and are included on this check.
                   </p>
-                </div>
-              </div>
-            )}
-
-            {/* RTO Mailed In — Separate section */}
-            <h2 className="text-lg font-semibold text-red-700 mb-3 flex items-center gap-2">
-              <RotateCcw className="w-5 h-5" />
-              RTO Mailed In (Next Check)
-            </h2>
-            {previousTurnInDate && (
-              <p className="text-xs text-red-500 mb-3">
-                Returned to office and mailed in {format(previousTurnInDate, 'MMM d')}
-              </p>
-            )}
-
-            {pendingRTOs.length === 0 ? (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center mb-6">
-                <RotateCcw className="w-8 h-8 text-red-300 mx-auto mb-2" />
-                <p className="text-red-500 text-sm">No RTOs mailed in</p>
-              </div>
-            ) : (
-              <div className="space-y-2 mb-6">
-                {pendingRTOs.map((address) => (
-                  <div
-                    key={address.id}
-                    className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <p className="font-medium text-gray-900 text-sm">
-                          {address.normalized_address || address.legal_address}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          RTO'd {address.rto_at && format(new Date(address.rto_at), 'MMM d, h:mm a')}
-                        </p>
-                        {address.rto_reason && (
-                          <p className="text-xs text-red-500 mt-0.5 italic">"{address.rto_reason}"</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-red-600">
-                          ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                        </p>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
-                          RTO
-                        </span>
-                      </div>
+                  {instantPayouts.length === 0 ? (
+                    <div style={{
+                      background: C.card,
+                      border: `1px dashed ${C.border}`,
+                      borderRadius: 10,
+                      padding: '28px 16px',
+                      textAlign: 'center',
+                    }}>
+                      <DollarSign size={28} color={C.textMuted} style={{ margin: '0 auto 8px' }} />
+                      <p style={{ color: C.textMuted, fontSize: 13 }}>No direct serves yet this period</p>
                     </div>
-                    <button
-                      onClick={() => handleUndoRTO(address)}
-                      className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-blue-300 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-50 active:bg-blue-100 transition-colors"
-                    >
-                      <Undo2 className="w-4 h-4" />
-                      Undo RTO — Return to Route
-                    </button>
-                  </div>
-                ))}
-                <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-                  <p className="text-xs text-red-600">
-                    RTO Subtotal: <span className="font-bold">${pendingRTOTotal.toFixed(2)}</span>
+                  ) : (
+                    instantPayouts.map(a => (
+                      <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
+                    ))
+                  )}
+                </>
+              )}
+
+              {/* ── MAILED TAB ── */}
+              {activeTab === 'mailed' && (
+                <>
+                  <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
+                    {lastRecord
+                      ? `Turned in ${format(new Date(lastRecord.turn_in_date || lastRecord.created_at), 'MMM d, yyyy')}. These arrive on your next check.`
+                      : 'Documents you mail in will appear here after your first Turn In.'}
                   </p>
-                </div>
-              </div>
-            )}
-
-            {/* RTO Addresses - Current work period (will be turned in next time) */}
-            {rtoCurrentPeriod.length > 0 && (
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-lg font-semibold text-red-700 flex items-center gap-2">
-                    <RotateCcw className="w-5 h-5" />
-                    RTO This Period
-                  </h2>
-                  <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full font-medium">
-                    Turns in next week
-                  </span>
-                </div>
-                <p className="text-xs text-red-500 mb-3">
-                  These will be included when you turn in next time
-                </p>
-                
-                <div className="space-y-2">
-                  {rtoCurrentPeriod.map((address) => (
-                    <div
-                      key={address.id}
-                      className="bg-red-50 border-2 border-red-200 rounded-xl p-4"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="font-medium text-gray-900 text-sm">
-                            {address.normalized_address || address.legal_address}
-                          </p>
-                          {address.defendant_name && (
-                            <p className="text-xs text-gray-600 mt-0.5">{address.defendant_name}</p>
-                          )}
-                          <p className="text-xs text-gray-500 mt-1">
-                            RTO'd {address.rto_at && format(new Date(address.rto_at), 'MMM d, h:mm a')}
-                          </p>
-                          {address.rto_reason && (
-                            <p className="text-xs text-red-500 mt-0.5 italic">"{address.rto_reason}"</p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-semibold text-red-600">
-                            ${calculateCorrectPayRate(address.serve_type).toFixed(2)}
-                          </p>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">
-                            RTO
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleUndoRTO(address)}
-                        className="mt-3 w-full flex items-center justify-center gap-2 py-2 px-3 border-2 border-blue-300 text-blue-600 rounded-lg text-xs font-bold hover:bg-blue-50 active:bg-blue-100 transition-colors"
-                      >
-                        <Undo2 className="w-4 h-4" />
-                        Undo RTO — Return to Route
-                      </button>
+                  {mailedItems.length === 0 ? (
+                    <div style={{
+                      background: C.card,
+                      border: `1px dashed ${C.border}`,
+                      borderRadius: 10,
+                      padding: '28px 16px',
+                      textAlign: 'center',
+                    }}>
+                      <Clock size={28} color={C.textMuted} style={{ margin: '0 auto 8px' }} />
+                      <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
-                  ))}
-                  <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
-                    <p className="text-xs text-red-600">
-                      RTO Total: <span className="font-bold">${rtoCurrentPeriod.reduce((sum, a) => sum + calculateCorrectPayRate(a.serve_type), 0).toFixed(2)}</span> — not included in totals above
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
-        )}
+                  ) : (
+                    mailedItems.map((item, i) => <SnapshotCard key={i} item={item} />)
+                  )}
+                </>
+              )}
 
-        {/* Payroll History */}
+              {/* ── RTO TAB ── */}
+              {activeTab === 'rto' && (
+                <>
+                  <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
+                    These will be included when you tap Turn In.
+                  </p>
+                  {currentRTOs.length === 0 ? (
+                    <div style={{
+                      background: C.card,
+                      border: `1px dashed ${C.border}`,
+                      borderRadius: 10,
+                      padding: '28px 16px',
+                      textAlign: 'center',
+                    }}>
+                      <RotateCcw size={28} color={C.textMuted} style={{ margin: '0 auto 8px' }} />
+                      <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
+                    </div>
+                  ) : (
+                    currentRTOs.map(a => (
+                      <AddressCard
+                        key={a.id}
+                        address={a}
+                        accentColor={C.rto}
+                        badge="RTO"
+                        onUndo={handleUndoRTO}
+                        showUndo={true}
+                      />
+                    ))
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Pay History */}
         {payrollHistory.length > 0 && (
-          <div className="mt-8">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
-                <FileTextIcon className="w-5 h-5" />
-                Saved Records
-              </h2>
-              <span className="text-xs text-gray-500">{payrollHistory.length} record{payrollHistory.length !== 1 ? 's' : ''}</span>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <FileTextIcon size={15} color={C.textSecondary} />
+                <span style={{ color: C.textSecondary, fontWeight: 600, fontSize: 14 }}>Pay History</span>
+              </div>
+              <span style={{ color: C.textMuted, fontSize: 11 }}>
+                {payrollHistory.length} record{payrollHistory.length !== 1 ? 's' : ''}
+              </span>
             </div>
 
-            <div className="space-y-2">
-              {payrollHistory.map((record) => (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {payrollHistory.map(record => (
                 <div
                   key={record.id}
                   onClick={() => navigate(createPageUrl(`PayrollRecordDetail?id=${record.id}`))}
-                  className="bg-white border border-gray-200 rounded-xl p-4 flex items-center justify-between active:bg-gray-50 cursor-pointer"
+                  style={{
+                    background: C.card,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                  }}
                 >
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p style={{ color: C.textPrimary, fontSize: 13, fontWeight: 600 }}>
                       {record.period_start && format(new Date(record.period_start), 'MMM d')} — {record.period_end && format(new Date(record.period_end), 'MMM d, yyyy')}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Saved {record.created_at && format(new Date(record.created_at), 'MMM d, h:mm a')} · {record.address_count} item{record.address_count !== 1 ? 's' : ''}
+                    <p style={{ color: C.textMuted, fontSize: 11, marginTop: 2 }}>
+                      {record.created_at && format(new Date(record.created_at), 'MMM d, h:mm a')} · {record.address_count} item{record.address_count !== 1 ? 's' : ''}
                     </p>
-                    <div className="flex gap-3 mt-1">
-                      <span className="text-xs text-green-600">Instant: ${record.instant_total?.toFixed(2)}</span>
-                      <span className="text-xs text-orange-600">Next: ${record.pending_total?.toFixed(2)}</span>
-                      {record.rto_total > 0 && <span className="text-xs text-red-600">RTO: ${record.rto_total?.toFixed(2)}</span>}
+                    <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                      <span style={{ color: C.accentGold, fontSize: 11 }}>Instant: ${record.instant_total?.toFixed(2)}</span>
+                      <span style={{ color: C.accentPlum, fontSize: 11 }}>Next: ${record.pending_total?.toFixed(2)}</span>
+                      {record.rto_total > 0 && <span style={{ color: C.rto, fontSize: 11 }}>RTO: ${record.rto_total?.toFixed(2)}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-lg font-bold text-gray-900">${record.total_amount?.toFixed(2)}</p>
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <p style={{ color: C.textPrimary, fontSize: 17, fontWeight: 700 }}>
+                      ${record.total_amount?.toFixed(2)}
+                    </p>
+                    <ChevronRight size={18} color={C.textMuted} />
                   </div>
                 </div>
               ))}
