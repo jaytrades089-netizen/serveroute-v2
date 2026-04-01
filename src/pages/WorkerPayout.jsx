@@ -618,9 +618,12 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  // After a turn-in, RTO tab shows snapshot RTOs; before turn-in shows live unstamped RTOs
-  const rtoTabItems = pendingRTOs.length > 0 ? pendingRTOs : null; // null = use live currentRTOs
-  const rtoTabCount = pendingRTOs.length > 0 ? pendingRTOs.length : currentRTOs.length;
+  // After a turn-in, RTO tab merges snapshot RTOs with new live RTOs marked after turn-in
+  const rtoTabItems = pendingRTOs.length > 0 ? [
+    ...pendingRTOs,
+    ...currentRTOs.filter(a => !pendingRTOs.find(p => p.id === a.id))
+  ] : null; // null = use live currentRTOs
+  const rtoTabCount = rtoTabItems ? rtoTabItems.length : currentRTOs.length;
 
   // ─── Tab definitions ─────────────────────────────────────────────────────────
   const tabs = [
