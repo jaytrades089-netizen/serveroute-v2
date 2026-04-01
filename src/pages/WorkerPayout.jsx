@@ -746,9 +746,9 @@ export default function WorkerPayout() {
 
           {/* Next Check */}
           <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-              <Clock size={13} color={C.accentPlum} />
-              <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Next Check</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+            <Clock size={13} color={C.accentPlum} />
+            <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in + RTO</span>
             </div>
             <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
               ${nextCheckTotal.toFixed(2)}
