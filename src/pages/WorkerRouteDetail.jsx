@@ -428,22 +428,7 @@ export default function WorkerRouteDetail() {
             </div>
           )}
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-2 hover:bg-blue-600 rounded-full transition-colors">
-              <MoreVertical className="w-5 h-5" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem 
-              onClick={handleResetAllAttempts} 
-              className="text-red-600 focus:text-red-600"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset All Attempts
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
