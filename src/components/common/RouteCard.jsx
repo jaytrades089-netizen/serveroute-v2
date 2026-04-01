@@ -349,29 +349,6 @@ export default function RouteCard({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
             </span>
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wide">Active Route</span>
-          </div>
-        </div>
-      )}
-
-      {/* Header: Route Name + Address Count + Spread Badge */}
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold leading-tight" style={{ color: '#e6e1e4' }}>
-              {route.folder_name}
-            </h3>
-
-            {showWorker && workerName && (
-              <p className="text-sm flex items-center gap-1 mt-0.5" style={{ color: '#8a7f87' }}>
-                <User className="w-3 h-3" /> {workerName}
-              </p>
-            )}
-          </div>
-          <div className="flex-shrink-0 ml-3 flex items-center gap-2">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-bold">
-              {spreadDays}d
-            </span>
             {(() => {
               const requiredAttempts = route.required_attempts || 3;
               if (!requiredAttempts || requiredAttempts <= 0) return null;
@@ -389,17 +366,7 @@ export default function RouteCard({
               // Show the minimum attempts across unserved addresses (the "round" everyone is at)
               const minAttempts = counts.length > 0 ? Math.min(...counts) : 0;
               
-              return (
-                <span className="text-xs px-2 py-1 rounded-full" style={{ color: '#8a7f87', background: '#363436' }}>
-                  {minAttempts}/{requiredAttempts}
-                </span>
-              );
-            })()}
-          </div>
-        </div>
-      </div>
 
-      {/* Stats Row: Total / Served / Pending */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3">
           {/* Total */}
