@@ -400,7 +400,7 @@ export default function WorkerPayout() {
         }))
         .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
       
-      // Always manually include Sophie Joyce if she exists and has RTO data
+      // Always manually include Sophie Joyce if she has RTO data, regardless of status
       const sophieJoyce = addresses.find(a => a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE') && a.rto_at && (!a.payroll_record_id || a.payroll_record_id === ''));
       if (sophieJoyce && !liveRTOs.some(r => r.id === sophieJoyce.id)) {
         liveRTOs.push({
