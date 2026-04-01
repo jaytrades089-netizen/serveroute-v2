@@ -374,6 +374,187 @@ export default function WorkerPayout() {
 
   const isLoading = addressesLoading;
 
+  // ─── Save Payroll Record + stamp payroll_record_id ──────────────────────────
+  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
+    if (!user?.id) return;
+
+    if (!skipDuplicateCheck) {
+      const existingRecord = payrollHistory.find(r => {
+        if (!r.period_start || !r.period_end) return false;
+        return (
+          new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
+          new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
+        );
+      });
+      if (existingRecord) {
+        const confirmed = window.confirm(
+          `You already have a saved pay stub for this period.\n\nOverride with updated data?`
+        );
+        if (!confirmed) return;
+        await base44.entities.PayrollRecord.delete(existingRecord.id);
+      }
+    }
+
+    const now = new Date();
+    const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+
+    const snapshotAddresses = [
+      ...instantPayouts.map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        served_at: a.served_at,
+        rto_at: null,
+        bucket: 'instant'
+      })),
+      ...currentRTOs.map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        served_at: null,
+        rto_at: a.rto_at,
+        rto_reason: a.rto_reason || '',
+        bucket: 'rto'
+      }))
+    ];
+
+    const newRecord = await base44.entities.PayrollRecord.create({
+      user_id: user.id,
+      company_id: user.company_id || '',
+      period_start: currentPeriod.start.toISOString(),
+      period_end: currentPeriod.end.toISOString(),
+      turn_in_date: (turnInDate || now).toISOString(),
+      instant_total: instantTotal,
+      pending_total: 0,
+      rto_total: rtoTotal,
+      total_amount: instantTotal,
+      address_count: snapshotAddresses.length,
+      snapshot_data: JSON.stringify(snapshotAddresses),
+      status: 'saved',
+      notes: '',
+      created_at: now.toISOString()
+    });
+
+    // Stamp payroll_record_id on every included address
+    if (newRecord?.id) {
+      const addressesToStamp = [
+        ...instantPayouts.map(a => a.id),
+        ...currentRTOs.map(a => a.id)
+      ];
+      await Promise.all(
+        addressesToStamp.map(addressId =>
+          base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id })
+            .catch(err => console.error('Failed to stamp address', addressId, err))
+        )
+      );
+    }
+
+    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+    refetchHistory();
+    toast.success('Turned in successfully');
+  };
+
+  // ─── Handle Turn In ───────────────────────────────────────────────────────────
+  const handleTurnIn = async () => {
+    const existingRecord = payrollHistory.find(r => {
+      if (!r.period_start || !r.period_end) return false;
+      return (
+        new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
+        new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
+      );
+    });
+
+    if (existingRecord) {
+      const confirmed = window.confirm(
+        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
+      );
+      if (!confirmed) return;
+      await base44.entities.PayrollRecord.delete(existingRecord.id);
+    }
+
+    const now = new Date();
+    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
+    setPriorTurnInDate(previousTurnInDate);
+    setPreviousTurnInDate(now);
+
+    if (userSettings?.id) {
+      await base44.entities.UserSettings.update(userSettings.id, {
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
+      });
+    } else if (user?.id) {
+      await base44.entities.UserSettings.create({
+        user_id: user.id,
+        payroll_turn_in_day: selectedDay,
+        previous_turn_in_date: now.toISOString(),
+        prior_turn_in_date: oldPrevious
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+    await savePayrollRecord(now, true);
+  };
+
+  // ─── Undo RTO ─────────────────────────────────────────────────────────────────
+  const handleUndoRTO = async (address) => {
+    const confirmed = window.confirm(
+      `Undo RTO for this address?\n\n${address.normalized_address || address.legal_address}\n\nThis will move it back to its route as an active address.`
+    );
+    if (!confirmed) return;
+
+    const addrAttempts = addressAttemptsMap[address.id] || [];
+    const newStatus = addrAttempts.length > 0 ? 'attempted' : 'pending';
+
+    await base44.entities.Address.update(address.id, {
+      status: newStatus,
+      served: false,
+      served_at: null,
+      receipt_status: 'pending',
+      rto_at: null,
+      rto_reason: null,
+      rto_by: null
+    });
+
+    if (address.route_id) {
+      const routeArr = await base44.entities.Route.filter({ id: address.route_id });
+      const route = routeArr[0];
+      if (route) {
+        const routeAddresses = await base44.entities.Address.filter({ route_id: address.route_id, deleted_at: null });
+        const doneCount = routeAddresses.filter(a =>
+          a.id === address.id ? false : (a.served || a.status === 'returned')
+        ).length;
+        const updates = { served_count: doneCount };
+        if (route.status === 'completed' || route.status === 'archived') {
+          updates.status = 'active';
+          updates.completed_at = null;
+        }
+        await base44.entities.Route.update(address.route_id, updates);
+      }
+    }
+
+    await base44.entities.AuditLog.create({
+      company_id: user?.company_id || address.company_id,
+      action_type: 'address_updated',
+      actor_id: user?.id,
+      actor_role: user?.role || 'server',
+      target_type: 'address',
+      target_id: address.id,
+      details: { action: 'undo_rto', route_id: address.route_id, restored_status: newStatus },
+      timestamp: new Date().toISOString()
+    });
+
+    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+    queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
+    queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
+    toast.success('RTO undone — address returned to route');
+  };
+
   // ─── Tab definitions ─────────────────────────────────────────────────────────
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
