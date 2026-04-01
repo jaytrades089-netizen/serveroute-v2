@@ -363,7 +363,6 @@ export default function WorkerPayout() {
       if (a.status !== 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       if (a.payroll_record_id) return false;
-      if (previousTurnInDate && a.rto_at && new Date(a.rto_at) <= previousTurnInDate) return false;
       return true;
     }).sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
   }, [addresses, previousTurnInDate]);
