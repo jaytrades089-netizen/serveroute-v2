@@ -259,7 +259,7 @@ export default function WorkerPayout() {
     enabled: !!user?.id
   });
 
-  const { data: addresses = [], isLoading: addressesLoading } = useQuery({
+  const { data: addresses = [], isLoading: addressesLoading, refetch: refetchAddresses } = useQuery({
     queryKey: ['allWorkerAddresses', user?.id, routes.map(r=>r.id).join(',')],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -269,8 +269,20 @@ export default function WorkerPayout() {
       const all = await base44.entities.Address.filter({ deleted_at: null });
       return all.filter(a => routeIds.includes(a.route_id));
     },
-    enabled: !!user?.id && routes.length > 0
+    enabled: !!user?.id && routes.length > 0,
+    staleTime: 30 * 1000 // Become stale after 30 seconds
   });
+
+  // Refetch on page visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refetchAddresses();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [refetchAddresses]);
 
   const { data: attempts = [] } = useQuery({
     queryKey: ['workerAttempts', user?.id],
