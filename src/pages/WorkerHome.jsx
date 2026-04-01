@@ -195,13 +195,10 @@ export default function WorkerHome() {
   
   const servedAddresses = activeAddresses.filter(a => {
     if (!a.served || !a.served_at) return false;
-    const servedDate = new Date(a.served_at);
-    // Only count serves after last turn-in
-    if (previousTurnInDate) {
-      return servedDate > previousTurnInDate;
-    }
-    // If no turn-in yet, don't count anything (fresh start)
-    return false;
+    if (a.status === 'returned') return false;
+    // Exclude addresses already locked into a payroll record (already turned in)
+    if (a.payroll_record_id && a.payroll_record_id !== '') return false;
+    return true;
   });
 
   // Due Soon = routes due on or before the next payroll turn-in date

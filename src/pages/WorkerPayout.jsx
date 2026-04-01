@@ -828,7 +828,7 @@ export default function WorkerPayout() {
                       ? `Turned in ${format(lastTurnInDate, 'MMM d, h:mm a')}. These arrive on your next check.`
                       : 'Documents you mail in will appear here after your first Turn In.'}
                   </p>
-                  {mailedItems.length === 0 ? (
+                  {mailedItems.length === 0 && pendingRTOs.length === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -840,7 +840,14 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                    mailedItems.map((item, i) => <SnapshotCard key={i} item={item} number={i + 1} />)
+                    <>
+                      {mailedItems.map((item, i) => (
+                        <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
+                      ))}
+                      {pendingRTOs.map((item, i) => (
+                        <SnapshotCard key={`rto-${i}`} item={item} number={mailedItems.length + i + 1} />
+                      ))}
+                    </>
                   )}
                 </>
               )}
