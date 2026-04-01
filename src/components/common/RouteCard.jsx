@@ -368,21 +368,12 @@ export default function RouteCard({
               
               return null; // Removed stat boxes
             })()}
-            </div>
-            </div>
-            </div>
+          </div>
+        </div>
+      </div>
 
-            {/* HAS / DUE / NEEDS Row */}
-            <div className="px-4 pb-3">
-        <div className="grid grid-cols-3 gap-3 items-stretch">
-          {/* HAS */}
-          <div className="text-center flex flex-col">
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Has</p>
-            <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
-              {earnedBadges.length > 0 ? (
-                <div className="flex flex-wrap gap-1 justify-center">
-                  <QualifierBadges badges={earnedBadges} size="small" />
-                </div>
+      {/* HAS / DUE / NEEDS Row */}
+      <div className="px-4 pb-3">
               ) : (
                 <span className="text-sm" style={{ color: '#8a7f87' }}>None</span>
               )}
