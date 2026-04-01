@@ -366,31 +366,14 @@ export default function RouteCard({
               // Show the minimum attempts across unserved addresses (the "round" everyone is at)
               const minAttempts = counts.length > 0 ? Math.min(...counts) : 0;
               
+              return null; // Removed stat boxes
+            })()}
+            </div>
+            </div>
+            </div>
 
-      <div className="px-4 pb-3">
-        <div className="grid grid-cols-3 gap-3">
-          {/* Total */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{totalAddresses}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Total</p>
-          </div>
-          
-          {/* Served */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-green-600">{servedCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Served</p>
-          </div>
-          
-          {/* Pending */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-orange-500">{pendingCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Pending</p>
-          </div>
-        </div>
-      </div>
-
-      {/* HAS / DUE / NEEDS Row */}
-      <div className="px-4 pb-3">
+            {/* HAS / DUE / NEEDS Row */}
+            <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3 items-stretch">
           {/* HAS */}
           <div className="text-center flex flex-col">
