@@ -633,7 +633,7 @@ export default function WorkerPayout() {
         rto_reason: a.rto_reason || '',
         bucket: 'rto'
       }))
-  ] : null; // null = use live currentRTOs
+  ].sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at)) : null; // null = use live currentRTOs
   const rtoTabCount = rtoTabItems ? rtoTabItems.length : currentRTOs.length;
 
   // ─── Tab definitions ─────────────────────────────────────────────────────────
