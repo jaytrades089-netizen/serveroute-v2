@@ -320,27 +320,30 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // instantPayouts — served, no payroll_record_id, not returned
+  // instantPayouts — served after last turn-in, not yet in a payroll record
   const instantPayouts = useMemo(() => {
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
       if (a.status === 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      // Only show addresses NOT yet stamped into a payroll record
       if (a.payroll_record_id && a.payroll_record_id !== '') return false;
+      // Date boundary: ignore anything served before/on the last turn-in (handles partial stamping failures)
+      if (previousTurnInDate && new Date(a.served_at) <= previousTurnInDate) return false;
       return true;
     });
-  }, [addresses]);
+  }, [addresses, previousTurnInDate]);
 
-  // ── currentRTOs — status returned, no payroll_record_id ──────────────
+  // ── currentRTOs — RTOd after last turn-in, not yet in a payroll record ──
   const currentRTOs = useMemo(() => {
     return addresses.filter(a => {
       if (a.status !== 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      if (a.payroll_record_id) return false; // already turned in
+      if (a.payroll_record_id) return false;
+      // Date boundary: ignore RTOs that happened before/on the last turn-in
+      if (previousTurnInDate && a.rto_at && new Date(a.rto_at) <= previousTurnInDate) return false;
       return true;
     });
-  }, [addresses]);
+  }, [addresses, previousTurnInDate]);
 
   // ── Mailed tab: read from most recent PayrollRecord snapshot (never re-derive from live records)
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
@@ -447,7 +450,7 @@ export default function WorkerPayout() {
       ];
       for (const addressId of addressesToStamp) {
         await base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id });
-        await new Promise(r => setTimeout(r, 150)); // throttle to avoid rate limit
+        await new Promise(r => setTimeout(r, 300)); // throttle to avoid rate limit
       }
     }
 
