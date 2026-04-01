@@ -447,6 +447,7 @@ export default function WorkerPayout() {
       ];
       for (const addressId of addressesToStamp) {
         await base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id });
+        await new Promise(r => setTimeout(r, 150)); // throttle to avoid rate limit
       }
     }
 
