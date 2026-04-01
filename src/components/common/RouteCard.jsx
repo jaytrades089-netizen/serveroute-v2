@@ -39,19 +39,19 @@ import { getNeededQualifiers, calculateSpreadDate } from '@/components/services/
 import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
 const STATUS_CONFIG = {
-  draft: { label: 'DRAFT', color: 'bg-gray-100 text-gray-700 border-gray-200' },
-  ready: { label: 'READY', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-  assigned: { label: 'ASSIGNED', color: 'bg-purple-100 text-purple-700 border-purple-200' },
+  draft: { label: 'DRAFT', color: 'text-[#8a7f87] border-[#363436] bg-[#1c1b1d]' },
+  ready: { label: 'READY', color: 'text-[#e9c349] border-[#363436] bg-[#201f21]' },
+  assigned: { label: 'ASSIGNED', color: 'text-[#e5b9e1] border-[#363436] bg-[#201f21]' },
   active: { label: 'ACTIVE', color: 'bg-green-100 text-green-700 border-green-200' },
   stalled: { label: 'STALLED', color: 'bg-red-100 text-red-700 border-red-200' },
   completed: { label: 'COMPLETED', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
-  archived: { label: 'ARCHIVED', color: 'bg-gray-200 text-gray-500 border-gray-300' }
+  archived: { label: 'ARCHIVED', color: 'text-[#8a7f87] border-[#363436] bg-[#1c1b1d]' }
 };
 
 function ProgressBar({ served, total }) {
   const percent = total > 0 ? Math.round((served / total) * 100) : 0;
   return (
-    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+    <div style={{ background: '#363436' }} className="w-full rounded-full h-2.5 overflow-hidden">
       <div 
         className={`h-full rounded-full transition-all duration-500 ${
           percent === 100 ? 'bg-green-500' : 'bg-indigo-500'
@@ -74,7 +74,7 @@ function RouteCardMenu({ route, onEdit, onArchive, onDelete, onScheduleRunDate }
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full hover:bg-gray-100"
+          className="h-9 w-9 rounded-full hover:bg-white/10"
           onClick={(e) => e.stopPropagation()}
         >
           <MoreHorizontal className="w-5 h-5 text-gray-400" />
@@ -303,9 +303,13 @@ export default function RouteCard({
             : workerCanEdit
               ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
               : isActiveRoute 
-                ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 bg-white border border-gray-200' 
-                : 'bg-white border border-gray-200'
+                ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 border' 
+                : 'border'
       } ${className}`}
+      style={
+        allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} 
+          : { background: '#1c1b1d', borderColor: '#363436' }
+      }
     >
       {/* All Complete Banner */}
       {allAddressesComplete && (
@@ -354,12 +358,12 @@ export default function RouteCard({
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <h3 className="text-xl font-bold text-gray-900 leading-tight">
+            <h3 className="text-xl font-bold leading-tight" style={{ color: '#e6e1e4' }}>
               {route.folder_name}
             </h3>
 
             {showWorker && workerName && (
-              <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
+              <p className="text-sm flex items-center gap-1 mt-0.5" style={{ color: '#8a7f87' }}>
                 <User className="w-3 h-3" /> {workerName}
               </p>
             )}
@@ -386,7 +390,7 @@ export default function RouteCard({
               const minAttempts = counts.length > 0 ? Math.min(...counts) : 0;
               
               return (
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                <span className="text-xs px-2 py-1 rounded-full" style={{ color: '#8a7f87', background: '#363436' }}>
                   {minAttempts}/{requiredAttempts}
                 </span>
               );
@@ -399,21 +403,21 @@ export default function RouteCard({
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3">
           {/* Total */}
-          <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-            <p className="text-3xl font-bold text-blue-600">{totalAddresses}</p>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">Total</p>
+          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
+            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{totalAddresses}</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Total</p>
           </div>
           
           {/* Served */}
-          <div className="bg-green-50 rounded-xl p-3 text-center border border-green-100">
+          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-3xl font-bold text-green-600">{servedCount}</p>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">Served</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Served</p>
           </div>
           
           {/* Pending */}
-          <div className="bg-orange-50 rounded-xl p-3 text-center border border-orange-100">
+          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-3xl font-bold text-orange-500">{pendingCount}</p>
-            <p className="text-xs text-gray-500 font-medium mt-0.5">Pending</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Pending</p>
           </div>
         </div>
       </div>
@@ -423,35 +427,35 @@ export default function RouteCard({
         <div className="grid grid-cols-3 gap-3 items-stretch">
           {/* HAS */}
           <div className="text-center flex flex-col">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">Has</p>
-            <div className="bg-green-50 rounded-xl p-2.5 border border-green-200 h-full flex flex-col items-center justify-center gap-1">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Has</p>
+            <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
               {earnedBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={earnedBadges} size="small" />
                 </div>
               ) : (
-                <span className="text-sm text-gray-400">None</span>
+                <span className="text-sm" style={{ color: '#8a7f87' }}>None</span>
               )}
             </div>
           </div>
           
           {/* DUE */}
           <div className="text-center flex flex-col">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">Due</p>
-            <div className={`rounded-xl p-2.5 border h-full flex flex-col items-center justify-center gap-1 ${
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Due</p>
+            <div className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1" style={
               isOverdue 
-                ? 'bg-red-50 border-red-200' 
-                : 'bg-purple-50 border-purple-200'
-            }`}>
-              <span className={`text-sm font-medium ${
-                isOverdue ? 'text-red-600' : 'text-purple-600'
-              }`}>
+                ? { background: '#201f21', border: '1px solid #363436' }
+                : { background: '#201f21', border: '1px solid #363436' }
+            }>
+              <span className="text-sm font-medium" style={
+                isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }
+              }>
                 {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'No date'}
               </span>
               {route.first_attempt_date && (
-                <span className={`text-[10px] mt-0.5 ${
-                  isOverdue ? 'text-red-500' : 'text-purple-500'
-                }`}>
+                <span className="text-[10px] mt-0.5" style={
+                  isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }
+                }>
                   {(() => {
                     const firstAttempt = new Date(route.first_attempt_date);
                     const spreadDueDate = new Date(firstAttempt);
@@ -469,8 +473,8 @@ export default function RouteCard({
           
           {/* NEEDS */}
           <div className="text-center flex flex-col">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">Needs</p>
-            <div className="bg-amber-50 rounded-xl p-2.5 border border-amber-200 h-full flex flex-col items-center justify-center gap-1">
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Needs</p>
+            <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
               {neededBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={neededBadges} size="small" />
@@ -495,12 +499,13 @@ export default function RouteCard({
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="px-4 py-3 border-t border-gray-100">
+      <div className="px-4 py-3" style={{ borderTop: '1px solid #363436' }}>
         {/* + Schedule button row */}
         {onScheduleRunDate && !isBossView && (
           <div className="mb-2" onClick={(e) => e.stopPropagation()}>
             <button 
-              className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors px-2 py-1.5 rounded-lg hover:bg-blue-50"
+              className="flex items-center gap-1.5 text-xs font-semibold transition-colors px-2 py-1.5 rounded-lg"
+              style={{ color: '#e9c349' }}
               onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(true); }}
             >
               {route.run_date ? (
@@ -702,7 +707,8 @@ export default function RouteCard({
 
           {/* View Button */}
           <button 
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-colors"
+            style={{ border: '1px solid #363436' }}
             onClick={(e) => {
               e.stopPropagation();
               if (isBossView) {
@@ -712,8 +718,8 @@ export default function RouteCard({
               }
             }}
           >
-            <Eye className="w-5 h-5 text-blue-600" />
-            <span className="text-blue-600 font-semibold">View</span>
+            <Eye className="w-5 h-5" style={{ color: '#e9c349' }} />
+            <span style={{ color: '#e9c349' }} className="font-semibold">View</span>
           </button>
         </div>
       </div>
