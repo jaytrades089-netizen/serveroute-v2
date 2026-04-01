@@ -39,6 +39,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [isOptimized, setIsOptimized] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [deletingLocationId, setDeletingLocationId] = useState(null);
+  const [routeType, setRouteType] = useState('fastest'); // 'fastest' = time, 'shortest' = miles
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -319,7 +320,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         startLng,
         endLocation.latitude,
         endLocation.longitude,
-        apiKey
+        apiKey,
+        routeType
       );
 
       // Show debug info about optimization result
@@ -347,7 +349,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       const directionsResponse = await fetch(directionsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations, options: { routeType: 'fastest', unit: 'm' } })
+        body: JSON.stringify({ locations, options: { routeType, unit: 'm' } })
       });
       const directionsData = await directionsResponse.json();
       console.log('Directions response:', directionsData);
@@ -525,6 +527,26 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
         {/* End location */}
         <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
+        <div className="flex gap-2 mb-2">
+          <button
+            type="button"
+            onClick={() => setRouteType('fastest')}
+            className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold transition-all ${
+              routeType === 'fastest' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-300 text-gray-600'
+            }`}
+          >
+            ⏱ Efficient Time
+          </button>
+          <button
+            type="button"
+            onClick={() => setRouteType('shortest')}
+            className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold transition-all ${
+              routeType === 'shortest' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-300 text-gray-600'
+            }`}
+          >
+            📍 Efficient Miles
+          </button>
+        </div>
         <LocationPicker
           locations={savedLocations}
           value={selectedEndLocation}
