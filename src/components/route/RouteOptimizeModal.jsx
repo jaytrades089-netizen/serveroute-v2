@@ -181,6 +181,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
     setIsOptimizing(true);
     setLocationError(null);
+    setIsOptimized(false);
+    setRouteMetrics(null);
 
     try {
       let startLat, startLng;
