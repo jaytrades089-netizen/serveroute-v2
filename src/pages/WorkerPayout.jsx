@@ -48,7 +48,7 @@ function calcPay(serveType) {
 }
 
 // ─── Address card ─────────────────────────────────────────────────────────────
-function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
+function AddressCard({ address, accentColor, badge, onUndo, showUndo, number }) {
   return (
     <div style={{
       background: C.card,
@@ -84,27 +84,30 @@ function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
           <p style={{ color: accentColor, fontWeight: 700, fontSize: 15 }}>
             ${calcPay(address.serve_type).toFixed(2)}
           </p>
-          {badge && (
-            <span style={{
-              fontSize: 9, fontWeight: 700,
-              background: accentColor + '22',
-              color: accentColor,
-              border: `1px solid ${accentColor}`,
-              borderRadius: 4,
-              padding: '2px 5px',
-              display: 'inline-block',
-              marginTop: 2,
-            }}>
-              {badge}
-            </span>
-          )}
-          <span style={{
-            fontSize: 9,
-            color: C.textMuted,
-            display: 'block',
-            textTransform: 'capitalize',
-            marginTop: 2,
-          }}>{address.serve_type}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', marginTop: 2 }}>
+            {number && (
+              <span style={{
+                color: C.textMuted,
+                fontSize: '11px',
+                fontWeight: 600,
+              }}>
+                #{number}
+              </span>
+            )}
+            {badge && (
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                background: accentColor + '22',
+                color: accentColor,
+                border: `1px solid ${accentColor}`,
+                borderRadius: 4,
+                padding: '2px 5px',
+                display: 'inline-block',
+              }}>
+                {badge}
+              </span>
+            )}
+          </div>
         </div>
       </div>
       {showUndo && (
@@ -136,7 +139,7 @@ function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
 }
 
 // ─── Snapshot address card (from PayrollRecord JSON) ──────────────────────────
-function SnapshotCard({ item }) {
+function SnapshotCard({ item, number }) {
   const isRTO = item.bucket === 'rto';
   const accentColor = isRTO ? C.rto : C.accentPlum;
   const badge = isRTO ? 'RTO' : 'Attempt';
@@ -177,16 +180,26 @@ function SnapshotCard({ item }) {
         <p style={{ color: accentColor, fontWeight: 700, fontSize: 15 }}>
           ${(item.amount || 0).toFixed(2)}
         </p>
-        <span style={{
-          fontSize: 9, fontWeight: 700,
-          background: accentColor + '22',
-          color: accentColor,
-          border: `1px solid ${accentColor}`,
-          borderRadius: 4,
-          padding: '2px 5px',
-          display: 'inline-block',
-          marginTop: 2,
-        }}>{badge}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'flex-end', marginTop: 2 }}>
+          {number && (
+            <span style={{
+              color: C.textMuted,
+              fontSize: '11px',
+              fontWeight: 600,
+            }}>
+              #{number}
+            </span>
+          )}
+          <span style={{
+            fontSize: 9, fontWeight: 700,
+            background: accentColor + '22',
+            color: accentColor,
+            border: `1px solid ${accentColor}`,
+            borderRadius: 4,
+            padding: '2px 5px',
+            display: 'inline-block',
+          }}>{badge}</span>
+        </div>
         <span style={{
           fontSize: 9, color: C.textMuted,
           display: 'block', textTransform: 'capitalize', marginTop: 2,
@@ -810,8 +823,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No direct serves yet this period</p>
                     </div>
                   ) : (
-                    instantPayouts.map(a => (
-                      <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
+                    instantPayouts.map((a, i) => (
+                      <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} number={i + 1} />
                     ))
                   )}
                 </>
@@ -836,7 +849,7 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                    mailedItems.map((item, i) => <SnapshotCard key={i} item={item} />)
+                    mailedItems.map((item, i) => <SnapshotCard key={i} item={item} number={i + 1} />)
                   )}
                 </>
               )}
@@ -860,9 +873,9 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : rtoTabItems ? (
-                    rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} />)
+                    rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} number={i + 1} />)
                   ) : (
-                    currentRTOs.map(a => (
+                    currentRTOs.map((a, i) => (
                       <AddressCard
                         key={a.id}
                         address={a}
@@ -870,6 +883,7 @@ export default function WorkerPayout() {
                         badge="RTO"
                         onUndo={handleUndoRTO}
                         showUndo={true}
+                        number={i + 1}
                       />
                     ))
                   )}
