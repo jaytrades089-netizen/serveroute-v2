@@ -732,9 +732,9 @@ export default function WorkerPayout() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
           {/* This Check */}
           <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-              <DollarSign size={13} color={C.accentGold} />
-              <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>This Check</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+            <DollarSign size={13} color={C.accentGold} />
+            <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>Served/Posted</span>
             </div>
             <p style={{ color: C.accentGold, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
               ${instantTotal.toFixed(2)}
