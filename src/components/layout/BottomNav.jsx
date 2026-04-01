@@ -66,7 +66,7 @@ export default function BottomNav({ currentPage }) {
           className="flex flex-col items-center -mt-4"
         >
           <div 
-            className="rounded-full flex items-center justify-center border-4 transition-all animate-spin" 
+            className="rounded-full flex items-center justify-center border-4 transition-all" 
             style={{
               width: 56,
               height: 56,
@@ -74,6 +74,7 @@ export default function BottomNav({ currentPage }) {
               background: isScanActive ? '#e9c349' : '#e9c349',
               boxShadow: '0 4px 12px rgba(233, 195, 73, 0.4)',
               marginBottom: -4,
+              animation: 'pulse-glow 2s infinite',
             }}
           >
             <Camera className="w-7 h-7" style={{ color: '#0F0B10' }} />
@@ -87,24 +88,6 @@ export default function BottomNav({ currentPage }) {
             Scan
           </span>
         </Link>
-
-        {/* Right nav items */}
-        {rightNavItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.page;
-          
-          return (
-            <Link
-              key={item.id}
-              to={createPageUrl(item.page)}
-              style={{
-                color: isActive ? '#e9c349' : '#8a7f87',
-              }}
-              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors"
-            >
-              <Icon className="w-6 h-6" />
-              <span className="text-xs mt-1 font-medium">{item.label}</span>
-            </Link>
           );
         })}
       </div>
