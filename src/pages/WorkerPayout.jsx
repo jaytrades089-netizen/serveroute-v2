@@ -616,7 +616,7 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = currentRTOs.length;
+  const rtoTabCount = pendingRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
