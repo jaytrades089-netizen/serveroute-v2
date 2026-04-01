@@ -252,7 +252,6 @@ export default function WorkerPayout() {
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      // Include ALL routes (even archived/completed) to ensure payroll history shows correctly
       const allRoutes = await base44.entities.Route.filter({ worker_id: user.id });
       return allRoutes.filter(r => !r.deleted_at);
     },
@@ -263,17 +262,15 @@ export default function WorkerPayout() {
     queryKey: ['allWorkerAddresses', user?.id, routes.map(r=>r.id).join(',')],
     queryFn: async () => {
       if (!user?.id) return [];
-      // Fetch by route_ids (all routes, including completed/archived)
       const routeIds = routes.map(r => r.id);
       if (routeIds.length === 0) return [];
       const all = await base44.entities.Address.filter({ deleted_at: null });
       return all.filter(a => routeIds.includes(a.route_id));
     },
     enabled: !!user?.id && routes.length > 0,
-    staleTime: 30 * 1000 // Become stale after 30 seconds
+    staleTime: 30 * 1000
   });
 
-  // Refetch on page visibility change
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
@@ -343,30 +340,25 @@ export default function WorkerPayout() {
       if (a.status === 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       if (a.payroll_record_id && a.payroll_record_id !== '') return false;
-      // Date boundary: ignore anything served before/on the last turn-in (handles partial stamping failures)
       if (previousTurnInDate && new Date(a.served_at) <= previousTurnInDate) return false;
       return true;
     }).sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
   }, [addresses, previousTurnInDate]);
 
-  // ── currentRTOs — RTOd after last turn-in, not yet in a payroll record ──
   const currentRTOs = useMemo(() => {
     return addresses.filter(a => {
       if (a.status !== 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
       if (a.payroll_record_id) return false;
-      // Date boundary: ignore RTOs that happened before/on the last turn-in
       if (previousTurnInDate && a.rto_at && new Date(a.rto_at) <= previousTurnInDate) return false;
       return true;
     }).sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
   }, [addresses, previousTurnInDate]);
 
-  // ── Mailed/RTO tabs: read from snapshot, fall back to payroll_record_id match
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
 
-    // Try snapshot first
     let snapshot = [];
     if (lastRecord?.snapshot_data) {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
@@ -377,17 +369,12 @@ export default function WorkerPayout() {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
 
-    // Fallback: use previousTurnInDate from userSettings if no record found
     const cutoff = turnInDate || previousTurnInDate;
     if (!cutoff) return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
 
-    // If we have a record, try payroll_record_id match first
     const stamped = lastRecord?.id ? addresses.filter(a => a.payroll_record_id === lastRecord.id) : [];
-
-    // Lower bound: use period_start from the payroll record
     const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    // If stamping worked, use those; otherwise fall back to date-range
     const candidates = stamped.length > 0 ? stamped : addresses.filter(a => {
       const date = new Date(a.served_at || a.rto_at || 0);
       return date >= periodStart && date <= cutoff;
@@ -423,20 +410,15 @@ export default function WorkerPayout() {
     return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: cutoff };
   }, [payrollHistory, addresses, previousTurnInDate]);
 
-  // Mailed tab = served addresses from snapshot only (RTOs shown in their own tab)
   const mailedItems = pendingPayouts;
 
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
-  // pendingPayouts/pendingRTOs are snapshot objects with pre-computed `amount` field
   const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.amount || 0), 0);
   const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
   const nextCheckTotal = pendingTotal + pendingRTOTotal;
-  const nextCheckCount = mailedItems.length;
-  const nextCheckRTOCount = pendingRTOs.length;
 
   const isLoading = addressesLoading;
 
-  // ─── Save Payroll Record + stamp payroll_record_id ──────────────────────────
   const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
     if (!user?.id) return;
 
@@ -460,7 +442,6 @@ export default function WorkerPayout() {
     const now = new Date();
     const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
 
-    // Only include serve/garnishment in mailed snapshot — postings are already instant pay
     const mailedPayouts = instantPayouts.filter(a => a.serve_type !== 'posting');
 
     const snapshotAddresses = [
@@ -504,15 +485,14 @@ export default function WorkerPayout() {
       created_at: now.toISOString()
     });
 
-    // Stamp payroll_record_id on every included address (sequential to avoid rate limits)
     if (newRecord?.id) {
       const addressesToStamp = [
-        ...instantPayouts.map(a => a.id), // stamp all including postings
+        ...instantPayouts.map(a => a.id),
         ...currentRTOs.map(a => a.id)
       ];
       for (const addressId of addressesToStamp) {
         await base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id });
-        await new Promise(r => setTimeout(r, 300)); // throttle to avoid rate limit
+        await new Promise(r => setTimeout(r, 300));
       }
     }
 
@@ -522,7 +502,6 @@ export default function WorkerPayout() {
     toast.success('Turned in successfully');
   };
 
-  // ─── Handle Turn In ───────────────────────────────────────────────────────────
   const handleTurnIn = async () => {
     const existingRecord = payrollHistory.find(r => {
       if (!r.period_start || !r.period_end) return false;
@@ -562,7 +541,6 @@ export default function WorkerPayout() {
     await savePayrollRecord(now, true);
   };
 
-  // ─── Undo RTO ─────────────────────────────────────────────────────────────────
   const handleUndoRTO = async (address) => {
     const confirmed = window.confirm(
       `Undo RTO for this address?\n\n${address.normalized_address || address.legal_address}\n\nThis will move it back to its route as an active address.`
@@ -618,7 +596,6 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  // After a turn-in, RTO tab merges snapshot RTOs with new live RTOs marked after turn-in
   const rtoTabItems = pendingRTOs.length > 0 ? [
     ...pendingRTOs,
     ...currentRTOs
@@ -633,10 +610,9 @@ export default function WorkerPayout() {
         rto_reason: a.rto_reason || '',
         bucket: 'rto'
       }))
-  ].sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at)) : null; // null = use live currentRTOs
+  ].sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at)) : null;
   const rtoTabCount = rtoTabItems ? rtoTabItems.length : currentRTOs.length;
 
-  // ─── Tab definitions ─────────────────────────────────────────────────────────
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
     { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
@@ -662,7 +638,6 @@ export default function WorkerPayout() {
       <main style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}>
         <h1 style={{ color: C.textPrimary, fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Earnings &amp; Turn-in</h1>
 
-        {/* Pay Period card */}
         <div style={{
           background: C.cardElevated,
           border: `1px solid ${C.border}`,
@@ -695,7 +670,7 @@ export default function WorkerPayout() {
                 style={{
                   width: '100%',
                   background: C.accentGold,
-                  color: C.bg.replace('linear-gradient(to bottom, ', '').split(',')[0],
+                  color: '#0F0B10',
                   fontWeight: 700,
                   fontSize: 14,
                   padding: '10px 12px',
@@ -728,13 +703,11 @@ export default function WorkerPayout() {
           </div>
         </div>
 
-        {/* Summary cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-          {/* This Check */}
           <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-            <DollarSign size={13} color={C.accentGold} />
-            <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>Served/Posted</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+              <DollarSign size={13} color={C.accentGold} />
+              <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>Served/Posted</span>
             </div>
             <p style={{ color: C.accentGold, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
               ${instantTotal.toFixed(2)}
@@ -744,11 +717,10 @@ export default function WorkerPayout() {
             </p>
           </div>
 
-          {/* Next Check */}
           <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-            <Clock size={13} color={C.accentPlum} />
-            <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in + RTO</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+              <Clock size={13} color={C.accentPlum} />
+              <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in + RTO</span>
             </div>
             <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
               ${nextCheckTotal.toFixed(2)}
@@ -759,11 +731,9 @@ export default function WorkerPayout() {
           </div>
         </div>
 
-        {/* Tabs */}
         <div style={{
           background: C.card,
           border: `1px solid ${C.border}`,
-          borderBottom: `1px solid ${C.border}`,
           borderRadius: '12px 12px 0 0',
           display: 'flex',
         }}>
@@ -795,7 +765,7 @@ export default function WorkerPayout() {
                 {tab.count > 0 && (
                   <span style={{
                     background: isActive ? C.accentPlum : C.textMuted,
-                    color: isActive ? '#0F0B10' : '#0F0B10',
+                    color: '#0F0B10',
                     fontSize: 9,
                     fontWeight: 700,
                     borderRadius: '99px',
@@ -809,7 +779,6 @@ export default function WorkerPayout() {
           })}
         </div>
 
-        {/* Tab content */}
         <div style={{
           background: C.card,
           border: `1px solid ${C.border}`,
@@ -824,7 +793,6 @@ export default function WorkerPayout() {
             </div>
           ) : (
             <>
-              {/* ── SERVED TAB ── */}
               {activeTab === 'served' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
@@ -849,7 +817,6 @@ export default function WorkerPayout() {
                 </>
               )}
 
-              {/* ── MAILED TAB ── */}
               {activeTab === 'mailed' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
@@ -874,7 +841,6 @@ export default function WorkerPayout() {
                 </>
               )}
 
-              {/* ── RTO TAB ── */}
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
@@ -894,10 +860,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : rtoTabItems ? (
-                    // Show snapshot RTOs (post-turn-in)
                     rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} />)
                   ) : (
-                    // Show live unstamped RTOs (pre-turn-in)
                     currentRTOs.map(a => (
                       <AddressCard
                         key={a.id}
@@ -915,7 +879,6 @@ export default function WorkerPayout() {
           )}
         </div>
 
-        {/* Pay History */}
         {payrollHistory.length > 0 && (
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
