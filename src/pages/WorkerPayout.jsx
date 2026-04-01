@@ -252,20 +252,24 @@ export default function WorkerPayout() {
     queryKey: ['workerRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.Route.filter({ worker_id: user.id, deleted_at: null });
+      // Include ALL routes (even archived/completed) to ensure payroll history shows correctly
+      const allRoutes = await base44.entities.Route.filter({ worker_id: user.id });
+      return allRoutes.filter(r => !r.deleted_at);
     },
     enabled: !!user?.id
   });
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
-    queryKey: ['allWorkerAddresses', routes],
+    queryKey: ['allWorkerAddresses', user?.id, routes.map(r=>r.id).join(',')],
     queryFn: async () => {
-      if (routes.length === 0) return [];
+      if (!user?.id) return [];
+      // Fetch by route_ids (all routes, including completed/archived)
       const routeIds = routes.map(r => r.id);
+      if (routeIds.length === 0) return [];
       const all = await base44.entities.Address.filter({ deleted_at: null });
       return all.filter(a => routeIds.includes(a.route_id));
     },
-    enabled: routes.length > 0
+    enabled: !!user?.id && routes.length > 0
   });
 
   const { data: attempts = [] } = useQuery({
@@ -345,7 +349,7 @@ export default function WorkerPayout() {
     });
   }, [addresses, previousTurnInDate]);
 
-  // ── Mailed/RTO tabs: read from snapshot, fall back to live data
+  // ── Mailed/RTO tabs: read from snapshot, fall back to payroll_record_id match
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
@@ -361,25 +365,20 @@ export default function WorkerPayout() {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
 
-    // Fallback: show ALL served addresses up to (and including) the turn-in date
-    // No lower-bound — catches everything that was served before this turn-in
-    if (!turnInDate) return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
+    // Fallback: use previousTurnInDate from userSettings if no record found
+    const cutoff = turnInDate || previousTurnInDate;
+    if (!cutoff) return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
 
-    // Get IDs already claimed by *other* (newer) payroll records so we don't double-count
-    const otherRecordIds = new Set(
-      payrollHistory.slice(1).flatMap(r => {
-        try { return JSON.parse(r.snapshot_data || '[]').map(i => i.id); } catch { return []; }
-      })
+    // If we have a record, try payroll_record_id match first
+    const stamped = lastRecord?.id ? addresses.filter(a => a.payroll_record_id === lastRecord.id) : [];
+
+    // If stamping worked, use those; otherwise fall back to date-based
+    const candidates = stamped.length > 0 ? stamped : addresses.filter(a =>
+      new Date(a.served_at || a.rto_at || 0) <= cutoff
     );
 
-    const liveMailed = addresses
-      .filter(a =>
-        a.served && a.served_at &&
-        a.status !== 'returned' &&
-        ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
-        new Date(a.served_at) <= turnInDate &&
-        !otherRecordIds.has(a.id)
-      )
+    const liveMailed = candidates
+      .filter(a => a.served && a.status !== 'returned')
       .map(a => ({
         id: a.id,
         address: a.normalized_address || a.legal_address,
@@ -390,14 +389,8 @@ export default function WorkerPayout() {
         bucket: 'pending'
       }));
 
-    const liveRTO = addresses
-      .filter(a =>
-        a.status === 'returned' &&
-        ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
-        a.rto_at &&
-        new Date(a.rto_at) <= turnInDate &&
-        !otherRecordIds.has(a.id)
-      )
+    const liveRTO = candidates
+      .filter(a => a.status === 'returned')
       .map(a => ({
         id: a.id,
         address: a.normalized_address || a.legal_address,
@@ -409,8 +402,8 @@ export default function WorkerPayout() {
         bucket: 'rto'
       }));
 
-    return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: turnInDate };
-  }, [payrollHistory, addresses]);
+    return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: cutoff };
+  }, [payrollHistory, addresses, previousTurnInDate]);
 
   // Mailed tab = served addresses from snapshot only (RTOs shown in their own tab)
   const mailedItems = pendingPayouts;
@@ -502,7 +495,7 @@ export default function WorkerPayout() {
       }
     }
 
-    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses', user?.id] });
     queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
     refetchHistory();
     toast.success('Turned in successfully');
