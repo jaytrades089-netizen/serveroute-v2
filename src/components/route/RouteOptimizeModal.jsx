@@ -171,8 +171,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   };
 
   const handleOptimizeRoute = async () => {
-    if (!selectedEndLocation) {
-      toast.error('Please select an end location');
+    if (!routeType && !selectedEndLocation) {
+      toast.error('Please select an end location or an optimization mode');
       return;
     }
     const apiKey = userSettings?.mapquest_api_key;
@@ -254,8 +254,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       console.log('Start position:', startLat, startLng);
 
-      const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
-      if (!endLocation) {
+      const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation) || null;
+      if (!routeType && !endLocation) {
         toast.error('End location not found');
         setIsOptimizing(false);
         return;
@@ -318,10 +318,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         validAddresses,
         startLat,
         startLng,
-        endLocation.latitude,
-        endLocation.longitude,
+        endLocation?.latitude || null,
+        endLocation?.longitude || null,
         apiKey,
-        routeType
+        routeType || 'fastest'
       );
 
       // Show debug info about optimization result
@@ -339,17 +339,20 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       }
 
       // Calculate route metrics
+      const lastAddr = optimizedAddresses[optimizedAddresses.length - 1];
+      const endLat = endLocation?.latitude || lastAddr?.lat;
+      const endLng = endLocation?.longitude || lastAddr?.lng;
       const locations = [
         `${startLat},${startLng}`,
         ...optimizedAddresses.map(a => `${a.lat},${a.lng}`),
-        `${endLocation.latitude},${endLocation.longitude}`
+        `${endLat},${endLng}`
       ];
 
       const directionsUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
       const directionsResponse = await fetch(directionsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations, options: { routeType, unit: 'm' } })
+        body: JSON.stringify({ locations, options: { routeType: routeType || 'fastest', unit: 'm' } })
       });
       const directionsData = await directionsResponse.json();
       console.log('Directions response:', directionsData);
@@ -391,13 +394,15 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       await base44.entities.Route.update(routeId, {
         optimized: true,
-        ending_point: { address: endLocation.address, lat: endLocation.latitude, lng: endLocation.longitude },
+        ending_point: endLocation ? { address: endLocation.address, lat: endLocation.latitude, lng: endLocation.longitude } : null,
         starting_point: startLocationData
       });
 
-      await base44.entities.SavedLocation.update(selectedEndLocation, {
-        last_used: new Date().toISOString()
-      });
+      if (selectedEndLocation) {
+        await base44.entities.SavedLocation.update(selectedEndLocation, {
+          last_used: new Date().toISOString()
+        });
+      }
 
       // Force immediate refetch so the address list updates right away
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
@@ -526,27 +531,33 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {/* End location */}
-        <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Optimization Mode</label>
         <div className="flex gap-2 mb-2">
           <button
             type="button"
-            onClick={() => setRouteType('fastest')}
-            className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold transition-all ${
-              routeType === 'fastest' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-300 text-gray-600'
+            onClick={() => { setRouteType(routeType === 'fastest' ? null : 'fastest'); setSelectedEndLocation(''); }}
+            className={`flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
+              routeType === 'fastest'
+                ? 'bg-orange-500 border-orange-500 text-white'
+                : 'bg-white border-orange-500 text-orange-600'
             }`}
           >
             ⏱ Efficient Time
           </button>
           <button
             type="button"
-            onClick={() => setRouteType('shortest')}
-            className={`flex-1 py-1.5 px-2 rounded-lg border text-xs font-semibold transition-all ${
-              routeType === 'shortest' ? 'bg-orange-500 border-orange-500 text-white' : 'bg-white border-gray-300 text-gray-600'
+            onClick={() => { setRouteType(routeType === 'shortest' ? null : 'shortest'); setSelectedEndLocation(''); }}
+            className={`flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
+              routeType === 'shortest'
+                ? 'bg-orange-500 border-orange-500 text-white'
+                : 'bg-white border-orange-500 text-orange-600'
             }`}
           >
             📍 Efficient Miles
           </button>
         </div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
+        <div className={routeType ? 'opacity-40 pointer-events-none' : ''}>
         <LocationPicker
           locations={savedLocations}
           value={selectedEndLocation}
@@ -565,6 +576,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             </button>
           }
         />
+        </div>
 
         {showAddLocation && (
           <div className="bg-orange-50 rounded-xl p-3 mb-3 border border-orange-200">
@@ -629,7 +641,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         <div className="flex gap-3">
           <Button
             onClick={handleOptimizeRoute}
-            disabled={!selectedEndLocation || isOptimizing}
+            disabled={(!selectedEndLocation && !routeType) || isOptimizing}
             className={`flex-1 font-bold py-3 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
           >
             {isOptimizing ? (
