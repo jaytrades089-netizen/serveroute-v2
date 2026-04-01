@@ -213,7 +213,7 @@ export default function WorkerRoutes() {
         updateData.run_qualifiers = qualifiers;
       }
       await base44.entities.Route.update(routeId, updateData);
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      await queryClient.refetchQueries({ queryKey: ['workerRoutes', user?.id] });
       toast.success(date ? `Scheduled for ${format(date, 'EEE, MMM d')}` : 'Date cleared');
     } catch (error) {
       toast.error('Failed to set date');
