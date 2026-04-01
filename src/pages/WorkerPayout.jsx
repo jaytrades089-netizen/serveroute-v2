@@ -621,7 +621,18 @@ export default function WorkerPayout() {
   // After a turn-in, RTO tab merges snapshot RTOs with new live RTOs marked after turn-in
   const rtoTabItems = pendingRTOs.length > 0 ? [
     ...pendingRTOs,
-    ...currentRTOs.filter(a => !pendingRTOs.find(p => p.id === a.id))
+    ...currentRTOs
+      .filter(a => !pendingRTOs.find(p => p.id === a.id))
+      .map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        rto_at: a.rto_at,
+        rto_reason: a.rto_reason || '',
+        bucket: 'rto'
+      }))
   ] : null; // null = use live currentRTOs
   const rtoTabCount = rtoTabItems ? rtoTabItems.length : currentRTOs.length;
 
