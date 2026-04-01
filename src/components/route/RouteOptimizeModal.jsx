@@ -475,9 +475,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
               )}
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleShuffle} disabled={isShuffling} className="text-xs">
-            {isShuffling ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Shuffle className="w-3 h-3 mr-1" />}
-            {isShuffling ? 'Shuffling...' : 'Shuffle'}
+          <Button variant="outline" size="icon" onClick={handleShuffle} disabled={isShuffling}>
+            {isShuffling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
           </Button>
         </div>
 
