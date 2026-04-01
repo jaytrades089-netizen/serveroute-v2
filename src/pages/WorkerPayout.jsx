@@ -345,7 +345,7 @@ export default function WorkerPayout() {
     });
   }, [addresses, previousTurnInDate]);
 
-  // ── Mailed/RTO tabs: read from snapshot first, fall back to live data if snapshot is empty
+  // ── Mailed/RTO tabs: read from snapshot, fall back to live data
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
@@ -355,31 +355,30 @@ export default function WorkerPayout() {
     if (lastRecord?.snapshot_data) {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
-
     const snapshotPending = snapshot.filter(a => a.bucket === 'pending');
     const snapshotRTO = snapshot.filter(a => a.bucket === 'rto');
-
-    // If snapshot has data, use it
     if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
 
-    // Fallback: derive from live addresses using the PayrollRecord's period dates
-    // Use period_start as lower bound, turn_in_date (or created_at) as upper bound
-    if (!lastRecord) {
-      return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
-    }
+    // Fallback: show ALL served addresses up to (and including) the turn-in date
+    // No lower-bound — catches everything that was served before this turn-in
+    if (!turnInDate) return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
 
-    const cutoff = turnInDate || (lastRecord.created_at ? new Date(lastRecord.created_at) : new Date());
-    const priorCutoff = lastRecord.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
+    // Get IDs already claimed by *other* (newer) payroll records so we don't double-count
+    const otherRecordIds = new Set(
+      payrollHistory.slice(1).flatMap(r => {
+        try { return JSON.parse(r.snapshot_data || '[]').map(i => i.id); } catch { return []; }
+      })
+    );
 
     const liveMailed = addresses
       .filter(a =>
         a.served && a.served_at &&
         a.status !== 'returned' &&
         ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
-        new Date(a.served_at) <= cutoff &&
-        new Date(a.served_at) >= priorCutoff
+        new Date(a.served_at) <= turnInDate &&
+        !otherRecordIds.has(a.id)
       )
       .map(a => ({
         id: a.id,
@@ -396,8 +395,8 @@ export default function WorkerPayout() {
         a.status === 'returned' &&
         ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
         a.rto_at &&
-        new Date(a.rto_at) <= cutoff &&
-        new Date(a.rto_at) >= priorCutoff
+        new Date(a.rto_at) <= turnInDate &&
+        !otherRecordIds.has(a.id)
       )
       .map(a => ({
         id: a.id,
