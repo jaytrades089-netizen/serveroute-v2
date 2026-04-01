@@ -345,24 +345,73 @@ export default function WorkerPayout() {
     });
   }, [addresses, previousTurnInDate]);
 
-  // ── Mailed tab: read from most recent PayrollRecord snapshot (never re-derive from live records)
+  // ── Mailed/RTO tabs: read from snapshot first, fall back to live data if snapshot is empty
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
-    if (!lastRecord?.snapshot_data) {
-      return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
-    }
+    const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
+
+    // Try snapshot first
     let snapshot = [];
-    try {
-      snapshot = JSON.parse(lastRecord.snapshot_data);
-    } catch {
+    if (lastRecord?.snapshot_data) {
+      try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
+    }
+
+    const snapshotPending = snapshot.filter(a => a.bucket === 'pending');
+    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto');
+
+    // If snapshot has data, use it
+    if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
+      return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
+    }
+
+    // Fallback: derive from live addresses that existed before the last turn-in
+    // (handles rate-limit failures where snapshot was empty but addresses were served)
+    if (!previousTurnInDate) {
       return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
     }
-    return {
-      pendingPayouts: snapshot.filter(a => a.bucket === 'pending'),
-      pendingRTOs: snapshot.filter(a => a.bucket === 'rto'),
-      lastTurnInDate: lastRecord.turn_in_date ? new Date(lastRecord.turn_in_date) : null
-    };
-  }, [payrollHistory]);
+
+    const cutoff = previousTurnInDate;
+    const priorCutoff = priorTurnInDate || new Date(0); // start of last period
+
+    const liveMailed = addresses
+      .filter(a =>
+        a.served && a.served_at &&
+        a.status !== 'returned' &&
+        ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
+        new Date(a.served_at) <= cutoff &&
+        new Date(a.served_at) > priorCutoff
+      )
+      .map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        served_at: a.served_at,
+        bucket: 'pending'
+      }));
+
+    const liveRTO = addresses
+      .filter(a =>
+        a.status === 'returned' &&
+        ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
+        a.rto_at &&
+        new Date(a.rto_at) <= cutoff &&
+        new Date(a.rto_at) > priorCutoff
+      )
+      .map(a => ({
+        id: a.id,
+        address: a.normalized_address || a.legal_address,
+        defendant: a.defendant_name || '',
+        serve_type: a.serve_type,
+        amount: calcPay(a.serve_type),
+        rto_at: a.rto_at,
+        rto_reason: a.rto_reason || '',
+        bucket: 'rto'
+      }));
+
+    return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: turnInDate };
+  }, [payrollHistory, addresses, previousTurnInDate, priorTurnInDate]);
 
   // Mailed tab = served addresses from snapshot only (RTOs shown in their own tab)
   const mailedItems = pendingPayouts;
