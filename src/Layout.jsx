@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/lib/AuthContext';
+import { base44 } from '@/api/base44Client';
 import { Loader2 } from 'lucide-react';
 import { setupPersistence } from '@/components/utils/queryPersistence';
 
@@ -78,7 +78,6 @@ const sharedPages = [
 export default function Layout({ children, currentPageName }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { user, isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
   const [hasRedirected, setHasRedirected] = useState(false);
   const persistenceSetup = useRef(false);
   
@@ -90,25 +89,76 @@ export default function Layout({ children, currentPageName }) {
     return cleanup;
   }, [queryClient]);
   
-  const isLoading = isLoadingAuth || isLoadingPublicSettings;
-
-  // If auth error (not user_not_registered or auth_required), let parent handle it
-  if (authError && authError.type !== 'user_not_registered' && authError.type !== 'auth_required') {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center text-gray-700">
-          <p className="text-lg font-semibold">Error loading app</p>
-          <p className="text-sm text-gray-500 mt-1">{authError.message}</p>
-        </div>
-      </div>
-    );
-  }
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['currentUser'],
+    queryFn: async () => {
+      try {
+        const isAuthenticated = await base44.auth.isAuthenticated();
+        if (!isAuthenticated) {
+          const localToken = localStorage.getItem('base44_access_token');
+          if (localToken) {
+            return null;
+          }
+          return null;
+        }
+        return await base44.auth.me();
+      } catch (err) {
+        console.warn('Auth check failed:', err);
+        const localToken = localStorage.getItem('base44_access_token');
+        if (localToken) {
+          const cached = queryClient.getQueryData(['currentUser']);
+          if (cached && cached.id) return cached;
+          try {
+            return await base44.auth.me();
+          } catch {
+            return queryClient.getQueryData(['currentUser']) || null;
+          }
+        }
+        return null;
+      }
+    },
+    retry: 2,
+    retryDelay: 2000,
+    staleTime: 4 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true
+  });
 
   // Compute role flags
   const isBoss = user?.role === 'boss' || user?.role === 'admin';
   const isWorker = user?.role === 'server';
   const isOnBossPage = bossPages.includes(currentPageName);
   const isOnWorkerPage = workerPages.includes(currentPageName);
+
+  // Handle login redirect for unauthenticated users
+  useEffect(() => {
+    if (isLoading || user || hasRedirected) return;
+
+    const currentPath = window.location.pathname;
+    
+    // Skip if on auth-related path
+    if (currentPath.includes('auth') || currentPath === '/login' || currentPath === '/Login') {
+      return;
+    }
+
+    // Do not redirect if a local token exists — the query may still be resolving
+    // or the network may be temporarily unavailable.
+    const localToken = localStorage.getItem('base44_access_token');
+    if (localToken) {
+      return;
+    }
+
+    // Check for redirect loop prevention
+    const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
+    const now = Date.now();
+
+    if (!lastRedirectTime || (now - parseInt(lastRedirectTime)) > 5000) {
+      setHasRedirected(true);
+      sessionStorage.setItem('lastLoginRedirect', now.toString());
+      base44.auth.redirectToLogin(currentPath + window.location.search);
+    }
+  }, [isLoading, user, hasRedirected]);
 
   // Handle role-based navigation
   useEffect(() => {
