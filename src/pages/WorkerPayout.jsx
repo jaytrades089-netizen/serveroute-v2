@@ -364,14 +364,14 @@ export default function WorkerPayout() {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
 
-    // Fallback: derive from live addresses that existed before the last turn-in
-    // (handles rate-limit failures where snapshot was empty but addresses were served)
-    if (!previousTurnInDate) {
+    // Fallback: derive from live addresses using the PayrollRecord's period dates
+    // Use period_start as lower bound, turn_in_date (or created_at) as upper bound
+    if (!lastRecord) {
       return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
     }
 
-    const cutoff = previousTurnInDate;
-    const priorCutoff = priorTurnInDate || new Date(0); // start of last period
+    const cutoff = turnInDate || (lastRecord.created_at ? new Date(lastRecord.created_at) : new Date());
+    const priorCutoff = lastRecord.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const liveMailed = addresses
       .filter(a =>
@@ -379,7 +379,7 @@ export default function WorkerPayout() {
         a.status !== 'returned' &&
         ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
         new Date(a.served_at) <= cutoff &&
-        new Date(a.served_at) > priorCutoff
+        new Date(a.served_at) >= priorCutoff
       )
       .map(a => ({
         id: a.id,
@@ -397,7 +397,7 @@ export default function WorkerPayout() {
         ['serve', 'posting', 'garnishment'].includes(a.serve_type) &&
         a.rto_at &&
         new Date(a.rto_at) <= cutoff &&
-        new Date(a.rto_at) > priorCutoff
+        new Date(a.rto_at) >= priorCutoff
       )
       .map(a => ({
         id: a.id,
@@ -411,7 +411,7 @@ export default function WorkerPayout() {
       }));
 
     return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: turnInDate };
-  }, [payrollHistory, addresses, previousTurnInDate, priorTurnInDate]);
+  }, [payrollHistory, addresses]);
 
   // Mailed tab = served addresses from snapshot only (RTOs shown in their own tab)
   const mailedItems = pendingPayouts;
