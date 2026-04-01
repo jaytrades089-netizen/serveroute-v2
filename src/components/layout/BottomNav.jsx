@@ -88,6 +88,24 @@ export default function BottomNav({ currentPage }) {
             Scan
           </span>
         </Link>
+
+        {/* Right nav items */}
+        {rightNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = currentPage === item.page;
+          
+          return (
+            <Link
+              key={item.id}
+              to={createPageUrl(item.page)}
+              style={{
+                color: isActive ? '#e9c349' : '#8a7f87',
+              }}
+              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors"
+            >
+              <Icon className="w-6 h-6" />
+              <span className="text-xs mt-1 font-medium">{item.label}</span>
+            </Link>
           );
         })}
       </div>
