@@ -320,18 +320,19 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // ── NEW: instantPayouts — served, no payroll_record_id, not returned ─────────
+  // instantPayouts — served, no payroll_record_id, not returned
   const instantPayouts = useMemo(() => {
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
       if (a.status === 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      if (a.payroll_record_id) return false; // already locked into a past record
+      // Only show addresses NOT yet stamped into a payroll record
+      if (a.payroll_record_id && a.payroll_record_id !== '') return false;
       return true;
     });
   }, [addresses]);
 
-  // ── NEW: currentRTOs — status returned, no payroll_record_id ──────────────
+  // ── currentRTOs — status returned, no payroll_record_id ──────────────
   const currentRTOs = useMemo(() => {
     return addresses.filter(a => {
       if (a.status !== 'returned') return false;
@@ -341,204 +342,35 @@ export default function WorkerPayout() {
     });
   }, [addresses]);
 
-  // ── Mailed tab: read from last PayrollRecord snapshot ───────────────────────
-  const lastRecord = payrollHistory[0] || null;
-  const mailedItems = useMemo(() => {
-    if (!lastRecord?.snapshot_data) return [];
+  // ── Mailed tab: read from most recent PayrollRecord snapshot (never re-derive from live records)
+  const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
+    const lastRecord = payrollHistory[0];
+    if (!lastRecord?.snapshot_data) {
+      return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
+    }
+    let snapshot = [];
     try {
-      const parsed = JSON.parse(lastRecord.snapshot_data);
-      return parsed.filter(item => item.bucket === 'pending' || item.bucket === 'rto');
-    } catch { return []; }
-  }, [lastRecord]);
+      snapshot = JSON.parse(lastRecord.snapshot_data);
+    } catch {
+      return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
+    }
+    return {
+      pendingPayouts: snapshot.filter(a => a.bucket === 'pending'),
+      pendingRTOs: snapshot.filter(a => a.bucket === 'rto'),
+      lastTurnInDate: lastRecord.turn_in_date ? new Date(lastRecord.turn_in_date) : null
+    };
+  }, [payrollHistory]);
 
-  // Summary totals
+  // Combined mailed items for display
+  const mailedItems = [...pendingPayouts, ...pendingRTOs];
+
   const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
-  const nextCheckTotal = useMemo(() => {
-    return mailedItems.reduce((sum, item) => sum + (item.amount || 0), 0);
-  }, [mailedItems]);
+  // pendingPayouts/pendingRTOs are snapshot objects with pre-computed `amount` field
+  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const nextCheckTotal = pendingTotal + pendingRTOTotal;
   const nextCheckCount = mailedItems.length;
-  const nextCheckRTOCount = mailedItems.filter(i => i.bucket === 'rto').length;
-
-  // ── Turn In ──────────────────────────────────────────────────────────────────
-  const handleTurnIn = async () => {
-    const existingRecord = payrollHistory.find(r => {
-      if (!r.period_start || !r.period_end) return false;
-      return (
-        new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
-        new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
-      );
-    });
-
-    if (existingRecord) {
-      const confirmed = window.confirm(
-        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
-      );
-      if (!confirmed) return;
-      await base44.entities.PayrollRecord.delete(existingRecord.id);
-    }
-
-    const now = new Date();
-    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
-    setPriorTurnInDate(previousTurnInDate);
-    setPreviousTurnInDate(now);
-
-    if (userSettings?.id) {
-      await base44.entities.UserSettings.update(userSettings.id, {
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    } else if (user?.id) {
-      await base44.entities.UserSettings.create({
-        user_id: user.id,
-        payroll_turn_in_day: selectedDay,
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-
-    await savePayrollRecord(now, true);
-  };
-
-  // ── Save Payroll Record + stamp payroll_record_id ────────────────────────────
-  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
-    if (!user?.id) return;
-
-    if (!skipDuplicateCheck) {
-      const existingRecord = payrollHistory.find(r => {
-        if (!r.period_start || !r.period_end) return false;
-        return (
-          new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
-          new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
-        );
-      });
-      if (existingRecord) {
-        const confirmed = window.confirm(
-          `You already have a saved pay stub for this period.\n\nOverride with updated data?`
-        );
-        if (!confirmed) return;
-        await base44.entities.PayrollRecord.delete(existingRecord.id);
-      }
-    }
-
-    const now = new Date();
-    const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
-
-    const snapshotAddresses = [
-      ...instantPayouts.map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        served_at: a.served_at,
-        rto_at: null,
-        bucket: 'instant'
-      })),
-      ...currentRTOs.map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        served_at: null,
-        rto_at: a.rto_at,
-        rto_reason: a.rto_reason || '',
-        bucket: 'rto'
-      }))
-    ];
-
-    const newRecord = await base44.entities.PayrollRecord.create({
-      user_id: user.id,
-      company_id: user.company_id || '',
-      period_start: currentPeriod.start.toISOString(),
-      period_end: currentPeriod.end.toISOString(),
-      turn_in_date: (turnInDate || now).toISOString(),
-      instant_total: instantTotal,
-      pending_total: 0,
-      rto_total: rtoTotal,
-      total_amount: instantTotal,
-      address_count: snapshotAddresses.length,
-      snapshot_data: JSON.stringify(snapshotAddresses),
-      status: 'saved',
-      notes: '',
-      created_at: now.toISOString()
-    });
-
-    // Stamp payroll_record_id on every address in snapshot (in parallel)
-    const allSnapshotAddresses = [...instantPayouts, ...currentRTOs];
-    const stampResults = await Promise.allSettled(
-      allSnapshotAddresses.map(a =>
-        base44.entities.Address.update(a.id, { payroll_record_id: newRecord.id })
-      )
-    );
-    stampResults.forEach((r, i) => {
-      if (r.status === 'rejected') {
-        console.error('Failed to stamp payroll_record_id on address', allSnapshotAddresses[i]?.id, r.reason);
-      }
-    });
-
-    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
-    refetchHistory();
-    toast.success('Turned in successfully');
-  };
-
-  // ── Undo RTO ─────────────────────────────────────────────────────────────────
-  const handleUndoRTO = async (address) => {
-    const confirmed = window.confirm(
-      `Undo RTO for this address?\n\n${address.normalized_address || address.legal_address}\n\nThis will move it back to its route as an active address.`
-    );
-    if (!confirmed) return;
-
-    const addrAttempts = addressAttemptsMap[address.id] || [];
-    const newStatus = addrAttempts.length > 0 ? 'attempted' : 'pending';
-
-    await base44.entities.Address.update(address.id, {
-      status: newStatus,
-      served: false,
-      served_at: null,
-      receipt_status: 'pending',
-      rto_at: null,
-      rto_reason: null,
-      rto_by: null
-    });
-
-    if (address.route_id) {
-      const routeArr = await base44.entities.Route.filter({ id: address.route_id });
-      const route = routeArr[0];
-      if (route) {
-        const routeAddresses = await base44.entities.Address.filter({ route_id: address.route_id, deleted_at: null });
-        const doneCount = routeAddresses.filter(a =>
-          a.id === address.id ? false : (a.served || a.status === 'returned')
-        ).length;
-        const updates = { served_count: doneCount };
-        if (route.status === 'completed' || route.status === 'archived') {
-          updates.status = 'active';
-          updates.completed_at = null;
-        }
-        await base44.entities.Route.update(address.route_id, updates);
-      }
-    }
-
-    await base44.entities.AuditLog.create({
-      company_id: user?.company_id || address.company_id,
-      action_type: 'address_updated',
-      actor_id: user?.id,
-      actor_role: user?.role || 'server',
-      target_type: 'address',
-      target_id: address.id,
-      details: { action: 'undo_rto', route_id: address.route_id, restored_status: newStatus },
-      timestamp: new Date().toISOString()
-    });
-
-    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
-    queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
-    toast.success('RTO undone — address returned to route');
-  };
+  const nextCheckRTOCount = pendingRTOs.length;
 
   const isLoading = addressesLoading;
 
@@ -660,7 +492,7 @@ export default function WorkerPayout() {
               ${nextCheckTotal.toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {lastRecord
+              {lastTurnInDate
                 ? `${nextCheckCount - nextCheckRTOCount} attempt${nextCheckCount - nextCheckRTOCount !== 1 ? 's' : ''}${nextCheckRTOCount > 0 ? ` · ${nextCheckRTOCount} RTO` : ''}`
                 : 'Mail in to update'
               }
@@ -762,8 +594,8 @@ export default function WorkerPayout() {
               {activeTab === 'mailed' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    {lastRecord
-                      ? `Turned in ${format(new Date(lastRecord.turn_in_date || lastRecord.created_at), 'MMM d, yyyy')}. These arrive on your next check.`
+                    {lastTurnInDate
+                      ? `Turned in ${format(lastTurnInDate, 'MMM d, h:mm a')}. These arrive on your next check.`
                       : 'Documents you mail in will appear here after your first Turn In.'}
                   </p>
                   {mailedItems.length === 0 ? (
