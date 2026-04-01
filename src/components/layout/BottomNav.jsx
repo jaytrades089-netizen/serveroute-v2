@@ -26,7 +26,19 @@ export default function BottomNav({ currentPage }) {
   if (hiddenPages.includes(currentPage)) return null;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-2 z-50 bottom-nav-bar">
+    <nav style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      background: '#0F0B10',
+      borderTop: '1px solid #363436',
+      paddingLeft: 8,
+      paddingRight: 8,
+      paddingTop: 8,
+      paddingBottom: 8,
+      zIndex: 50,
+    }} className="bottom-nav-bar">
       <div className="max-w-lg mx-auto flex justify-around items-end">
         {/* Left nav items */}
         {leftNavItems.map((item) => {
@@ -37,11 +49,10 @@ export default function BottomNav({ currentPage }) {
             <Link
               key={item.id}
               to={createPageUrl(item.page)}
-              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                isActive 
-                  ? 'text-blue-600' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              style={{
+                color: isActive ? '#e9c349' : '#8a7f87',
+              }}
+              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors"
             >
               <Icon className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
@@ -55,21 +66,24 @@ export default function BottomNav({ currentPage }) {
           className="flex flex-col items-center -mt-4"
         >
           <div 
-            className={`w-14 h-14 rounded-full flex items-center justify-center border-4 border-white transition-all ${
-              isScanActive 
-                ? 'bg-orange-600 ring-2 ring-orange-300' 
-                : 'bg-orange-500 hover:bg-orange-600'
-            }`}
-            style={{ 
-              boxShadow: '0 4px 12px rgba(249, 115, 22, 0.4)',
-              marginBottom: '-4px'
+            className="rounded-full flex items-center justify-center border-4 transition-all animate-spin" 
+            style={{
+              width: 56,
+              height: 56,
+              borderColor: '#0F0B10',
+              background: isScanActive ? '#e9c349' : '#e9c349',
+              boxShadow: '0 4px 12px rgba(233, 195, 73, 0.4)',
+              marginBottom: -4,
             }}
           >
-            <Camera className="w-7 h-7 text-white" />
+            <Camera className="w-7 h-7" style={{ color: '#0F0B10' }} />
           </div>
-          <span className={`text-xs font-medium mt-1 ${
-            isScanActive ? 'text-orange-600' : 'text-orange-500'
-          }`}>
+          <span style={{
+            fontSize: 12,
+            fontWeight: 500,
+            marginTop: 4,
+            color: isScanActive ? '#e9c349' : '#8a7f87',
+          }}>
             Scan
           </span>
         </Link>
@@ -83,11 +97,10 @@ export default function BottomNav({ currentPage }) {
             <Link
               key={item.id}
               to={createPageUrl(item.page)}
-              className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
-                isActive 
-                  ? 'text-blue-600' 
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              style={{
+                color: isActive ? '#e9c349' : '#8a7f87',
+              }}
+              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors"
             >
               <Icon className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
