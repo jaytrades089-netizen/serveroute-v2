@@ -59,7 +59,7 @@ function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
       marginBottom: 8,
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div style={{ flex: 1, marginRight: 8 }}>
+        <div style={{ flex: 1, marginRight: 8, paddingLeft: index !== undefined ? 16 : 0 }}>
           <p style={{ color: C.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
             {address.normalized_address || address.legal_address}
           </p>
@@ -136,7 +136,7 @@ function AddressCard({ address, accentColor, badge, onUndo, showUndo }) {
 }
 
 // ─── Snapshot address card (from PayrollRecord JSON) ──────────────────────────
-function SnapshotCard({ item }) {
+function SnapshotCard({ item, index }) {
   const isRTO = item.bucket === 'rto';
   const accentColor = isRTO ? C.rto : C.accentPlum;
   const badge = isRTO ? 'RTO' : 'Attempt';
@@ -151,50 +151,29 @@ function SnapshotCard({ item }) {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'flex-start',
+      position: 'relative',
     }}>
-      <div style={{ flex: 1, marginRight: 8 }}>
-        <p style={{ color: C.textPrimary, fontSize: 13, fontWeight: 600, marginBottom: 2 }}>
-          {item.address}
-        </p>
-        {item.defendant && (
-          <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 2 }}>{item.defendant}</p>
-        )}
-        {item.served_at && (
-          <p style={{ color: C.textMuted, fontSize: 11 }}>
-            Served {format(new Date(item.served_at), 'MMM d, h:mm a')}
-          </p>
-        )}
-        {item.rto_at && (
-          <p style={{ color: C.textMuted, fontSize: 11 }}>
-            RTO'd {format(new Date(item.rto_at), 'MMM d, h:mm a')}
-          </p>
-        )}
-        {item.rto_reason && (
-          <p style={{ color: C.rto, fontSize: 11, fontStyle: 'italic', marginTop: 2 }}>"{item.rto_reason}"</p>
-        )}
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <p style={{ color: accentColor, fontWeight: 700, fontSize: 15 }}>
-          ${(item.amount || 0).toFixed(2)}
-        </p>
-        <span style={{
-          fontSize: 9, fontWeight: 700,
-          background: accentColor + '22',
-          color: accentColor,
-          border: `1px solid ${accentColor}`,
-          borderRadius: 4,
-          padding: '2px 5px',
-          display: 'inline-block',
-          marginTop: 2,
-        }}>{badge}</span>
-        <span style={{
-          fontSize: 9, color: C.textMuted,
-          display: 'block', textTransform: 'capitalize', marginTop: 2,
-        }}>{item.serve_type}</span>
-      </div>
-    </div>
-  );
-}
+      {index !== undefined && (
+        <div style={{
+          position: 'absolute',
+          left: 3,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: 20,
+          height: 20,
+          background: accentColor,
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 11,
+          fontWeight: 700,
+          color: isRTO ? '#fff' : '#0F0B10',
+          zIndex: 10,
+        }}>
+          {index + 1}
+        </div>
+      )}
 
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function WorkerPayout() {
