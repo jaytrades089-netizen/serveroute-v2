@@ -142,7 +142,7 @@ function AddressCard({ address, accentColor, badge, onUndo, showUndo, number }) 
 function SnapshotCard({ item, number }) {
   const isRTO = item.bucket === 'rto';
   const accentColor = isRTO ? C.rto : C.accentPlum;
-  const badge = isRTO ? 'RTO' : 'Attempt';
+  const badge = isRTO ? 'RTO' : (item.serve_type === 'serve' || item.serve_type === 'garnishment') ? 'Serve' : item.serve_type === 'posting' ? 'Post' : 'Attempt';
   return (
     <div style={{
       background: C.card,
@@ -488,7 +488,7 @@ export default function WorkerPayout() {
       period_end: currentPeriod.end.toISOString(),
       turn_in_date: (turnInDate || now).toISOString(),
       instant_total: instantTotal,
-      pending_total: instantTotal,
+      pending_total: 0,
       rto_total: rtoTotal,
       total_amount: instantTotal + rtoTotal,
       address_count: snapshotAddresses.length,
@@ -503,9 +503,15 @@ export default function WorkerPayout() {
         ...instantPayouts.map(a => a.id),
         ...currentRTOs.map(a => a.id)
       ];
-      for (const addressId of addressesToStamp) {
-        await base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id });
-        await new Promise(r => setTimeout(r, 300));
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < addressesToStamp.length; i += BATCH_SIZE) {
+        const batch = addressesToStamp.slice(i, i + BATCH_SIZE);
+        await Promise.all(
+          batch.map(addressId =>
+            base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id })
+              .catch(err => console.error('Failed to stamp address', addressId, err))
+          )
+        );
       }
     }
 
@@ -609,22 +615,7 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabItems = pendingRTOs.length > 0 ? [
-    ...pendingRTOs,
-    ...currentRTOs
-      .filter(a => !pendingRTOs.find(p => p.id === a.id))
-      .map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        rto_at: a.rto_at,
-        rto_reason: a.rto_reason || '',
-        bucket: 'rto'
-      }))
-  ].sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at)) : null;
-  const rtoTabCount = rtoTabItems ? rtoTabItems.length : currentRTOs.length;
+  const rtoTabCount = currentRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
@@ -857,9 +848,7 @@ export default function WorkerPayout() {
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    {rtoTabItems
-                      ? `Returned documents from your last turn-in on ${lastTurnInDate ? format(lastTurnInDate, 'MMM d') : 'last period'}.`
-                      : 'These will be included when you tap Turn In.'}
+                    These will be included when you tap Turn In.
                   </p>
                   {rtoTabCount === 0 ? (
                     <div style={{
@@ -872,8 +861,6 @@ export default function WorkerPayout() {
                       <RotateCcw size={28} color={C.textMuted} style={{ margin: '0 auto 8px' }} />
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
-                  ) : rtoTabItems ? (
-                    rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} number={i + 1} />)
                   ) : (
                     currentRTOs.map((a, i) => (
                       <AddressCard
