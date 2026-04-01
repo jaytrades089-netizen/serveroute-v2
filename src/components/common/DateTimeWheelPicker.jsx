@@ -2,42 +2,103 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 
-const ITEM_H = 40;
+const ITEM_H = 44;
 const HOURS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
 const MINUTES = ['00','15','30','45'];
 const AMPM = ['AM','PM'];
+const REPEAT = 20; // repeat items this many times for infinite feel
 
-function WheelColumn({ items, selectedIndex, onChange, label }) {
+function WheelColumn({ items, selectedIndex, onChange, label, circular = false }) {
   const ref = useRef(null);
   const debounce = useRef(null);
+  const isSyncing = useRef(false);
 
-  const scrollTo = useCallback((index, behavior = 'smooth') => {
+  const count = items.length;
+  // For circular: render items × REPEAT, start in middle block
+  const listItems = circular ? Array.from({ length: count * REPEAT }, (_, i) => items[i % count]) : items;
+  const startBlock = circular ? Math.floor(REPEAT / 2) : 0;
+
+  // Convert a logical index to scroll position (for circular, target middle block)
+  const toScrollTop = useCallback((logicalIdx) => {
+    const idx = circular ? startBlock * count + logicalIdx : logicalIdx;
+    return idx * ITEM_H;
+  }, [circular, count, startBlock]);
+
+  // Scroll without animation (instant)
+  const scrollToInstant = useCallback((logicalIdx) => {
     if (!ref.current) return;
-    ref.current.scrollTo({ top: index * ITEM_H, behavior });
-  }, []);
+    ref.current.scrollTop = toScrollTop(logicalIdx);
+  }, [toScrollTop]);
 
+  // Initialize scroll position
   useEffect(() => {
-    scrollTo(selectedIndex, 'instant');
-  }, [selectedIndex, scrollTo]);
+    scrollToInstant(selectedIndex);
+  }, []); // only on mount
+
+  // When selectedIndex changes externally, update scroll
+  useEffect(() => {
+    if (!ref.current) return;
+    const expected = toScrollTop(selectedIndex);
+    const current = ref.current.scrollTop;
+    // Only re-sync if meaningfully different (avoid fighting user scroll)
+    const currentLogical = circular
+      ? Math.round(current / ITEM_H) % count
+      : Math.round(current / ITEM_H);
+    if (currentLogical !== selectedIndex) {
+      isSyncing.current = true;
+      ref.current.scrollTop = expected;
+      setTimeout(() => { isSyncing.current = false; }, 50);
+    }
+  }, [selectedIndex]);
 
   const handleScroll = () => {
+    if (isSyncing.current) return;
     if (debounce.current) clearTimeout(debounce.current);
     debounce.current = setTimeout(() => {
       if (!ref.current) return;
-      const index = Math.round(ref.current.scrollTop / ITEM_H);
-      const clamped = Math.max(0, Math.min(index, items.length - 1));
-      scrollTo(clamped);
-      onChange(clamped);
+      const rawIndex = Math.round(ref.current.scrollTop / ITEM_H);
+      
+      if (circular) {
+        const logicalIdx = ((rawIndex % count) + count) % count;
+        // Re-center to middle block to allow infinite scroll in both directions
+        const centeredScrollTop = (startBlock * count + logicalIdx) * ITEM_H;
+        isSyncing.current = true;
+        ref.current.scrollTop = centeredScrollTop;
+        setTimeout(() => { isSyncing.current = false; }, 50);
+        onChange(logicalIdx);
+      } else {
+        const clamped = Math.max(0, Math.min(rawIndex, items.length - 1));
+        ref.current.scrollTop = clamped * ITEM_H;
+        onChange(clamped);
+      }
     }, 80);
+  };
+
+  const handleItemClick = (logicalIdx) => {
+    if (!ref.current) return;
+    isSyncing.current = true;
+    if (circular) {
+      ref.current.scrollTop = (startBlock * count + logicalIdx) * ITEM_H;
+    } else {
+      ref.current.scrollTop = logicalIdx * ITEM_H;
+    }
+    setTimeout(() => { isSyncing.current = false; }, 100);
+    onChange(logicalIdx);
   };
 
   return (
     <div className="flex flex-col items-center flex-1">
-      {label ? <p className="text-[9px] font-bold text-gray-400 mb-0.5 uppercase tracking-wider">{label}</p> : <div className="h-4" />}
-      <div className="relative">
-        <div className="absolute inset-x-0 pointer-events-none z-10" style={{ top: ITEM_H, height: ITEM_H }}>
-          <div className="h-full border-t-2 border-b-2 border-blue-500 bg-blue-50/60 rounded" />
-        </div>
+      {/* Fixed-height label area so all columns align */}
+      <div className="h-5 flex items-center justify-center">
+        {label ? <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</p> : null}
+      </div>
+
+      <div className="relative" style={{ height: ITEM_H * 3 }}>
+        {/* Selection highlight */}
+        <div
+          className="absolute inset-x-0 pointer-events-none z-10 border-t-2 border-b-2 border-blue-500 bg-blue-50/60 rounded"
+          style={{ top: ITEM_H, height: ITEM_H }}
+        />
         <div
           ref={ref}
           onScroll={handleScroll}
@@ -49,21 +110,32 @@ function WheelColumn({ items, selectedIndex, onChange, label }) {
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
           }}
+          className="wheel-col"
         >
           <style>{`.wheel-col::-webkit-scrollbar { display: none; }`}</style>
-          <div style={{ height: ITEM_H, scrollSnapAlign: 'center' }} />
-          {items.map((item, i) => (
-            <div
-              key={i}
-              style={{ height: ITEM_H, scrollSnapAlign: 'center' }}
-              className={`flex items-center justify-center text-base font-semibold transition-all cursor-pointer select-none
-                ${i === selectedIndex ? 'text-blue-600 scale-110' : 'text-gray-400 scale-95'}`}
-              onClick={() => { onChange(i); scrollTo(i); }}
-            >
-              {item}
-            </div>
-          ))}
-          <div style={{ height: ITEM_H, scrollSnapAlign: 'center' }} />
+          {/* Top padding slot */}
+          {!circular && <div style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }} />}
+          {listItems.map((item, i) => {
+            const logicalIdx = circular ? i % count : i;
+            const isSelected = logicalIdx === selectedIndex && (
+              circular
+                ? i >= startBlock * count && i < (startBlock + 1) * count
+                : true
+            );
+            return (
+              <div
+                key={i}
+                style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }}
+                className={`flex items-center justify-center text-base font-semibold transition-all cursor-pointer select-none
+                  ${logicalIdx === selectedIndex ? 'text-blue-600 scale-110' : 'text-gray-400 scale-95'}`}
+                onClick={() => handleItemClick(logicalIdx)}
+              >
+                {item}
+              </div>
+            );
+          })}
+          {/* Bottom padding slot */}
+          {!circular && <div style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }} />}
         </div>
       </div>
     </div>
@@ -125,11 +197,35 @@ export default function DateTimeWheelPicker({
       <div className="border-t border-gray-100 mb-3" />
 
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">FROM</p>
-      <div className="flex items-stretch gap-1 bg-gray-50 rounded-2xl px-3 py-1">
-        <WheelColumn items={HOURS} selectedIndex={startHourIndex} onChange={(i) => handleStartChange(i, startMinuteIndex, startAmPmIndex)} label="HR" />
-        <div className="flex items-center text-gray-300 text-xl font-light pt-4">:</div>
-        <WheelColumn items={MINUTES} selectedIndex={startMinuteIndex} onChange={(i) => handleStartChange(startHourIndex, i, startAmPmIndex)} label="MIN" />
-        <WheelColumn items={AMPM} selectedIndex={startAmPmIndex} onChange={(i) => handleStartChange(startHourIndex, startMinuteIndex, i)} label="" />
+      <div className="flex items-start gap-1 bg-gray-50 rounded-2xl px-3 py-1">
+        <WheelColumn
+          items={HOURS}
+          selectedIndex={startHourIndex}
+          onChange={(i) => handleStartChange(i, startMinuteIndex, startAmPmIndex)}
+          label="HR"
+          circular
+        />
+        {/* Colon — offset by label height (h-5 = 20px) + center of picker */}
+        <div
+          className="flex items-center text-gray-300 text-xl font-light flex-shrink-0"
+          style={{ paddingTop: `${20 + 44}px`, height: `${20 + 44 * 3}px` }}
+        >
+          :
+        </div>
+        <WheelColumn
+          items={MINUTES}
+          selectedIndex={startMinuteIndex}
+          onChange={(i) => handleStartChange(startHourIndex, i, startAmPmIndex)}
+          label="MIN"
+          circular
+        />
+        <WheelColumn
+          items={AMPM}
+          selectedIndex={startAmPmIndex}
+          onChange={(i) => handleStartChange(startHourIndex, startMinuteIndex, i)}
+          label=""
+          circular={false}
+        />
       </div>
 
       {showEnd && (
@@ -137,11 +233,34 @@ export default function DateTimeWheelPicker({
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-3 mb-1">
             TO <span className="font-normal text-gray-300">(optional)</span>
           </p>
-          <div className="flex items-stretch gap-1 bg-gray-50 rounded-2xl px-3 py-1">
-            <WheelColumn items={HOURS} selectedIndex={endHourIndex} onChange={(i) => onEndChange(i, endMinuteIndex, endAmPmIndex)} label="HR" />
-            <div className="flex items-center text-gray-300 text-xl font-light pt-4">:</div>
-            <WheelColumn items={MINUTES} selectedIndex={endMinuteIndex} onChange={(i) => onEndChange(endHourIndex, i, endAmPmIndex)} label="MIN" />
-            <WheelColumn items={AMPM} selectedIndex={endAmPmIndex} onChange={(i) => onEndChange(endHourIndex, endMinuteIndex, i)} label="" />
+          <div className="flex items-start gap-1 bg-gray-50 rounded-2xl px-3 py-1">
+            <WheelColumn
+              items={HOURS}
+              selectedIndex={endHourIndex}
+              onChange={(i) => onEndChange(i, endMinuteIndex, endAmPmIndex)}
+              label="HR"
+              circular
+            />
+            <div
+              className="flex items-center text-gray-300 text-xl font-light flex-shrink-0"
+              style={{ paddingTop: `${20 + 44}px`, height: `${20 + 44 * 3}px` }}
+            >
+              :
+            </div>
+            <WheelColumn
+              items={MINUTES}
+              selectedIndex={endMinuteIndex}
+              onChange={(i) => onEndChange(endHourIndex, i, endAmPmIndex)}
+              label="MIN"
+              circular
+            />
+            <WheelColumn
+              items={AMPM}
+              selectedIndex={endAmPmIndex}
+              onChange={(i) => onEndChange(endHourIndex, endMinuteIndex, i)}
+              label=""
+              circular={false}
+            />
           </div>
         </>
       )}
