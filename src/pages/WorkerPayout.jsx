@@ -378,7 +378,8 @@ export default function WorkerPayout() {
     }
     const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting').sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
     const snapshotRTO = snapshot.filter(a => a.bucket === 'rto').sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
-    if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
+    // If snapshot has any data, return it (including empty lists to show current state)
+    if (snapshot.length > 0) {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
 
