@@ -618,7 +618,7 @@ export default function WorkerPayout() {
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
-    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length + pendingRTOs.length },
+    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
@@ -839,14 +839,9 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                    <>
-                      {mailedItems.map((item, i) => (
-                        <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
-                      ))}
-                      {pendingRTOs.map((item, i) => (
-                        <SnapshotCard key={`rto-${i}`} item={item} number={mailedItems.length + i + 1} />
-                      ))}
-                    </>
+                   mailedItems.map((item, i) => (
+                     <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
+                   ))
                   )}
                 </>
               )}
