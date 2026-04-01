@@ -6,11 +6,12 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertCircle } from 'lucide-react';
+import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffle, Play, RefreshCw, LocateFixed, CheckCircle, AlertCircle, ChevronDown } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { optimizeWithHybrid, geocodeAddress } from '@/components/services/OptimizationService';
+import LocationPicker from './LocationPicker';
 
 const TIME_AT_ADDRESS_OPTIONS = [
   { label: '1 min', value: 1 },
@@ -511,71 +512,37 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {!useCurrentLocation && (
-          <Select value={selectedStartLocation} onValueChange={setSelectedStartLocation}>
-            <SelectTrigger className="w-full mb-4">
-              <SelectValue placeholder="Select start location" />
-            </SelectTrigger>
-            <SelectContent>
-              {savedLocations.map(loc => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  <div className="w-full">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
-                        {getLocationIcon(loc.label)}
-                        <span className="font-medium">{loc.label}</span>
-                      </div>
-                      <button
-                        className="p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
-                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
-                      >
-                        <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-400 truncate mt-0.5 pl-5">{loc.address}</p>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <LocationPicker
+            locations={savedLocations}
+            value={selectedStartLocation}
+            onChange={setSelectedStartLocation}
+            placeholder="Select start location"
+            onDelete={(id) => setDeletingLocationId(id)}
+            getLocationIcon={getLocationIcon}
+            className="mb-4"
+          />
         )}
 
         {/* End location */}
         <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
-        <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
-          <SelectTrigger className="w-full mb-2">
-            <SelectValue placeholder="Select where to end" />
-          </SelectTrigger>
-          <SelectContent>
-            {savedLocations.map(loc => (
-              <SelectItem key={loc.id} value={loc.id}>
-                <div className="w-full">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5">
-                      {getLocationIcon(loc.label)}
-                      <span className="font-medium">{loc.label}</span>
-                    </div>
-                    <button
-                      className="p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
-                      onClick={(e) => { e.stopPropagation(); e.preventDefault(); setDeletingLocationId(loc.id); }}
-                    >
-                      <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 truncate mt-0.5 pl-5">{loc.address}</p>
-                </div>
-              </SelectItem>
-            ))}
-            <div
-              className="relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 px-2 text-sm outline-none hover:bg-accent border-t mt-1 pt-2"
-              onClick={(e) => { e.stopPropagation(); setShowAddLocation(true); }}
+        <LocationPicker
+          locations={savedLocations}
+          value={selectedEndLocation}
+          onChange={setSelectedEndLocation}
+          placeholder="Select where to end"
+          onDelete={(id) => setDeletingLocationId(id)}
+          getLocationIcon={getLocationIcon}
+          className="mb-2"
+          extraOption={
+            <button
+              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 font-medium border-t hover:bg-accent"
+              onClick={() => setShowAddLocation(true)}
             >
-              <div className="flex items-center gap-2 text-blue-600">
-                <Plus className="w-4 h-4" />
-                <span className="font-medium">Add New Location</span>
-              </div>
-            </div>
-          </SelectContent>
-        </Select>
+              <Plus className="w-4 h-4" />
+              Add New Location
+            </button>
+          }
+        />
 
         {showAddLocation && (
           <div className="bg-orange-50 rounded-xl p-3 mb-3 border border-orange-200">
