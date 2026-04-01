@@ -3,17 +3,15 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronLeft, Phone, Calendar as CalendarIcon, MapPin, FileText, Loader2, Copy, Clock } from 'lucide-react';
+import { ChevronLeft, Phone, CalendarIcon, MapPin, FileText, Loader2, Copy, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { formatAddress } from '@/components/utils/addressUtils';
 import { getCompanyId } from '@/components/utils/companyUtils';
 import { format } from 'date-fns';
+import DateTimeWheelPicker from '@/components/common/DateTimeWheelPicker';
 
 export default function CreateScheduledServe() {
   const navigate = useNavigate();
@@ -23,12 +21,26 @@ export default function CreateScheduledServe() {
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedHour, setSelectedHour] = useState('');
-  const [selectedMinute, setSelectedMinute] = useState('');
-  const [selectedAmPm, setSelectedAmPm] = useState('AM');
-  const [endHour, setEndHour] = useState('');
-  const [endMinute, setEndMinute] = useState('');
-  const [endAmPm, setEndAmPm] = useState('AM');
+
+  // Wheel picker indices — start at noon (12:00 PM)
+  // HOURS: index 0=1, ..., 11=12. Noon = index 11 (12), PM = index 1
+  const [startHourIdx, setStartHourIdx] = useState(11); // 12
+  const [startMinIdx, setStartMinIdx] = useState(0);   // :00
+  const [startAmPmIdx, setStartAmPmIdx] = useState(1); // PM
+  const [endHourIdx, setEndHourIdx] = useState(11);
+  const [endMinIdx, setEndMinIdx] = useState(0);
+  const [endAmPmIdx, setEndAmPmIdx] = useState(1);
+
+  const HOURS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
+  const MINUTES = ['00','15','30','45'];
+  const AMPM = ['AM','PM'];
+
+  // Convert wheel indices to h/m/ampm strings
+  const idxToTime = (hIdx, mIdx, apIdx) => ({
+    hour: HOURS[hIdx],
+    minute: MINUTES[mIdx],
+    ampm: AMPM[apIdx]
+  });
   const [notes, setNotes] = useState('');
   const [locationType, setLocationType] = useState('posting');
   const [meetingAddress, setMeetingAddress] = useState('');
@@ -62,35 +74,25 @@ export default function CreateScheduledServe() {
   const formatted = address ? formatAddress(address) : {};
   const fullPostingAddress = formatted.line1 ? `${formatted.line1}, ${formatted.line2}` : '';
 
-  // Format a single time for display
-  const formatTimeDisplay = (hour, minute, ampm) => {
-    if (!hour) return '';
-    return `${hour}:${minute || '00'} ${ampm}`;
-  };
+  const formatTimeDisplay = (hour, minute, ampm) => `${hour}:${minute} ${ampm}`;
 
-  // Build the combined datetime string for display and storage
   const getDateTimeDisplay = useCallback(() => {
-    if (!selectedDate || !selectedHour) return '';
-    const startTime = formatTimeDisplay(selectedHour, selectedMinute, selectedAmPm);
-    const endTime = endHour ? formatTimeDisplay(endHour, endMinute, endAmPm) : '';
-    const dateStr = format(selectedDate, "EEE, MMM d, yyyy");
-    if (endTime) {
-      return `${dateStr} between ${startTime} - ${endTime}`;
-    }
-    return `${dateStr} at ${startTime}`;
-  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm]);
+    if (!selectedDate) return '';
+    const s = idxToTime(startHourIdx, startMinIdx, startAmPmIdx);
+    return `${format(selectedDate, 'EEE, MMM d, yyyy')} at ${formatTimeDisplay(s.hour, s.minute, s.ampm)}`;
+  }, [selectedDate, startHourIdx, startMinIdx, startAmPmIdx]);
 
-  // Build the ISO datetime for saving
   const getDateTimeISO = useCallback(() => {
-    if (!selectedDate || !selectedHour) return null;
-    let h = parseInt(selectedHour);
-    const m = parseInt(selectedMinute || '0');
-    if (selectedAmPm === 'PM' && h !== 12) h += 12;
-    if (selectedAmPm === 'AM' && h === 12) h = 0;
+    if (!selectedDate) return null;
+    const s = idxToTime(startHourIdx, startMinIdx, startAmPmIdx);
+    let h = parseInt(s.hour);
+    const m = parseInt(s.minute);
+    if (s.ampm === 'PM' && h !== 12) h += 12;
+    if (s.ampm === 'AM' && h === 12) h = 0;
     const dt = new Date(selectedDate);
     dt.setHours(h, m, 0, 0);
     return dt.toISOString();
-  }, [selectedDate, selectedHour, selectedMinute, selectedAmPm]);
+  }, [selectedDate, startHourIdx, startMinIdx, startAmPmIdx]);
 
   // Build notes template
   const buildTemplate = useCallback(() => {
@@ -118,7 +120,7 @@ export default function CreateScheduledServe() {
     if (templateInitialized) {
       setNotes(buildTemplate());
     }
-  }, [locationType, meetingAddress, selectedDate, selectedHour, selectedMinute, selectedAmPm, endHour, endMinute, endAmPm, phoneNumber, buildTemplate, templateInitialized]);
+  }, [locationType, meetingAddress, selectedDate, startHourIdx, startMinIdx, startAmPmIdx, phoneNumber, buildTemplate, templateInitialized]);
 
   const handleCopyNotes = () => {
     navigator.clipboard.writeText(notes).then(() => {
@@ -129,11 +131,11 @@ export default function CreateScheduledServe() {
   };
 
   const handleSave = async () => {
-    const isoDate = getDateTimeISO();
-    if (!isoDate) {
-      toast.error('Please select a date and time');
+    if (!selectedDate) {
+      toast.error('Please select a date');
       return;
     }
+    const isoDate = getDateTimeISO();
 
     if (locationType === 'meeting' && !meetingAddress.trim()) {
       toast.error('Please enter a meeting place address');
@@ -205,8 +207,7 @@ export default function CreateScheduledServe() {
     );
   }
 
-  const hours = Array.from({ length: 12 }, (_, i) => i + 1);
-  const minutes = ['00', '15', '30', '45'];
+
 
   return (
     <div className="min-h-screen bg-gray-50 pb-8">
@@ -245,152 +246,27 @@ export default function CreateScheduledServe() {
           </CardContent>
         </Card>
 
-        {/* Date Picker */}
+        {/* Combined Date + Time Picker */}
         <Card>
           <CardContent className="p-4">
             <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <CalendarIcon className="w-3.5 h-3.5" /> DATE
+              <CalendarIcon className="w-3.5 h-3.5" /> DATE &amp; TIME
             </label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start text-left font-normal">
-                  <CalendarIcon className="w-4 h-4 mr-2 text-gray-400" />
-                  {selectedDate ? format(selectedDate, 'EEEE, MMMM d, yyyy') : 'Pick a date'}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={selectedDate}
-                  onSelect={setSelectedDate}
-                  disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                />
-              </PopoverContent>
-            </Popover>
-          </CardContent>
-        </Card>
-
-        {/* Time Window Picker */}
-        <Card>
-          <CardContent className="p-4">
-            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <Clock className="w-3.5 h-3.5" /> TIME WINDOW
-            </label>
-            
-            {/* Start Time */}
-            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">FROM</p>
-            <div className="flex gap-2 mb-3">
-              <Select value={selectedHour} onValueChange={setSelectedHour}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Hour" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hours.map(h => (
-                    <SelectItem key={h} value={String(h)}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedMinute} onValueChange={setSelectedMinute}>
-                <SelectTrigger className="w-20">
-                  <SelectValue placeholder="Min" />
-                </SelectTrigger>
-                <SelectContent>
-                  {minutes.map(m => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={selectedAmPm} onValueChange={setSelectedAmPm}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AM">AM</SelectItem>
-                  <SelectItem value="PM">PM</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* End Time */}
-            <p className="text-[11px] font-semibold text-gray-400 mb-1.5">TO <span className="font-normal text-gray-300">(optional)</span></p>
-            <div className="flex gap-2">
-              <Select value={endHour} onValueChange={setEndHour}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Hour" />
-                </SelectTrigger>
-                <SelectContent>
-                  {hours.map(h => (
-                    <SelectItem key={h} value={String(h)}>{h}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={endMinute} onValueChange={setEndMinute}>
-                <SelectTrigger className="w-20">
-                  <SelectValue placeholder="Min" />
-                </SelectTrigger>
-                <SelectContent>
-                  {minutes.map(m => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={endAmPm} onValueChange={setEndAmPm}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AM">AM</SelectItem>
-                  <SelectItem value="PM">PM</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {selectedDate && selectedHour && (
-              <p className="text-sm text-blue-600 font-medium mt-3">
-                {getDateTimeDisplay()}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Location Toggle */}
-        <Card>
-          <CardContent className="p-4">
-            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <MapPin className="w-3.5 h-3.5" /> LOCATION
-            </label>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <button
-                onClick={() => setLocationType('posting')}
-                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  locationType === 'posting'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-600'
-                }`}
-              >
-                Place of Posting
-              </button>
-              <button
-                onClick={() => setLocationType('meeting')}
-                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  locationType === 'meeting'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-600'
-                }`}
-              >
-                Meeting Place
-              </button>
-            </div>
-            {locationType === 'posting' ? (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                Will use: {formatted.line1}, {formatted.line2}
-              </div>
-            ) : (
-              <Input
-                placeholder="Enter meeting place address..."
-                value={meetingAddress}
-                onChange={(e) => setMeetingAddress(e.target.value)}
-              />
+            <DateTimeWheelPicker
+              date={selectedDate}
+              onDateChange={setSelectedDate}
+              startHourIndex={startHourIdx}
+              startMinuteIndex={startMinIdx}
+              startAmPmIndex={startAmPmIdx}
+              onStartChange={(h, m, ap) => { setStartHourIdx(h); setStartMinIdx(m); setStartAmPmIdx(ap); }}
+              endHourIndex={endHourIdx}
+              endMinuteIndex={endMinIdx}
+              endAmPmIndex={endAmPmIdx}
+              onEndChange={(h, m, ap) => { setEndHourIdx(h); setEndMinIdx(m); setEndAmPmIdx(ap); }}
+              showEnd={true}
+            />
+            {selectedDate && (
+              <p className="text-sm text-blue-600 font-medium mt-3 text-center">{getDateTimeDisplay()}</p>
             )}
           </CardContent>
         </Card>
@@ -422,7 +298,7 @@ export default function CreateScheduledServe() {
         {/* Save Button */}
         <Button
           onClick={handleSave}
-          disabled={saving || !selectedDate || !selectedHour}
+          disabled={saving || !selectedDate}
           className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm"
         >
           {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
