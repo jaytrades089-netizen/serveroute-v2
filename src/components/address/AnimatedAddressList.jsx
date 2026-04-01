@@ -145,7 +145,7 @@ export default function AnimatedAddressList({
 
     // If route is active/optimized, use order_index (GPS-based driving order)
     // Otherwise fall back to spread due date sorting
-    const isActiveRoute = route?.status === 'active' && route?.optimized;
+    const isActiveRoute = !!route?.optimized;
     const activeSort = isActiveRoute ? sortByOrder : sortBySpreadDue;
 
     return {
