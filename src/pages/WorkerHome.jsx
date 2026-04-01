@@ -204,6 +204,34 @@ export default function WorkerHome() {
     return false;
   });
 
+  // Due Soon = routes due on or before the next payroll turn-in date
+  const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  let daysUntilPayroll = (selectedDay - currentDayOfWeek + 7) % 7;
+  if (daysUntilPayroll === 0) daysUntilPayroll = 7;
+  const nextPayrollDate = new Date(now);
+  nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilPayroll);
+  nextPayrollDate.setHours(23, 59, 59, 999);
+
+  const dueSoonRoutes = activeRoutes.filter(r => {
+    let effectiveDueDate = null;
+    if (r.first_attempt_date) {
+      const spreadDays = r.minimum_days_spread || (r.spread_type === '10' ? 10 : 14);
+      effectiveDueDate = new Date(r.first_attempt_date);
+      effectiveDueDate.setDate(effectiveDueDate.getDate() + spreadDays);
+      effectiveDueDate.setHours(0, 0, 0, 0);
+    } else if (r.spread_due_date) {
+      effectiveDueDate = new Date(r.spread_due_date);
+      effectiveDueDate.setHours(0, 0, 0, 0);
+    } else if (r.due_date) {
+      effectiveDueDate = new Date(r.due_date);
+      effectiveDueDate.setHours(0, 0, 0, 0);
+    }
+    if (!effectiveDueDate) return false;
+    return effectiveDueDate <= nextPayrollDate;
+  });
+
   const firstName = user?.full_name?.split(' ')[0] || 'there';
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
