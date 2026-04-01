@@ -272,16 +272,16 @@ export default function WorkerRouteDetail() {
 
   if (routeLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   if (!route) {
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <p className="text-center text-gray-500">Route not found</p>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', padding: '16px' }}>
+        <p className="text-center" style={{ color: '#8a7f87' }}>Route not found</p>
       </div>
     );
   }
@@ -289,8 +289,8 @@ export default function WorkerRouteDetail() {
   // Ownership check - workers can only see their own routes
   if (user?.role === 'server' && route && route.worker_id !== user.id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <p className="text-gray-600 mb-4">You don't have access to this route</p>
+      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+        <p style={{ color: '#d0c3cb', marginBottom: 16 }}>You don't have access to this route</p>
         <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>Go to My Routes</Button>
       </div>
     );
@@ -376,9 +376,9 @@ export default function WorkerRouteDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
-      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
-        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 border-2 border-white/60 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 24 }}>
+      <header style={{ background: '#0F0B10', borderBottom: '1px solid #363436', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors" style={{ border: '1px solid #363436' }}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div className="flex-1">
@@ -412,7 +412,8 @@ export default function WorkerRouteDetail() {
             </div>
           ) : (
             <div 
-              className={editMode ? 'cursor-pointer hover:bg-blue-600/50 rounded px-2 py-1 -mx-2 -my-1' : ''}
+              className={editMode ? 'cursor-pointer rounded px-2 py-1 -mx-2 -my-1' : ''}
+              style={editMode ? { background: 'rgba(255,255,255,0.05)' } : {}}
               onClick={() => {
                 if (editMode) {
                   setEditedFolderName(route.folder_name);
@@ -424,7 +425,7 @@ export default function WorkerRouteDetail() {
                 {route.folder_name}
                 {editMode && <Pencil className="w-3 h-3 opacity-60" />}
               </h1>
-              {route.description && <p className="text-sm text-blue-100">{route.description}</p>}
+              {route.description && <p className="text-sm" style={{ color: '#d0c3cb' }}>{route.description}</p>}
             </div>
           )}
         </div>
@@ -438,15 +439,15 @@ export default function WorkerRouteDetail() {
           <>
             <div className="grid grid-cols-3 gap-1.5 mb-3">
               {/* Start Time */}
-              <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-                <p className="text-sm font-bold text-blue-600">
+              <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 8, padding: 8, textAlign: 'center' }}>
+                <p className="text-sm font-bold" style={{ color: '#e9c349' }}>
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true
                   })}
                 </p>
-                <p className="text-[10px] text-blue-500 font-medium">Started</p>
+                <p className="text-[10px] font-medium" style={{ color: '#8a7f87' }}>Started</p>
               </div>
               
               {/* Stop Route */}
@@ -482,19 +483,19 @@ export default function WorkerRouteDetail() {
 
             {/* Progress Bar with miles remaining */}
             <div className="mb-3">
-              <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
+              <div className="flex justify-between text-[10px] mb-0.5" style={{ color: '#8a7f87' }}>
                 <span>{calculateProgress.completed} of {calculateProgress.total} complete</span>
-                <span className="text-purple-600 font-medium">
+                <span className="font-medium" style={{ color: '#8a7f87' }}>
                   {calculateRemainingMiles.toFixed(1)} mi left
                 </span>
               </div>
-              <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#363436' }}>
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
                   style={{ width: `${calculateProgress.percentage}%` }}
                 />
               </div>
-              <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+              <div className="flex justify-between text-[10px] mt-0.5" style={{ color: '#8a7f87' }}>
                 <span>{calculateProgress.percentage}% done</span>
                 <span>{calculateRemainingTime}</span>
               </div>
@@ -504,20 +505,20 @@ export default function WorkerRouteDetail() {
           // NOT ACTIVE: Show regular stats (Total, Served, Pending) + Start Route bar
           <>
           <div className={`grid grid-cols-3 gap-2 ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'mb-0' : 'mb-3'}`}>
-            <div className={`bg-blue-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
-              <MapPin className="w-5 h-5 mx-auto mb-1 text-blue-600" />
-              <p className="text-2xl font-bold text-blue-600">{addresses.length}</p>
-              <p className="text-xs text-gray-600 font-medium">Total</p>
+            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 0 12px' : '12px' }}>
+              <MapPin className="w-5 h-5 mx-auto mb-1" style={{ color: '#e9c349' }} />
+              <p className="text-2xl font-bold" style={{ color: '#e9c349' }}>{addresses.length}</p>
+              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Total</p>
             </div>
-            <div className={`bg-green-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
-              <CheckCircle className="w-5 h-5 mx-auto mb-1 text-green-600" />
-              <p className="text-2xl font-bold text-green-600">{servedAddresses.length}</p>
-              <p className="text-xs text-gray-600 font-medium">Served</p>
+            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 0 12px' : '12px' }}>
+              <CheckCircle className="w-5 h-5 mx-auto mb-1" style={{ color: '#22c55e' }} />
+              <p className="text-2xl font-bold text-green-500">{servedAddresses.length}</p>
+              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Served</p>
             </div>
-            <div className={`bg-orange-100 p-3 text-center ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'rounded-t-xl' : 'rounded-xl'}`}>
-              <Clock className="w-5 h-5 mx-auto mb-1 text-orange-600" />
-              <p className="text-2xl font-bold text-orange-600">{pendingAddresses.length}</p>
-              <p className="text-xs text-gray-600 font-medium">Pending</p>
+            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 12px 0' : '12px' }}>
+              <Clock className="w-5 h-5 mx-auto mb-1" style={{ color: '#f97316' }} />
+              <p className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>{pendingAddresses.length}</p>
+              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Pending</p>
             </div>
           </div>
           </>
@@ -627,21 +628,21 @@ export default function WorkerRouteDetail() {
 
         {/* Edit Mode Banner */}
         {editMode && (
-          <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Pencil className="w-4 h-4 text-blue-500" />
-              <span className="text-sm font-semibold text-blue-700">Edit Mode</span>
-              <span className="text-xs text-blue-500">Tap addresses to edit details</span>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`))}
-              className="text-blue-600 border-blue-300"
-            >
-              Done
-            </Button>
-          </div>
+         <div style={{ padding: 12, background: '#201f21', border: '1px solid #e5b9e1', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+           <div className="flex items-center gap-2">
+             <Pencil className="w-4 h-4" style={{ color: '#e5b9e1' }} />
+             <span className="text-sm font-semibold" style={{ color: '#e5b9e1' }}>Edit Mode</span>
+             <span className="text-xs" style={{ color: '#8a7f87' }}>Tap addresses to edit details</span>
+           </div>
+           <Button
+             variant="outline"
+             size="sm"
+             onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`))}
+             style={{ color: '#e5b9e1', borderColor: '#e5b9e1' }}
+           >
+             Done
+           </Button>
+         </div>
         )}
 
         <DesktopWarningBanner />
@@ -660,24 +661,30 @@ export default function WorkerRouteDetail() {
         )}
 
         {/* Addresses / Scheduled Tabs */}
-        <div className="flex bg-gray-100 rounded-xl p-1 mb-4">
+        <div className="flex rounded-xl p-1 mb-4" style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
           <button
             onClick={() => setActiveRouteTab('addresses')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors ${
-              activeRouteTab === 'addresses' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-            }`}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-colors"
+            style={{
+              background: activeRouteTab === 'addresses' ? '#502f50' : 'transparent',
+              color: activeRouteTab === 'addresses' ? '#e9c349' : '#8a7f87',
+              boxShadow: activeRouteTab === 'addresses' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
           >
             Addresses ({addresses.length})
           </button>
           <button
             onClick={() => setActiveRouteTab('scheduled')}
-            className={`flex-1 py-2 text-xs font-bold rounded-lg transition-colors relative ${
-              activeRouteTab === 'scheduled' ? 'bg-white text-blue-700 shadow-sm' : 'text-gray-500'
-            }`}
+            className="flex-1 py-2 text-xs font-bold rounded-lg transition-colors relative"
+            style={{
+              background: activeRouteTab === 'scheduled' ? '#502f50' : 'transparent',
+              color: activeRouteTab === 'scheduled' ? '#e5b9e1' : '#8a7f87',
+              boxShadow: activeRouteTab === 'scheduled' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+            }}
           >
             Scheduled
             {scheduledServesCount > 0 && (
-              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white">
+              <span className="ml-1 inline-flex items-center justify-center px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: '#e9c349', color: '#0F0B10' }}>
                 {scheduledServesCount}
               </span>
             )}
@@ -697,11 +704,11 @@ export default function WorkerRouteDetail() {
         ) : (
         <>
         {/* Search Filter Banner */}
-        {searchFilter && (
-          <div className="mb-4 bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between">
+         {searchFilter && (
+          <div style={{ marginBottom: 16, background: '#201f21', border: '1px solid #363436', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-blue-500" />
-              <span className="text-sm font-medium text-blue-700">Showing search result</span>
+              <Search className="w-4 h-4" style={{ color: '#e9c349' }} />
+              <span className="text-sm font-medium" style={{ color: '#e6e1e4' }}>Showing search result</span>
             </div>
             <Button
               variant="outline"
@@ -714,7 +721,8 @@ export default function WorkerRouteDetail() {
                 const newUrl = `${window.location.pathname}?${newParams.toString()}`;
                 window.history.replaceState({}, '', newUrl);
               }}
-              className="text-blue-600 border-blue-300 text-xs h-7"
+              className="text-xs h-7"
+              style={{ color: '#e9c349', borderColor: '#363436' }}
             >
               Show All ({addresses.length})
             </Button>
@@ -723,7 +731,7 @@ export default function WorkerRouteDetail() {
 
         {addressesLoading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#e9c349' }} />
           </div>
         ) : (
           <AnimatedAddressList
