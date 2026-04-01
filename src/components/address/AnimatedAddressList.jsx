@@ -276,33 +276,32 @@ export default function AnimatedAddressList({
           <div className="space-y-4">
             {activeAddresses.map((address, index) => {
               return (
-                <React.Fragment key={address.id}>
-                  <div
-                    className={`
-                      relative transition-all duration-300
-                      ${animatingCardId === address.id ? 'animate-slide-out-right' : ''}
-                      ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
-                    `}
-                  >
-                    {/* Order number badge - use visual position (index + 1) */}
-                    <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
-                      {index + 1}
-                    </div>
-                    <AddressCard
-                      address={address}
-                      routeId={routeId}
-                      showActions={true}
-                      onMessageBoss={onMessageBoss}
-                      lastAttempt={lastAttemptMap[address.id]}
-                      allAttempts={allAttemptsMap[address.id] || []}
-                      onAttemptLogged={() => handleAttemptLogged(address.id)}
-                      onServed={() => handleAddressServed(address.id)}
-                      editMode={editMode}
-                      isHighlighted={highlightedAddressId === address.id}
-                      comboRouteIds={comboRouteIds}
-                    />
+                <div
+                  key={address.id}
+                  className={`
+                    relative transition-all duration-300
+                    ${animatingCardId === address.id ? 'animate-slide-out-right' : ''}
+                    ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
+                  `}
+                >
+                  {/* Order number badge - use visual position (index + 1) */}
+                  <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                    {index + 1}
                   </div>
-                </React.Fragment>
+                  <AddressCard
+                    address={address}
+                    routeId={routeId}
+                    showActions={true}
+                    onMessageBoss={onMessageBoss}
+                    lastAttempt={lastAttemptMap[address.id]}
+                    allAttempts={allAttemptsMap[address.id] || []}
+                    onAttemptLogged={() => handleAttemptLogged(address.id)}
+                    onServed={() => handleAddressServed(address.id)}
+                    editMode={editMode}
+                    isHighlighted={highlightedAddressId === address.id}
+                    comboRouteIds={comboRouteIds}
+                  />
+                </div>
               );
             })}
           </div>
