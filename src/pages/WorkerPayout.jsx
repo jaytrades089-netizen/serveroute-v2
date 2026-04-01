@@ -619,7 +619,7 @@ export default function WorkerPayout() {
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
-    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
+    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length + pendingRTOs.length },
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
