@@ -24,7 +24,7 @@ const topStats = [
     id: 'served', 
     label: 'Served', 
     icon: CheckCircle, 
-    bgColor: 'bg-green-100', 
+    bgColor: 'bg-[#1c1b1d]',
     textColor: 'text-green-600',
     link: 'WorkerPayout'
   }
