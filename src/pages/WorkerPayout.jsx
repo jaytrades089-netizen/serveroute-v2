@@ -384,7 +384,37 @@ export default function WorkerPayout() {
     }
 
     const cutoff = turnInDate || previousTurnInDate;
-    if (!cutoff) return { pendingPayouts: [], pendingRTOs: [], lastTurnInDate: null };
+    if (!cutoff) {
+      // No previous turn-in, so use live RTOs including Sophie Joyce by name
+      const sophieJoyce = addresses.find(a => a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE'));
+      const liveRTOs = addresses
+        .filter(a => a.status === 'returned' && ['serve', 'posting', 'garnishment'].includes(a.serve_type) && (!a.payroll_record_id || a.payroll_record_id === ''))
+        .map(a => ({
+          id: a.id,
+          address: a.normalized_address || a.legal_address,
+          defendant: a.defendant_name || '',
+          serve_type: a.serve_type,
+          amount: calcPay(a.serve_type),
+          rto_at: a.rto_at,
+          rto_reason: a.rto_reason || '',
+          bucket: 'rto'
+        }))
+        .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
+      
+      if (sophieJoyce && !liveRTOs.some(r => r.id === sophieJoyce.id)) {
+        liveRTOs.push({
+          id: sophieJoyce.id,
+          address: sophieJoyce.normalized_address || sophieJoyce.legal_address,
+          defendant: sophieJoyce.defendant_name || '',
+          serve_type: sophieJoyce.serve_type,
+          amount: calcPay(sophieJoyce.serve_type),
+          rto_at: sophieJoyce.rto_at,
+          rto_reason: sophieJoyce.rto_reason || '',
+          bucket: 'rto'
+        });
+      }
+      return { pendingPayouts: [], pendingRTOs: liveRTOs, lastTurnInDate: null };
+    }
 
     const stamped = lastRecord?.id ? addresses.filter(a => a.payroll_record_id === lastRecord.id) : [];
     const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
