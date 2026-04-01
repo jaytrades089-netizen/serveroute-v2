@@ -378,7 +378,7 @@ export default function WorkerPayout() {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
     const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting').sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
-    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto' && a.serve_type !== 'posting').sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
+    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto').sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
     if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
@@ -870,16 +870,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    currentRTOs.map((a, i) => (
-                      <AddressCard
-                        key={a.id}
-                        address={a}
-                        accentColor={C.rto}
-                        badge="RTO"
-                        onUndo={handleUndoRTO}
-                        showUndo={true}
-                        number={i + 1}
-                      />
+                    pendingRTOs.map((item, i) => (
+                      <SnapshotCard key={`rto-${i}`} item={item} number={i + 1} />
                     ))
                   )}
                 </>
