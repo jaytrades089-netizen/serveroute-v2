@@ -606,7 +606,7 @@ export default function RouteCard({
                           row: "flex w-full justify-between mt-1",
                           cell: "flex-1 flex items-center justify-center p-0",
                           day: "h-11 w-11 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors",
-                          day_selected: "!bg-blue-600 !text-white !font-bold !ring-2 !ring-black !ring-offset-1",
+                          day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
                           day_today: "bg-gray-100 font-bold",
                           nav: "flex items-center justify-between px-2 pb-2",
                           nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
