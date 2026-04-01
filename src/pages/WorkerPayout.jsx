@@ -334,7 +334,7 @@ export default function WorkerPayout() {
       // Date boundary: ignore anything served before/on the last turn-in (handles partial stamping failures)
       if (previousTurnInDate && new Date(a.served_at) <= previousTurnInDate) return false;
       return true;
-    });
+    }).sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
   }, [addresses, previousTurnInDate]);
 
   // ── currentRTOs — RTOd after last turn-in, not yet in a payroll record ──
@@ -346,7 +346,7 @@ export default function WorkerPayout() {
       // Date boundary: ignore RTOs that happened before/on the last turn-in
       if (previousTurnInDate && a.rto_at && new Date(a.rto_at) <= previousTurnInDate) return false;
       return true;
-    });
+    }).sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
   }, [addresses, previousTurnInDate]);
 
   // ── Mailed/RTO tabs: read from snapshot, fall back to payroll_record_id match
@@ -359,8 +359,8 @@ export default function WorkerPayout() {
     if (lastRecord?.snapshot_data) {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
-    const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting');
-    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto' && a.serve_type !== 'posting');
+    const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting').sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
+    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto' && a.serve_type !== 'posting').sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
     if (snapshotPending.length > 0 || snapshotRTO.length > 0) {
       return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
     }
@@ -391,7 +391,8 @@ export default function WorkerPayout() {
         amount: calcPay(a.serve_type),
         served_at: a.served_at,
         bucket: 'pending'
-      }));
+      }))
+      .sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
 
     const liveRTO = candidates
       .filter(a => a.status === 'returned')
@@ -404,7 +405,8 @@ export default function WorkerPayout() {
         rto_at: a.rto_at,
         rto_reason: a.rto_reason || '',
         bucket: 'rto'
-      }));
+      }))
+      .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
 
     return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: cutoff };
   }, [payrollHistory, addresses, previousTurnInDate]);
