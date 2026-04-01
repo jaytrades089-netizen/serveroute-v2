@@ -842,11 +842,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No direct serves yet this period</p>
                     </div>
                   ) : (
-                    instantPayouts.map((a, idx) => (
-                      <div key={a.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.accentGold, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#0F0B10', zIndex: 10 }}>{idx + 1}</div>
-                        <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
-                      </div>
+                    instantPayouts.map(a => (
+                      <AddressCard key={a.id} address={a} accentColor={C.accentGold} badge={null} />
                     ))
                   )}
                 </>
@@ -872,12 +869,7 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                    mailedItems.map((item, i) => (
-                      <div key={i} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.accentPlum, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#0F0B10', zIndex: 10 }}>{i + 1}</div>
-                        <SnapshotCard key={i} item={item} />
-                      </div>
-                    ))
+                    mailedItems.map((item, i) => <SnapshotCard key={i} item={item} />)
                   )}
                 </>
               )}
@@ -903,26 +895,18 @@ export default function WorkerPayout() {
                     </div>
                   ) : rtoTabItems ? (
                     // Show snapshot RTOs (post-turn-in)
-                    rtoTabItems.map((item, i) => (
-                      <div key={i} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.rto, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', zIndex: 10 }}>{i + 1}</div>
-                        <SnapshotCard key={i} item={item} />
-                      </div>
-                    ))
+                    rtoTabItems.map((item, i) => <SnapshotCard key={i} item={item} />)
                   ) : (
                     // Show live unstamped RTOs (pre-turn-in)
-                    currentRTOs.map((a, idx) => (
-                      <div key={a.id} style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', left: 3, top: '50%', transform: 'translateY(-50%)', width: 20, height: 20, background: C.rto, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#fff', zIndex: 10 }}>{idx + 1}</div>
-                        <AddressCard
-                          key={a.id}
-                          address={a}
-                          accentColor={C.rto}
-                          badge="RTO"
-                          onUndo={handleUndoRTO}
-                          showUndo={true}
-                        />
-                      </div>
+                    currentRTOs.map(a => (
+                      <AddressCard
+                        key={a.id}
+                        address={a}
+                        accentColor={C.rto}
+                        badge="RTO"
+                        onUndo={handleUndoRTO}
+                        showUndo={true}
+                      />
                     ))
                   )}
                 </>
