@@ -189,52 +189,19 @@ export default function WorkerHome() {
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
   
-  // Served count = addresses within current payroll period (same logic as WorkerPayout)
-  // Use saved settings or default to Wednesday at 12:00 PM
-  const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
-  const selectedHour = userSettings?.payroll_turn_in_hour ?? 12;
-  const now = new Date();
-  const currentDayOfWeek = now.getDay();
-  const currentHour = now.getHours();
-  let daysBack = (currentDayOfWeek - selectedDay + 7) % 7;
-  if (daysBack === 0 && currentHour < selectedHour) {
-    daysBack = 7;
-  }
-  const periodStart = new Date(now);
-  periodStart.setDate(periodStart.getDate() - daysBack);
-  periodStart.setHours(selectedHour, 0, 0, 0);
+  // Served count = addresses served after last turn-in
+  // Only count if they have a previous_turn_in_date, otherwise use payroll period logic
+  const previousTurnInDate = userSettings?.previous_turn_in_date ? new Date(userSettings.previous_turn_in_date) : null;
   
-  // Count served addresses within current payroll period
   const servedAddresses = activeAddresses.filter(a => {
     if (!a.served || !a.served_at) return false;
     const servedDate = new Date(a.served_at);
-    return servedDate >= periodStart && servedDate < now;
-  });
-  
-  // Due Soon = routes due on or before the next payroll turn-in date
-  let daysUntilPayroll = (selectedDay - currentDayOfWeek + 7) % 7;
-  if (daysUntilPayroll === 0) daysUntilPayroll = 7;
-  const nextPayrollDate = new Date(now);
-  nextPayrollDate.setDate(nextPayrollDate.getDate() + daysUntilPayroll);
-  nextPayrollDate.setHours(23, 59, 59, 999);
-  
-  const dueSoonRoutes = routes.filter(r => {
-    if (r.status === 'completed' || r.status === 'archived') return false;
-    let effectiveDueDate = null;
-    if (r.first_attempt_date) {
-      const spreadDays = r.minimum_days_spread || (r.spread_type === '10' ? 10 : 14);
-      effectiveDueDate = new Date(r.first_attempt_date);
-      effectiveDueDate.setDate(effectiveDueDate.getDate() + spreadDays);
-      effectiveDueDate.setHours(0, 0, 0, 0);
-    } else if (r.spread_due_date) {
-      effectiveDueDate = new Date(r.spread_due_date);
-      effectiveDueDate.setHours(0, 0, 0, 0);
-    } else if (r.due_date) {
-      effectiveDueDate = new Date(r.due_date);
-      effectiveDueDate.setHours(0, 0, 0, 0);
+    // Only count serves after last turn-in
+    if (previousTurnInDate) {
+      return servedDate > previousTurnInDate;
     }
-    if (!effectiveDueDate) return false;
-    return effectiveDueDate <= nextPayrollDate;
+    // If no turn-in yet, don't count anything (fresh start)
+    return false;
   });
 
   const firstName = user?.full_name?.split(' ')[0] || 'there';
