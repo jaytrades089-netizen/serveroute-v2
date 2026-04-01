@@ -468,12 +468,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex justify-between items-center">
           <div>
             <p className="font-semibold">{route?.folder_name || 'Route'}</p>
-            <p className="text-sm text-gray-500">
-              {addresses.filter(a => !a.served && a.status !== 'served' && a.status !== 'completed' && a.status !== 'returned').length} pending
-              {addresses.filter(a => a.served || a.status === 'served' || a.status === 'completed' || a.status === 'returned').length > 0 && (
-                <span className="text-gray-400"> · {addresses.filter(a => a.served || a.status === 'served' || a.status === 'completed' || a.status === 'returned').length} done</span>
-              )}
-            </p>
+
           </div>
           <Button variant="outline" size="icon" onClick={handleShuffle} disabled={isShuffling}>
             {isShuffling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
