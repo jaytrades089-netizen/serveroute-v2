@@ -233,7 +233,7 @@ export default function WorkerHome() {
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">

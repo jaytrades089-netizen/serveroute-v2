@@ -111,7 +111,7 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
   return (
     <div className={className !== undefined ? className : "mb-4"}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" style={{ color: '#8a7f87' }} />
         <input
           ref={inputRef}
           type="text"
@@ -124,12 +124,14 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
             if (query.trim().length === 0) setShowFilters(false);
           }}
           placeholder={`Search by ${filters.join(', ')}...`}
-          className="w-full pl-9 pr-8 py-2.5 text-sm border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          className="w-full pl-9 pr-8 py-2.5 text-sm rounded-lg focus:outline-none"
+          style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}
         />
         {query.length > 0 && (
           <button
             onClick={handleClear}
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2"
+            style={{ color: '#8a7f87' }}
           >
             <X className="w-4 h-4" />
           </button>
@@ -137,8 +139,8 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
 
       {/* Filter chips - show when focused and no text typed */}
       {showFilters && query.trim().length === 0 && (
-        <div ref={containerRef} className="absolute left-0 right-0 top-full mt-1 z-50 border border-gray-200 rounded-lg bg-white shadow-lg p-3">
-          <p className="text-xs text-gray-500 font-medium mb-2">Search by:</p>
+        <div ref={containerRef} className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg p-3" style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          <p className="text-xs font-medium mb-2" style={{ color: '#8a7f87' }}>Search by:</p>
           <div className="flex flex-wrap gap-2">
             {FILTER_OPTIONS.map(opt => {
               const active = filters.includes(opt.key);
@@ -149,11 +151,8 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
                   tabIndex={0}
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => toggleFilter(opt.key)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                    active
-                      ? 'bg-blue-100 text-blue-700 border-blue-300'
-                      : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
-                  }`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors"
+                  style={active ? { background: '#502f50', color: '#e5b9e1', border: '1px solid #e5b9e1' } : { background: '#1c1b1d', color: '#8a7f87', border: '1px solid #363436' }}
                 >
                   <Icon className="w-3 h-3" />
                   {opt.label}
@@ -165,14 +164,15 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
       )}
 
       {query.trim().length >= 2 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 border border-gray-200 rounded-lg bg-white shadow-lg overflow-hidden">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg overflow-hidden" style={{ background: '#201f21', border: '1px solid #363436', boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
           {results.length === 0 ? (
-            <div className="px-4 py-5 text-center text-sm text-gray-500">
+            <div className="px-4 py-5 text-center text-sm" style={{ color: '#8a7f87' }}>
               No addresses found{!includeArchived ? ' in active routes' : ''}.
               {!includeArchived && (
                 <button
                   onClick={() => setIncludeArchived(true)}
-                  className="ml-1 text-blue-500 underline"
+                  className="ml-1 underline"
+                  style={{ color: '#e9c349' }}
                 >
                   Search archived too?
                 </button>
@@ -180,13 +180,13 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
             </div>
           ) : (
             <>
-              <div className="px-3 py-2 bg-gray-50 border-b border-gray-100">
-                <span className="text-xs text-gray-500 font-medium">
+              <div className="px-3 py-2" style={{ background: '#1c1b1d', borderBottom: '1px solid #363436' }}>
+                <span className="text-xs font-medium" style={{ color: '#8a7f87' }}>
                   {results.length} result{results.length !== 1 ? 's' : ''}
                   {includeArchived ? ' (including archived)' : ''}
                 </span>
               </div>
-              <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+              <ul className="max-h-72 overflow-y-auto">
                 {results.map(addr => {
                   const route = routeMap[addr.route_id];
                   const isArchived = route?.status === 'archived';
@@ -194,25 +194,26 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
                     <li 
                       key={addr.id} 
                       onClick={() => handleSelectAddress(addr)}
-                      className="px-4 py-3 cursor-pointer hover:bg-blue-50 active:bg-blue-100 transition-colors flex items-center justify-between"
+                      className="px-4 py-3 cursor-pointer transition-colors flex items-center justify-between hover:bg-white/5"
+                      style={{ borderBottom: '1px solid #363436' }}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 mb-1">
-                          <FolderOpen className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
-                          <span className="text-sm font-semibold text-blue-600 truncate">
+                          <FolderOpen className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e9c349' }} />
+                          <span className="text-sm font-semibold truncate" style={{ color: '#e9c349' }}>
                             {route?.folder_name || 'Unknown Folder'}
                           </span>
                           {isArchived && (
-                            <span className="ml-1 text-xs bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">Archived</span>
+                            <span className="ml-1 text-xs px-1.5 py-0.5 rounded-full" style={{ background: '#201f21', color: '#e9c349' }}>Archived</span>
                           )}
                         </div>
                         {addr.defendant_name && (
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium truncate" style={{ color: '#e6e1e4' }}>
                             {addr.defendant_name}
                           </p>
                         )}
                       </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 ml-2" />
+                      <ChevronRight className="w-5 h-5 flex-shrink-0 ml-2" style={{ color: '#8a7f87' }} />
                     </li>
                   );
                 })}
