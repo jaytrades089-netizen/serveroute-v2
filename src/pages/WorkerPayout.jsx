@@ -362,7 +362,6 @@ export default function WorkerPayout() {
     return addresses.filter(a => {
       if (a.status !== 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      if (a.payroll_record_id) return false;
       // Only RTOs after the last turn-in
       if (previousTurnInDate && a.rto_at && new Date(a.rto_at) < previousTurnInDate) return false;
       return true;
