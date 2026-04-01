@@ -754,7 +754,7 @@ export default function WorkerPayout() {
               ${nextCheckTotal.toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              ${pendingTotal.toFixed(2)} + ${pendingRTOTotal.toFixed(2)} RTO
+              {mailedItems.length} mailed{mailedItems.length !== 1 ? 's' : ''}{pendingRTOs.length > 0 ? ` · ${pendingRTOs.length} RTO` : ''}
             </p>
           </div>
         </div>
