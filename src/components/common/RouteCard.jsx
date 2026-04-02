@@ -154,10 +154,11 @@ export default function RouteCard({
   const queryClient = useQueryClient();
 
   // Must be declared before useState so it can initialize showScheduleQueue
-  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+  const initialRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
 
   const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
-  const [showScheduleQueue, setShowScheduleQueue] = React.useState(scheduledRuns.length > 0);
+  const [scheduledRuns, setScheduledRuns] = React.useState(initialRuns);
+  const [showScheduleQueue, setShowScheduleQueue] = React.useState(initialRuns.length > 0);
   const [showQueueCalendar, setShowQueueCalendar] = React.useState(false);
   const [pendingQueueDate, setPendingQueueDate] = React.useState(null);
   const [pendingQueueQualifiers, setPendingQueueQualifiers] = React.useState([]);
@@ -201,15 +202,17 @@ export default function RouteCard({
   const handleAddToQueue = async () => {
     if (!pendingQueueDate) return;
     setSavingQueue(true);
+    const newEntry = { date: format(pendingQueueDate, 'yyyy-MM-dd'), qualifiers: pendingQueueQualifiers };
+    const newQueue = [...scheduledRuns, newEntry];
+    // Optimistic update — show immediately
+    setScheduledRuns(newQueue);
+    setPendingQueueDate(null);
+    setPendingQueueQualifiers([]);
+    setShowQueueCalendar(false);
     try {
-      const newEntry = { date: format(pendingQueueDate, 'yyyy-MM-dd'), qualifiers: pendingQueueQualifiers };
-      const newQueue = [...scheduledRuns, newEntry];
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
       queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       queryClient.invalidateQueries({ queryKey: ['route', route.id] });
-      setPendingQueueDate(null);
-      setPendingQueueQualifiers([]);
-      setShowQueueCalendar(false);
     } catch (err) {
       console.error('Failed to save queue entry:', err);
     } finally {
@@ -219,8 +222,10 @@ export default function RouteCard({
 
   const handleRemoveFromQueue = async (index) => {
     setSavingQueue(true);
+    const newQueue = scheduledRuns.filter((_, i) => i !== index);
+    // Optimistic update — show immediately
+    setScheduledRuns(newQueue);
     try {
-      const newQueue = scheduledRuns.filter((_, i) => i !== index);
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
       queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       queryClient.invalidateQueries({ queryKey: ['route', route.id] });
