@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import ScanSortReview from './pages/ScanSortReview';
+import BulkScanOptimize from './pages/BulkScanOptimize';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
 const { Pages, Layout, mainPage } = pagesConfig;
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
         />
       ))}
       <Route path="/ScanSortReview" element={<LayoutWrapper currentPageName="ScanSortReview"><ScanSortReview /></LayoutWrapper>} />
+      <Route path="/BulkScanOptimize" element={<LayoutWrapper currentPageName="BulkScanOptimize"><BulkScanOptimize /></LayoutWrapper>} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
