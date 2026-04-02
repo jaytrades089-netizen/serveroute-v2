@@ -670,6 +670,9 @@ export default function RouteCard({
                       if (route.first_attempt_date) {
                         qSpreadDueDateObj = new Date(route.first_attempt_date);
                         qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+                      } else if (qDueDateObj) {
+                        qSpreadDueDateObj = new Date(qDueDateObj);
+                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() - (route.minimum_days_spread || 14));
                       }
                       const qCalendarModifiers = {};
                       const qCalendarModifiersClassNames = {};
@@ -787,6 +790,9 @@ export default function RouteCard({
           if (route.first_attempt_date) {
             spreadDueDateObj = new Date(route.first_attempt_date);
             spreadDueDateObj.setDate(spreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+          } else if (dueDateObj) {
+            spreadDueDateObj = new Date(dueDateObj);
+            spreadDueDateObj.setDate(spreadDueDateObj.getDate() - (route.minimum_days_spread || 14));
           }
           const calendarModifiers = {};
           const calendarModifiersClassNames = {};
