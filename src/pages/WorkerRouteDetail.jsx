@@ -46,6 +46,7 @@ export default function WorkerRouteDetail() {
   const [activeRouteTab, setActiveRouteTab] = useState(tabParam || 'addresses');
   const [showStopModal, setShowStopModal] = useState(false);
   const [isCompletingRoute, setIsCompletingRoute] = useState(false);
+  const [dismissedOptWarning, setDismissedOptWarning] = useState(false);
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
@@ -648,15 +649,18 @@ export default function WorkerRouteDetail() {
         <DesktopWarningBanner />
 
         {/* Unoptimized addresses warning */}
-        {route?.optimized && addresses.some(a => !a.order_index || a.order_index <= 0) && activeRouteTab === 'addresses' && (
+        {!dismissedOptWarning && route?.optimized && addresses.filter(a => !a.served && a.status !== 'served').some(a => !a.order_index || a.order_index <= 0) && activeRouteTab === 'addresses' && (
           <div className="mb-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-semibold text-yellow-800">Some stops weren't fully optimized</p>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-yellow-800">Some stops couldn't be located</p>
               <p className="text-xs text-yellow-700 mt-0.5">
-                {addresses.filter(a => !a.order_index || a.order_index <= 0).length} address{addresses.filter(a => !a.order_index || a.order_index <= 0).length !== 1 ? 'es' : ''} couldn't be located and are shown at the end. Re-optimize to fix.
+                {addresses.filter(a => !a.served && a.status !== 'served' && (!a.order_index || a.order_index <= 0)).length} address{addresses.filter(a => !a.served && a.status !== 'served' && (!a.order_index || a.order_index <= 0)).length !== 1 ? 'es' : ''} couldn't be geocoded and are shown at the end.
               </p>
             </div>
+            <button onClick={() => setDismissedOptWarning(true)} className="p-1 rounded hover:bg-yellow-200 text-yellow-600 flex-shrink-0">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
