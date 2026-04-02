@@ -3,7 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronLeft, Loader2, MapPin, AlertCircle, FolderOpen } from 'lucide-react';
+import { ChevronLeft, Loader2, MapPin, AlertCircle, FolderOpen, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatAddress } from '@/components/utils/addressUtils';
 
@@ -128,6 +128,34 @@ export default function ComboRouteReview() {
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
+        {(combo.total_miles > 0 || combo.total_drive_time_minutes > 0) && (() => {
+          const mins = combo.total_drive_time_minutes || 0;
+          const driveLabel = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : mins > 0 ? `${mins}m` : '—';
+          const estDone = mins > 0
+            ? new Date(Date.now() + mins * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
+            : '—';
+          return (
+            <div className="bg-white rounded-xl border border-purple-100 shadow-sm mb-4">
+              <div className="grid grid-cols-3 gap-3 p-4">
+                <div className="flex flex-col items-center text-center">
+                  <MapPin className="w-4 h-4 mb-1 text-purple-600" />
+                  <span className="text-lg font-bold text-purple-600">{combo.total_miles?.toFixed(1) || '—'} mi</span>
+                  <span className="text-xs text-gray-500">Total Miles</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <Clock className="w-4 h-4 mb-1 text-purple-600" />
+                  <span className="text-lg font-bold text-purple-600">{driveLabel}</span>
+                  <span className="text-xs text-gray-500">Drive Time</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <CheckCircle className="w-4 h-4 mb-1 text-green-600" />
+                  <span className="text-lg font-bold text-green-600">{estDone}</span>
+                  <span className="text-xs text-gray-500">Est. Done</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
         {groupedBlocks.map((block, blockIdx) => (
           <div key={`${block.route_id}-${blockIdx}`} className="mb-4">
             {/* Folder header */}
