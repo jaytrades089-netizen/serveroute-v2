@@ -322,6 +322,8 @@ export default function ScanCamera() {
       if (!result.success || !result.parsedAddress) {
         if (!isBulkScan) {
           toast.error('No address found — try centering the document and scanning again');
+          setIsProcessing(false);
+          setProcessingText('');
           return;
         }
         // Bulk mode: add a failed record the worker must resolve manually

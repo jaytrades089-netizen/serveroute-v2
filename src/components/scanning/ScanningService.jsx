@@ -269,16 +269,25 @@ async function cropAndCompressBlob(blob) {
 // ImageCapture.takePhoto() bypasses that and returns a real JPEG directly from the camera.
 export async function captureAndCompressImage(videoElement) {
   // Primary path: ImageCapture API (Chrome Android, Edge)
+  // Re-grab track each call to avoid stale track references on Android after first capture
   if (videoElement.srcObject && typeof window.ImageCapture !== 'undefined') {
-    try {
-      const track = videoElement.srcObject.getVideoTracks()[0];
-      if (track) {
-        const imageCapture = new ImageCapture(track);
-        const blob = await imageCapture.takePhoto();
-        return await cropAndCompressBlob(blob);
+    const tracks = videoElement.srcObject.getVideoTracks();
+    const track = tracks.find(t => t.readyState === 'live') || tracks[0];
+    if (track && track.readyState === 'live') {
+      // Try up to 2 times before falling back to canvas
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const imageCapture = new ImageCapture(track);
+          const blob = await imageCapture.takePhoto();
+          return await cropAndCompressBlob(blob);
+        } catch (e) {
+          console.warn(`ImageCapture attempt ${attempt + 1} failed:`, e.name, e.message);
+          if (attempt === 0) {
+            // Short pause before retry — gives Android camera hardware time to recover
+            await new Promise(r => setTimeout(r, 300));
+          }
+        }
       }
-    } catch (e) {
-      console.warn('ImageCapture failed, falling back to canvas:', e.name, e.message);
     }
   }
 
@@ -306,84 +315,6 @@ export async function captureAndCompressImage(videoElement) {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   ctx.drawImage(videoElement, cropX, cropY, cropWidth, cropHeight, 0, 0, outputWidth, outputHeight);
   return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-}
-
-export async function checkImageQuality(imageBase64) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const sampleSize = 100;
-      canvas.width = Math.min(img.width, sampleSize);
-      canvas.height = Math.min(img.height, sampleSize);
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-      const pixelCount = data.length / 4;
-      
-      // Calculate brightness
-      let totalBrightness = 0;
-      const grayscale = [];
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const gray = (r + g + b) / 3;
-        totalBrightness += gray;
-        grayscale.push(gray);
-      }
-      const avgBrightness = totalBrightness / pixelCount;
-      
-      // Calculate Laplacian variance for blur detection
-      const width = canvas.width;
-      const height = canvas.height;
-      let laplacianSum = 0;
-      let laplacianCount = 0;
-      
-      for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-          const idx = y * width + x;
-          const laplacian = 
-            grayscale[idx - width] + 
-            grayscale[idx + width] + 
-            grayscale[idx - 1] + 
-            grayscale[idx + 1] - 
-            4 * grayscale[idx];
-          laplacianSum += laplacian * laplacian;
-          laplacianCount++;
-        }
-      }
-      const laplacianVariance = laplacianCount > 0 ? laplacianSum / laplacianCount : 0;
-      
-      const issues = [];
-      
-      // Brightness checks
-      if (avgBrightness < 50) {
-        issues.push({ type: 'dark', message: 'Image is too dark. Try better lighting.' });
-      }
-      if (avgBrightness > 220) {
-        issues.push({ type: 'bright', message: 'Image is too bright/washed out.' });
-      }
-      
-      // Blur check — lowered threshold for Android cameras with slower autofocus
-      const BLUR_THRESHOLD = 25;
-      if (laplacianVariance < BLUR_THRESHOLD) {
-        issues.push({ type: 'blur', message: 'Image appears blurry. Hold steady and try again.' });
-      }
-      
-      resolve({
-        quality: issues.length === 0 ? 'good' : 'poor',
-        issues,
-        brightness: avgBrightness,
-        sharpness: laplacianVariance,
-        canProcess: avgBrightness >= 30 && avgBrightness <= 240 && laplacianVariance >= BLUR_THRESHOLD
-      });
-    };
-    img.onerror = () => resolve({ quality: 'unknown', issues: [], canProcess: true });
-    img.src = 'data:image/jpeg;base64,' + imageBase64;
-  });
 }
 
 // Camera helpers
