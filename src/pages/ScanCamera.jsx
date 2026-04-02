@@ -28,6 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { geocodeWithMapQuest } from '@/components/services/OptimizationService';
 import {
   DOCUMENT_INFO,
   PAY_RATES,
@@ -71,10 +72,21 @@ export default function ScanCamera() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
   const sessionId = urlParams.get('sessionId');
+  const isBulkScan = urlParams.get('bulk') === 'true';
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
+  });
+
+  const { data: userSettings } = useQuery({
+    queryKey: ['userSettings', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const settings = await base44.entities.UserSettings.filter({ user_id: user.id });
+      return settings[0] || null;
+    },
+    enabled: !!user?.id
   });
 
   // Initialize session
@@ -308,7 +320,30 @@ export default function ScanCamera() {
 
       // Only add successful extractions to the list
       if (!result.success || !result.parsedAddress) {
-        toast.error('No address found — try centering the document and scanning again');
+        if (!isBulkScan) {
+          toast.error('No address found — try centering the document and scanning again');
+          return;
+        }
+        // Bulk mode: add a failed record the worker must resolve manually
+        const failedAddress = {
+          tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+          imageBase64,
+          ocrRawText: result.rawText || '',
+          extractedData: null,
+          manualEntry: '',
+          status: 'failed',
+          error: 'OCR could not extract an address'
+        };
+        const latestSession = sessionRef.current;
+        const updatedAddresses = [failedAddress, ...latestSession.addresses];
+        const updatedSession = {
+          ...latestSession,
+          addresses: updatedAddresses,
+          lastUpdated: new Date().toISOString()
+        };
+        updateSession(updatedSession);
+        saveScanSession(updatedSession);
+        toast.error('Could not read address — type it in below before continuing');
         return;
       }
 
@@ -332,6 +367,22 @@ export default function ScanCamera() {
         status: 'extracted',
         error: null
       };
+
+      // Bulk mode: geocode immediately after OCR
+      if (isBulkScan) {
+        const apiKey = userSettings?.mapquest_api_key;
+        if (apiKey && newAddress.extractedData?.fullAddress) {
+          try {
+            const coords = await geocodeWithMapQuest(newAddress.extractedData.fullAddress, apiKey);
+            if (coords) {
+              newAddress.lat = coords.lat;
+              newAddress.lng = coords.lng;
+            }
+          } catch (err) {
+            console.warn('Geocode failed for:', newAddress.extractedData.fullAddress);
+          }
+        }
+      }
 
       // Re-read ref to get the absolute latest (in case another capture completed between await calls)
       const latestSession = sessionRef.current;
@@ -435,6 +486,8 @@ export default function ScanCamera() {
     
     if (isAddToRouteMode) {
       navigate(createPageUrl(`ScanAddToRoute?sessionId=${session.id}`));
+    } else if (isBulkScan) {
+      navigate(createPageUrl(`BulkScanOptimize?sessionId=${session.id}`));
     } else {
       navigate(createPageUrl(`ScanSortReview?sessionId=${session.id}`));
     }
@@ -658,6 +711,50 @@ export default function ScanCamera() {
         ) : (
           <div className="space-y-2">
             {session.addresses.map((addr) => {
+              // Failed OCR card (bulk mode)
+              if (addr.status === 'failed') {
+                return (
+                  <Card key={addr.tempId} className="bg-red-50 border-2 border-red-300">
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm text-red-800">Could not extract address</p>
+                          <p className="text-xs text-red-600 mb-2">{addr.error}</p>
+                          <input
+                            type="text"
+                            className="w-full border border-red-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
+                            placeholder="Type address manually..."
+                            value={addr.manualEntry || ''}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              const current = sessionRef.current;
+                              if (!current) return;
+                              const updatedAddresses = current.addresses.map(a =>
+                                a.tempId === addr.tempId
+                                  ? { ...a, manualEntry: val, status: val.length > 5 ? 'resolved' : 'failed' }
+                                  : a
+                              );
+                              const updatedSession = { ...current, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
+                              updateSession(updatedSession);
+                              saveScanSession(updatedSession);
+                            }}
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-red-400 hover:text-red-600"
+                          onClick={() => handleRemoveAddress(addr.tempId)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              }
+
               const conf = getConfidenceDisplay(addr.confidence || 0);
               const ConfIcon = conf.icon;
               
@@ -704,7 +801,6 @@ export default function ScanCamera() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem 
                             onClick={() => {
-                              // Navigate to preview page for editing
                               const updatedSession = {
                                 ...session,
                                 currentStep: 'route_setup',
@@ -736,19 +832,27 @@ export default function ScanCamera() {
       </div>
 
       {/* Save Route Button - Fixed Bottom */}
-      <div className="bg-white border-t p-4">
-        <Button
-          className={`w-full h-12 text-base text-white ${isAddToRouteMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600'}`}
-          onClick={handleSaveRoute}
-          disabled={session.addresses.length === 0}
-        >
+      {(() => {
+        const hasUnresolvedFailures = isBulkScan && session.addresses.some(a => a.status === 'failed');
+        return (
+          <div className="bg-white border-t p-4">
+            {hasUnresolvedFailures && (
+              <p className="text-xs text-red-500 text-center mb-2">Resolve all failed scans before continuing</p>
+            )}
+            <Button
+              className={`w-full h-12 text-base text-white ${isAddToRouteMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600'}`}
+              onClick={handleSaveRoute}
+              disabled={session.addresses.length === 0 || hasUnresolvedFailures}
+            >
           <Save className="w-5 h-5 mr-2" />
-          {isAddToRouteMode 
-            ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})` 
-            : `Save Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
-          }
-        </Button>
-      </div>
+              {isAddToRouteMode 
+                ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})` 
+                : `Save Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
+              }
+            </Button>
+          </div>
+        );
+      })()}
 
     </div>
   );
