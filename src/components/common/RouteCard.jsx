@@ -1,4 +1,6 @@
 import React from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format, differenceInDays } from 'date-fns';
@@ -22,7 +24,9 @@ import {
   Eye,
   Plus,
   CalendarPlus,
-  X
+  X,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar as CalendarPicker } from '@/components/ui/calendar';
@@ -147,7 +151,13 @@ export default function RouteCard({
   addresses = []
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
+  const [showScheduleQueue, setShowScheduleQueue] = React.useState(false);
+  const [showQueueCalendar, setShowQueueCalendar] = React.useState(false);
+  const [pendingQueueDate, setPendingQueueDate] = React.useState(null);
+  const [pendingQueueQualifiers, setPendingQueueQualifiers] = React.useState([]);
+  const [savingQueue, setSavingQueue] = React.useState(false);
   const [pendingQualifiers, setPendingQualifiers] = React.useState(route.run_qualifiers || []);
   const [pendingDate, setPendingDate] = React.useState(route.run_date ? parseISO(route.run_date) : undefined);
 
@@ -183,6 +193,45 @@ export default function RouteCard({
   const statusConfig = STATUS_CONFIG[route.status] || STATUS_CONFIG.draft;
 
   // If onClick is explicitly a no-op function, disable card-level click navigation
+  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+
+  const handleAddToQueue = async () => {
+    if (!pendingQueueDate) return;
+    setSavingQueue(true);
+    try {
+      const newEntry = { date: format(pendingQueueDate, 'yyyy-MM-dd'), qualifiers: pendingQueueQualifiers };
+      const newQueue = [...scheduledRuns, newEntry];
+      await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+      setPendingQueueDate(null);
+      setPendingQueueQualifiers([]);
+      setShowQueueCalendar(false);
+    } catch (err) {
+      console.error('Failed to save queue entry:', err);
+    } finally {
+      setSavingQueue(false);
+    }
+  };
+
+  const handleRemoveFromQueue = async (index) => {
+    setSavingQueue(true);
+    try {
+      const newQueue = scheduledRuns.filter((_, i) => i !== index);
+      await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+    } catch (err) {
+      console.error('Failed to remove queue entry:', err);
+    } finally {
+      setSavingQueue(false);
+    }
+  };
+
+  const togglePendingQualifier = (q) => {
+    setPendingQueueQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]);
+  };
+
   const isClickDisabled = onClick && onClick.toString().replace(/\s/g, '') === '()=>{}';
   
   const handleCardClick = () => {
@@ -524,37 +573,132 @@ export default function RouteCard({
         {/* + Schedule button row */}
         {onScheduleRunDate && !isBossView && (
           <div className="mb-2" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="flex items-center gap-1.5 text-xs font-semibold transition-colors px-2 py-1.5 rounded-lg"
-              style={{ color: '#e9c349' }}
-              onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(true); }}
-            >
-              {route.run_date ? (
-                <>
-                  📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
-                  {route.run_qualifiers && route.run_qualifiers.length > 0 && (
-                    <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
-                  )}
-                  {onScheduleRunDate && (
-                    <span
-                      role="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        onScheduleRunDate(route.id, null, []);
-                      }}
-                      className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+            <div className="flex items-center">
+              <button 
+                className="flex-1 flex items-center gap-1.5 text-xs font-semibold transition-colors px-2 py-1.5 rounded-lg"
+                style={{ color: '#e9c349' }}
+                onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(true); }}
+              >
+                {route.run_date ? (
+                  <>
+                    📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
+                    {route.run_qualifiers && route.run_qualifiers.length > 0 && (
+                      <span className="ml-1"><QualifierBadges badges={route.run_qualifiers} size="small" /></span>
+                    )}
+                    {onScheduleRunDate && (
+                      <span
+                        role="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          onScheduleRunDate(route.id, null, []);
+                        }}
+                        className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </span>
+                    )}
+                  </>
+                ) : '+ Schedule'}
+              </button>
+              {route.run_date && (
+                <div className="relative">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowScheduleQueue(prev => !prev); }}
+                    className="p-1.5 rounded-lg text-yellow-500 hover:text-yellow-300 transition-colors ml-1"
+                    title="Schedule queue"
+                  >
+                    {showScheduleQueue ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    {scheduledRuns.length > 0 && !showScheduleQueue && (
+                      <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                        {scheduledRuns.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* EXPANDED QUEUE SECTION */}
+            {showScheduleQueue && route.run_date && (
+              <div className="mt-2 ml-2 border-l-2 border-yellow-600/30 pl-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                {scheduledRuns.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 py-1">
+                    <span className="text-xs font-medium" style={{ color: '#e9c349' }}>
+                      📅 {format(parseISO(item.date), 'EEE, MMM d')}
+                    </span>
+                    {item.qualifiers && item.qualifiers.length > 0 && (
+                      <QualifierBadges badges={item.qualifiers} size="small" />
+                    )}
+                    <button
+                      onClick={() => handleRemoveFromQueue(idx)}
+                      className="ml-auto p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                      disabled={savingQueue}
                     >
                       <X className="w-3.5 h-3.5" />
-                    </span>
-                  )}
-                </>
-              ) : '+ Schedule'}
-            </button>
+                    </button>
+                  </div>
+                ))}
+                {!showQueueCalendar && (
+                  <button
+                    onClick={() => setShowQueueCalendar(true)}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 px-2 py-1.5 rounded-lg hover:bg-blue-900/20 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    Add next run
+                  </button>
+                )}
+                {showQueueCalendar && (
+                  <div className="mt-2 bg-white border border-blue-200 rounded-xl shadow-md overflow-hidden">
+                    <CalendarPicker
+                      mode="single"
+                      selected={pendingQueueDate}
+                      onSelect={(date) => setPendingQueueDate(date)}
+                      disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                      className="mx-auto"
+                    />
+                    <div className="px-3 pb-2">
+                      <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
+                      <div className="flex gap-2">
+                        {['AM', 'PM', 'WEEKEND'].map(q => (
+                          <button
+                            key={q}
+                            onClick={() => togglePendingQualifier(q)}
+                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                              pendingQueueQualifiers.includes(q)
+                                ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
+                                  : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
+                                  : 'bg-purple-500 text-white border-purple-500'
+                                : 'bg-white text-gray-500 border-gray-200'
+                            }`}
+                          >
+                            {q}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 px-3 pb-3">
+                      <button
+                        onClick={() => { setShowQueueCalendar(false); setPendingQueueDate(null); setPendingQueueQualifiers([]); }}
+                        className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAddToQueue}
+                        disabled={!pendingQueueDate || savingQueue}
+                        className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {savingQueue ? 'Saving...' : 'Add to Queue'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Full-screen overlay calendar */}
             {showRunDatePicker && (() => {
-              // Compute due date and spread due date for markers
               const dueDateObj = route.due_date ? new Date(route.due_date) : null;
               let spreadDueDateObj = null;
               if (route.first_attempt_date) {
@@ -573,7 +717,6 @@ export default function RouteCard({
                 calendarModifiersClassNames.spreadDate = 'calendar-spread-date';
               }
 
-              // Detect if any changes were made
               const originalDate = route.run_date ? parseISO(route.run_date) : undefined;
               const originalQualifiers = route.run_qualifiers || [];
               const dateChanged = pendingDate?.toDateString() !== originalDate?.toDateString();
@@ -639,7 +782,6 @@ export default function RouteCard({
                           caption: "text-base font-semibold text-center py-2"
                         }}
                       />
-                      {/* Legend */}
                       <div className="flex items-center justify-center gap-6 mt-2 pb-1">
                         {dueDateObj && (
                           <div className="flex items-center gap-1.5">
@@ -656,7 +798,6 @@ export default function RouteCard({
                       </div>
                     </div>
                     
-                    {/* Qualifier selector */}
                     <div className="px-4 py-3 border-t border-gray-100">
                       <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
                       <div className="flex gap-2">
@@ -715,7 +856,6 @@ export default function RouteCard({
         )}
 
         <div className="flex items-center">
-          {/* 3-dot menu */}
           <div className="mr-2">
             <RouteCardMenu 
               route={route} 
@@ -726,7 +866,6 @@ export default function RouteCard({
             />
           </div>
 
-          {/* View Button */}
           <button 
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-colors"
             style={{ border: '1px solid #363436' }}

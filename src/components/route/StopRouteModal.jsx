@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { X, Clock, MapPin, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 
 const QUALIFIER_OPTIONS = [
@@ -19,9 +19,19 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [nextRunDate, setNextRunDate] = useState(null);
-  const [selectedQualifiers, setSelectedQualifiers] = useState([]);
   const [showCalendar, setShowCalendar] = useState(false);
+
+  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+  const hasQueuedRun = scheduledRuns.length > 0;
+  const nextQueued = hasQueuedRun ? scheduledRuns[0] : null;
+
+  const [nextRunDate, setNextRunDate] = useState(
+    nextQueued?.date ? parseISO(nextQueued.date) : null
+  );
+  const [selectedQualifiers, setSelectedQualifiers] = useState(
+    nextQueued?.qualifiers || []
+  );
+  const [autoFilledFromQueue, setAutoFilledFromQueue] = useState(hasQueuedRun);
 
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
@@ -48,9 +58,13 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
     setSaving(true);
     try {
       // Save schedule + stop in one update
+      const currentQueue = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+      const updatedQueue = autoFilledFromQueue ? currentQueue.slice(1) : currentQueue;
+
       await base44.entities.Route.update(route.id, {
         run_date: nextRunDate ? format(nextRunDate, 'yyyy-MM-dd') : null,
         run_qualifiers: selectedQualifiers,
+        scheduled_runs: updatedQueue,
         status: 'ready',
         started_at: null
       });
@@ -135,6 +149,17 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
           {/* CARD 3: Schedule Next Run */}
           <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
             <h3 className="text-xs font-bold text-gray-700 mb-2 uppercase tracking-wide">Schedule Next Run</h3>
+            {autoFilledFromQueue && (
+              <div className="flex items-center gap-1.5 mb-2 px-2 py-1 bg-blue-50 rounded-lg border border-blue-200">
+                <span className="text-[10px] text-blue-600 font-medium">✓ Auto-filled from your scheduled queue</span>
+                <button
+                  onClick={() => { setNextRunDate(null); setSelectedQualifiers([]); setAutoFilledFromQueue(false); }}
+                  className="ml-auto text-[10px] text-blue-400 hover:text-blue-600 underline"
+                >
+                  Clear
+                </button>
+              </div>
+            )}
             
             {/* Date Picker */}
             <button
