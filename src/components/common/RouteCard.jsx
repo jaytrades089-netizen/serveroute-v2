@@ -782,159 +782,95 @@ export default function RouteCard({
 
         {/* Full-screen overlay calendar */}
         {showRunDatePicker && (() => {
-              const dueDateObj = route.due_date ? new Date(route.due_date) : null;
-              let spreadDueDateObj = null;
-              if (route.first_attempt_date) {
-                spreadDueDateObj = new Date(route.first_attempt_date);
-                spreadDueDateObj.setDate(spreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
-              }
-              
-              const calendarModifiers = {};
-              const calendarModifiersClassNames = {};
-              if (dueDateObj) {
-                calendarModifiers.dueDate = dueDateObj;
-                calendarModifiersClassNames.dueDate = 'calendar-due-date';
-              }
-              if (spreadDueDateObj) {
-                calendarModifiers.spreadDate = spreadDueDateObj;
-                calendarModifiersClassNames.spreadDate = 'calendar-spread-date';
-              }
-
-              const originalDate = route.run_date ? parseISO(route.run_date) : undefined;
-              const originalQualifiers = route.run_qualifiers || [];
-              const dateChanged = pendingDate?.toDateString() !== originalDate?.toDateString();
-              const qualifiersChanged = JSON.stringify([...pendingQualifiers].sort()) !== JSON.stringify([...originalQualifiers].sort());
-              const hasChanges = dateChanged || qualifiersChanged;
-
-              return (
-                <div 
-                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
-                  onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(false); setPendingDate(originalDate); setPendingQualifiers(originalQualifiers); }}
-                >
-                  <div 
-                    className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <div className="p-4">
-                      <style>{`
-                        .calendar-due-date { position: relative; }
-                        .calendar-due-date::after {
-                          content: '';
-                          position: absolute;
-                          bottom: 2px;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          width: 18px;
-                          height: 3px;
-                          border-radius: 2px;
-                          background-color: #ef4444;
-                        }
-                        .calendar-spread-date { position: relative; }
-                        .calendar-spread-date::after {
-                          content: '';
-                          position: absolute;
-                          bottom: 2px;
-                          left: 50%;
-                          transform: translateX(-50%);
-                          width: 18px;
-                          height: 3px;
-                          border-radius: 2px;
-                          background-color: #22c55e;
-                        }
-                      `}</style>
-                      <CalendarPicker
-                        mode="single"
-                        selected={pendingDate}
-                        onSelect={(date) => setPendingDate(date)}
-                        modifiers={calendarModifiers}
-                        modifiersClassNames={calendarModifiersClassNames}
-                        className="w-full mx-auto"
-                        classNames={{
-                          months: "w-full flex justify-center",
-                          month: "w-full",
-                          table: "w-full border-collapse",
-                          head_row: "flex w-full justify-between",
-                          head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
-                          row: "flex w-full justify-between mt-1",
-                          cell: "flex-1 flex items-center justify-center p-0",
-                          day: "h-11 w-11 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors",
-                          day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
-                          day_today: "bg-gray-100 font-bold",
-                          nav: "flex items-center justify-between px-2 pb-2",
-                          nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
-                          caption: "text-base font-semibold text-center py-2"
-                        }}
-                      />
-                      <div className="flex items-center justify-center gap-6 mt-2 pb-1">
-                        {dueDateObj && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
-                            <span className="text-xs text-gray-500">D. Date</span>
-                          </div>
-                        )}
-                        {spreadDueDateObj && (
-                          <div className="flex items-center gap-1.5">
-                            <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
-                            <span className="text-xs text-gray-500">Spread D. Date</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="px-4 py-3 border-t border-gray-100">
-                      <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
-                      <div className="flex gap-2">
-                        {['AM', 'PM', 'WEEKEND'].map(q => (
-                          <button
-                            key={q}
-                            onClick={() => toggleQualifier(q)}
-                            className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
-                              pendingQualifiers.includes(q)
-                                ? q === 'AM' ? 'bg-amber-100 text-amber-800 border-amber-300'
-                                  : q === 'PM' ? 'bg-blue-100 text-blue-800 border-blue-300'
-                                  : 'bg-purple-100 text-purple-800 border-purple-300'
-                                : 'bg-gray-100 text-gray-400 border-gray-200'
-                            }`}
-                          >
-                            {q}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="px-4 pb-4 flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => {
-                          setPendingDate(originalDate);
-                          setPendingQualifiers(originalQualifiers);
-                          setShowRunDatePicker(false);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        size="sm"
-                        className={`flex-1 font-semibold transition-all ${
-                          hasChanges 
-                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                            : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                        }`}
-                        disabled={!hasChanges}
-                        onClick={() => {
-                          onScheduleRunDate(route.id, pendingDate || null, pendingQualifiers);
-                          setShowRunDatePicker(false);
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </div>
+          const dueDateObj = route.due_date ? new Date(route.due_date) : null;
+          let spreadDueDateObj = null;
+          if (route.first_attempt_date) {
+            spreadDueDateObj = new Date(route.first_attempt_date);
+            spreadDueDateObj.setDate(spreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+          }
+          const calendarModifiers = {};
+          const calendarModifiersClassNames = {};
+          if (dueDateObj) {
+            calendarModifiers.dueDate = dueDateObj;
+            calendarModifiersClassNames.dueDate = 'calendar-due-date';
+          }
+          if (spreadDueDateObj) {
+            calendarModifiers.spreadDate = spreadDueDateObj;
+            calendarModifiersClassNames.spreadDate = 'calendar-spread-date';
+          }
+          const originalDate = route.run_date ? parseISO(route.run_date) : undefined;
+          const originalQualifiers = route.run_qualifiers || [];
+          const dateChanged = pendingDate?.toDateString() !== originalDate?.toDateString();
+          const qualifiersChanged = JSON.stringify([...pendingQualifiers].sort()) !== JSON.stringify([...originalQualifiers].sort());
+          const hasChanges = dateChanged || qualifiersChanged;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
+              onClick={(e) => { e.stopPropagation(); setShowRunDatePicker(false); setPendingDate(originalDate); setPendingQualifiers(originalQualifiers); }}
+            >
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="p-4">
+                  <style>{`
+                    .calendar-due-date { position: relative; }
+                    .calendar-due-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #ef4444; }
+                    .calendar-spread-date { position: relative; }
+                    .calendar-spread-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #22c55e; }
+                  `}</style>
+                  <CalendarPicker
+                    mode="single"
+                    selected={pendingDate}
+                    onSelect={(date) => setPendingDate(date)}
+                    modifiers={calendarModifiers}
+                    modifiersClassNames={calendarModifiersClassNames}
+                    className="w-full mx-auto"
+                    classNames={{
+                      months: "w-full flex justify-center",
+                      month: "w-full",
+                      table: "w-full border-collapse",
+                      head_row: "flex w-full justify-between",
+                      head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
+                      row: "flex w-full justify-between mt-1",
+                      cell: "flex-1 flex items-center justify-center p-0",
+                      day: "h-11 w-11 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors",
+                      day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
+                      day_today: "bg-gray-100 font-bold",
+                      nav: "flex items-center justify-between px-2 pb-2",
+                      nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
+                      caption: "text-base font-semibold text-center py-2"
+                    }}
+                  />
+                  <div className="flex items-center justify-center gap-6 mt-2 pb-1">
+                    {dueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-red-500"></span><span className="text-xs text-gray-500">D. Date</span></div>}
+                    {spreadDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-green-500"></span><span className="text-xs text-gray-500">Spread D. Date</span></div>}
                   </div>
                 </div>
-              );
-            })()}
+                <div className="px-4 py-3 border-t border-gray-100">
+                  <p className="text-xs font-semibold text-gray-500 mb-2">QUALIFIER FOR THIS RUN</p>
+                  <div className="flex gap-2">
+                    {['AM', 'PM', 'WEEKEND'].map(q => (
+                      <button key={q} onClick={() => toggleQualifier(q)}
+                        className={`px-4 py-2 rounded-full text-sm font-bold border transition-all ${
+                          pendingQualifiers.includes(q)
+                            ? q === 'AM' ? 'bg-amber-100 text-amber-800 border-amber-300'
+                              : q === 'PM' ? 'bg-blue-100 text-blue-800 border-blue-300'
+                              : 'bg-purple-100 text-purple-800 border-purple-300'
+                            : 'bg-gray-100 text-gray-400 border-gray-200'
+                        }`}
+                      >{q}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="px-4 pb-4 flex gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => { setPendingDate(originalDate); setPendingQualifiers(originalQualifiers); setShowRunDatePicker(false); }}>Cancel</Button>
+                  <Button size="sm" disabled={!hasChanges}
+                    className={`flex-1 font-semibold transition-all ${hasChanges ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                    onClick={() => { onScheduleRunDate(route.id, pendingDate || null, pendingQualifiers); setShowRunDatePicker(false); }}
+                  >Save</Button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="flex items-center">
           <div className="mr-2">
