@@ -247,6 +247,21 @@ export default function RouteCard({
   
   // Spread days from route
   const spreadDays = route.minimum_days_spread || route.spread_type || 14;
+
+  const estTotalMinutes = (() => {
+    if (!route.total_drive_time_minutes || route.total_drive_time_minutes <= 0) return null;
+    const dwell = (route.time_at_address_minutes || 2) * (route.total_addresses || 0);
+    return route.total_drive_time_minutes + dwell;
+  })();
+
+  const estTimeLabel = (() => {
+    if (!estTotalMinutes) return null;
+    const h = Math.floor(estTotalMinutes / 60);
+    const m = estTotalMinutes % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+  })();
   
   // Check if ALL addresses have met requirements (ready for turn-in)
   const allAddressesComplete = (() => {
@@ -369,6 +384,12 @@ export default function RouteCard({
             )}
           </div>
           <div className="flex-shrink-0 ml-3 flex items-center gap-2">
+            {estTimeLabel && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold border border-gray-200">
+                <Clock className="w-3.5 h-3.5 text-gray-500" />
+                {estTimeLabel}
+              </span>
+            )}
             <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-bold">
               {spreadDays}d
             </span>

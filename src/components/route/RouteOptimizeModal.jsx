@@ -372,38 +372,17 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
-      // Save order_index in batches of 10
-      const BATCH_SIZE = 10;
-      for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
-        const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
-        await Promise.all(
-          batch.map((addr, i) =>
-            base44.entities.Address.update(addr.id, {
-              order_index: start + i + 1,
-              zone_label: addr.zone_label || null
-            })
-          )
-        );
-      }
-
-      const startLocationData = useCurrentLocation
-        ? { lat: startLat, lng: startLng }
-        : {
-            address: savedLocations.find(loc => loc.id === selectedStartLocation)?.address,
-            lat: startLat,
-            lng: startLng
-          };
-
-      await base44.entities.Route.update(routeId, {
-        optimized: true,
-        ending_point: endLocation ? { address: endLocation.address, lat: endLocation.latitude, lng: endLocation.longitude } : null,
-        starting_point: startLocationData
-      });
-
-      if (selectedEndLocation) {
-        await base44.entities.SavedLocation.update(selectedEndLocation, {
-          last_used: new Date().toISOString()
+      // Save metrics to route immediately — so card shows time even if not started
+      try {
+        await base44.entities.Route.update(routeId, {
+          total_miles: metrics.totalMiles,
+          total_drive_time_minutes: metrics.totalTimeMinutes,
+          time_at_address_minutes: timeAtAddress
         });
+        await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+        await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      } catch (saveErr) {
+        console.warn('Could not save route metrics:', saveErr);
       }
 
       // Force immediate refetch so the address list updates right away
