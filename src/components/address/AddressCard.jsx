@@ -1246,7 +1246,6 @@ export default function AddressCard({
         {/* ATTEMPT TAB - Individual attempt details (not for postings) */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
           <div className="px-4 py-3 border-t border-[#363436]">
-            {/* Header with qualifier badges */}
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[#8a7d87]">
                 ATTEMPT {activeTab} {selectedAttempt.status === 'in_progress' && '(IN PROGRESS)'}
@@ -1257,13 +1256,12 @@ export default function AddressCard({
               />
             </div>
 
-            {/* Date & Time — editable when allowed */}
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-amber-400" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-[#8a7d87] font-medium">DATE & TIME</p>
+                <p className="text-xs text-[#8a7d87] font-medium">DATE &amp; TIME</p>
                 {canEditAttemptTimes && selectedAttempt.status === 'completed' ? (
                   <input
                     type="datetime-local"
@@ -1293,7 +1291,6 @@ export default function AddressCard({
               </div>
             </div>
 
-            {/* Coordinates */}
             {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-indigo-900/30 flex items-center justify-center">
@@ -1308,7 +1305,6 @@ export default function AddressCard({
               </div>
             )}
 
-            {/* Distance */}
             {selectedAttempt.distance_feet != null && (
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-green-900/30 flex items-center justify-center">
@@ -1323,7 +1319,6 @@ export default function AddressCard({
               </div>
             )}
 
-            {/* Notes (editable) */}
             {editingNotes ? (
               <div className="bg-blue-950/30 rounded-xl p-4 mb-4 border border-blue-800/40">
                 <div className="flex items-center gap-2 mb-2">
@@ -1377,7 +1372,6 @@ export default function AddressCard({
               </div>
             ) : null}
 
-            {/* Action Buttons Row: Delete / Add Photos / View Photos */}
             <div className="grid grid-cols-3 gap-2">
               <Button
                 variant="outline"
@@ -1407,8 +1401,8 @@ export default function AddressCard({
                 <span>Photos{selectedAttempt.photo_urls?.length ? ` (${selectedAttempt.photo_urls.length})` : ''}</span>
               </Button>
             </div>
-            </div>
-            )}
+          </div>
+        )}
 
         {/* No Attempts Yet - Show badges */}
         {attemptCount === 0 && !isServed && (
