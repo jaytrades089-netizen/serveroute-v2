@@ -664,13 +664,79 @@ export default function RouteCard({
                 )}
                 {showQueueCalendar && (
                   <div className="mt-2 bg-white border border-blue-200 rounded-xl shadow-md overflow-hidden">
-                    <CalendarPicker
-                      mode="single"
-                      selected={pendingQueueDate}
-                      onSelect={(date) => setPendingQueueDate(date)}
-                      disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                      className="mx-auto"
-                    />
+                    {(() => {
+                      const qDueDateObj = route.due_date ? new Date(route.due_date) : null;
+                      let qSpreadDueDateObj = null;
+                      if (route.first_attempt_date) {
+                        qSpreadDueDateObj = new Date(route.first_attempt_date);
+                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+                      }
+                      const qCalendarModifiers = {};
+                      const qCalendarModifiersClassNames = {};
+                      if (qDueDateObj) {
+                        qCalendarModifiers.dueDate = qDueDateObj;
+                        qCalendarModifiersClassNames.dueDate = 'queue-cal-due-date';
+                      }
+                      if (qSpreadDueDateObj) {
+                        qCalendarModifiers.spreadDate = qSpreadDueDateObj;
+                        qCalendarModifiersClassNames.spreadDate = 'queue-cal-spread-date';
+                      }
+                      return (
+                        <>
+                          <style>{`
+                            .queue-cal-due-date { position: relative; }
+                            .queue-cal-due-date::after {
+                              content: '';
+                              position: absolute;
+                              bottom: 2px;
+                              left: 50%;
+                              transform: translateX(-50%);
+                              width: 18px;
+                              height: 3px;
+                              border-radius: 2px;
+                              background-color: #ef4444;
+                            }
+                            .queue-cal-spread-date { position: relative; }
+                            .queue-cal-spread-date::after {
+                              content: '';
+                              position: absolute;
+                              bottom: 2px;
+                              left: 50%;
+                              transform: translateX(-50%);
+                              width: 18px;
+                              height: 3px;
+                              border-radius: 2px;
+                              background-color: #22c55e;
+                            }
+                          `}</style>
+                          <CalendarPicker
+                            mode="single"
+                            selected={pendingQueueDate}
+                            onSelect={(date) => setPendingQueueDate(date)}
+                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                            className="mx-auto"
+                            modifiers={qCalendarModifiers}
+                            modifiersClassNames={qCalendarModifiersClassNames}
+                          />
+                          {(qDueDateObj || qSpreadDueDateObj) && (
+                            <div className="flex items-center justify-center gap-6 px-3 pb-2 pt-1">
+                              {qDueDateObj && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
+                                  <span className="text-xs text-gray-500">D. Date</span>
+                                </div>
+                              )}
+                              {qSpreadDueDateObj && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
+                                  <span className="text-xs text-gray-500">Spread D. Date</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                     <div className="px-3 pb-2">
                       <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
                       <div className="flex gap-2">
@@ -708,10 +774,8 @@ export default function RouteCard({
                     </div>
                   </div>
                 )}
-              </div>
-            )}
 
-            {/* Full-screen overlay calendar */}
+                {/* Full-screen overlay calendar */}
             {showRunDatePicker && (() => {
               const dueDateObj = route.due_date ? new Date(route.due_date) : null;
               let spreadDueDateObj = null;
