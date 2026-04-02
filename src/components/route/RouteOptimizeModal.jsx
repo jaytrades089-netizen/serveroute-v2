@@ -372,7 +372,21 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
-      // Save metrics to route immediately — so card shows time even if not started
+      // Save each address with its new order_index from optimization
+      console.log('Saving optimized order...');
+      for (let i = 0; i < optimizedAddresses.length; i++) {
+        const addr = optimizedAddresses[i];
+        try {
+          await base44.entities.Address.update(addr.id, {
+            order_index: i + 1,
+            zone_label: addr.zone_label || null
+          });
+        } catch (err) {
+          console.warn(`Failed to update order for address ${addr.id}:`, err);
+        }
+      }
+
+      // Save metrics to route
       try {
         await base44.entities.Route.update(routeId, {
           total_miles: metrics.totalMiles,
@@ -385,7 +399,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         console.warn('Could not save route metrics:', saveErr);
       }
 
-      // Force immediate refetch so the address list updates right away
+      // Force immediate refetch so the address list updates right away with new order
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
       toast.success('Route optimized! Review metrics below.');
