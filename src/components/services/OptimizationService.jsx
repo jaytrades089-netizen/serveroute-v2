@@ -380,3 +380,95 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   console.log(`Optimization complete! ${finalOrder.length} addresses sequenced from your GPS.`);
   return finalOrder;
 }
+
+// ─── Bulk Scan Auto-Split Functions ───────────────────────────────────────────
+
+function clusterByLongitude(addresses, n) {
+  const sorted = [...addresses].sort(
+    (a, b) => (a.lng || a.longitude || 0) - (b.lng || b.longitude || 0)
+  );
+  const groups = [];
+  const groupSize = Math.ceil(sorted.length / n);
+  for (let i = 0; i < n; i++) {
+    const slice = sorted.slice(i * groupSize, (i + 1) * groupSize);
+    if (slice.length > 0) groups.push(slice);
+  }
+  return groups;
+}
+
+async function getClusterRouteTime(addresses, apiKey, dwellMinutes) {
+  if (addresses.length === 0) return 0;
+  const centroid = calculateCentroid(addresses);
+  const locations = [
+    { latLng: { lat: centroid.lat, lng: centroid.lng } },
+    ...addresses.map(addr => ({
+      latLng: { lat: addr.lat || addr.latitude, lng: addr.lng || addr.longitude }
+    })),
+    { latLng: { lat: centroid.lat, lng: centroid.lng } }
+  ];
+  const url = `https://www.mapquestapi.com/directions/v2/optimizedroute?key=${apiKey}`;
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locations, options: { routeType: 'fastest' } })
+    });
+    const result = await response.json();
+    if (result.route?.time !== undefined) {
+      const driveMinutes = result.route.time / 60;
+      const dwellTotal = addresses.length * dwellMinutes;
+      return driveMinutes + dwellTotal;
+    }
+    return null;
+  } catch (error) {
+    console.error('Route time estimation failed:', error);
+    return null;
+  }
+}
+
+export async function autoSplitRoutes(addresses, maxMinutes, apiKey, dwellMinutes = 2) {
+  if (!apiKey) return null;
+
+  const validAddresses = addresses.filter(
+    a => (a.lat || a.latitude) && (a.lng || a.longitude)
+  );
+
+  if (validAddresses.length === 0) return null;
+
+  const singleTime = await getClusterRouteTime(validAddresses, apiKey, dwellMinutes);
+  if (singleTime !== null && singleTime <= maxMinutes) {
+    return {
+      groups: [{
+        pileNumber: 1,
+        addresses: validAddresses,
+        estimatedMinutes: Math.round(singleTime)
+      }],
+      allUnderLimit: true,
+      singleRoute: true
+    };
+  }
+
+  for (let n = 2; n <= 6; n++) {
+    const groups = clusterByLongitude(validAddresses, n);
+    const times = await Promise.all(
+      groups.map(g => getClusterRouteTime(g, apiKey, dwellMinutes))
+    );
+
+    if (times.some(t => t === null)) continue;
+
+    const allUnderLimit = times.every(t => t <= maxMinutes);
+
+    if (allUnderLimit || n === 6) {
+      return {
+        groups: groups.map((groupAddresses, i) => ({
+          pileNumber: i + 1,
+          addresses: groupAddresses,
+          estimatedMinutes: Math.round(times[i])
+        })),
+        allUnderLimit
+      };
+    }
+  }
+
+  return null;
+}
