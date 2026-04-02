@@ -401,6 +401,13 @@ export default function RouteCard({
 
   return (
     <div
+      style={{
+        background: 'linear-gradient(to right, rgba(233,195,73,0.5), rgba(233,195,73,0.03))',
+        padding: '1px',
+        borderRadius: '1rem'
+      }}
+    >
+    <div
       onClick={handleCardClick}
       className={`rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
         isClickDisabled ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]'
@@ -414,11 +421,11 @@ export default function RouteCard({
               : isActiveRoute 
                 ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 border' 
                 : 'border'
-      } ${className}`}
-      style={
-        allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} 
-          : { background: '#1c1b1d', borderColor: '#363436' }
-      }
+      }`}
+      style={{
+        ...(allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} : { background: '#1c1b1d', borderColor: '#363436' }),
+        borderLeft: '5px solid #e9c349'
+      }}
     >
       {/* All Complete Banner */}
       {allAddressesComplete && (
@@ -1019,6 +1026,7 @@ export default function RouteCard({
           </button>
         </div>
       </div>
+    </div>
     </div>
   );
 }
