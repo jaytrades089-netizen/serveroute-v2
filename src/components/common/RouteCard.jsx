@@ -163,6 +163,9 @@ export default function RouteCard({
   const [pendingQueueDate, setPendingQueueDate] = React.useState(null);
   const [pendingQueueQualifiers, setPendingQueueQualifiers] = React.useState([]);
   const [savingQueue, setSavingQueue] = React.useState(false);
+  const [editingQueueIndex, setEditingQueueIndex] = React.useState(null);
+  const [editQueueDate, setEditQueueDate] = React.useState(null);
+  const [editQueueQualifiers, setEditQueueQualifiers] = React.useState([]);
   const [pendingQualifiers, setPendingQualifiers] = React.useState(route.run_qualifiers || []);
   const [pendingDate, setPendingDate] = React.useState(route.run_date ? parseISO(route.run_date) : undefined);
 
@@ -236,8 +239,42 @@ export default function RouteCard({
     }
   };
 
+  const closeQueueCalendar = () => {
+    setShowQueueCalendar(false);
+    setPendingQueueDate(null);
+    setPendingQueueQualifiers([]);
+    setEditingQueueIndex(null);
+    setEditQueueDate(null);
+    setEditQueueQualifiers([]);
+  };
+
   const togglePendingQualifier = (q) => {
     setPendingQueueQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]);
+  };
+
+  const handleUpdateQueueItem = async () => {
+    if (editQueueDate === null || editingQueueIndex === null) return;
+    setSavingQueue(true);
+    const newQueue = scheduledRuns.map((item, i) =>
+      i === editingQueueIndex
+        ? { date: format(editQueueDate, 'yyyy-MM-dd'), qualifiers: editQueueQualifiers }
+        : item
+    );
+    setScheduledRuns(newQueue);
+    setEditingQueueIndex(null);
+    setEditQueueDate(null);
+    setEditQueueQualifiers([]);
+    try {
+      await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['comboRoutes'] });
+    } catch (err) {
+      console.error('Failed to update queue entry:', err);
+    } finally {
+      setSavingQueue(false);
+    }
   };
 
   const isClickDisabled = onClick && onClick.toString().replace(/\s/g, '') === '()=>{}';
@@ -636,21 +673,102 @@ export default function RouteCard({
                   </p>
                 )}
 
+                {(showQueueCalendar || editingQueueIndex !== null) && (
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }}
+                  />
+                )}
+
                 {scheduledRuns.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 py-1">
-                    <span className="text-xs font-medium" style={{ color: '#e9c349' }}>
-                      📅 {format(parseISO(item.date), 'EEE, MMM d')}
-                    </span>
-                    {item.qualifiers && item.qualifiers.length > 0 && (
-                      <QualifierBadges badges={item.qualifiers} size="small" />
-                    )}
-                    <button
-                      onClick={() => handleRemoveFromQueue(idx)}
-                      className="ml-auto p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
-                      disabled={savingQueue}
+                  <div key={idx}>
+                    <div
+                      className="flex items-center gap-2 py-1 cursor-pointer hover:bg-blue-50 rounded-lg px-1 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditingQueueIndex(idx);
+                        setEditQueueDate(parseISO(item.date));
+                        setEditQueueQualifiers(item.qualifiers || []);
+                        setShowQueueCalendar(false);
+                      }}
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                      <span className="text-xs font-medium" style={{ color: '#e9c349' }}>
+                        📅 {format(parseISO(item.date), 'EEE, MMM d')}
+                      </span>
+                      {item.qualifiers && item.qualifiers.length > 0 && (
+                        <QualifierBadges badges={item.qualifiers} size="small" />
+                      )}
+                      <Pencil className="w-3 h-3 text-blue-300 ml-auto flex-shrink-0" />
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleRemoveFromQueue(idx); }}
+                        className="p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
+                        disabled={savingQueue}
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    {editingQueueIndex === idx && (() => {
+                      const qDueDateObj = route.due_date ? new Date(route.due_date) : null;
+                      let qSpreadDueDateObj = null;
+                      if (route.first_attempt_date) {
+                        qSpreadDueDateObj = new Date(route.first_attempt_date);
+                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+                      } else if (qDueDateObj) {
+                        qSpreadDueDateObj = new Date(qDueDateObj);
+                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() - (route.minimum_days_spread || 14));
+                      }
+                      const qCalMod = {};
+                      const qCalModCN = {};
+                      if (qDueDateObj) { qCalMod.dueDate = qDueDateObj; qCalModCN.dueDate = 'queue-cal-due'; }
+                      if (qSpreadDueDateObj) { qCalMod.spreadDate = qSpreadDueDateObj; qCalModCN.spreadDate = 'queue-cal-spread'; }
+                      return (
+                        <div className="mt-1 bg-white border border-blue-200 rounded-xl shadow-md overflow-hidden relative z-20">
+                          <style>{`
+                            .queue-cal-due { position: relative; }
+                            .queue-cal-due::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #ef4444; }
+                            .queue-cal-spread { position: relative; }
+                            .queue-cal-spread::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #22c55e; }
+                          `}</style>
+                          <CalendarPicker
+                            mode="single"
+                            selected={editQueueDate}
+                            onSelect={(date) => setEditQueueDate(date)}
+                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                            className="mx-auto"
+                            modifiers={qCalMod}
+                            modifiersClassNames={qCalModCN}
+                          />
+                          {(qDueDateObj || qSpreadDueDateObj) && (
+                            <div className="flex items-center justify-center gap-6 px-3 pb-1">
+                              {qDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-red-500" /><span className="text-xs text-gray-500">D. Date</span></div>}
+                              {qSpreadDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-green-500" /><span className="text-xs text-gray-500">Spread D. Date</span></div>}
+                            </div>
+                          )}
+                          <div className="px-3 pb-2 pt-1">
+                            <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
+                            <div className="flex gap-2">
+                              {['AM', 'PM', 'WEEKEND'].map(q => (
+                                <button key={q}
+                                  onClick={(e) => { e.stopPropagation(); setEditQueueQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]); }}
+                                  className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                    editQueueQualifiers.includes(q)
+                                      ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
+                                        : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
+                                        : 'bg-purple-500 text-white border-purple-500'
+                                      : 'bg-white text-gray-500 border-gray-200'
+                                  }`}
+                                >{q}</button>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="flex gap-2 px-3 pb-3">
+                            <button onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }} className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
+                            <button onClick={(e) => { e.stopPropagation(); handleUpdateQueueItem(); }} disabled={!editQueueDate || savingQueue} className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">{savingQueue ? 'Saving...' : 'Update'}</button>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 ))}
                 {!showQueueCalendar && (
