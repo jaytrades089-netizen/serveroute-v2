@@ -25,7 +25,7 @@ const topStats = [
     label: 'Served', 
     icon: CheckCircle, 
     bgColor: 'bg-[#1c1b1d]',
-    textColor: 'text-green-600',
+    textColor: 'text-[#e9c349]',
     link: 'WorkerPayout'
   }
 ];

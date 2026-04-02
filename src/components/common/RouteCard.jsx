@@ -532,14 +532,14 @@ export default function RouteCard({
           
           {/* Served */}
           <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-green-600">{servedCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Served</p>
+            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{servedCount}</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(233,195,73,0.6)' }}>Served</p>
           </div>
           
           {/* Pending */}
           <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold text-orange-500">{pendingCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Pending</p>
+            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{pendingCount}</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(233,195,73,0.6)' }}>Pending</p>
           </div>
         </div>
       </div>

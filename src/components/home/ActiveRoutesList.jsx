@@ -146,9 +146,9 @@ export default function ActiveRoutesList({ routes = [] }) {
             }
             return (
               <div key={dateKey}>
-                <div className="flex items-center gap-2 px-3 py-2 bg-purple-600 rounded-lg mt-3 mb-2">
-                  <Calendar className="w-4 h-4 text-white flex-shrink-0" />
-                  <span className="text-sm font-bold text-white truncate">{dayLabel}</span>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg mt-3 mb-2" style={{ background: '#e9c349', border: '1px solid #c9a930' }}>
+                  <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#1a1208' }} />
+                  <span className="text-sm font-bold truncate" style={{ color: '#1a1208' }}>{dayLabel}</span>
                 </div>
                 <div className="space-y-2">
                   {groups[dateKey].map(route => renderRouteCard(route))}

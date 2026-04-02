@@ -284,7 +284,7 @@ export default function WorkerRoutes() {
           <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
             <Button
               size="sm"
-              className="bg-purple-500 hover:bg-purple-600 text-white text-xs px-2.5 h-[38px]"
+              className="bg-transparent hover:bg-purple-600/20 text-purple-400 text-xs px-2.5 h-[38px] border border-purple-500"
             >
               <Shuffle className="w-3.5 h-3.5 mr-1" />
               Combo
@@ -409,7 +409,7 @@ export default function WorkerRoutes() {
 
                   return (
                   <div key={dateKey}>
-                    <div className="rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2" style={{ background: '#502f50', border: '1px solid #e5b9e1', color: '#e5b9e1' }}>
+                    <div className="rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2" style={{ background: '#e9c349', border: '1px solid #c9a930', color: '#1a1208' }}>
                       <Calendar className="w-4 h-4 flex-shrink-0" />
                       <h2 className="text-sm font-bold truncate">
                         {isToday(dt) ? `Today — ${format(dt, 'EEE, MMM d')}` : isTomorrow(dt) ? `Tomorrow — ${format(dt, 'EEE, MMM d')}` : format(dt, 'EEEE, MMM d')}
