@@ -6,7 +6,8 @@ import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search, RefreshCw } from 'lucide-react';
+import { geocodeAddress } from '@/components/services/OptimizationService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -47,6 +48,38 @@ export default function WorkerRouteDetail() {
   const [showStopModal, setShowStopModal] = useState(false);
   const [isCompletingRoute, setIsCompletingRoute] = useState(false);
   const [dismissedOptWarning, setDismissedOptWarning] = useState(false);
+  const [isRetryingGeocode, setIsRetryingGeocode] = useState(false);
+
+  const handleRetryGeocode = async () => {
+    const unlocated = addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng));
+    if (!unlocated.length) return;
+    const settings = await base44.entities.UserSettings.filter({ user_id: user?.id });
+    const userSettingsData = settings[0] || {};
+    const mapquestKey = userSettingsData.mapquest_api_key;
+    const hereKey = userSettingsData.here_api_key || null;
+    if (!mapquestKey && !hereKey) {
+      toast.error('No API key configured. Add MapQuest key in Settings.');
+      return;
+    }
+    setIsRetryingGeocode(true);
+    let successCount = 0;
+    for (const addr of unlocated) {
+      const addressStr = addr.normalized_address || addr.legal_address;
+      const coords = await geocodeAddress(addressStr, hereKey, mapquestKey);
+      if (coords) {
+        await base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' });
+        successCount++;
+      }
+    }
+    setIsRetryingGeocode(false);
+    if (successCount > 0) {
+      toast.success(`Geocoded ${successCount} of ${unlocated.length} addresses!`);
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      if (successCount === unlocated.length) setDismissedOptWarning(true);
+    } else {
+      toast.error('Could not geocode any addresses. Check the addresses are valid.');
+    }
+  };
 
   const { data: user } = useCurrentUser();
   const { data: userSettings } = useUserSettings(user?.id);
@@ -657,6 +690,14 @@ export default function WorkerRouteDetail() {
               <p className="text-xs text-yellow-700 mt-0.5">
                 {addresses.filter(a => !a.served && a.status !== 'served' && (!a.order_index || a.order_index <= 0)).length} address{addresses.filter(a => !a.served && a.status !== 'served' && (!a.order_index || a.order_index <= 0)).length !== 1 ? 'es' : ''} couldn't be geocoded and are shown at the end.
               </p>
+              <button
+                onClick={handleRetryGeocode}
+                disabled={isRetryingGeocode}
+                className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-yellow-800 bg-yellow-200 hover:bg-yellow-300 disabled:opacity-50 px-2.5 py-1.5 rounded-lg transition-colors"
+              >
+                {isRetryingGeocode ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                {isRetryingGeocode ? 'Geocoding...' : 'Retry Geocoding'}
+              </button>
             </div>
             <button onClick={() => setDismissedOptWarning(true)} className="p-1 rounded hover:bg-yellow-200 text-yellow-600 flex-shrink-0">
               <X className="w-4 h-4" />
