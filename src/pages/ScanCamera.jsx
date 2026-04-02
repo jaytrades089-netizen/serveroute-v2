@@ -436,7 +436,7 @@ export default function ScanCamera() {
     if (isAddToRouteMode) {
       navigate(createPageUrl(`ScanAddToRoute?sessionId=${session.id}`));
     } else {
-      navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}`));
+      navigate(createPageUrl(`ScanSortReview?sessionId=${session.id}`));
     }
   };
 
