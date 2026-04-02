@@ -85,7 +85,7 @@ export default function BottomNav({ currentPage }) {
             marginTop: 4,
             color: isScanActive ? '#e9c349' : '#8a7f87',
           }}>
-            Scan
+            Bulk Scan
           </span>
         </Link>
 

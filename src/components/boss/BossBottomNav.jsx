@@ -62,7 +62,7 @@ export default function BossBottomNav({ currentPage }) {
           <span className={`text-xs font-medium mt-1 ${
             isScanActive ? 'text-orange-600' : 'text-orange-500'
           }`}>
-            Scan
+            Bulk Scan
           </span>
         </Link>
 
