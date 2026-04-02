@@ -890,12 +890,12 @@ export default function AddressCard({
   return (
     <>
       <div
-        className={`relative bg-white rounded-2xl shadow-md overflow-hidden transition-all duration-200 ${
+        className={`relative bg-[#1c1b1d] rounded-2xl shadow-md shadow-black/40 overflow-hidden transition-all duration-200 ${
           !isBossView && address.has_pending_request && pendingRequest
-            ? 'border-2 border-red-500 animate-request-pulse shadow-red-100 shadow-lg'
+            ? 'border-2 border-red-500 animate-request-pulse shadow-red-900/30 shadow-lg'
             : isRTO
-            ? 'border-2 border-red-400 shadow-red-100'
-            : 'border border-gray-300'
+            ? 'border-2 border-red-400'
+            : 'border border-[#363436]'
         }`}
       >
         {/* Edit button — shows in edit mode */}
@@ -916,13 +916,13 @@ export default function AddressCard({
             }}
             className={`w-full text-left px-4 py-2 border-b ${
               isBossView 
-                ? 'bg-red-50 border-red-200'
-                : 'bg-red-100 border-red-300 animate-pulse cursor-pointer hover:bg-red-150'
+                ? 'bg-red-950/20 border-red-900/40'
+                : 'bg-red-950/40 border-red-800/50 animate-pulse cursor-pointer'
             }`}
           >
             <div className="flex items-center gap-2">
               <RotateCcw className="w-4 h-4 text-red-600" />
-              <span className="text-xs font-bold text-red-700">
+              <span className="text-xs font-bold text-red-300">
                 ATTEMPT REQUESTED: {pendingRequest.required_qualifiers?.join(' + ')}
               </span>
               {!isBossView && (
@@ -932,7 +932,7 @@ export default function AddressCard({
               )}
             </div>
             {!showRequestDetail && pendingRequest.boss_note && (
-              <p className="text-xs text-red-600 mt-1 pl-6 truncate">
+              <p className="text-xs text-red-400 mt-1 pl-6 truncate">
                 "{pendingRequest.boss_note}"
               </p>
             )}
@@ -941,9 +941,9 @@ export default function AddressCard({
 
         {/* Worker Request Detail Panel */}
         {!isBossView && showRequestDetail && pendingRequest && (
-          <div className="px-4 pb-3 bg-red-50 border-b border-red-200">
-            <div className="bg-white border border-red-200 rounded-xl p-4 mt-2">
-              <h4 className="text-sm font-bold text-red-800 mb-2">Attempt Requested</h4>
+          <div className="px-4 pb-3 bg-red-950/20 border-b border-red-900/40">
+            <div className="bg-[#201f21] border border-red-900/40 rounded-xl p-4 mt-2">
+              <h4 className="text-sm font-bold text-red-200 mb-2">Attempt Requested</h4>
               
               <div className="flex gap-2 mb-3 flex-wrap">
                 {pendingRequest.required_qualifiers?.map(q => (
@@ -959,9 +959,9 @@ export default function AddressCard({
               </div>
 
               {pendingRequest.boss_note && (
-                <div className="bg-red-50 rounded-lg p-3 mb-3 border border-red-100">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">FROM BOSS:</p>
-                  <p className="text-sm text-gray-800">{pendingRequest.boss_note}</p>
+                <div className="bg-red-950/20 rounded-lg p-3 mb-3 border border-red-900/40">
+                  <p className="text-xs text-[#8a7d87] font-semibold mb-1">FROM BOSS:</p>
+                  <p className="text-sm text-[#e6e1e4]">{pendingRequest.boss_note}</p>
                 </div>
               )}
 
@@ -971,7 +971,7 @@ export default function AddressCard({
                     value={workerReplyText}
                     onChange={(e) => setWorkerReplyText(e.target.value)}
                     placeholder="Reply to boss (optional)..."
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm resize-none"
                     rows={2}
                     maxLength={500}
                     onClick={(e) => e.stopPropagation()}
@@ -988,13 +988,13 @@ export default function AddressCard({
                   </Button>
                 </div>
               ) : (
-                <div className="bg-blue-50 rounded-lg p-3 mb-3 border border-blue-100">
-                  <p className="text-xs text-gray-500 font-semibold mb-1">YOUR REPLY:</p>
-                  <p className="text-sm text-gray-800">{pendingRequest.worker_reply}</p>
+                <div className="bg-blue-950/30 rounded-lg p-3 mb-3 border border-blue-900/40">
+                <p className="text-xs text-[#8a7d87] font-semibold mb-1">YOUR REPLY:</p>
+                 <p className="text-sm text-[#e6e1e4]">{pendingRequest.worker_reply}</p>
                 </div>
               )}
 
-              <p className="text-xs text-red-600 font-medium">
+              <p className="text-xs text-red-400 font-medium">
                 Complete a {pendingRequest.required_qualifiers?.join(' + ')} attempt to fulfill this request.
               </p>
             </div>
@@ -1003,8 +1003,8 @@ export default function AddressCard({
 
         {/* In-Progress Banner — not for postings (they auto-complete) */}
         {hasInProgressAttempt && !isServed && address.serve_type !== 'posting' && (
-          <div className="px-4 py-2 bg-amber-50 border-b border-amber-200 animate-pulse-glow">
-            <div className="flex items-center gap-2 text-amber-700">
+          <div className="px-4 py-2 bg-amber-950/30 border-b border-amber-900/40 animate-pulse-glow">
+            <div className="flex items-center gap-2 text-amber-300">
               <Camera className="w-4 h-4" />
               <span className="text-xs font-bold">
                 Evidence captured — tap LOG ATTEMPT to finalize
@@ -1015,14 +1015,14 @@ export default function AddressCard({
 
         {/* Attempt Tabs - Only show if there are attempts AND not a posting */}
         {attemptCount > 0 && address.serve_type !== 'posting' && (
-          <div className="flex border-b border-gray-100">
+          <div className="flex border-b border-[#363436]">
             {/* Home/Summary Tab */}
             <button
               onClick={(e) => { e.stopPropagation(); setActiveTab(0); }}
               className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
                 activeTab === 0
                   ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  : 'bg-[#2a2a2c] text-[#8a7d87] hover:bg-[#363436]'
               }`}
             >
               <Check className="w-4 h-4 mx-auto" />
@@ -1050,9 +1050,9 @@ export default function AddressCard({
                         : 'bg-indigo-600 text-white'
                       : hasAttempt
                         ? isInProgress
-                          ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 animate-pulse'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        : 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                          ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-900/60 animate-pulse'
+                          : 'bg-[#2a2a2c] text-[#d0c3cb] hover:bg-[#363436]'
+                        : 'bg-[#1c1b1d] text-[#363436] cursor-not-allowed'
                   }`}
                 >
                   A{num}
@@ -1067,20 +1067,20 @@ export default function AddressCard({
 
         {/* Header Section with Gradient */}
         <div className={`px-4 py-4 ${
-          isRTO ? 'bg-gradient-to-r from-red-50 to-rose-50' :
-          isServed ? 'bg-gradient-to-r from-green-50 to-emerald-50' : 
-          hasInProgressAttempt ? 'bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50' :
-          'bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50'
+          isRTO ? 'bg-gradient-to-r from-[#2a1010] to-[#1c1b1d]' :
+          isServed ? 'bg-gradient-to-r from-[#0d2218] to-[#1c1b1d]' : 
+          hasInProgressAttempt ? 'bg-gradient-to-r from-[#2a1e0a] via-[#201f21] to-[#1c1b1d]' :
+          'bg-gradient-to-r from-[#1e1520] via-[#1c1b1d] to-[#1c1b1d]'
         }`}>
           <div className="flex flex-col">
             {/* Address Display - Full width vertical layout */}
             <div>
               <p className={`text-lg font-bold leading-tight ${
-                isRTO ? 'text-red-700' : isServed ? 'text-gray-500' : 'text-gray-900'
+                isRTO ? 'text-red-300' : isServed ? 'text-[#8a7d87]' : 'text-[#e6e1e4]'
               }`}>
                 {formatted.line1}
               </p>
-              <p className={`text-sm ${isRTO ? 'text-red-400' : isServed ? 'text-gray-400' : 'text-gray-500'}`}>
+              <p className={`text-sm ${isRTO ? 'text-red-400' : isServed ? 'text-[#8a7d87]' : 'text-[#8a7d87]'}`}>
                 {formatted.line2}
               </p>
             </div>
@@ -1088,15 +1088,15 @@ export default function AddressCard({
             {/* Separator and Defendant Name + Folder */}
             {(address.defendant_name || folderName || address._folderName) && (
               <>
-                <div className="border-t border-gray-200 my-3" />
+                <div className="border-t border-[#363436] my-3" />
                 <div className="flex items-center gap-2 flex-wrap">
                   {address.defendant_name && (
-                    <p className={`text-sm font-medium ${isServed ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <p className={`text-sm font-medium ${isServed ? 'text-[#8a7d87]' : 'text-[#d0c3cb]'}`}>
                       {address.defendant_name}
                     </p>
                   )}
                   {(folderName || address._folderName) && (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 border border-purple-200 whitespace-nowrap">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-900/30 text-purple-300 border border-purple-800/40 whitespace-nowrap">
                       {folderName || address._folderName}
                     </span>
                   )}
@@ -1108,12 +1108,12 @@ export default function AddressCard({
 
         {/* HOME TAB - Summary with all qualifiers/times */}
         {attemptCount > 0 && !isServed && activeTab === 0 && (
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 py-3 border-t border-[#363436]">
             {address.serve_type === 'posting' ? (
               /* ===== POSTING SUMMARY — simplified, no qualifiers ===== */
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">
                     POSTED SUMMARY
                   </span>
                 </div>
@@ -1123,7 +1123,7 @@ export default function AddressCard({
                   {sortedAttempts.map((attempt, idx) => (
                     <div 
                       key={attempt.id} 
-                      className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 cursor-pointer"
+                      className="flex items-center gap-3 p-2 rounded-lg bg-[#201f21] hover:bg-[#2a2a2c] cursor-pointer"
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         if (attempt.photo_urls?.length > 0) {
@@ -1131,11 +1131,11 @@ export default function AddressCard({
                         }
                       }}
                     >
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-purple-100 text-purple-600">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-purple-900/30 text-purple-300">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-gray-900">
+                        <div className="text-sm font-semibold text-[#e6e1e4]">
                           {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
                         </div>
                         <span className="text-[10px] text-purple-600 font-bold">
@@ -1151,16 +1151,16 @@ export default function AddressCard({
 
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap mt-3">
-                  <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                  <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
                     POSTING
                   </Badge>
                   {isVerified && (
-                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                    <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
                       VERIFIED
                     </Badge>
                   )}
                   {address.has_dcn && (
-                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                    <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
                       DCN
                     </Badge>
                   )}
@@ -1170,7 +1170,7 @@ export default function AddressCard({
               /* ===== REGULAR SERVE SUMMARY — unchanged ===== */
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-gray-700 tracking-wide">
+                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">
                     ATTEMPTS SUMMARY
                   </span>
                 </div>
@@ -1184,20 +1184,20 @@ export default function AddressCard({
                         key={attempt.id} 
                         className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
                           isInProgress 
-                            ? 'bg-amber-50 border border-amber-200 hover:bg-amber-100' 
-                            : 'bg-gray-50 hover:bg-gray-100'
+                            ? 'bg-amber-950/30 border border-amber-900/40 hover:bg-amber-950/50' 
+                            : 'bg-[#201f21] hover:bg-[#2a2a2c]'
                         }`}
                         onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
                       >
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                           isInProgress 
-                            ? 'bg-amber-200 text-amber-700' 
-                            : 'bg-indigo-100 text-indigo-600'
+                            ? 'bg-amber-900/40 text-amber-300' 
+                            : 'bg-indigo-900/30 text-indigo-400'
                         }`}>
                           A{idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-gray-900">
+                          <div className="text-sm font-semibold text-[#e6e1e4]">
                             {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -1206,7 +1206,7 @@ export default function AddressCard({
                               size="small" 
                             />
                             {isInProgress && (
-                              <span className="text-[10px] text-amber-600 font-bold">
+                              <span className="text-[10px] text-amber-300 font-bold">
                                 AWAITING OUTCOME
                               </span>
                             )}
@@ -1228,12 +1228,12 @@ export default function AddressCard({
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap mt-3">
                   {isVerified && (
-                    <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                    <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
                       VERIFIED
                     </Badge>
                   )}
                   {address.has_dcn && (
-                    <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                    <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
                       DCN
                     </Badge>
                   )}
@@ -1245,10 +1245,10 @@ export default function AddressCard({
 
         {/* ATTEMPT TAB - Individual attempt details (not for postings) */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 py-3 border-t border-[#363436]">
             {/* Header with qualifier badges */}
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-500">
+              <h3 className="text-sm font-semibold text-[#8a7d87]">
                 ATTEMPT {activeTab} {selectedAttempt.status === 'in_progress' && '(IN PROGRESS)'}
               </h3>
               <QualifierBadges 
@@ -1259,11 +1259,11 @@ export default function AddressCard({
 
             {/* Date & Time — editable when allowed */}
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <Calendar className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center">
+                <Calendar className="w-5 h-5 text-amber-400" />
               </div>
               <div className="flex-1">
-                <p className="text-xs text-gray-500 font-medium">DATE & TIME</p>
+                <p className="text-xs text-[#8a7d87] font-medium">DATE & TIME</p>
                 {canEditAttemptTimes && selectedAttempt.status === 'completed' ? (
                   <input
                     type="datetime-local"
@@ -1275,10 +1275,10 @@ export default function AddressCard({
                     })()}
                     onChange={(e) => handleEditAttemptTime(selectedAttempt, e.target.value)}
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 ) : (
-                  <p className="text-base font-semibold">
+                  <p className="text-base font-semibold text-[#e6e1e4]">
                     {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
                       weekday: 'short',
                       month: 'numeric',
@@ -1296,12 +1296,12 @@ export default function AddressCard({
             {/* Coordinates */}
             {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center">
-                  <MapPin className="w-5 h-5 text-indigo-600" />
+                <div className="w-10 h-10 rounded-lg bg-indigo-900/30 flex items-center justify-center">
+                  <MapPin className="w-5 h-5 text-indigo-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">COORDINATES</p>
-                  <p className="text-base font-semibold">
+                  <p className="text-xs text-[#8a7d87] font-medium">COORDINATES</p>
+                  <p className="text-base font-semibold text-[#e6e1e4]">
                     {selectedAttempt.user_latitude?.toFixed(6)}, {selectedAttempt.user_longitude?.toFixed(6)}
                   </p>
                 </div>
@@ -1311,12 +1311,12 @@ export default function AddressCard({
             {/* Distance */}
             {selectedAttempt.distance_feet != null && (
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center">
-                  <Navigation className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 rounded-lg bg-green-900/30 flex items-center justify-center">
+                  <Navigation className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500 font-medium">DISTANCE</p>
-                  <p className="text-base font-semibold">
+                  <p className="text-xs text-[#8a7d87] font-medium">DISTANCE</p>
+                  <p className="text-base font-semibold text-[#e6e1e4]">
                     {selectedAttempt.distance_feet?.toLocaleString()} feet from address
                   </p>
                 </div>
@@ -1325,7 +1325,7 @@ export default function AddressCard({
 
             {/* Notes (editable) */}
             {editingNotes ? (
-              <div className="bg-blue-50 rounded-xl p-4 mb-4 border border-blue-200">
+              <div className="bg-blue-950/30 rounded-xl p-4 mb-4 border border-blue-800/40">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-blue-600" />
                   <span className="text-xs text-blue-600 font-medium">EDIT NOTES</span>
@@ -1333,7 +1333,7 @@ export default function AddressCard({
                 <textarea
                   value={editedNotesText}
                   onChange={(e) => setEditedNotesText(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full p-3 border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={4}
                   autoFocus
                   onClick={(e) => e.stopPropagation()}
@@ -1364,13 +1364,13 @@ export default function AddressCard({
             ) : selectedAttempt.notes ? (
               <div 
                 onClick={handleEditNotes}
-                className="bg-gray-50 rounded-xl p-4 mb-4 cursor-pointer hover:bg-gray-100 transition"
+                className="bg-[#201f21] rounded-xl p-4 mb-4 cursor-pointer hover:bg-[#2a2a2c] transition"
               >
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-gray-500" />
-                  <span className="text-xs text-gray-500 font-medium">NOTES</span>
+                  <span className="text-xs text-[#8a7d87] font-medium">NOTES</span>
                 </div>
-                <p className="text-sm text-gray-800 whitespace-pre-wrap">
+                <p className="text-sm text-[#e6e1e4] whitespace-pre-wrap">
                   {selectedAttempt.notes}
                 </p>
                 <p className="text-xs text-blue-500 mt-2">Tap to edit</p>
@@ -1412,62 +1412,62 @@ export default function AddressCard({
 
         {/* No Attempts Yet - Show badges */}
         {attemptCount === 0 && !isServed && (
-          <div className="px-4 py-3 border-t border-gray-100">
+          <div className="px-4 py-3 border-t border-[#363436]">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge className={`text-[10px] font-bold px-2.5 py-1 ${
-                address.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
-                address.serve_type === 'posting' ? 'bg-green-100 text-green-700 border border-green-200' :
-                'bg-blue-100 text-blue-700 border border-blue-200'
+                address.serve_type === 'garnishment' ? 'bg-purple-900/30 text-purple-300 border border-purple-800/40' :
+                address.serve_type === 'posting' ? 'bg-green-900/30 text-green-300 border border-green-800/40' :
+                'bg-blue-900/30 text-blue-300 border border-blue-800/40'
               }`}>
                 {(address.serve_type || 'serve').toUpperCase()}
               </Badge>
               {isVerified && (
-                <Badge className="bg-teal-100 text-teal-700 border border-teal-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
                   VERIFIED
                 </Badge>
               )}
               {address.has_dcn && (
-                <Badge className="bg-purple-100 text-purple-700 border border-purple-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
                   DCN
                 </Badge>
               )}
-              <span className="text-xs text-gray-500 ml-auto">No attempts yet</span>
+              <span className="text-xs text-[#8a7d87] ml-auto">No attempts yet</span>
             </div>
           </div>
         )}
 
         {/* Served State - Show completion info */}
         {isServed && (
-          <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-200 bg-red-50/60' : 'border-gray-100 bg-green-50/50'}`}>
+          <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-900/40 bg-red-950/20' : 'border-[#363436] bg-green-950/20'}`}>
             <div className="flex items-center gap-2 flex-wrap">
               {isRTO ? (
-                <Badge className="bg-red-100 text-red-700 border border-red-300 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-red-900/30 text-red-300 border border-red-800/40 text-[10px] font-bold px-2.5 py-1">
                   <RotateCcw className="w-3 h-3 mr-1" />
                   RETURNED TO OFFICE
                 </Badge>
               ) : (
-                <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
                   SERVED
                 </Badge>
               )}
               {!isRTO && receiptApproved ? (
-                <Badge className="bg-green-100 text-green-700 border border-green-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
                   <FileCheck className="w-3 h-3 mr-1" />
                   RECEIPT APPROVED
                 </Badge>
               ) : !isRTO && receiptPending ? (
-                <Badge className="bg-yellow-100 text-yellow-700 border border-yellow-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-yellow-900/30 text-yellow-300 border border-yellow-800/40 text-[10px] font-bold px-2.5 py-1">
                   <Clock className="w-3 h-3 mr-1" />
                   PENDING REVIEW
                 </Badge>
               ) : !isRTO && receiptNeedsRevision ? (
-                <Badge className="bg-orange-100 text-orange-700 border border-orange-200 text-[10px] font-bold px-2.5 py-1">
+                <Badge className="bg-orange-900/30 text-orange-300 border border-orange-800/40 text-[10px] font-bold px-2.5 py-1">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   NEEDS REVISION
                 </Badge>
               ) : null}
               {isRTO && address.rto_at && (
-                <span className="text-xs text-red-400 ml-auto">
+                <span className="text-xs text-red-300 ml-auto">
                   {format(new Date(address.rto_at), "M/d/yy 'at' h:mm a")}
                 </span>
               )}
@@ -1478,9 +1478,9 @@ export default function AddressCard({
               )}
             </div>
             {isRTO && address.rto_reason && (
-              <div className="mt-2 bg-white border border-red-200 rounded-lg px-3 py-2">
-                <p className="text-xs font-semibold text-red-600 mb-0.5">Return Reason:</p>
-                <p className="text-xs text-red-700">{address.rto_reason}</p>
+              <div className="mt-2 bg-[#201f21] border border-red-900/40 rounded-lg px-3 py-2">
+                <p className="text-xs font-semibold text-red-400 mb-0.5">Return Reason:</p>
+                <p className="text-xs text-red-300">{address.rto_reason}</p>
               </div>
             )}
             
@@ -1524,7 +1524,7 @@ export default function AddressCard({
                   toast.error('Failed to update address');
                 }
               }}
-              className="mt-3 w-full text-red-600 border-red-200 hover:bg-red-50"
+              className="mt-3 w-full text-red-400 border-red-900/40 hover:bg-red-950/30"
             >
               <RotateCcw className="w-4 h-4 mr-2" />
               Mark as NOT Served
@@ -1711,10 +1711,10 @@ export default function AddressCard({
                 )}
 
                 {/* Navigate Button — ONLY in worker view */}
-                <div className={`flex items-center border border-gray-200 rounded-xl overflow-hidden ${isHighlighted ? 'flash-purple' : ''}`}>
+                <div className={`flex items-center border border-[#363436] rounded-xl overflow-hidden ${isHighlighted ? 'flash-purple' : ''}`}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button className="p-3 border-r border-gray-200 hover:bg-gray-50 transition-colors">
+                      <button className="p-3 border-r border-[#363436] hover:bg-[#2a2a2c] transition-colors">
                         <MoreVertical className="w-5 h-5 text-gray-400" />
                       </button>
                     </DropdownMenuTrigger>
@@ -1743,7 +1743,7 @@ export default function AddressCard({
                   </DropdownMenu>
                   <button 
                     onClick={handleNavigate}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-gray-50 transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-[#2a2a2c] transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}
                   >
                     <Navigation className={`w-5 h-5 ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`} />
                     <span className={`font-bold tracking-wide ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`}>NAVIGATE</span>
@@ -1783,62 +1783,62 @@ export default function AddressCard({
 
         {/* Edit Panel — shows when editMode + user taps edit */}
         {isEditing && (
-          <div className="px-4 py-3 border-t border-blue-200 bg-blue-50" onClick={(e) => e.stopPropagation()}>
+          <div className="px-4 py-3 border-t border-[#363436] bg-[#201f21]" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-semibold text-gray-600">Defendant Name</label>
+                <label className="text-xs font-semibold text-[#8a7d87]">Defendant Name</label>
                 <input
                   type="text"
                   value={editFields.defendant_name}
                   onChange={(e) => setEditFields(prev => ({ ...prev, defendant_name: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                   placeholder="Defendant name"
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">Street Address</label>
+                <label className="text-xs font-semibold text-[#8a7d87]">Street Address</label>
                 <input
                   type="text"
                   value={editFields.normalized_address}
                   onChange={(e) => setEditFields(prev => ({ ...prev, normalized_address: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                 />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">City</label>
+                  <label className="text-xs font-semibold text-[#8a7d87]">City</label>
                   <input
                     type="text"
                     value={editFields.city}
                     onChange={(e) => setEditFields(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">State</label>
+                  <label className="text-xs font-semibold text-[#8a7d87]">State</label>
                   <input
                     type="text"
                     value={editFields.state}
                     onChange={(e) => setEditFields(prev => ({ ...prev, state: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-600">Zip</label>
+                  <label className="text-xs font-semibold text-[#8a7d87]">Zip</label>
                   <input
                     type="text"
                     value={editFields.zip}
                     onChange={(e) => setEditFields(prev => ({ ...prev, zip: e.target.value }))}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-600">Serve Type</label>
+                <label className="text-xs font-semibold text-[#8a7d87]">Serve Type</label>
                 <select
                   value={editFields.serve_type}
                   onChange={(e) => setEditFields(prev => ({ ...prev, serve_type: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm mt-1"
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
                 >
                   <option value="serve">Serve</option>
                   <option value="garnishment">Garnishment</option>
@@ -1865,16 +1865,16 @@ export default function AddressCard({
 
         {/* Receipt Status Alert */}
         {receiptNeedsRevision && (
-          <div className="px-4 py-2 bg-orange-50 border-t border-orange-200">
-            <div className="flex items-center gap-2 text-orange-700">
+          <div className="px-4 py-2 bg-orange-950/30 border-t border-orange-900/40">
+            <div className="flex items-center gap-2 text-orange-300">
               <AlertCircle className="w-4 h-4" />
               <span className="text-xs font-medium">Receipt needs revision - please resubmit</span>
             </div>
           </div>
         )}
         {receiptPending && (
-          <div className="px-4 py-2 bg-yellow-50 border-t border-yellow-200">
-            <div className="flex items-center gap-2 text-yellow-700">
+          <div className="px-4 py-2 bg-yellow-950/30 border-t border-yellow-900/40">
+            <div className="flex items-center gap-2 text-yellow-300">
               <Clock className="w-4 h-4" />
               <span className="text-xs font-medium">Receipt pending review</span>
             </div>
