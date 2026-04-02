@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Loader2, FolderPlus } from 'lucide-react';
+import { ArrowLeft, Loader2, FolderPlus, Layers } from 'lucide-react';
 import { 
   DOCUMENT_INFO, 
   checkForRecoverableSession,
@@ -91,8 +91,49 @@ export default function ScanDocumentType() {
         </p>
 
         <div className="space-y-4">
-          {Object.entries(DOCUMENT_INFO).map(([type, info]) => (
-            <Card 
+          {/* Part 1: Serve card */}
+          {(() => { const info = DOCUMENT_INFO['serve']; return (
+            <Card
+              key="serve"
+              className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300"
+              onClick={() => handleSelectType('serve')}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="text-3xl">{info.icon}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-lg font-semibold">{info.name}</h3>
+                      <p className="text-lg font-bold text-green-600">${info.rate}</p>
+                    </div>
+                    <p className="text-xs text-gray-500">{info.schedule} • {info.description}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ); })()}
+
+          {/* Part 2: Bulk Scan card */}
+          <Card
+            className="cursor-pointer hover:shadow-md transition-shadow border-2 border-orange-300 hover:border-orange-500 bg-orange-50/50"
+            onClick={() => navigate(createPageUrl('ScanCamera?type=serve'))}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
+                  <Layers className="w-6 h-6 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-orange-800">Bulk Scan</h3>
+                  <p className="text-xs text-gray-500">Scan a large batch and sort into piles before saving</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Part 3: Garnishment and Posting cards */}
+          {Object.entries(DOCUMENT_INFO).filter(([type]) => type !== 'serve').map(([type, info]) => (
+            <Card
               key={type}
               className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300"
               onClick={() => handleSelectType(type)}
