@@ -1,0 +1,283 @@
+{
+  "name": "Route",
+  "type": "object",
+  "properties": {
+    "company_id": {
+      "type": "string",
+      "description": "FK for multi-tenancy"
+    },
+    "worker_id": {
+      "type": "string",
+      "description": "Server who owns this route"
+    },
+    "assignment_id": {
+      "type": "string",
+      "description": "FK to Assignment"
+    },
+    "folder_name": {
+      "type": "string",
+      "description": "Route name like Route A, Route D"
+    },
+    "description": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "ready",
+        "assigned",
+        "active",
+        "stalled",
+        "completed",
+        "archived"
+      ],
+      "default": "draft"
+    },
+    "locked": {
+      "type": "boolean",
+      "default": false
+    },
+    "locked_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "locked_by": {
+      "type": "string",
+      "description": "User ID who locked"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "optimized": {
+      "type": "boolean",
+      "default": false
+    },
+    "total_distance_miles": {
+      "type": "number"
+    },
+    "estimated_time_minutes": {
+      "type": "integer"
+    },
+    "total_miles": {
+      "type": "number",
+      "description": "Total route distance in miles from optimization"
+    },
+    "total_drive_time_minutes": {
+      "type": "integer",
+      "description": "Total driving time in minutes from optimization"
+    },
+    "time_at_address_minutes": {
+      "type": "integer",
+      "default": 2,
+      "description": "User-selected time per address in minutes"
+    },
+    "est_completion_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Estimated completion time"
+    },
+    "est_total_minutes": {
+      "type": "integer",
+      "description": "Estimated total time (drive + addresses)"
+    },
+    "starting_point": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        }
+      }
+    },
+    "ending_point": {
+      "type": "object",
+      "properties": {
+        "address": {
+          "type": "string"
+        },
+        "lat": {
+          "type": "number"
+        },
+        "lng": {
+          "type": "number"
+        }
+      }
+    },
+    "total_addresses": {
+      "type": "integer",
+      "default": 0
+    },
+    "served_count": {
+      "type": "integer",
+      "default": 0
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "completion_rule": {
+      "type": "string",
+      "enum": [
+        "10d",
+        "14d"
+      ],
+      "default": "14d"
+    },
+    "spread_type": {
+      "type": "string",
+      "enum": [
+        "10",
+        "14"
+      ],
+      "default": "14",
+      "description": "Number of days for attempt spread"
+    },
+    "first_attempt_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date of first attempt on this route"
+    },
+    "spread_due_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Calculated spread deadline based on first attempt"
+    },
+    "required_attempts": {
+      "type": "integer",
+      "default": 3,
+      "description": "Total attempts required per address"
+    },
+    "qualifier_attempts": {
+      "type": "integer",
+      "default": 3,
+      "description": "Attempts that must be AM/PM/Weekend"
+    },
+    "flexible_attempts": {
+      "type": "integer",
+      "default": 0,
+      "description": "Additional attempts that can be any time"
+    },
+    "minimum_days_spread": {
+      "type": "integer",
+      "default": 10,
+      "description": "Minimum days between first and last attempt"
+    },
+    "first_attempt_deadline": {
+      "type": "string",
+      "format": "date",
+      "description": "Calculated: due_date - minimum_days_spread"
+    },
+    "am_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "pm_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "weekend_required": {
+      "type": "boolean",
+      "default": true
+    },
+    "created_via": {
+      "type": "string",
+      "enum": [
+        "scan",
+        "import",
+        "manual"
+      ],
+      "description": "How route was created"
+    },
+    "scan_session_id": {
+      "type": "string",
+      "description": "FK to ScanSession if created via scan"
+    },
+    "deleted_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "deleted_by": {
+      "type": "string"
+    },
+    "assigned_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Phase 4A - when route was assigned"
+    },
+    "assigned_by": {
+      "type": "string",
+      "description": "Phase 4A - user who assigned route"
+    },
+    "previous_worker_id": {
+      "type": "string",
+      "description": "Phase 4A - for route handoff tracking"
+    },
+    "handoff_reason": {
+      "type": "string",
+      "description": "Phase 4A - reason for handoff"
+    },
+    "handoff_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "completion_time_minutes": {
+      "type": "integer",
+      "description": "Phase 4A - actual time taken"
+    },
+    "archived_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When route was archived"
+    },
+    "pre_archive_status": {
+      "type": "string",
+      "description": "Status before archiving for restore"
+    },
+    "run_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Worker-set date for when they plan to run this folder"
+    },
+    "run_qualifiers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Worker-selected qualifiers for the run date (AM, PM, WEEKEND)"
+    },
+    "scheduled_runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string"
+          },
+          "qualifiers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "default": [],
+      "description": "Queue of future planned runs \u2014 each item: { date: yyyy-MM-dd, qualifiers: [] }"
+    }
+  },
+  "required": [
+    "company_id",
+    "folder_name"
+  ]
+}
