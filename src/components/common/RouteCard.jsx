@@ -775,8 +775,13 @@ export default function RouteCard({
                   </div>
                 )}
 
-                {/* Full-screen overlay calendar */}
-            {showRunDatePicker && (() => {
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Full-screen overlay calendar */}
+        {showRunDatePicker && (() => {
               const dueDateObj = route.due_date ? new Date(route.due_date) : null;
               let spreadDueDateObj = null;
               if (route.first_attempt_date) {
@@ -930,8 +935,6 @@ export default function RouteCard({
                 </div>
               );
             })()}
-          </div>
-        )}
 
         <div className="flex items-center">
           <div className="mr-2">
