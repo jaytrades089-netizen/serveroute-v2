@@ -152,8 +152,12 @@ export default function RouteCard({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
+  // Must be declared before useState so it can initialize showScheduleQueue
+  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+
   const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
-  const [showScheduleQueue, setShowScheduleQueue] = React.useState(false);
+  const [showScheduleQueue, setShowScheduleQueue] = React.useState(scheduledRuns.length > 0);
   const [showQueueCalendar, setShowQueueCalendar] = React.useState(false);
   const [pendingQueueDate, setPendingQueueDate] = React.useState(null);
   const [pendingQueueQualifiers, setPendingQueueQualifiers] = React.useState([]);
@@ -193,7 +197,6 @@ export default function RouteCard({
   const statusConfig = STATUS_CONFIG[route.status] || STATUS_CONFIG.draft;
 
   // If onClick is explicitly a no-op function, disable card-level click navigation
-  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
 
   const handleAddToQueue = async () => {
     if (!pendingQueueDate) return;
@@ -622,6 +625,12 @@ export default function RouteCard({
             {/* EXPANDED QUEUE SECTION */}
             {showScheduleQueue && route.run_date && (
               <div className="mt-2 ml-2 border-l-2 border-yellow-600/30 pl-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+                  {scheduledRuns.length === 0 && !showQueueCalendar && (
+                  <p className="text-[10px] italic px-1" style={{ color: '#8a7f87' }}>
+                    No additional runs queued
+                  </p>
+                )}
+
                 {scheduledRuns.map((item, idx) => (
                   <div key={idx} className="flex items-center gap-2 py-1">
                     <span className="text-xs font-medium" style={{ color: '#e9c349' }}>
