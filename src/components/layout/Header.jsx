@@ -9,10 +9,11 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
     : 'U';
 
   return (
+    <>
     <header style={{
       background: '#0F0B10',
       color: '#e6e1e4',
-      borderBottom: '1px solid #363436',
+      borderBottom: 'none',
       padding: '12px 16px',
       display: 'flex',
       alignItems: 'center',
@@ -61,5 +62,7 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
         </Link>
       </div>
     </header>
+    <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))' }} />
+  </>
   );
 }

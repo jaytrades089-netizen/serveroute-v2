@@ -32,13 +32,14 @@ export default function BottomNav({ currentPage }) {
       left: 0,
       right: 0,
       background: '#0F0B10',
-      borderTop: '1px solid #363436',
+      borderTop: 'none',
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 8,
       paddingBottom: 8,
       zIndex: 50,
     }} className="bottom-nav-bar">
+      <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))', marginBottom: 8 }} />
       <div className="max-w-lg mx-auto flex justify-around items-end">
         {/* Left nav items */}
         {leftNavItems.map((item) => {
