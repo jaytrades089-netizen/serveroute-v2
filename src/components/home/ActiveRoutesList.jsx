@@ -57,11 +57,21 @@ export default function ActiveRoutesList({ routes = [] }) {
     })();
 
     return (
-      <Link
+      <div
         key={route.id}
+        style={{
+          background: 'linear-gradient(to right, rgba(233,195,73,0.5), rgba(233,195,73,0.03))',
+          padding: '1px',
+          borderRadius: '0.75rem'
+        }}
+      >
+      <Link
         to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
         className="block rounded-xl p-3 transition-shadow"
-        style={isActive ? { background: '#201f21', border: '2px solid #e9c349' } : { background: '#1c1b1d', border: '1px solid #363436' }}
+        style={isActive
+          ? { background: '#201f21', borderLeft: '5px solid #e9c349' }
+          : { background: '#1c1b1d', borderLeft: '5px solid #e9c349' }
+        }
       >
         <div className="flex justify-between items-center">
           <div className="flex-1 min-w-0">
@@ -107,6 +117,7 @@ export default function ActiveRoutesList({ routes = [] }) {
           </div>
         </div>
       </Link>
+      </div>
     );
   };
 
