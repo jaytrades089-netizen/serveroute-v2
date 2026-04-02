@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { ChevronRight, MapPin, Calendar } from 'lucide-react';
+import { ChevronRight, MapPin, Calendar, Clock } from 'lucide-react';
 import { format, addDays, parseISO, isToday, isTomorrow } from 'date-fns';
 import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
 
@@ -40,6 +40,22 @@ export default function ActiveRoutesList({ routes = [] }) {
 
   const renderRouteCard = (route) => {
     const isActive = route.status === 'active';
+
+    const estTotalMinutes = (() => {
+      if (!route.total_drive_time_minutes || route.total_drive_time_minutes <= 0) return null;
+      const dwell = (route.time_at_address_minutes || 2) * (route.total_addresses || 0);
+      return route.total_drive_time_minutes + dwell;
+    })();
+
+    const estTimeLabel = (() => {
+      if (!estTotalMinutes) return null;
+      const h = Math.floor(estTotalMinutes / 60);
+      const m = estTotalMinutes % 60;
+      if (h > 0 && m > 0) return `${h}h ${m}m`;
+      if (h > 0) return `${h}h`;
+      return `${m}m`;
+    })();
+
     return (
       <Link
         key={route.id}
@@ -49,9 +65,17 @@ export default function ActiveRoutesList({ routes = [] }) {
       >
         <div className="flex justify-between items-center">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold truncate" style={{ color: isActive ? '#e9c349' : '#e6e1e4' }}>
-              {route.folder_name}
-            </h3>
+            <div className="flex items-center gap-2 min-w-0">
+              <h3 className="font-semibold truncate" style={{ color: isActive ? '#e9c349' : '#e6e1e4' }}>
+                {route.folder_name}
+              </h3>
+              {estTimeLabel && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold flex-shrink-0" style={{ background: 'rgba(255,255,255,0.08)', color: '#b0aab3', border: '1px solid #4a4748' }}>
+                  <Clock className="w-3 h-3" style={{ color: '#8a7f87' }} />
+                  {estTimeLabel}
+                </span>
+              )}
+            </div>
             {route.run_date && (
               <p className="text-[10px] font-medium flex items-center gap-1 mt-0.5" style={{ color: '#e9c349' }}>
                 📅 Run: {format(parseISO(route.run_date), 'EEE, MMM d')}
