@@ -130,9 +130,9 @@ body {
 
 /* Frosted glass — light (bottom nav bar) */
 .frosted-glass-light {
-  background: rgba(11, 15, 30, 0.85);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  background: rgba(11, 15, 30, 0.45);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 

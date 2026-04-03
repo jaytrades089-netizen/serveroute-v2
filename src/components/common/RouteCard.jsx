@@ -409,7 +409,7 @@ export default function RouteCard({
     >
     <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm overflow-hidden transition-all duration-200 ${
+      className={`rounded-2xl shadow-sm transition-all duration-200 ${
         isClickDisabled ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]'
       } ${
         allAddressesComplete
