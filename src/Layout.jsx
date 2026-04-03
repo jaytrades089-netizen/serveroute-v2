@@ -212,11 +212,11 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Gold accents — lowered so they pass through the middle of the screen like the reference */}
+        {/* Gold accents — top-left down toward bottom-right */}
         {[
-          { top: '8%', left: '-6%', glowOpacity: 0.44, lineOpacity: 0.95, glowWidth: 84 },
-          { top: '20%', left: '10%', glowOpacity: 0.34, lineOpacity: 0.82, glowWidth: 62 },
-          { top: '32%', left: '22%', glowOpacity: 0.24, lineOpacity: 0.68, glowWidth: 48 },
+          { top: '-4%', left: '-8%', glowOpacity: 0.44, lineOpacity: 0.95, glowWidth: 84 },
+          { top: '8%', left: '4%', glowOpacity: 0.34, lineOpacity: 0.82, glowWidth: 62 },
+          { top: '20%', left: '16%', glowOpacity: 0.24, lineOpacity: 0.68, glowWidth: 48 },
         ].map((beam, i) => (
           <React.Fragment key={i}>
             <div style={{
@@ -226,7 +226,7 @@ export default function Layout({ children, currentPageName }) {
               width: `${beam.glowWidth}px`,
               height: '185%',
               background: `linear-gradient(90deg, transparent 0%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 20%, rgba(247,206,78,${beam.glowOpacity}) 50%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 80%, transparent 100%)`,
-              transform: 'rotate(38deg)',
+              transform: 'rotate(-38deg)',
               transformOrigin: 'top left',
               filter: 'blur(1px)',
               pointerEvents: 'none'
@@ -238,7 +238,7 @@ export default function Layout({ children, currentPageName }) {
               width: `${beam.glowWidth}px`,
               height: '185%',
               background: `linear-gradient(90deg, transparent 45%, rgba(255,224,92,${beam.lineOpacity}) 50%, transparent 55%)`,
-              transform: 'rotate(38deg)',
+              transform: 'rotate(-38deg)',
               transformOrigin: 'top left',
               pointerEvents: 'none'
             }} />
