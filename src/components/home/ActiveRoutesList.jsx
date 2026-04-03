@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
-import { format, addDays, parseISO, isToday, isTomorrow } from 'date-fns';
+import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 export default function ActiveRoutesList({ routes = [] }) {
   // Filter out archived/completed routes, sort: active first, then by run_date, then due_date
@@ -34,19 +34,11 @@ export default function ActiveRoutesList({ routes = [] }) {
   });
   const groupKeys = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, hasRunDate) => {
     if (status === 'active') {
       return (
         <span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }}>
           Active
-        </span>
-      );
-    }
-    if (status === 'ready' || status === 'assigned' || status === 'pending') {
-      return (
-        <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(156,163,175,0.20)', color: '#9CA3AF' }}>
-          <Clock className="w-3 h-3" />
-          Pending
         </span>
       );
     }
@@ -58,10 +50,18 @@ export default function ActiveRoutesList({ routes = [] }) {
         </span>
       );
     }
+    if (hasRunDate) {
+      return (
+        <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc' }}>
+          <Calendar className="w-3 h-3" />
+          Scheduled
+        </span>
+      );
+    }
     return (
-      <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc' }}>
-        <Calendar className="w-3 h-3" />
-        Scheduled
+      <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(156,163,175,0.20)', color: '#9CA3AF' }}>
+        <Clock className="w-3 h-3" />
+        Unscheduled
       </span>
     );
   };
@@ -85,17 +85,32 @@ export default function ActiveRoutesList({ routes = [] }) {
       return `${m}m`;
     })();
 
-    const startTime = route.started_at
-      ? new Date(route.started_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-      : null;
+    // Due date label: "Fri 4/4"
+    const dueDateLabel = (() => {
+      const d = route.due_date ? new Date(route.due_date) : null;
+      if (!d) return null;
+      return format(d, 'EEE M/d');
+    })();
 
-    const estEndTime = route.est_completion_time
-      ? new Date(route.est_completion_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-      : null;
+    // Spread due date label
+    const spreadDateLabel = (() => {
+      if (route.spread_due_date) return format(new Date(route.spread_due_date), 'EEE M/d');
+      if (route.first_attempt_date) {
+        const spreadDays = route.minimum_days_spread || (route.spread_type === '10' ? 10 : 14);
+        const d = new Date(route.first_attempt_date);
+        d.setDate(d.getDate() + spreadDays);
+        return format(d, 'EEE M/d');
+      }
+      return null;
+    })();
 
-    const qualifierLabel = route.run_qualifiers?.length
-      ? route.run_qualifiers.map(q => q.toUpperCase()).join(' · ')
-      : null;
+    // Qualifier badges — all three shown, highlight ones in run_qualifiers
+    const completedQuals = (route.run_qualifiers || []).map(q => q.toLowerCase());
+    const allQuals = [
+      { key: 'am', label: 'AM' },
+      { key: 'pm', label: 'PM' },
+      { key: 'weekend', label: 'WKND' },
+    ];
 
     return (
       <Link
@@ -110,7 +125,7 @@ export default function ActiveRoutesList({ routes = [] }) {
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
       >
-        {/* Top row: letter badge + name + status badge */}
+        {/* Top row: letter badge + run date + status badge */}
         <div className="flex items-center gap-3 mb-2">
           <div
             className="rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0"
@@ -118,35 +133,22 @@ export default function ActiveRoutesList({ routes = [] }) {
           >
             {letter}
           </div>
-          <span className="font-semibold text-base flex-1 truncate" style={{ color: '#E6E1E4' }}>
-            {route.folder_name}
-          </span>
-          {getStatusBadge(route.status)}
+          <div className="flex-1 min-w-0">
+            {route.run_date ? (
+              <>
+                <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
+                <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'MMM d, yyyy')}</span>
+              </>
+            ) : (
+              <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
+            )}
+          </div>
+          {getStatusBadge(route.status, !!route.run_date)}
         </div>
 
-        {/* Run date row */}
-        {route.run_date && (
-          <div className="mb-2">
-            <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
-            <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'MMM d, yyyy')}</span>
-          </div>
-        )}
-
-        {/* Metrics row */}
-        <div className="flex gap-6 mb-2">
-          {startTime && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Start</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{startTime}</div>
-            </div>
-          )}
-          {estEndTime && isActive && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>End</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estEndTime}</div>
-            </div>
-          )}
-          {estTimeLabel && !isActive && (
+        {/* Metrics row: duration, remaining, due, spread */}
+        <div className="flex gap-4 mb-2 flex-wrap">
+          {estTimeLabel && (
             <div>
               <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
               <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
@@ -158,19 +160,38 @@ export default function ActiveRoutesList({ routes = [] }) {
               {(route.total_addresses || 0) - (route.served_count || 0)}
             </div>
           </div>
+          {dueDateLabel && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
+              <div className="text-sm font-semibold" style={{ color: '#e9c349' }}>{dueDateLabel}</div>
+            </div>
+          )}
+          {spreadDateLabel && (
+            <div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
+              <div className="text-sm font-semibold" style={{ color: '#e9c349' }}>{spreadDateLabel}</div>
+            </div>
+          )}
         </div>
 
-        {/* Qualifier badge bottom right */}
-        {qualifierLabel && (
-          <div className="flex justify-end">
-            <span
-              className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-              style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1' }}
-            >
-              {qualifierLabel}
-            </span>
-          </div>
-        )}
+        {/* Qualifier badges bottom right — all three, completed ones lit */}
+        <div className="flex justify-end gap-1">
+          {allQuals.map(({ key, label }) => {
+            const done = completedQuals.includes(key);
+            return (
+              <span
+                key={key}
+                className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                style={done
+                  ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
+                  : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
+                }
+              >
+                {label}
+              </span>
+            );
+          })}
+        </div>
       </Link>
     );
   };
