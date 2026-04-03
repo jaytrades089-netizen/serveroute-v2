@@ -103,7 +103,7 @@ import WorkerSettings from './pages/WorkerSettings';
 import WorkerStats from './pages/WorkerStats';
 import WorkerVacationRequest from './pages/WorkerVacationRequest';
 import Workers from './pages/Workers';
-import __Layout from './layout';
+import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
