@@ -234,7 +234,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <>
-      {/* Fixed global background: navy base + gold diagonal beam */}
+      {/* Fixed global background */}
       <div
         style={{
           position: 'fixed',
@@ -247,31 +247,31 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Outer beam — wide soft glow */}
+        {/* Outer beam glow — wide soft falloff */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '20%',
-            width: '200px',
-            height: '160%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(212,165,40,0.10) 30%, rgba(240,190,50,0.26) 50%, rgba(212,165,40,0.10) 70%, transparent 100%)',
+            top: '-30%',
+            left: '5%',
+            width: '160px',
+            height: '180%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,30,0.07) 25%, rgba(220,175,45,0.20) 50%, rgba(200,155,30,0.07) 75%, transparent 100%)',
             transform: 'rotate(22deg)',
-            transformOrigin: 'top center',
+            transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
-        {/* Inner beam — bright golden core */}
+        {/* Inner beam core — narrow bright streak */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '28%',
-            width: '64px',
-            height: '160%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(255,220,80,0.14) 25%, rgba(255,238,110,0.32) 50%, rgba(255,220,80,0.14) 75%, transparent 100%)',
+            top: '-30%',
+            left: '11%',
+            width: '52px',
+            height: '180%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(240,195,60,0.18) 20%, rgba(255,215,70,0.42) 50%, rgba(240,195,60,0.18) 80%, transparent 100%)',
             transform: 'rotate(22deg)',
-            transformOrigin: 'top center',
+            transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
