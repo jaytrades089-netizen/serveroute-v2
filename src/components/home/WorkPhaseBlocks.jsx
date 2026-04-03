@@ -12,7 +12,8 @@ export default function WorkPhaseBlocks({ currentPhase }) {
 
   return (
     <div className="mb-6" style={{ position: 'relative' }}>
-      {/* AM / PM / Weekend row */}
+
+      {/* AM / PM / WKND blocks */}
       <div className="grid grid-cols-3 gap-2">
         {qualifierPhases.map((phase) => {
           const Icon = phase.icon;
@@ -20,22 +21,22 @@ export default function WorkPhaseBlocks({ currentPhase }) {
           return (
             <div
               key={phase.id}
-              className="frosted-glass rounded-xl p-3 text-center transition-all"
+              className="frosted-glass rounded-xl py-5 px-3 text-center transition-all"
               style={isActive ? { borderBottom: '2px solid #e9c349' } : {}}
             >
               <Icon
-                className="w-5 h-5 mx-auto mb-1"
+                className="w-5 h-5 mx-auto mb-2"
                 style={{ color: isActive ? '#E6E1E4' : '#6B7280' }}
               />
               <div
-                className="font-bold text-sm"
+                className="font-semibold text-sm"
                 style={{ color: isActive ? '#E6E1E4' : '#9CA3AF' }}
               >
                 {phase.label}
               </div>
               <div
-                className="text-xs"
-                style={{ color: isActive ? '#E6E1E4' : '#4B5563' }}
+                className="text-xs mt-0.5"
+                style={{ color: isActive ? '#9CA3AF' : '#4B5563' }}
               >
                 {phase.time}
               </div>
@@ -44,25 +45,41 @@ export default function WorkPhaseBlocks({ currentPhase }) {
         })}
       </div>
 
-      {/* NTC overlay bar — only shown when currentPhase === 'ntc' */}
+      {/* NTC band — full width horizontal stripe through vertical center */}
       {isNtcActive && (
         <div
-          className="frosted-glass rounded-xl px-3 py-2 flex items-center justify-center gap-2"
           style={{
             position: 'absolute',
-            bottom: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '60%',
-            background: 'rgba(229,179,58,0.15)',
-            border: '1px solid rgba(229,179,58,0.35)',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            left: 0,
+            right: 0,
+            zIndex: 10,
+            background: 'rgba(233, 195, 73, 0.18)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            borderTop: '1px solid rgba(233,195,73,0.45)',
+            borderBottom: '1px solid rgba(233,195,73,0.45)',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            pointerEvents: 'none'
           }}
         >
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
-          <span className="font-bold text-sm" style={{ color: '#e9c349' }}>NTC</span>
-          <span className="text-xs" style={{ color: '#e9c349' }}>— No Time Covered</span>
+          <AlertTriangle
+            style={{ width: '15px', height: '15px', color: '#e9c349', flexShrink: 0 }}
+          />
+          <span style={{ fontWeight: 700, fontSize: '13px', color: '#e9c349', whiteSpace: 'nowrap' }}>
+            NTC
+          </span>
+          <span style={{ fontSize: '11px', color: '#c9a030', whiteSpace: 'nowrap' }}>
+            — No Time Covered
+          </span>
         </div>
       )}
+
     </div>
   );
 }
