@@ -14,12 +14,11 @@ export function QualifierBadge({ badge, size = 'default' }) {
   };
   
   return (
-    <span className={`
-      inline-flex items-center rounded-full font-bold border
-      ${style.bg} ${style.text} ${style.border}
-      ${sizeClasses[size]}
-    `}>
-      {badge}
+    <span
+      className={`inline-flex items-center rounded font-semibold uppercase tracking-wide ${sizeClasses[size]}`}
+      style={style.inlineStyle}
+    >
+      {badge === 'WEEKEND' ? 'WKND' : badge}
     </span>
   );
 }

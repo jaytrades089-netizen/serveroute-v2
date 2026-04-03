@@ -86,13 +86,21 @@ export function getQualifiers(timestamp, timezone = 'America/Detroit') {
  * @returns {Object} Tailwind classes for the badge
  */
 export function getBadgeStyle(badge) {
-  const styles = {
-    'AM': { bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-300' },
-    'PM': { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-300' },
-    'WEEKEND': { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-300' },
-    'NTC': { bg: 'bg-gray-100', text: 'text-gray-500', border: 'border-gray-300' }
+  // Uniform style across entire app — matches dashboard qualifier badges
+  if (badge === 'NTC') {
+    return {
+      bg: '',
+      text: '',
+      border: '',
+      inlineStyle: { background: 'rgba(255,255,255,0.06)', color: '#6B7280', border: '1px solid rgba(255,255,255,0.10)' }
+    };
+  }
+  return {
+    bg: '',
+    text: '',
+    border: '',
+    inlineStyle: { background: 'rgba(229,179,225,0.18)', color: '#e5b9e1', border: '1px solid rgba(229,179,225,0.30)' }
   };
-  return styles[badge] || styles['NTC'];
 }
 
 /**
