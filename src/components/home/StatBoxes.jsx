@@ -34,7 +34,6 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
                 border: '1px solid rgba(255,255,255,0.18)'
               }}
             >
-              <Icon className="w-4 h-4 mx-auto mb-1" style={{ color: '#e5b9e1' }} />
               <div className="text-xl font-bold" style={{ color: '#E6E1E4' }}>
                 {values[stat.id]}
               </div>
