@@ -304,7 +304,7 @@ export default function WorkerRouteDetail() {
 
   if (routeLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
@@ -312,7 +312,7 @@ export default function WorkerRouteDetail() {
 
   if (!route) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', padding: '16px' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', padding: '16px' }}>
         <p className="text-center" style={{ color: '#8a7f87' }}>Route not found</p>
       </div>
     );
@@ -321,7 +321,7 @@ export default function WorkerRouteDetail() {
   // Ownership check - workers can only see their own routes
   if (user?.role === 'server' && route && route.worker_id !== user.id) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
         <p style={{ color: '#d0c3cb', marginBottom: 16 }}>You don't have access to this route</p>
         <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>Go to My Routes</Button>
       </div>
@@ -408,8 +408,8 @@ export default function WorkerRouteDetail() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 24 }}>
-      <header style={{ background: '#0F0B10', borderBottom: '1px solid #363436', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 24 }}>
+      <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
         <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors" style={{ border: '1px solid #363436' }}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
@@ -471,7 +471,7 @@ export default function WorkerRouteDetail() {
           <>
             <div className="grid grid-cols-3 gap-1.5 mb-3">
               {/* Start Time */}
-              <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 8, padding: 8, textAlign: 'center' }}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 8, padding: 8, textAlign: 'center' }}>
                 <p className="text-sm font-bold" style={{ color: '#e9c349' }}>
                   {new Date(route.started_at).toLocaleTimeString('en-US', {
                     hour: 'numeric',
@@ -484,16 +484,17 @@ export default function WorkerRouteDetail() {
               
               {/* Stop Route */}
               <div 
-                className="bg-red-50 rounded-lg p-2 text-center border border-red-300 cursor-pointer hover:bg-red-100 transition-colors flex flex-col items-center justify-center"
+                className="rounded-lg p-2 text-center cursor-pointer hover:opacity-90 transition-colors flex flex-col items-center justify-center"
+                style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)' }}
                 onClick={() => setShowStopModal(true)}
               >
-                <Pause className="w-5 h-5 text-red-500 mb-0.5" />
-                <p className="text-[10px] text-red-600 font-bold">Stop Route</p>
+                <Pause className="w-5 h-5 mb-0.5" style={{ color: '#ef4444' }} />
+                <p className="text-[10px] font-bold" style={{ color: '#ef4444' }}>Stop Route</p>
               </div>
               
               {/* Est Completion */}
-              <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-                <p className="text-sm font-bold text-green-600">
+              <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.30)' }}>
+                <p className="text-sm font-bold" style={{ color: '#22c55e' }}>
                   {getUpdatedEstCompletion?.estCompletion 
                     ? getUpdatedEstCompletion.estCompletion.toLocaleTimeString('en-US', {
                         hour: 'numeric',
@@ -509,7 +510,7 @@ export default function WorkerRouteDetail() {
                       : '--:--'
                   }
                 </p>
-                <p className="text-[10px] text-green-500 font-medium">Est. Done</p>
+                <p className="text-[10px] font-medium" style={{ color: '#22c55e' }}>Est. Done</p>
               </div>
             </div>
 
@@ -521,7 +522,7 @@ export default function WorkerRouteDetail() {
                   {calculateRemainingMiles.toFixed(1)} mi left
                 </span>
               </div>
-              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#363436' }}>
+              <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.10)' }}>
                 <div 
                   className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
                   style={{ width: `${calculateProgress.percentage}%` }}
@@ -536,22 +537,22 @@ export default function WorkerRouteDetail() {
         ) : (
           // NOT ACTIVE: Show regular stats (Total, Served, Pending) + Start Route bar
           <>
-          <div className={`grid grid-cols-3 gap-2 ${(route.status === 'assigned' || route.status === 'ready') && !needsVerification ? 'mb-0' : 'mb-3'}`}>
-            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 0 12px' : '12px' }}>
+          <div className={`grid grid-cols-3 gap-2 mb-3`}>
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
               <MapPin className="w-5 h-5 mx-auto mb-1" style={{ color: '#e9c349' }} />
               <p className="text-2xl font-bold" style={{ color: '#e9c349' }}>{addresses.length}</p>
               <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Total</p>
             </div>
-            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 0 12px' : '12px' }}>
-              <CheckCircle className="w-5 h-5 mx-auto mb-1" style={{ color: '#22c55e' }} />
-              <p className="text-2xl font-bold text-green-500">{servedAddresses.length}</p>
-              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Served</p>
-            </div>
-            <div style={{ background: '#201f21', border: '1px solid #363436', padding: 12, textAlign: 'center', borderRadius: (route.status === 'assigned' || route.status === 'ready') && !needsVerification ? '0 0 12px 0' : '12px' }}>
-              <Clock className="w-5 h-5 mx-auto mb-1" style={{ color: '#f97316' }} />
-              <p className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>{pendingAddresses.length}</p>
-              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Pending</p>
-            </div>
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
+            <CheckCircle className="w-5 h-5 mx-auto mb-1" style={{ color: '#22c55e' }} />
+            <p className="text-2xl font-bold text-green-500">{servedAddresses.length}</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Served</p>
+              </div>
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
+            <Clock className="w-5 h-5 mx-auto mb-1" style={{ color: '#f97316' }} />
+            <p className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>{pendingAddresses.length}</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Pending</p>
+              </div>
           </div>
           </>
         )}
@@ -660,7 +661,7 @@ export default function WorkerRouteDetail() {
 
         {/* Edit Mode Banner */}
         {editMode && (
-         <div style={{ padding: 12, background: '#201f21', border: '1px solid #e5b9e1', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+         <div style={{ padding: 12, background: 'rgba(14,20,44,0.60)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(229,179,225,0.30)', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
            <div className="flex items-center gap-2">
              <Pencil className="w-4 h-4" style={{ color: '#e5b9e1' }} />
              <span className="text-sm font-semibold" style={{ color: '#e5b9e1' }}>Edit Mode</span>
@@ -681,36 +682,37 @@ export default function WorkerRouteDetail() {
 
         {/* Unoptimized addresses warning */}
         {!dismissedOptWarning && addresses.filter(a => !a.served && a.status !== 'served').some(a => !a.lat || !a.lng) && activeRouteTab === 'addresses' && (
-          <div className="mb-3 bg-yellow-50 border border-yellow-300 rounded-xl p-3 flex items-start gap-2">
+          <div className="mb-3 rounded-xl p-3 flex items-start gap-2" style={{ background: 'rgba(233,195,73,0.10)', border: '1px solid rgba(233,195,73,0.30)' }}>
             <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-xs font-semibold text-yellow-800">Some stops couldn't be located</p>
-              <p className="text-xs text-yellow-700 mt-0.5">
+              <p className="text-xs font-semibold" style={{ color: '#e9c349' }}>Some stops couldn't be located</p>
+              <p className="text-xs mt-0.5" style={{ color: '#c9a030' }}>
                 {addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng)).length} address{addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng)).length !== 1 ? 'es' : ''} couldn't be geocoded and are shown at the end.
               </p>
               <button
                 onClick={handleRetryGeocode}
                 disabled={isRetryingGeocode}
-                className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-yellow-800 bg-yellow-200 hover:bg-yellow-300 disabled:opacity-50 px-2.5 py-1.5 rounded-lg transition-colors"
+                className="mt-2 flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: '#e9c349', background: 'rgba(233,195,73,0.15)' }}
               >
                 {isRetryingGeocode ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
                 {isRetryingGeocode ? 'Geocoding...' : 'Retry Geocoding'}
               </button>
             </div>
-            <button onClick={() => setDismissedOptWarning(true)} className="p-1 rounded hover:bg-yellow-200 text-yellow-600 flex-shrink-0">
+            <button onClick={() => setDismissedOptWarning(true)} className="p-1 rounded hover:bg-white/10 flex-shrink-0" style={{ color: '#6B7280' }}>
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {/* Addresses / Scheduled Tabs */}
-        <div className="flex rounded-xl p-1 mb-4" style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
+        <div className="flex rounded-xl p-1 mb-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <button
             onClick={() => setActiveRouteTab('addresses')}
             className="flex-1 py-2 text-xs font-bold rounded-lg transition-colors"
             style={{
-              background: activeRouteTab === 'addresses' ? '#502f50' : 'transparent',
-              color: activeRouteTab === 'addresses' ? '#e9c349' : '#8a7f87',
+              background: activeRouteTab === 'addresses' ? 'rgba(229,179,225,0.20)' : 'transparent',
+              color: activeRouteTab === 'addresses' ? '#e5b9e1' : '#6B7280',
               boxShadow: activeRouteTab === 'addresses' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
@@ -720,8 +722,8 @@ export default function WorkerRouteDetail() {
             onClick={() => setActiveRouteTab('scheduled')}
             className="flex-1 py-2 text-xs font-bold rounded-lg transition-colors relative"
             style={{
-              background: activeRouteTab === 'scheduled' ? '#502f50' : 'transparent',
-              color: activeRouteTab === 'scheduled' ? '#e5b9e1' : '#8a7f87',
+              background: activeRouteTab === 'scheduled' ? 'rgba(229,179,225,0.20)' : 'transparent',
+              color: activeRouteTab === 'scheduled' ? '#e5b9e1' : '#6B7280',
               boxShadow: activeRouteTab === 'scheduled' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
             }}
           >
@@ -748,7 +750,7 @@ export default function WorkerRouteDetail() {
         <>
         {/* Search Filter Banner */}
          {searchFilter && (
-          <div style={{ marginBottom: 16, background: '#201f21', border: '1px solid #363436', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ marginBottom: 16, background: 'rgba(14,20,44,0.60)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="flex items-center gap-2">
               <Search className="w-4 h-4" style={{ color: '#e9c349' }} />
               <span className="text-sm font-medium" style={{ color: '#e6e1e4' }}>Showing search result</span>
