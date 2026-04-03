@@ -212,34 +212,33 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* 3 diagonal gold beams — top-left to bottom-right, full screen crossing */}
+        {/* Gold accents — lowered so they pass through the middle of the screen like the reference */}
         {[
-          { left: '-8%',  glowOpacity: 0.45, lineOpacity: 1.0,  glowWidth: 80  },
-          { left: '10%',  glowOpacity: 0.35, lineOpacity: 0.9,  glowWidth: 60  },
-          { left: '26%',  glowOpacity: 0.28, lineOpacity: 0.75, glowWidth: 50  },
+          { top: '8%', left: '-6%', glowOpacity: 0.44, lineOpacity: 0.95, glowWidth: 84 },
+          { top: '20%', left: '10%', glowOpacity: 0.34, lineOpacity: 0.82, glowWidth: 62 },
+          { top: '32%', left: '22%', glowOpacity: 0.24, lineOpacity: 0.68, glowWidth: 48 },
         ].map((beam, i) => (
           <React.Fragment key={i}>
-            {/* Glow halo */}
             <div style={{
               position: 'absolute',
-              top: '-10%',
+              top: beam.top,
               left: beam.left,
               width: `${beam.glowWidth}px`,
-              height: '200%',
-              background: `linear-gradient(90deg, transparent 0%, rgba(210,160,20,${beam.glowOpacity * 0.5}) 20%, rgba(240,190,30,${beam.glowOpacity}) 50%, rgba(210,160,20,${beam.glowOpacity * 0.5}) 80%, transparent 100%)`,
-              transform: 'rotate(40deg)',
+              height: '185%',
+              background: `linear-gradient(90deg, transparent 0%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 20%, rgba(247,206,78,${beam.glowOpacity}) 50%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 80%, transparent 100%)`,
+              transform: 'rotate(38deg)',
               transformOrigin: 'top left',
+              filter: 'blur(1px)',
               pointerEvents: 'none'
             }} />
-            {/* Sharp bright line */}
             <div style={{
               position: 'absolute',
-              top: '-10%',
+              top: beam.top,
               left: beam.left,
               width: `${beam.glowWidth}px`,
-              height: '200%',
-              background: `linear-gradient(90deg, transparent 46%, rgba(255,225,60,${beam.lineOpacity}) 50%, transparent 54%)`,
-              transform: 'rotate(40deg)',
+              height: '185%',
+              background: `linear-gradient(90deg, transparent 45%, rgba(255,224,92,${beam.lineOpacity}) 50%, transparent 55%)`,
+              transform: 'rotate(38deg)',
               transformOrigin: 'top left',
               pointerEvents: 'none'
             }} />
