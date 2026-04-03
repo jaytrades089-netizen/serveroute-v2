@@ -129,10 +129,10 @@ body {
 
 /* Frosted glass — light (bottom nav bar) */
 .frosted-glass-light {
-  background: rgba(11, 15, 30, 0.55);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(11, 15, 30, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 /* Frosted glass — card (route cards) */
