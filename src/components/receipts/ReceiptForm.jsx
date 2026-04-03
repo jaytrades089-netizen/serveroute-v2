@@ -569,398 +569,209 @@ export default function ReceiptForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Address Info */}
-      <Card>
-        <CardContent className="pt-4">
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <div className="flex items-start gap-3">
-            <MapPin className="w-5 h-5 text-blue-500 mt-0.5" />
+            <MapPin className="w-5 h-5 mt-0.5" style={{ color: '#e9c349' }} />
             <div>
-              <p className="font-medium">{address.normalized_address || address.legal_address}</p>
-              <p className="text-sm text-gray-500">Route: {route.folder_name}</p>
+              <p className="font-medium" style={{ color: '#E6E1E4' }}>{address.normalized_address || address.legal_address}</p>
+              <p className="text-sm" style={{ color: '#6B7280' }}>Route: {route.folder_name}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Resubmission Notice */}
       {parentReceipt && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="pt-4">
+        <div className="rounded-xl p-4" style={{ background: 'rgba(233,195,73,0.10)', border: '1px solid rgba(233,195,73,0.30)' }}>
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-orange-500" />
+              <AlertCircle className="w-5 h-5" style={{ color: '#e9c349' }} />
               <div>
-                <p className="font-medium text-orange-800">Resubmission Required</p>
-                <p className="text-sm text-orange-700 mt-1">
+                <p className="font-medium" style={{ color: '#e9c349' }}>Resubmission Required</p>
+                <p className="text-sm mt-1" style={{ color: '#c9a030' }}>
                   {parentReceipt.revision_instructions || parentReceipt.rejection_reason}
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Recipient Information */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <User className="w-4 h-4" />
-            Recipient Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium flex items-center gap-2 mb-4" style={{ color: '#9CA3AF' }}>
+          <User className="w-4 h-4" />
+          Recipient Information
+        </p>
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="recipientName">Name *</Label>
-            <Input
-              id="recipientName"
-              value={recipientName}
-              onChange={(e) => setRecipientName(e.target.value)}
-              placeholder="Name of person served"
-            />
+            <Label htmlFor="recipientName" style={{ color: '#9CA3AF' }}>Name *</Label>
+            <Input id="recipientName" value={recipientName} onChange={(e) => setRecipientName(e.target.value)} placeholder="Name of person served" className="mt-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
           </div>
-
           <div>
-            <Label>Relationship to Defendant *</Label>
+            <Label style={{ color: '#9CA3AF' }}>Relationship to Defendant *</Label>
             <Select value={recipientRelationship} onValueChange={setRecipientRelationship}>
-              <SelectTrigger>
+              <SelectTrigger className="mt-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {RELATIONSHIP_OPTIONS.map(opt => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </SelectItem>
+                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
           {recipientRelationship === 'other' && (
             <div>
-              <Label htmlFor="otherRelationship">Specify Relationship *</Label>
-              <Input
-                id="otherRelationship"
-                value={recipientRelationshipOther}
-                onChange={(e) => setRecipientRelationshipOther(e.target.value)}
-                placeholder="Enter relationship"
-              />
+              <Label htmlFor="otherRelationship" style={{ color: '#9CA3AF' }}>Specify Relationship *</Label>
+              <Input id="otherRelationship" value={recipientRelationshipOther} onChange={(e) => setRecipientRelationshipOther(e.target.value)} placeholder="Enter relationship" className="mt-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Service Location */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <MapPin className="w-4 h-4" />
-            Service Location
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Location Type Tabs */}
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium flex items-center gap-2 mb-4" style={{ color: '#9CA3AF' }}>
+          <MapPin className="w-4 h-4" />
+          Service Location
+        </p>
+        <div className="space-y-4">
           <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setLocationType('address_on_file')}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition ${
-                locationType === 'address_on_file'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              📍 Address on File
-            </button>
-            <button
-              type="button"
-              onClick={() => setLocationType('meeting_place')}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition ${
-                locationType === 'meeting_place'
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-100 text-gray-600'
-              }`}
-            >
-              🤝 Meeting Place
-            </button>
+            <button type="button" onClick={() => setLocationType('address_on_file')}
+              className="flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition"
+              style={locationType === 'address_on_file'
+                ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349', backdropFilter: 'blur(12px)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#6B7280' }}
+            >📍 Address on File</button>
+            <button type="button" onClick={() => setLocationType('meeting_place')}
+              className="flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition"
+              style={locationType === 'meeting_place'
+                ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349', backdropFilter: 'blur(12px)' }
+                : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#6B7280' }}
+            >🤝 Meeting Place</button>
           </div>
-
-          {/* Address on File */}
           {locationType === 'address_on_file' && (
-            <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <p className="font-semibold">{addressDisplay.street}</p>
-              <p className="text-gray-600">{addressDisplay.cityStateZip}</p>
-              <p className="text-xs text-green-600 mt-2">✓ Using address from case file</p>
+            <div className="rounded-lg p-4" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <p className="font-semibold" style={{ color: '#E6E1E4' }}>{addressDisplay.street}</p>
+              <p style={{ color: '#9CA3AF' }}>{addressDisplay.cityStateZip}</p>
+              <p className="text-xs mt-2" style={{ color: '#22c55e' }}>✓ Using address from case file</p>
             </div>
           )}
-
-          {/* Meeting Place */}
           {locationType === 'meeting_place' && (
             <div className="space-y-3">
-              <Input
-                value={meetingPlaceAddress}
-                onChange={(e) => setMeetingPlaceAddress(e.target.value)}
-                placeholder="Enter full address of meeting place"
-              />
-              <p className="text-xs text-gray-500">
-                Enter the address where service was completed (restaurant, workplace, etc.)
-              </p>
+              <Input value={meetingPlaceAddress} onChange={(e) => setMeetingPlaceAddress(e.target.value)} placeholder="Enter full address of meeting place" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
+              <p className="text-xs" style={{ color: '#6B7280' }}>Enter the address where service was completed (restaurant, workplace, etc.)</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* GPS Location Data */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">Service Location Data</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium mb-3" style={{ color: '#9CA3AF' }}>Service Location Data</p>
           {serveCoordinates ? (
-            <div className={`rounded-lg p-3 border ${serveCoordinates.fallback ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+            <div className="rounded-lg p-3" style={serveCoordinates.fallback
+              ? { background: 'rgba(233,195,73,0.10)', border: '1px solid rgba(233,195,73,0.25)' }
+              : { background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.25)' }}>
               <div className="flex items-center gap-2 mb-2">
-                <MapPin className={`w-4 h-4 ${serveCoordinates.fallback ? 'text-amber-600' : 'text-green-600'}`} />
-                <span className={`text-sm font-semibold ${serveCoordinates.fallback ? 'text-amber-700' : 'text-green-700'}`}>
+                <MapPin className="w-4 h-4" style={{ color: serveCoordinates.fallback ? '#e9c349' : '#22c55e' }} />
+                <span className="text-sm font-semibold" style={{ color: serveCoordinates.fallback ? '#e9c349' : '#22c55e' }}>
                   {serveCoordinates.fallback ? 'Using Address Location' : 'Location Captured'}
                 </span>
               </div>
               {serveCoordinates.fallback ? (
-                <p className="text-xs text-amber-700">
-                  GPS unavailable — using address on file coordinates. Enable location for accurate tracking.
-                </p>
+                <p className="text-xs" style={{ color: '#c9a030' }}>GPS unavailable — using address on file coordinates.</p>
               ) : (
                 <>
-                  <p className="text-xs text-gray-600 mb-1">
-                    Coordinates: {serveCoordinates.latitude.toFixed(6)}, {serveCoordinates.longitude.toFixed(6)}
-                  </p>
-                  {serveDistance !== null && (
-                    <p className="text-xs text-gray-600">
-                      Distance from address on file: {serveDistance.toLocaleString()} feet
-                    </p>
-                  )}
+                  <p className="text-xs mb-1" style={{ color: '#9CA3AF' }}>Coordinates: {serveCoordinates.latitude.toFixed(6)}, {serveCoordinates.longitude.toFixed(6)}</p>
+                  {serveDistance !== null && <p className="text-xs" style={{ color: '#9CA3AF' }}>Distance from address on file: {serveDistance.toLocaleString()} feet</p>}
                 </>
               )}
             </div>
           ) : (
-            <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
-              <p className="text-sm text-amber-700">Location not captured yet</p>
+            <div className="rounded-lg p-3" style={{ background: 'rgba(233,195,73,0.08)', border: '1px solid rgba(233,195,73,0.20)' }}>
+              <p className="text-sm" style={{ color: '#c9a030' }}>Location not captured yet</p>
             </div>
           )}
-          
-          <Button
-            type="button"
-            onClick={captureServeLocation}
-            disabled={gettingLocation}
-            variant="outline"
-            className="w-full mt-3"
-          >
-            {gettingLocation ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Getting Location...</>
-            ) : (
-              <><RefreshCw className="w-4 h-4 mr-2" /> Refresh Location</>
-            )}
+          <Button type="button" onClick={captureServeLocation} disabled={gettingLocation} variant="outline" className="w-full mt-3" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}>
+            {gettingLocation ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Getting Location...</> : <><RefreshCw className="w-4 h-4 mr-2" /> Refresh Location</>}
           </Button>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Service Date & Time */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Clock className="w-4 h-4" />
-            Service Date & Time
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="serviceDate">Date</Label>
-              <Input
-                id="serviceDate"
-                type="date"
-                value={serviceDate}
-                onChange={(e) => setServiceDate(e.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="serviceTime">Time</Label>
-              <Input
-                id="serviceTime"
-                type="time"
-                value={serviceTime}
-                onChange={(e) => setServiceTime(e.target.value)}
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium flex items-center gap-2 mb-3" style={{ color: '#9CA3AF' }}><Clock className="w-4 h-4" />Service Date &amp; Time</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div><Label htmlFor="serviceDate" style={{ color: '#9CA3AF' }}>Date</Label><Input id="serviceDate" type="date" value={serviceDate} onChange={(e) => setServiceDate(e.target.value)} className="mt-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} /></div>
+          <div><Label htmlFor="serviceTime" style={{ color: '#9CA3AF' }}>Time</Label><Input id="serviceTime" type="time" value={serviceTime} onChange={(e) => setServiceTime(e.target.value)} className="mt-1" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} /></div>
+        </div>
+      </div>
 
       {/* Photos */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
-            Photos * ({minPhotos}-{maxPhotos} required)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Photo Grid */}
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium mb-3" style={{ color: '#9CA3AF' }}>Photos * ({minPhotos}-{maxPhotos} required)</p>
           {photos.length > 0 && (
             <div className="grid grid-cols-3 gap-2 mb-3">
               {photos.map((url, index) => (
                 <div key={index} className="relative aspect-square">
                   <img src={url} alt={`Photo ${index + 1}`} className="w-full h-full object-cover rounded-lg" />
-                  <button
-                    type="button"
-                    onClick={() => removePhoto(index)}
-                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm"
-                  >
-                    ×
-                  </button>
+                  <button type="button" onClick={() => removePhoto(index)} className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-sm">×</button>
                 </div>
               ))}
             </div>
           )}
-          
-          {/* Add Photo Buttons */}
           {photos.length < maxPhotos && (
             <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={startCamera}
-                variant="outline"
-                className="flex-1"
-              >
-                <Camera className="w-4 h-4 mr-2" />
-                Take Photo
-              </Button>
-              <Button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                variant="outline"
-                className="flex-1"
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload
-              </Button>
+              <Button type="button" onClick={startCamera} variant="outline" className="flex-1" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}><Camera className="w-4 h-4 mr-2" />Take Photo</Button>
+              <Button type="button" onClick={() => fileInputRef.current?.click()} variant="outline" className="flex-1" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}><Upload className="w-4 h-4 mr-2" />Upload</Button>
             </div>
           )}
-          
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-        </CardContent>
-      </Card>
+          <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={handleFileUpload} />
+      </div>
 
       {/* Signature */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium">
-            Server Signature {isSignatureRequired ? '*' : '(Optional)'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Show current signature or placeholder */}
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium mb-3" style={{ color: '#9CA3AF' }}>Server Signature {isSignatureRequired ? '*' : '(Optional)'}</p>
           {signature ? (
-            <div className="border rounded-lg p-2 mb-3 bg-gray-50">
+            <div className="border rounded-lg p-2 mb-3" style={{ borderColor: 'rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.05)' }}>
               <img src={signature} alt="Signature" className="max-h-24 mx-auto" />
             </div>
           ) : (
-            <div className="border-2 border-dashed rounded-lg p-8 mb-3 text-center text-gray-400">
-              No signature
-            </div>
+            <div className="border-2 border-dashed rounded-lg p-8 mb-3 text-center" style={{ borderColor: 'rgba(255,255,255,0.15)', color: '#4B5563' }}>No signature</div>
           )}
-          
-          {/* Signature Buttons */}
           <div className="space-y-2">
             {savedSignature && (
-              <Button
-                type="button"
-                onClick={() => setSignature(savedSignature)}
-                variant="outline"
-                className="w-full border-green-300 text-green-700 hover:bg-green-50"
-              >
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Use Saved Signature
-              </Button>
+              <Button type="button" onClick={() => setSignature(savedSignature)} variant="outline" className="w-full" style={{ border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e', background: 'rgba(34,197,94,0.08)' }}><CheckCircle className="w-4 h-4 mr-2" />Use Saved Signature</Button>
             )}
-            
-            <Button
-              type="button"
-              onClick={() => setShowSignaturePad(true)}
-              variant="outline"
-              className="w-full"
-            >
-              <Edit3 className="w-4 h-4 mr-2" />
-              {signature ? 'Draw New Signature' : 'Add Signature'}
-            </Button>
-            
+            <Button type="button" onClick={() => setShowSignaturePad(true)} variant="outline" className="w-full" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}><Edit3 className="w-4 h-4 mr-2" />{signature ? 'Draw New Signature' : 'Add Signature'}</Button>
             {signature && (
-              <Button
-                type="button"
-                onClick={() => setSignature(null)}
-                variant="outline"
-                className="w-full text-red-600 border-red-200"
-              >
-                Clear Signature
-              </Button>
+              <Button type="button" onClick={() => setSignature(null)} variant="outline" className="w-full" style={{ border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}>Clear Signature</Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Notes */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Add any additional notes about the service..."
-            rows={3}
-          />
-        </CardContent>
-      </Card>
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+        <p className="text-sm font-medium flex items-center gap-2 mb-3" style={{ color: '#9CA3AF' }}><FileText className="w-4 h-4" />Notes</p>
+          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any additional notes about the service..." rows={3} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
+      </div>
 
       {/* Actions */}
       <div className="flex gap-3 pt-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          disabled={submitting}
-          className="flex-1"
-        >
-          Cancel
-        </Button>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting} className="flex-1" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}>Cancel</Button>
         <Button
           type="submit"
           disabled={submitting || (hasSubmitted && !parentReceipt)}
-          className={`flex-1 ${
-            hasSubmitted && !parentReceipt
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-green-500 hover:bg-green-600'
-          } text-white`}
+          className="flex-1 font-bold"
+          style={hasSubmitted && !parentReceipt
+            ? { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.10)', color: '#6B7280', cursor: 'not-allowed' }
+            : { background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }}
         >
-          {submitting ? (
-            <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</>
-          ) : hasSubmitted && !parentReceipt ? (
-            <><CheckCircle className="w-4 h-4 mr-2" /> Already Submitted</>
-          ) : (
-            <><Send className="w-4 h-4 mr-2" /> Submit Receipt</>
-          )}
+          {submitting ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting...</>
+            : hasSubmitted && !parentReceipt ? <><CheckCircle className="w-4 h-4 mr-2" /> Already Submitted</>
+            : <><Send className="w-4 h-4 mr-2" /> Submit Receipt</>}
         </Button>
       </div>
-
       {hasSubmitted && !parentReceipt && (
-        <p className="text-center text-sm text-green-600 mt-2">
-          ✓ This receipt has been sent to your boss for review
-        </p>
+        <p className="text-center text-sm mt-2" style={{ color: '#22c55e' }}>✓ This receipt has been sent to your boss for review</p>
       )}
 
       {/* Camera Modal - Matches EvidenceCamera exactly */}

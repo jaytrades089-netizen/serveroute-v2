@@ -130,14 +130,14 @@ export default function SubmitReceipt() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 32 }}>
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-10">
+      <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4' }} className="sticky top-0 z-10">
         <div className="px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} style={{ color: '#e6e1e4' }}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>
             {parentReceiptId ? 'Resubmit Receipt' : 'Submit Receipt'}
           </h1>
         </div>
