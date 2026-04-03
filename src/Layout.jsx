@@ -212,29 +212,60 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Outer beam glow — wide soft falloff */}
+        {/* === GOLD BEAM 1 === */}
+        {/* Beam 1 outer glow */}
         <div
           style={{
             position: 'absolute',
-            top: '-30%',
-            left: '5%',
-            width: '160px',
-            height: '180%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(200,155,30,0.07) 25%, rgba(220,175,45,0.20) 50%, rgba(200,155,30,0.07) 75%, transparent 100%)',
+            top: '-20%',
+            left: '2%',
+            width: '140px',
+            height: '200%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.08) 20%, rgba(230,180,35,0.22) 50%, rgba(210,160,20,0.08) 80%, transparent 100%)',
             transform: 'rotate(22deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
-        {/* Inner beam core — narrow bright streak */}
+        {/* Beam 1 core */}
         <div
           style={{
             position: 'absolute',
-            top: '-30%',
-            left: '11%',
-            width: '52px',
-            height: '180%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(240,195,60,0.18) 20%, rgba(255,215,70,0.42) 50%, rgba(240,195,60,0.18) 80%, transparent 100%)',
+            top: '-20%',
+            left: '9%',
+            width: '28px',
+            height: '200%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.25) 15%, rgba(255,220,70,0.65) 50%, rgba(245,200,55,0.25) 85%, transparent 100%)',
+            transform: 'rotate(22deg)',
+            transformOrigin: 'top left',
+            pointerEvents: 'none'
+          }}
+        />
+
+        {/* === GOLD BEAM 2 === */}
+        {/* Beam 2 outer glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-20%',
+            left: '18%',
+            width: '120px',
+            height: '200%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.07) 20%, rgba(230,180,35,0.18) 50%, rgba(210,160,20,0.07) 80%, transparent 100%)',
+            transform: 'rotate(22deg)',
+            transformOrigin: 'top left',
+            pointerEvents: 'none'
+          }}
+        />
+        {/* Beam 2 core */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-20%',
+            left: '24%',
+            width: '18px',
+            height: '200%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.20) 15%, rgba(255,220,70,0.55) 50%, rgba(245,200,55,0.20) 85%, transparent 100%)',
             transform: 'rotate(22deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
