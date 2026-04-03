@@ -208,7 +208,7 @@ export default function Layout({ children, currentPageName }) {
           right: 0,
           bottom: 0,
           zIndex: -1,
-          backgroundColor: '#0B0F1E',
+          background: 'linear-gradient(to bottom, #060914 0%, #0B1428 40%, #0D1E3A 100%)',
           overflow: 'hidden'
         }}
       >

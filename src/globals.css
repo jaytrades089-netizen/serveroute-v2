@@ -116,7 +116,8 @@ body.camera-active .bottom-nav-bar {
    ============================================================ */
 
 body {
-  background-color: #0B0F1E;
+  background: linear-gradient(to bottom, #060914 0%, #0B1428 40%, #0D1E3A 100%);
+  min-height: 100vh;
 }
 
 /* Frosted glass — standard (cards, stat boxes, phase blocks) */

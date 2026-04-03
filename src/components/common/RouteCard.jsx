@@ -423,7 +423,12 @@ export default function RouteCard({
                 : 'border'
       }`}
       style={{
-        ...(allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} : { background: '#1c1b1d', borderColor: '#363436' }),
+        ...(allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} : {
+          background: 'rgba(20, 28, 50, 0.65)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderColor: 'rgba(255,255,255,0.09)'
+        }),
         borderLeft: '5px solid #e9c349'
       }}
     >
