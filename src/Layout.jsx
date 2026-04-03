@@ -232,5 +232,51 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  return children;
+  return (
+    <>
+      {/* Fixed global background: navy base + gold diagonal beam */}
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: -1,
+          backgroundColor: '#0B0F1E',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Outer beam — wide soft glow */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-20%',
+            left: '20%',
+            width: '200px',
+            height: '160%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(212,165,40,0.10) 30%, rgba(240,190,50,0.26) 50%, rgba(212,165,40,0.10) 70%, transparent 100%)',
+            transform: 'rotate(22deg)',
+            transformOrigin: 'top center',
+            pointerEvents: 'none'
+          }}
+        />
+        {/* Inner beam — bright golden core */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '-20%',
+            left: '28%',
+            width: '64px',
+            height: '160%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(255,220,80,0.14) 25%, rgba(255,238,110,0.32) 50%, rgba(255,220,80,0.14) 75%, transparent 100%)',
+            transform: 'rotate(22deg)',
+            transformOrigin: 'top center',
+            pointerEvents: 'none'
+          }}
+        />
+      </div>
+      {children}
+    </>
+  );
 }

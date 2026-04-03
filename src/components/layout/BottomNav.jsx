@@ -26,19 +26,17 @@ export default function BottomNav({ currentPage }) {
   if (hiddenPages.includes(currentPage)) return null;
 
   return (
-    <nav style={{
+    <nav className="frosted-glass-light bottom-nav-bar" style={{
       position: 'fixed',
       bottom: 0,
       left: 0,
       right: 0,
-      background: '#0F0B10',
-      borderTop: 'none',
       paddingLeft: 8,
       paddingRight: 8,
       paddingTop: 8,
       paddingBottom: 8,
       zIndex: 50,
-    }} className="bottom-nav-bar">
+    }}>
       <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))', marginBottom: 8 }} />
       <div className="max-w-lg mx-auto flex justify-around items-end">
         {/* Left nav items */}
@@ -67,15 +65,14 @@ export default function BottomNav({ currentPage }) {
           className="flex flex-col items-center -mt-4"
         >
           <div 
-            className="rounded-full flex items-center justify-center border-4 transition-all" 
+            className="rounded-2xl flex items-center justify-center border-4 transition-all" 
             style={{
               width: 56,
               height: 56,
-              borderColor: '#0F0B10',
-              background: isScanActive ? '#e9c349' : '#e9c349',
-              boxShadow: '0 4px 12px rgba(233, 195, 73, 0.4)',
+              borderColor: 'transparent',
+              background: '#e9c349',
+              boxShadow: '0 4px 14px rgba(233,195,73,0.45)',
               marginBottom: -4,
-              animation: 'pulse-glow 2s infinite',
             }}
           >
             <Camera className="w-7 h-7" style={{ color: '#0F0B10' }} />
@@ -84,9 +81,9 @@ export default function BottomNav({ currentPage }) {
             fontSize: 12,
             fontWeight: 500,
             marginTop: 4,
-            color: isScanActive ? '#e9c349' : '#8a7f87',
+            color: '#e9c349',
           }}>
-            Bulk Scan
+            BULK SCAN
           </span>
         </Link>
 

@@ -1,12 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { FileText, Bell } from 'lucide-react';
 
 export default function Header({ user, unreadCount = 0, actionButton = null, showArchived, onArchiveToggle }) {
-  const initials = user?.full_name
-    ? user.full_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U';
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   return (
     <>
@@ -23,12 +29,12 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
       zIndex: 40,
     }}>
       <div className="flex items-center gap-2">
-        <FileText className="w-6 h-6" style={{ color: '#e9c349' }} />
-        <span className="font-bold text-lg" style={{ color: '#e9c349' }}>ServeRoute</span>
-        <span className="font-bold text-lg opacity-80" style={{ color: '#8a7f87' }}>{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+        <FileText className="w-6 h-6" style={{ color: '#e5b9e1' }} />
+        <span className="font-bold text-lg" style={{ color: '#E6E1E4' }}>ServeRoute</span>
       </div>
       
       <div className="flex items-center gap-2 ml-auto">
+        <span className="font-bold text-lg" style={{ color: '#E6E1E4' }}>{dateStr}&nbsp;&nbsp;{timeStr}</span>
         {actionButton}
         {onArchiveToggle && (
           <button

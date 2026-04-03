@@ -162,7 +162,7 @@ export default function WorkerHome() {
 
   if (userLoading || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen bg-transparent pb-20">
         <div className="bg-blue-500 h-14" />
         <main className="px-4 py-6 max-w-lg mx-auto">
           <div className="animate-pulse mb-6">
@@ -233,7 +233,7 @@ export default function WorkerHome() {
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-6 max-w-lg mx-auto">
