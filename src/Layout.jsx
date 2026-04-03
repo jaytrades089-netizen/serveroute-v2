@@ -212,67 +212,39 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Beams — sweep from top-left toward center-right, fade out at 75% height */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0) 75%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0) 75%)',
-            pointerEvents: 'none'
-          }}
-        >
-          {/* BEAM 1 — main beam, starts top-left edge, angles ~25deg toward right */}
-          {/* Glow halo */}
-          <div style={{
-            position: 'absolute',
-            top: '-5%',
-            left: '-5%',
-            width: '60px',
-            height: '250%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.15) 20%, rgba(240,190,40,0.35) 50%, rgba(210,160,20,0.15) 80%, transparent 100%)',
-            transform: 'rotate(25deg)',
-            transformOrigin: 'top left',
-          }} />
-          {/* Bright line */}
-          <div style={{
-            position: 'absolute',
-            top: '-5%',
-            left: '-5%',
-            width: '60px',
-            height: '250%',
-            background: 'linear-gradient(90deg, transparent 45%, rgba(255,230,80,0.95) 50%, transparent 55%)',
-            transform: 'rotate(25deg)',
-            transformOrigin: 'top left',
-          }} />
-
-          {/* BEAM 2 — parallel beam, offset slightly to the right */}
-          {/* Glow halo */}
-          <div style={{
-            position: 'absolute',
-            top: '-5%',
-            left: '8%',
-            width: '50px',
-            height: '250%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 20%, rgba(240,190,40,0.25) 50%, rgba(210,160,20,0.1) 80%, transparent 100%)',
-            transform: 'rotate(25deg)',
-            transformOrigin: 'top left',
-          }} />
-          {/* Bright line */}
-          <div style={{
-            position: 'absolute',
-            top: '-5%',
-            left: '8%',
-            width: '50px',
-            height: '250%',
-            background: 'linear-gradient(90deg, transparent 44%, rgba(255,230,80,0.85) 50%, transparent 56%)',
-            transform: 'rotate(25deg)',
-            transformOrigin: 'top left',
-          }} />
-        </div>
+        {/* 3 diagonal gold beams — top-left to bottom-right, full screen crossing */}
+        {[
+          { left: '-8%',  glowOpacity: 0.45, lineOpacity: 1.0,  glowWidth: 80  },
+          { left: '10%',  glowOpacity: 0.35, lineOpacity: 0.9,  glowWidth: 60  },
+          { left: '26%',  glowOpacity: 0.28, lineOpacity: 0.75, glowWidth: 50  },
+        ].map((beam, i) => (
+          <React.Fragment key={i}>
+            {/* Glow halo */}
+            <div style={{
+              position: 'absolute',
+              top: '-10%',
+              left: beam.left,
+              width: `${beam.glowWidth}px`,
+              height: '200%',
+              background: `linear-gradient(90deg, transparent 0%, rgba(210,160,20,${beam.glowOpacity * 0.5}) 20%, rgba(240,190,30,${beam.glowOpacity}) 50%, rgba(210,160,20,${beam.glowOpacity * 0.5}) 80%, transparent 100%)`,
+              transform: 'rotate(40deg)',
+              transformOrigin: 'top left',
+              pointerEvents: 'none'
+            }} />
+            {/* Sharp bright line */}
+            <div style={{
+              position: 'absolute',
+              top: '-10%',
+              left: beam.left,
+              width: `${beam.glowWidth}px`,
+              height: '200%',
+              background: `linear-gradient(90deg, transparent 46%, rgba(255,225,60,${beam.lineOpacity}) 50%, transparent 54%)`,
+              transform: 'rotate(40deg)',
+              transformOrigin: 'top left',
+              pointerEvents: 'none'
+            }} />
+          </React.Fragment>
+        ))}
       </div>
       {children}
     </>
