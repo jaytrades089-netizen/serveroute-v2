@@ -472,12 +472,11 @@ export default function RouteCard({
           </div>
           <div className="flex-shrink-0 ml-3 flex items-center gap-2">
             {estTimeLabel && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-gray-100 text-gray-700 text-sm font-semibold border border-gray-200">
-                <Clock className="w-3.5 h-3.5 text-gray-500" />
+              <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ color: '#8a7f87', background: '#363436' }}>
                 {estTimeLabel}
               </span>
             )}
-            <span className="inline-flex items-center px-3 py-1.5 rounded-lg bg-teal-500 text-white text-sm font-bold">
+            <span className="text-xs px-2 py-1 rounded-full font-semibold" style={{ color: '#8a7f87', background: '#363436' }}>
               {spreadDays}d
             </span>
             {(() => {
@@ -512,19 +511,19 @@ export default function RouteCard({
         <div className="grid grid-cols-3 gap-3">
           {/* Total */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{totalAddresses}</p>
+            <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{totalAddresses}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Total</p>
           </div>
           
           {/* Served */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{servedCount}</p>
+            <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{servedCount}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Served</p>
           </div>
           
           {/* Pending */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
-            <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{pendingCount}</p>
+            <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{pendingCount}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Pending</p>
           </div>
         </div>
