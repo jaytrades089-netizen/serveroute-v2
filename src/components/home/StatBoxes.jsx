@@ -17,16 +17,16 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
   };
 
   return (
-    <div className="mb-5 -mt-1">
+    <div className="mb-3 -mt-1">
       {/* Top row: Routes / Addresses / Served */}
-      <div className="grid grid-cols-3 gap-2 mb-2">
+      <div className="grid grid-cols-3 gap-2 mb-1.5">
         {topStats.map((stat) => {
           const Icon = stat.icon;
           return (
             <Link
               key={stat.id}
               to={createPageUrl(stat.link)}
-              className="rounded-xl px-2.5 py-2 text-center hover:opacity-90 transition-opacity cursor-pointer"
+              className="rounded-xl px-2 py-1.5 text-center hover:opacity-90 transition-opacity cursor-pointer"
               style={{
                 background: 'rgba(14, 20, 44, 0.55)',
                 backdropFilter: 'blur(20px)',
@@ -48,7 +48,7 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
       {/* Due Soon bar */}
       <Link
         to={createPageUrl('WorkerRoutes?filter=due-soon')}
-        className="block rounded-xl px-4 py-2 hover:opacity-90 transition-opacity cursor-pointer"
+        className="block rounded-xl px-4 py-1.5 hover:opacity-90 transition-opacity cursor-pointer"
         style={{
           background: 'rgba(14, 20, 44, 0.55)',
           backdropFilter: 'blur(20px)',

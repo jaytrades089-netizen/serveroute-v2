@@ -164,7 +164,7 @@ export default function WorkerHome() {
     return (
       <div className="min-h-screen bg-transparent pb-20">
         <div className="bg-blue-500 h-14" />
-        <main className="px-4 py-6 max-w-lg mx-auto">
+        <main className="px-4 py-3 max-w-lg mx-auto">
           <div className="animate-pulse mb-6">
             <div className="h-8 bg-gray-200 rounded w-3/4 mb-2" />
             <div className="h-4 bg-gray-200 rounded w-1/2" />
@@ -236,7 +236,7 @@ export default function WorkerHome() {
     <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
       
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      <main className="px-4 py-3 max-w-lg mx-auto">
         <AddressSearch
           routes={routes}
           addresses={addresses}

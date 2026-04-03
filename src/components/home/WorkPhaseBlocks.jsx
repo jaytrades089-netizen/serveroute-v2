@@ -11,7 +11,7 @@ export default function WorkPhaseBlocks({ currentPhase }) {
   const isNtcActive = currentPhase === 'ntc';
 
   return (
-    <div className="mb-6" style={{ position: 'relative' }}>
+    <div className="mb-3" style={{ position: 'relative' }}>
 
       {/* AM / PM / WKND blocks */}
       <div className="grid grid-cols-3 gap-2">
@@ -21,11 +21,11 @@ export default function WorkPhaseBlocks({ currentPhase }) {
           return (
             <div
               key={phase.id}
-              className="frosted-glass rounded-xl py-5 px-3 text-center transition-all"
+              className="frosted-glass rounded-xl py-3 px-3 text-center transition-all"
               style={isActive ? { borderBottom: '2px solid #e9c349' } : {}}
             >
               <Icon
-                className="w-5 h-5 mx-auto mb-2"
+                className="w-4 h-4 mx-auto mb-1"
                 style={{ color: isActive ? '#E6E1E4' : '#6B7280' }}
               />
               <div
