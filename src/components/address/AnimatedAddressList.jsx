@@ -284,8 +284,9 @@ export default function AnimatedAddressList({
                     ${slidingUpCards.includes(address.id) ? 'animate-slide-up' : ''}
                   `}
                 >
-                  {/* Order number badge - use visual position (index + 1) */}
-                  <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                  {/* Order number badge - upper right */}
+                  <div className="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-lg"
+                    style={{ background: 'rgba(229,179,225,0.25)', border: '1px solid rgba(229,179,225,0.50)', color: '#e5b9e1' }}>
                     {index + 1}
                   </div>
                   <AddressCard
@@ -333,10 +334,9 @@ export default function AnimatedAddressList({
                   ${recentlyMovedId === address.id ? 'animate-slide-in-bottom' : ''}
                 `}
               >
-                {/* Order number badge - green if requirements met */}
-                <div className={`absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white ${
-                  isRequirementsMet ? 'bg-green-500' : 'bg-amber-500'
-                }`}>
+                {/* Order number badge - upper right */}
+                <div className="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-lg"
+                  style={{ background: 'rgba(229,179,225,0.25)', border: '1px solid rgba(229,179,225,0.50)', color: '#e5b9e1' }}>
                   {activeAddresses.length + index + 1}
                 </div>
                 
@@ -411,8 +411,9 @@ export default function AnimatedAddressList({
                 
                 return (
                 <div key={address.id} className="relative">
-                  {/* Order number badge */}
-                  <div className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-bold text-sm shadow-lg border-2 border-white">
+                  {/* Order number badge - upper right */}
+                  <div className="absolute -top-2 -right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs shadow-lg"
+                    style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#6B7280' }}>
                     {address.order_index || '?'}
                   </div>
                   
