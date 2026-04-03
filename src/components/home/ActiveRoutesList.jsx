@@ -102,6 +102,7 @@ export default function ActiveRoutesList({ routes = [] }) {
         key={route.id}
         to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
         className="frosted-glass-card block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
+        style={{ border: '1px solid rgba(255,255,255,0.18)' }}
         style={isActive ? { borderLeft: '3px solid #e5b9e1' } : { borderLeft: 'none' }}
       >
         {/* Top row: letter badge + name + status badge */}

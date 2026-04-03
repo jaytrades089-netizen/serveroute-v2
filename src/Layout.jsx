@@ -212,17 +212,17 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* === GOLD BEAM 1 — main bright bar === */}
+        {/* === GOLD BEAM 1 — main bright bar, top-left to bottom-right === */}
         {/* Outer glow */}
         <div
           style={{
             position: 'absolute',
-            top: '-5%',
-            left: '-5%',
-            width: '160px',
-            height: '200%',
+            top: '0',
+            left: '0',
+            width: '220px',
+            height: '130%',
             background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.08) 20%, rgba(230,180,35,0.22) 50%, rgba(210,160,20,0.08) 80%, transparent 100%)',
-            transform: 'rotate(32deg)',
+            transform: 'rotate(28deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
@@ -231,12 +231,12 @@ export default function Layout({ children, currentPageName }) {
         <div
           style={{
             position: 'absolute',
-            top: '-5%',
-            left: '5%',
-            width: '28px',
-            height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.30) 15%, rgba(255,225,75,0.80) 50%, rgba(245,200,55,0.30) 85%, transparent 100%)',
-            transform: 'rotate(32deg)',
+            top: '0',
+            left: '6%',
+            width: '30px',
+            height: '130%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.35) 15%, rgba(255,225,75,0.85) 50%, rgba(245,200,55,0.35) 85%, transparent 100%)',
+            transform: 'rotate(28deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
@@ -247,12 +247,12 @@ export default function Layout({ children, currentPageName }) {
         <div
           style={{
             position: 'absolute',
-            top: '-5%',
-            left: '10%',
-            width: '120px',
-            height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.06) 20%, rgba(230,180,35,0.16) 50%, rgba(210,160,20,0.06) 80%, transparent 100%)',
-            transform: 'rotate(32deg)',
+            top: '0',
+            left: '12%',
+            width: '140px',
+            height: '130%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.06) 20%, rgba(230,180,35,0.15) 50%, rgba(210,160,20,0.06) 80%, transparent 100%)',
+            transform: 'rotate(28deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
@@ -261,12 +261,12 @@ export default function Layout({ children, currentPageName }) {
         <div
           style={{
             position: 'absolute',
-            top: '-5%',
+            top: '0',
             left: '18%',
             width: '16px',
-            height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.22) 15%, rgba(255,225,75,0.60) 50%, rgba(245,200,55,0.22) 85%, transparent 100%)',
-            transform: 'rotate(32deg)',
+            height: '130%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.25) 15%, rgba(255,225,75,0.65) 50%, rgba(245,200,55,0.25) 85%, transparent 100%)',
+            transform: 'rotate(28deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
