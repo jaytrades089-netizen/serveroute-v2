@@ -214,9 +214,9 @@ export default function Layout({ children, currentPageName }) {
       >
         {/* Gold accents — top-left down toward bottom-right */}
         {[
-          { top: '-4%', left: '-8%', glowOpacity: 0.44, lineOpacity: 0.95, glowWidth: 84 },
-          { top: '8%', left: '4%', glowOpacity: 0.34, lineOpacity: 0.82, glowWidth: 62 },
-          { top: '20%', left: '16%', glowOpacity: 0.24, lineOpacity: 0.68, glowWidth: 48 },
+          { top: '-4%', left: '-8%', glowOpacity: 0.22, lineOpacity: 0.48, glowWidth: 84 },
+          { top: '8%', left: '4%', glowOpacity: 0.16, lineOpacity: 0.38, glowWidth: 62 },
+          { top: '20%', left: '16%', glowOpacity: 0.10, lineOpacity: 0.28, glowWidth: 48 },
         ].map((beam, i) => (
           <React.Fragment key={i}>
             <div style={{
