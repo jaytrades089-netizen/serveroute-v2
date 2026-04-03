@@ -212,65 +212,75 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* === GOLD BEAM 1 — main bright bar, top-left to bottom-right === */}
-        {/* Outer glow */}
+        {/* Beams container with vertical mask to fade out at 75% */}
         <div
           style={{
             position: 'absolute',
-            top: '0',
-            left: '0',
-            width: '220px',
-            height: '130%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.08) 20%, rgba(230,180,35,0.22) 50%, rgba(210,160,20,0.08) 80%, transparent 100%)',
-            transform: 'rotate(28deg)',
-            transformOrigin: 'top left',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 75%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 75%)',
             pointerEvents: 'none'
           }}
-        />
-        {/* Bright core */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '0',
-            left: '6%',
-            width: '30px',
-            height: '130%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.35) 15%, rgba(255,225,75,0.85) 50%, rgba(245,200,55,0.35) 85%, transparent 100%)',
-            transform: 'rotate(28deg)',
-            transformOrigin: 'top left',
-            pointerEvents: 'none'
-          }}
-        />
+        >
+          {/* === GOLD BEAM 1 (Left) === */}
+          {/* Outer glow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '-10%',
+              width: '120px',
+              height: '200%',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 30%, rgba(230,180,35,0.3) 50%, rgba(210,160,20,0.1) 70%, transparent 100%)',
+              transform: 'rotate(38deg)',
+              transformOrigin: 'top left',
+            }}
+          />
+          {/* Bright core */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '-10%',
+              width: '120px',
+              height: '200%',
+              background: 'linear-gradient(90deg, transparent 48%, rgba(255,225,75,0.8) 50%, transparent 52%)',
+              transform: 'rotate(38deg)',
+              transformOrigin: 'top left',
+            }}
+          />
 
-        {/* === GOLD BEAM 2 — secondary bar === */}
-        {/* Outer glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '0',
-            left: '12%',
-            width: '140px',
-            height: '130%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.06) 20%, rgba(230,180,35,0.15) 50%, rgba(210,160,20,0.06) 80%, transparent 100%)',
-            transform: 'rotate(28deg)',
-            transformOrigin: 'top left',
-            pointerEvents: 'none'
-          }}
-        />
-        {/* Bright core */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '0',
-            left: '18%',
-            width: '16px',
-            height: '130%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.25) 15%, rgba(255,225,75,0.65) 50%, rgba(245,200,55,0.25) 85%, transparent 100%)',
-            transform: 'rotate(28deg)',
-            transformOrigin: 'top left',
-            pointerEvents: 'none'
-          }}
-        />
+          {/* === GOLD BEAM 2 (Right) === */}
+          {/* Outer glow */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '15%',
+              width: '200px',
+              height: '200%',
+              background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 30%, rgba(230,180,35,0.25) 50%, rgba(210,160,20,0.1) 70%, transparent 100%)',
+              transform: 'rotate(38deg)',
+              transformOrigin: 'top left',
+            }}
+          />
+          {/* Bright core */}
+          <div
+            style={{
+              position: 'absolute',
+              top: '0',
+              left: '15%',
+              width: '200px',
+              height: '200%',
+              background: 'linear-gradient(90deg, transparent 49%, rgba(255,225,75,0.9) 50%, transparent 51%)',
+              transform: 'rotate(38deg)',
+              transformOrigin: 'top left',
+            }}
+          />
+        </div>
       </div>
       {children}
     </>
