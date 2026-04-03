@@ -67,7 +67,7 @@ export default function BottomNav({ currentPage }) {
           className="flex flex-col items-center -mt-4">
           
           <div
-            className="rounded-full flex items-center justify-center border-4 transition-all"
+            className="rounded-2xl flex items-center justify-center transition-all"
             style={{
               width: 56,
               height: 56,
