@@ -212,7 +212,7 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Beams container with vertical mask to fade out at 75% */}
+        {/* Beams — sweep from top-left toward center-right, fade out at 75% height */}
         <div
           style={{
             position: 'absolute',
@@ -220,66 +220,58 @@ export default function Layout({ children, currentPageName }) {
             left: 0,
             right: 0,
             bottom: 0,
-            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 75%)',
-            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 40%, rgba(0,0,0,0) 75%)',
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0) 75%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.9) 50%, rgba(0,0,0,0) 75%)',
             pointerEvents: 'none'
           }}
         >
-          {/* === GOLD BEAM 1 (Left) === */}
-          {/* Outer glow */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '0',
-              left: '-10%',
-              width: '120px',
-              height: '200%',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 30%, rgba(230,180,35,0.3) 50%, rgba(210,160,20,0.1) 70%, transparent 100%)',
-              transform: 'rotate(38deg)',
-              transformOrigin: 'top left',
-            }}
-          />
-          {/* Bright core */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '0',
-              left: '-10%',
-              width: '120px',
-              height: '200%',
-              background: 'linear-gradient(90deg, transparent 48%, rgba(255,225,75,0.8) 50%, transparent 52%)',
-              transform: 'rotate(38deg)',
-              transformOrigin: 'top left',
-            }}
-          />
+          {/* BEAM 1 — main beam, starts top-left edge, angles ~25deg toward right */}
+          {/* Glow halo */}
+          <div style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '-5%',
+            width: '60px',
+            height: '250%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.15) 20%, rgba(240,190,40,0.35) 50%, rgba(210,160,20,0.15) 80%, transparent 100%)',
+            transform: 'rotate(25deg)',
+            transformOrigin: 'top left',
+          }} />
+          {/* Bright line */}
+          <div style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '-5%',
+            width: '60px',
+            height: '250%',
+            background: 'linear-gradient(90deg, transparent 45%, rgba(255,230,80,0.95) 50%, transparent 55%)',
+            transform: 'rotate(25deg)',
+            transformOrigin: 'top left',
+          }} />
 
-          {/* === GOLD BEAM 2 (Right) === */}
-          {/* Outer glow */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '0',
-              left: '15%',
-              width: '200px',
-              height: '200%',
-              background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 30%, rgba(230,180,35,0.25) 50%, rgba(210,160,20,0.1) 70%, transparent 100%)',
-              transform: 'rotate(38deg)',
-              transformOrigin: 'top left',
-            }}
-          />
-          {/* Bright core */}
-          <div
-            style={{
-              position: 'absolute',
-              top: '0',
-              left: '15%',
-              width: '200px',
-              height: '200%',
-              background: 'linear-gradient(90deg, transparent 49%, rgba(255,225,75,0.9) 50%, transparent 51%)',
-              transform: 'rotate(38deg)',
-              transformOrigin: 'top left',
-            }}
-          />
+          {/* BEAM 2 — parallel beam, offset slightly to the right */}
+          {/* Glow halo */}
+          <div style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '8%',
+            width: '50px',
+            height: '250%',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.1) 20%, rgba(240,190,40,0.25) 50%, rgba(210,160,20,0.1) 80%, transparent 100%)',
+            transform: 'rotate(25deg)',
+            transformOrigin: 'top left',
+          }} />
+          {/* Bright line */}
+          <div style={{
+            position: 'absolute',
+            top: '-5%',
+            left: '8%',
+            width: '50px',
+            height: '250%',
+            background: 'linear-gradient(90deg, transparent 44%, rgba(255,230,80,0.85) 50%, transparent 56%)',
+            transform: 'rotate(25deg)',
+            transformOrigin: 'top left',
+          }} />
         </div>
       </div>
       {children}

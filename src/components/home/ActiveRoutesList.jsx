@@ -101,8 +101,11 @@ export default function ActiveRoutesList({ routes = [] }) {
       <Link
         key={route.id}
         to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
-        className="frosted-glass-card block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
+        className="block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
         style={{ 
+          background: 'rgba(14, 20, 44, 0.55)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.18)',
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
