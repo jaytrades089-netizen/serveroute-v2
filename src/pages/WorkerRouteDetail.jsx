@@ -538,20 +538,17 @@ export default function WorkerRouteDetail() {
           // NOT ACTIVE: Show regular stats (Total, Served, Pending) + Start Route bar
           <>
           <div className={`grid grid-cols-3 gap-2 mb-3`}>
-              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-              <MapPin className="w-4 h-4 mx-auto mb-1" style={{ color: '#e9c349' }} />
+              <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
               <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{addresses.length}</p>
-              <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Total</p>
+              <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Total</p>
             </div>
-            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-            <CheckCircle className="w-4 h-4 mx-auto mb-1" style={{ color: '#22c55e' }} />
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{servedAddresses.length}</p>
-            <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Served</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Served</p>
               </div>
-            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-            <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: '#6B7280' }} />
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{pendingAddresses.length}</p>
-            <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Pending</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Pending</p>
               </div>
           </div>
           </>
