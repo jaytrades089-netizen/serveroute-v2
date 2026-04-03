@@ -212,61 +212,61 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* === GOLD BEAM 1 === */}
-        {/* Beam 1 outer glow */}
+        {/* === GOLD BEAM 1 — from upper-left to lower-right === */}
+        {/* Outer glow */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '2%',
-            width: '140px',
+            top: '0%',
+            left: '-20%',
+            width: '200px',
             height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.08) 20%, rgba(230,180,35,0.22) 50%, rgba(210,160,20,0.08) 80%, transparent 100%)',
-            transform: 'rotate(22deg)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.07) 20%, rgba(230,180,35,0.20) 50%, rgba(210,160,20,0.07) 80%, transparent 100%)',
+            transform: 'rotate(35deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
-        {/* Beam 1 core */}
+        {/* Bright core */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '9%',
-            width: '28px',
+            top: '0%',
+            left: '-8%',
+            width: '32px',
             height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.25) 15%, rgba(255,220,70,0.65) 50%, rgba(245,200,55,0.25) 85%, transparent 100%)',
-            transform: 'rotate(22deg)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.28) 15%, rgba(255,225,75,0.75) 50%, rgba(245,200,55,0.28) 85%, transparent 100%)',
+            transform: 'rotate(35deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
 
-        {/* === GOLD BEAM 2 === */}
-        {/* Beam 2 outer glow */}
+        {/* === GOLD BEAM 2 — secondary bar, offset to the right === */}
+        {/* Outer glow */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '18%',
-            width: '120px',
+            top: '0%',
+            left: '-5%',
+            width: '140px',
             height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.07) 20%, rgba(230,180,35,0.18) 50%, rgba(210,160,20,0.07) 80%, transparent 100%)',
-            transform: 'rotate(22deg)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(210,160,20,0.05) 20%, rgba(230,180,35,0.14) 50%, rgba(210,160,20,0.05) 80%, transparent 100%)',
+            transform: 'rotate(35deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
         />
-        {/* Beam 2 core */}
+        {/* Bright core */}
         <div
           style={{
             position: 'absolute',
-            top: '-20%',
-            left: '24%',
+            top: '0%',
+            left: '4%',
             width: '18px',
             height: '200%',
-            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.20) 15%, rgba(255,220,70,0.55) 50%, rgba(245,200,55,0.20) 85%, transparent 100%)',
-            transform: 'rotate(22deg)',
+            background: 'linear-gradient(90deg, transparent 0%, rgba(245,200,55,0.22) 15%, rgba(255,225,75,0.60) 50%, rgba(245,200,55,0.22) 85%, transparent 100%)',
+            transform: 'rotate(35deg)',
             transformOrigin: 'top left',
             pointerEvents: 'none'
           }}
