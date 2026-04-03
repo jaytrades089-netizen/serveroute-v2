@@ -539,19 +539,19 @@ export default function WorkerRouteDetail() {
           <>
           <div className={`grid grid-cols-3 gap-2 mb-3`}>
               <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-              <MapPin className="w-5 h-5 mx-auto mb-1" style={{ color: '#e9c349' }} />
-              <p className="text-2xl font-bold" style={{ color: '#e9c349' }}>{addresses.length}</p>
-              <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Total</p>
+              <MapPin className="w-4 h-4 mx-auto mb-1" style={{ color: '#e9c349' }} />
+              <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{addresses.length}</p>
+              <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Total</p>
             </div>
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-            <CheckCircle className="w-5 h-5 mx-auto mb-1" style={{ color: '#22c55e' }} />
-            <p className="text-2xl font-bold text-green-500">{servedAddresses.length}</p>
-            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Served</p>
+            <CheckCircle className="w-4 h-4 mx-auto mb-1" style={{ color: '#22c55e' }} />
+            <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{servedAddresses.length}</p>
+            <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Served</p>
               </div>
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', padding: 12, textAlign: 'center', borderRadius: '12px' }}>
-            <Clock className="w-5 h-5 mx-auto mb-1" style={{ color: '#f97316' }} />
-            <p className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>{pendingAddresses.length}</p>
-            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>Pending</p>
+            <Clock className="w-4 h-4 mx-auto mb-1" style={{ color: '#6B7280' }} />
+            <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{pendingAddresses.length}</p>
+            <p className="text-xs font-medium" style={{ color: '#6B7280' }}>Pending</p>
               </div>
           </div>
           </>
@@ -586,11 +586,12 @@ export default function WorkerRouteDetail() {
         {(route.status === 'assigned' || route.status === 'ready') && !needsVerification && (
           <div
             onClick={() => setShowOptimizeModal(true)}
-            className="bg-orange-500 hover:bg-orange-600 rounded-b-xl px-4 py-3 mb-4 cursor-pointer transition-colors"
+            className="rounded-b-xl px-4 py-3 mb-4 cursor-pointer transition-opacity hover:opacity-90"
+            style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', borderTop: 'none' }}
           >
             <div className="flex items-center justify-center gap-2">
-              <Play className="w-5 h-5 text-white" />
-              <span className="font-bold text-white">Start Route</span>
+              <Play className="w-5 h-5" style={{ color: '#e9c349' }} />
+              <span className="font-bold" style={{ color: '#e9c349' }}>Start Route</span>
             </div>
           </div>
         )}

@@ -890,13 +890,18 @@ export default function AddressCard({
   return (
     <>
       <div
-        className={`relative bg-[#1c1b1d] rounded-2xl shadow-md shadow-black/40 overflow-hidden transition-all duration-200 ${
+        className={`relative rounded-2xl shadow-md shadow-black/40 overflow-hidden transition-all duration-200 ${
           !isBossView && address.has_pending_request && pendingRequest
             ? 'border-2 border-red-500 animate-request-pulse shadow-red-900/30 shadow-lg'
             : isRTO
             ? 'border-2 border-red-400'
-            : 'border border-[#363436]'
+            : 'border border-white/10'
         }`}
+        style={{
+          background: 'rgba(11, 15, 30, 0.45)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)'
+        }}
       >
         {/* Edit button — shows in edit mode */}
         {editMode && !isEditing && !isServed && (
@@ -1667,7 +1672,8 @@ export default function AddressCard({
                       <Button 
                         onClick={handleLogAttempt}
                         disabled={finalizingAttempt}
-                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
+                        className="w-full h-12 font-bold text-sm rounded-xl animate-pulse"
+                        style={{ background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }}
                       >
                         {finalizingAttempt ? (
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1679,7 +1685,8 @@ export default function AddressCard({
                     ) : (
                       <Button 
                         onClick={handleCaptureEvidence}
-                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
+                        className="w-full h-12 font-bold text-sm rounded-xl"
+                        style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
                       >
                         <Camera className="w-4 h-4 mr-2" />
                         TAKE EVIDENCE
@@ -1694,7 +1701,8 @@ export default function AddressCard({
                         className="flex-1"
                       >
                         <Button 
-                          className="w-full h-14 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm rounded-xl flex items-center justify-center gap-2"
+                          className="w-full h-14 font-bold text-sm rounded-xl flex items-center justify-center gap-2"
+                          style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
                         >
                           <Shield className="w-5 h-5" />
                           <span>SERVED</span>
