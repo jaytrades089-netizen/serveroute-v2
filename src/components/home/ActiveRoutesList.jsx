@@ -155,31 +155,37 @@ export default function ActiveRoutesList({ routes = [] }) {
         </div>
 
         {/* Metrics row: duration, remaining, due, spread */}
-        <div className="flex gap-4 mb-2 flex-wrap justify-between">
-          {estTimeLabel && (
-            <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
-            </div>
-          )}
-          <div className="text-center">
-            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
-            <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
-              {(route.total_addresses || 0) - (route.served_count || 0)}
+        <div className="flex gap-4 mb-2">
+          {/* Left column: Duration stacked over Remaining */}
+          <div>
+            {estTimeLabel && (
+              <div className="mb-1">
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
+                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+              </div>
+            )}
+            <div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
+              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
+                {(route.total_addresses || 0) - (route.served_count || 0)}
+              </div>
             </div>
           </div>
-          {dueDateLabel && (
-            <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
-            </div>
-          )}
-          {spreadDateLabel && (
-            <div className="text-center">
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
-            </div>
-          )}
+          {/* Right of duration: Due + Spread side by side */}
+          <div className="flex gap-4">
+            {dueDateLabel && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
+                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
+              </div>
+            )}
+            {spreadDateLabel && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
+                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Qualifier badges bottom right — all three, completed ones lit */}
