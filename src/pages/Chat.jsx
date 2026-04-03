@@ -264,7 +264,7 @@ export default function Chat() {
   // Conversation List View
   if (!selectedConversation) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="min-h-screen bg-transparent pb-20">
         <header className="bg-white border-b px-4 py-3 flex items-center justify-between">
           <h1 className="text-lg font-semibold">Chat</h1>
           <Button variant="ghost" size="icon" onClick={() => setShowNewChat(true)}>
@@ -361,7 +361,7 @@ export default function Chat() {
 
   // Conversation Detail View
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-transparent flex flex-col">
       <header className="bg-white border-b px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="icon" onClick={() => setSelectedConversation(null)}>
           <ArrowLeft className="w-5 h-5" />

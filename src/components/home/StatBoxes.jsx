@@ -4,37 +4,16 @@ import { createPageUrl } from '@/utils';
 import { Link2, Clock, CheckCircle, CalendarDays } from 'lucide-react';
 
 const topStats = [
-  { 
-    id: 'active', 
-    label: 'Routes', 
-    icon: Link2, 
-    bgColor: 'bg-[#201f21]', 
-    textColor: 'text-[#e9c349]',
-    link: 'WorkerRoutes'
-  },
-  { 
-    id: 'addresses', 
-    label: 'Addresses', 
-    icon: Clock, 
-    bgColor: 'bg-[#201f21]', 
-    textColor: 'text-[#e5b9e1]',
-    link: 'WorkerAddresses'
-  },
-  { 
-    id: 'served', 
-    label: 'Served', 
-    icon: CheckCircle, 
-    bgColor: 'bg-[#1c1b1d]',
-    textColor: 'text-[#e9c349]',
-    link: 'WorkerPayout'
-  }
+  { id: 'active', label: 'Routes', icon: Link2, link: 'WorkerRoutes' },
+  { id: 'addresses', label: 'Addresses', icon: Clock, link: 'WorkerAddresses' },
+  { id: 'served', label: 'Served', icon: CheckCircle, link: 'WorkerPayout' },
 ];
 
 export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0, dueSoon = 0 }) {
   const values = {
     active: activeRoutes,
     addresses: addresses,
-    served: served
+    served: served,
   };
 
   return (
@@ -47,13 +26,13 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
             <Link
               key={stat.id}
               to={createPageUrl(stat.link)}
-              className={`${stat.bgColor} rounded-t-xl p-3 text-center hover:opacity-90 transition-opacity cursor-pointer`}
+              className="frosted-glass rounded-t-xl p-3 text-center hover:opacity-90 transition-opacity cursor-pointer"
             >
-              <Icon className={`w-5 h-5 mx-auto mb-1 ${stat.textColor}`} />
-              <div className={`text-2xl font-bold ${stat.textColor}`}>
+              <Icon className="w-5 h-5 mx-auto mb-1" style={{ color: '#e5b9e1' }} />
+              <div className="text-2xl font-bold" style={{ color: '#E6E1E4' }}>
                 {values[stat.id]}
               </div>
-              <div className="text-xs font-medium" style={{ color: '#8a7f87' }}>
+              <div className="text-xs" style={{ color: '#9CA3AF' }}>
                 {stat.label}
               </div>
             </Link>
@@ -61,16 +40,15 @@ export default function StatBoxes({ activeRoutes = 0, addresses = 0, served = 0,
         })}
       </div>
 
-      {/* Due Soon bar underneath */}
+      {/* Due Soon bar */}
       <Link
         to={createPageUrl('WorkerRoutes?filter=due-soon')}
-        className="block rounded-b-xl px-4 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
-        style={{ background: '#201f21', border: '1px solid #363436', borderTop: 'none' }}
+        className="frosted-glass block rounded-b-xl px-4 py-2.5 hover:opacity-90 transition-opacity cursor-pointer"
       >
         <div className="flex items-center justify-center gap-2">
           <CalendarDays className="w-4 h-4" style={{ color: '#e5b9e1' }} />
-          <span className="font-semibold text-sm" style={{ color: '#e5b9e1' }}>Due Soon</span>
-          <span className="text-xs" style={{ color: '#8a7f87' }}>— {dueSoon} upcoming</span>
+          <span className="font-semibold text-sm" style={{ color: '#E6E1E4' }}>Due Soon</span>
+          <span className="text-xs" style={{ color: '#9CA3AF' }}>— {dueSoon} upcoming</span>
         </div>
       </Link>
     </div>
