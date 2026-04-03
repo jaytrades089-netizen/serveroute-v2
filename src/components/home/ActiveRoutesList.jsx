@@ -137,7 +137,7 @@ export default function ActiveRoutesList({ routes = [] }) {
             {route.run_date ? (
               <>
                 <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
-                <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'MMM d, yyyy')}</span>
+                <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'EEE MMM d')}</span>
               </>
             ) : (
               <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
