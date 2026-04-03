@@ -402,75 +402,56 @@ export default function RouteCard({
   return (
     <div
       style={{
-        background: 'linear-gradient(to right, rgba(233,195,73,0.5), rgba(233,195,73,0.03))',
-        padding: '1px',
-        borderRadius: '1rem'
+        background: 'rgba(14, 20, 44, 0.55)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255,255,255,0.10)',
+        borderLeft: '4px solid #e9c349',
+        borderRadius: '1rem',
+        marginBottom: '12px'
       }}
-    >
-    <div
       onClick={handleCardClick}
-      className={`rounded-2xl shadow-sm transition-all duration-200 ${
-        isClickDisabled ? '' : 'cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99]'
-      } ${
-        allAddressesComplete
-          ? 'bg-green-50 border-2 border-green-400 ring-2 ring-green-300 ring-offset-1'
-          : isOverdue
-            ? 'bg-red-50 border-2 border-red-400 ring-2 ring-red-300 ring-offset-1'
-            : workerCanEdit
-              ? 'ring-2 ring-orange-400 ring-offset-2 border-2 border-orange-400 bg-orange-50'
-              : isActiveRoute 
-                ? 'ring-2 ring-orange-500 ring-offset-2 shadow-lg shadow-orange-500/30 border' 
-                : 'border'
-      }`}
-      style={{
-        ...(allAddressesComplete || isOverdue || workerCanEdit || isActiveRoute ? {} : {
-          background: 'rgba(20, 28, 50, 0.65)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderColor: 'rgba(255,255,255,0.09)'
-        }),
-        borderLeft: '5px solid #e9c349'
-      }}
+      className={`transition-all duration-200 ${isClickDisabled ? '' : 'cursor-pointer hover:opacity-90 active:scale-[0.99]'}`}
     >
       {/* All Complete Banner */}
       {allAddressesComplete && (
-        <div className="px-4 py-2 bg-green-500 border-b border-green-600">
+        <div className="px-4 py-2 rounded-t-2xl" style={{ background: 'rgba(34,197,94,0.20)', borderBottom: '1px solid rgba(34,197,94,0.30)' }}>
           <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-white" />
-            <span className="text-xs font-bold text-white uppercase tracking-wide">ALL REQUIREMENTS MET - Ready to Archive</span>
+            <CheckCircle className="w-4 h-4" style={{ color: '#22c55e' }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#22c55e' }}>ALL REQUIREMENTS MET — Ready to Archive</span>
           </div>
         </div>
       )}
 
       {/* Overdue Banner */}
       {isOverdue && !isCompleted && !allAddressesComplete && (
-        <div className="px-4 py-2 bg-red-500 border-b border-red-600">
+        <div className="px-4 py-2 rounded-t-2xl" style={{ background: 'rgba(239,68,68,0.20)', borderBottom: '1px solid rgba(239,68,68,0.30)' }}>
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-white" />
-            <span className="text-xs font-bold text-white uppercase tracking-wide">OVERDUE - Past Due Date</span>
+            <AlertTriangle className="w-4 h-4" style={{ color: '#ef4444' }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#ef4444' }}>OVERDUE — Past Due Date</span>
           </div>
         </div>
       )}
 
       {/* Worker Edit Mode Banner */}
       {workerCanEdit && !isOverdue && (
-        <div className="px-4 py-2 bg-orange-100 border-b border-orange-300">
+        <div className="px-4 py-2 rounded-t-2xl" style={{ background: 'rgba(233,195,73,0.15)', borderBottom: '1px solid rgba(233,195,73,0.25)' }}>
           <div className="flex items-center gap-2">
-            <Pencil className="w-4 h-4 text-orange-600" />
-            <span className="text-xs font-bold text-orange-700 uppercase tracking-wide">Worker Can Edit</span>
+            <Pencil className="w-4 h-4" style={{ color: '#e9c349' }} />
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e9c349' }}>Worker Can Edit</span>
           </div>
         </div>
       )}
 
       {/* Active Route Indicator */}
       {isActiveRoute && !workerCanEdit && !isOverdue && (
-        <div className="px-4 py-2 bg-orange-100 border-b border-orange-200">
+        <div className="px-4 py-2 rounded-t-2xl" style={{ background: 'rgba(229,179,225,0.15)', borderBottom: '1px solid rgba(229,179,225,0.20)' }}>
           <div className="flex items-center gap-2">
             <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#e5b9e1' }}></span>
+              <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#e5b9e1' }}></span>
             </span>
-            <span className="text-xs font-bold text-orange-600 uppercase tracking-wide">Active Route</span>
+            <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e5b9e1' }}>Active Route</span>
           </div>
         </div>
       )}
@@ -530,21 +511,21 @@ export default function RouteCard({
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3">
           {/* Total */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
+          <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{totalAddresses}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: '#8a7f87' }}>Total</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Total</p>
           </div>
           
           {/* Served */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
+          <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{servedCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(233,195,73,0.6)' }}>Served</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Served</p>
           </div>
           
           {/* Pending */}
-          <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-3 text-center">
+          <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-3xl font-bold" style={{ color: '#e9c349' }}>{pendingCount}</p>
-            <p className="text-xs font-medium mt-0.5" style={{ color: 'rgba(233,195,73,0.6)' }}>Pending</p>
+            <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Pending</p>
           </div>
         </div>
       </div>
@@ -555,7 +536,7 @@ export default function RouteCard({
           {/* HAS */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Has</p>
-            <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
               {earnedBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={earnedBadges} size="small" />
@@ -569,11 +550,7 @@ export default function RouteCard({
           {/* DUE */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Due</p>
-            <div className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1" style={
-              isOverdue 
-                ? { background: '#201f21', border: '1px solid #363436' }
-                : { background: '#201f21', border: '1px solid #363436' }
-            }>
+            <div className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
               <span className="text-sm font-medium" style={
                 isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }
               }>
@@ -601,7 +578,7 @@ export default function RouteCard({
           {/* NEEDS */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Needs</p>
-            <div style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
+            <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
               {neededBadges.length > 0 ? (
                 <div className="flex flex-wrap gap-1 justify-center">
                   <QualifierBadges badges={neededBadges} size="small" />
@@ -626,7 +603,7 @@ export default function RouteCard({
       </div>
 
       {/* Bottom Action Bar */}
-      <div className="px-4 py-3" style={{ borderTop: '1px solid #363436' }}>
+      <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
         {/* + Schedule button row */}
         {onScheduleRunDate && !isBossView && (
           <div className="mb-2" onClick={(e) => e.stopPropagation()}>
@@ -1031,7 +1008,6 @@ export default function RouteCard({
           </button>
         </div>
       </div>
-    </div>
     </div>
   );
 }

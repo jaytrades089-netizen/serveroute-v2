@@ -271,7 +271,7 @@ export default function WorkerRoutes() {
   // Filter is now toggled between 'all' and 'archived' via the header buttons
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header 
         user={user} 
         unreadCount={notifications.length}
@@ -279,7 +279,7 @@ export default function WorkerRoutes() {
         onArchiveToggle={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
       />
       
-      <main className="px-4 py-6 max-w-lg mx-auto">
+      <main className="px-4 py-3 max-w-lg mx-auto">
         <div className="flex items-center gap-2 mb-4">
           <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
             <Button
