@@ -137,19 +137,15 @@ export default function Layout({ children, currentPageName }) {
 
     const currentPath = window.location.pathname;
     
-    // Skip if on auth-related path
     if (currentPath.includes('auth') || currentPath === '/login' || currentPath === '/Login') {
       return;
     }
 
-    // Do not redirect if a local token exists — the query may still be resolving
-    // or the network may be temporarily unavailable.
     const localToken = localStorage.getItem('base44_access_token');
     if (localToken) {
       return;
     }
 
-    // Check for redirect loop prevention
     const lastRedirectTime = sessionStorage.getItem('lastLoginRedirect');
     const now = Date.now();
 
@@ -164,22 +160,17 @@ export default function Layout({ children, currentPageName }) {
   useEffect(() => {
     if (isLoading || !user) return;
 
-    // Clear redirect tracking on successful auth
     sessionStorage.removeItem('lastLoginRedirect');
 
-    // Determine redirect target
     let redirectTo = null;
 
-    // If on root/empty page or unknown page, redirect based on role
     if (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
         (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) {
       redirectTo = isBoss ? '/BossDashboard' : '/WorkerHome';
     }
-    // Server trying to access boss pages
     else if (isWorker && isOnBossPage) {
       redirectTo = '/WorkerHome';
     }
-    // Boss/Admin trying to access worker pages
     else if (isBoss && isOnWorkerPage && !sharedPages.includes(currentPageName)) {
       const workerToBossMap = {
         'WorkerHome': '/BossDashboard',
@@ -199,7 +190,6 @@ export default function Layout({ children, currentPageName }) {
     }
   }, [isLoading, user, currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate]);
 
-  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -208,7 +198,6 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Show loading for unauthenticated users (while redirect happens)
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -217,7 +206,6 @@ export default function Layout({ children, currentPageName }) {
     );
   }
 
-  // Check if we should show loading while redirecting
   const needsRedirect = 
     (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
       (!isOnBossPage && !isOnWorkerPage && !sharedPages.includes(currentPageName))) ||
@@ -234,7 +222,7 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <>
-      {/* Fixed global background */}
+      {/* Fixed global background: navy base + gold diagonal beam */}
       <div
         style={{
           position: 'fixed',
