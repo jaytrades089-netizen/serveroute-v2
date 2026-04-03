@@ -40,34 +40,37 @@ export default function LocationPicker({ locations, value, onChange, placeholder
   const dropdown = open ? ReactDOM.createPortal(
     <div
       id="location-picker-portal"
-      style={dropdownStyle}
-      className="bg-white border border-border rounded-md shadow-lg overflow-hidden"
+      style={{ ...dropdownStyle, background: 'rgba(11,15,30,0.96)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)' }}
+      className="rounded-md shadow-lg overflow-hidden"
     >
       {locations.map(loc => (
         <div
           key={loc.id}
-          className={`px-3 py-2 cursor-pointer hover:bg-accent ${value === loc.id ? 'bg-accent/50' : ''}`}
+          className={`px-3 py-2 cursor-pointer transition-colors ${value === loc.id ? '' : ''}`}
+          style={{ background: value === loc.id ? 'rgba(233,195,73,0.12)' : 'transparent' }}
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => { onChange(loc.id); setOpen(false); }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = value === loc.id ? 'rgba(233,195,73,0.12)' : 'transparent'}
         >
           <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0" style={{ color: '#E6E1E4' }}>
               {getLocationIcon(loc.label)}
               <span className="font-medium text-sm truncate">{loc.label}</span>
             </div>
             <button
-              className="p-0.5 rounded-full hover:bg-red-100 flex-shrink-0"
+              className="p-0.5 rounded-full flex-shrink-0 hover:bg-red-900/30"
               onMouseDown={(e) => e.stopPropagation()}
               onClick={(e) => { e.stopPropagation(); onDelete(loc.id); setOpen(false); }}
             >
-              <X className="w-3.5 h-3.5 text-red-400 hover:text-red-600" />
+              <X className="w-3.5 h-3.5" style={{ color: '#ef4444' }} />
             </button>
           </div>
-          <p className="text-xs text-gray-400 truncate mt-0.5 pl-5">{loc.address}</p>
+          <p className="text-xs truncate mt-0.5 pl-5" style={{ color: '#6B7280' }}>{loc.address}</p>
         </div>
       ))}
       {extraOption && (
-        <div onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen(false)}>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }} onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen(false)}>
           {extraOption}
         </div>
       )}
@@ -80,17 +83,18 @@ export default function LocationPicker({ locations, value, onChange, placeholder
       <button
         type="button"
         onClick={handleToggle}
-        className="w-full flex items-center justify-between px-3 py-2 border border-input rounded-md bg-background text-sm shadow-sm hover:bg-accent/30 transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2 rounded-md text-sm shadow-sm transition-colors"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }}
       >
         {selected ? (
-          <span className="flex items-center gap-2">
+          <span className="flex items-center gap-2" style={{ color: '#E6E1E4' }}>
             {getLocationIcon(selected.label)}
             <span className="font-medium">{selected.label}</span>
           </span>
         ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
+          <span style={{ color: '#6B7280' }}>{placeholder}</span>
         )}
-        <ChevronDown className="w-4 h-4 opacity-50 flex-shrink-0" />
+        <ChevronDown className="w-4 h-4 flex-shrink-0" style={{ color: '#6B7280' }} />
       </button>
       {dropdown}
     </div>

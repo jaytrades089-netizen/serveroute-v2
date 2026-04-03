@@ -455,32 +455,33 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         .animate-slide-down { animation: slide-down 0.3s ease-out; }
       `}</style>
 
-      <div className="absolute inset-0 bg-black/20" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className={`absolute top-0 left-0 right-0 bg-white rounded-b-3xl px-4 pt-3 pb-4 shadow-2xl animate-slide-down z-50 ${isOptimized ? '' : 'max-h-[95vh] overflow-y-auto'}`}>
-        <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-2" />
+      <div className={`absolute top-0 left-0 right-0 rounded-b-3xl px-4 pt-3 pb-4 shadow-2xl animate-slide-down z-50 ${isOptimized ? '' : 'max-h-[95vh] overflow-y-auto'}`}
+        style={{ background: 'rgba(11,15,30,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderTop: 'none' }}>
+        <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'rgba(255,255,255,0.20)' }} />
 
         <div className="flex justify-between items-center mb-3">
-          <h2 className="text-lg font-bold">Optimize Route</h2>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full">
-            <X className="w-5 h-5 text-gray-500" />
+          <h2 className="text-lg font-bold" style={{ color: '#E6E1E4' }}>Optimize Route</h2>
+          <button onClick={onClose} className="p-2 rounded-full hover:bg-white/10">
+            <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           </button>
         </div>
 
         {!isOptimized && (
         <>
         {/* Route info */}
-        <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex justify-between items-center">
+        <div className="rounded-xl p-2.5 mb-3 flex justify-between items-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <div>
-            <p className="font-semibold">{route?.folder_name || 'Route'}</p>
+            <p className="font-semibold" style={{ color: '#E6E1E4' }}>{route?.folder_name || 'Route'}</p>
           </div>
-          <Button variant="outline" size="icon" onClick={handleShuffle} disabled={isShuffling}>
+          <Button variant="outline" size="icon" onClick={handleShuffle} disabled={isShuffling} style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }}>
             {isShuffling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shuffle className="w-4 h-4" />}
           </Button>
         </div>
 
         {/* Start location */}
-        <label className="block text-xs font-medium text-gray-700 mb-1">Start Location</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Start Location</label>
 
         <button
           onClick={() => {
@@ -488,11 +489,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             setUseCurrentLocation(val);
             if (!val) { setCurrentLocationAddress(null); setLocationError(null); }
           }}
-          className={`w-full mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
-            useCurrentLocation
-              ? 'bg-green-500 border-green-500 text-white'
-              : 'bg-white border-green-500 text-green-600'
-          }`}
+          className="w-full mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+          style={useCurrentLocation
+            ? { background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.40)', color: '#22c55e' }
+            : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e' }}
         >
           <LocateFixed className="w-4 h-4" />
           Use Current Location
@@ -500,18 +500,18 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
         {useCurrentLocation && currentLocationAddress && !locationError && (
           <div className="flex items-center gap-1.5 mb-3 ml-6">
-            <CheckCircle className="w-3.5 h-3.5 text-green-500 flex-shrink-0" />
-            <p className="text-xs text-green-700 font-medium">{currentLocationAddress}</p>
+            <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#22c55e' }} />
+            <p className="text-xs font-medium" style={{ color: '#22c55e' }}>{currentLocationAddress}</p>
           </div>
         )}
         {useCurrentLocation && locationError && (
-          <div className="flex items-start gap-1.5 mb-3 ml-6 bg-red-50 border border-red-200 rounded-lg p-2">
-            <AlertCircle className="w-3.5 h-3.5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-red-700">{locationError}</p>
+          <div className="flex items-start gap-1.5 mb-3 ml-6 rounded-lg p-2" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)' }}>
+            <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+            <p className="text-xs" style={{ color: '#ef4444' }}>{locationError}</p>
           </div>
         )}
         {useCurrentLocation && !currentLocationAddress && !locationError && (
-          <p className="text-xs text-gray-400 mb-3 ml-6">Address will show here after you tap Optimize</p>
+          <p className="text-xs mb-3 ml-6" style={{ color: '#4B5563' }}>Address will show here after you tap Optimize</p>
         )}
 
         {!useCurrentLocation && (
@@ -527,32 +527,24 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         )}
 
         {/* End location */}
-        <label className="block text-xs font-medium text-gray-700 mb-1">Optimization Mode</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Optimization Mode</label>
         <div className="flex gap-2 mb-2">
-          <button
-            type="button"
+          <button type="button"
             onClick={() => { setRouteType(routeType === 'fastest' ? null : 'fastest'); setSelectedEndLocation(''); }}
-            className={`flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
-              routeType === 'fastest'
-                ? 'bg-orange-500 border-orange-500 text-white'
-                : 'bg-white border-orange-500 text-orange-600'
-            }`}
-          >
-            ⏱ Efficient Time
-          </button>
-          <button
-            type="button"
+            className="flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+            style={routeType === 'fastest'
+              ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }
+              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
+          >⏱ Efficient Time</button>
+          <button type="button"
             onClick={() => { setRouteType(routeType === 'shortest' ? null : 'shortest'); setSelectedEndLocation(''); }}
-            className={`flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${
-              routeType === 'shortest'
-                ? 'bg-orange-500 border-orange-500 text-white'
-                : 'bg-white border-orange-500 text-orange-600'
-            }`}
-          >
-            📍 Efficient Miles
-          </button>
+            className="flex-1 mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+            style={routeType === 'shortest'
+              ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }
+              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
+          >📍 Efficient Miles</button>
         </div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">End Location</label>
+        <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>End Location</label>
         <div className={routeType ? 'opacity-40 pointer-events-none' : ''}>
         <LocationPicker
           locations={savedLocations}
@@ -564,7 +556,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           className="mb-2"
           extraOption={
             <button
-              className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 font-medium border-t hover:bg-accent"
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium"
+            style={{ color: '#e9c349' }}
               onClick={() => setShowAddLocation(true)}
             >
               <Plus className="w-4 h-4" />
@@ -575,12 +568,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         </div>
 
         {showAddLocation && (
-          <div className="bg-orange-50 rounded-xl p-3 mb-3 border border-orange-200">
-            <Input placeholder="Label (Home, Office)" value={newLocationLabel} onChange={(e) => setNewLocationLabel(e.target.value)} className="mb-2" />
-            <Input placeholder="Full address" value={newLocationAddress} onChange={(e) => setNewLocationAddress(e.target.value)} className="mb-2" />
+          <div className="rounded-xl p-3 mb-3" style={{ background: 'rgba(233,195,73,0.08)', border: '1px solid rgba(233,195,73,0.25)' }}>
+            <Input placeholder="Label (Home, Office)" value={newLocationLabel} onChange={(e) => setNewLocationLabel(e.target.value)} className="mb-2" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
+            <Input placeholder="Full address" value={newLocationAddress} onChange={(e) => setNewLocationAddress(e.target.value)} className="mb-2" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" className="flex-1" onClick={() => { setShowAddLocation(false); setNewLocationLabel(''); setNewLocationAddress(''); }}>Cancel</Button>
-              <Button size="sm" className="flex-1 bg-orange-500 hover:bg-orange-600 text-white" onClick={handleAddLocation} disabled={savingLocation}>
+              <Button variant="outline" size="sm" className="flex-1" style={{ border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF', background: 'rgba(255,255,255,0.05)' }} onClick={() => { setShowAddLocation(false); setNewLocationLabel(''); setNewLocationAddress(''); }}>Cancel</Button>
+              <Button size="sm" className="flex-1 font-semibold" style={{ background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }} onClick={handleAddLocation} disabled={savingLocation}>
                 {savingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
               </Button>
             </div>
@@ -591,7 +584,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
         {/* Route Metrics */}
         {isOptimized && routeMetrics && (
-          <div className="bg-gray-50 rounded-xl p-2.5 mb-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-600 justify-center">
+          <div className="rounded-xl p-2.5 mb-3 flex flex-wrap gap-x-3 gap-y-1 text-sm justify-center" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', color: '#9CA3AF' }}>
             <span>{routeMetrics.totalMiles.toFixed(1)} mi</span>
             <span>•</span>
             <span>{optimizedCount} stops</span>
@@ -607,7 +600,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <Button
             onClick={handleOptimizeRoute}
             disabled={(!selectedEndLocation && !routeType) || isOptimizing}
-            className={`flex-1 font-bold py-3 ${isOptimized ? 'bg-gray-400 hover:bg-gray-500' : 'bg-orange-500 hover:bg-orange-600'} text-white`}
+            className="flex-1 font-bold py-3"
+            style={isOptimized
+              ? { background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#9CA3AF' }
+              : { background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }}
           >
             {isOptimizing ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Optimizing...</>
@@ -621,7 +617,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           <Button
             onClick={handleStartRoute}
             disabled={!isOptimized || isStarting}
-            className={`flex-1 font-bold py-3 text-white ${isOptimized ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 cursor-not-allowed'}`}
+            className="flex-1 font-bold py-3"
+            style={isOptimized
+              ? { background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }
+              : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', color: '#4B5563', cursor: 'not-allowed' }}
           >
             {isStarting ? (
               <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Starting...</>
