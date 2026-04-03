@@ -406,7 +406,6 @@ export default function RouteCard({
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         border: '1px solid rgba(255,255,255,0.10)',
-        borderLeft: '4px solid #e9c349',
         borderRadius: '1rem',
         marginBottom: '12px'
       }}

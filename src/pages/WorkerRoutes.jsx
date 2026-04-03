@@ -409,9 +409,9 @@ export default function WorkerRoutes() {
 
                   return (
                   <div key={dateKey}>
-                    <div className="rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2" style={{ background: '#e9c349', border: '1px solid #c9a930', color: '#1a1208' }}>
-                      <Calendar className="w-4 h-4 flex-shrink-0" />
-                      <h2 className="text-sm font-bold truncate">
+                    <div className="rounded-lg px-3 py-2 mb-2 mt-2 flex items-center gap-2" style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)' }}>
+                      <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
+                      <h2 className="text-sm font-bold truncate" style={{ color: '#e9c349' }}>
                         {isToday(dt) ? `Today — ${format(dt, 'EEE, MMM d')}` : isTomorrow(dt) ? `Tomorrow — ${format(dt, 'EEE, MMM d')}` : format(dt, 'EEEE, MMM d')}
                       </h2>
                     </div>
