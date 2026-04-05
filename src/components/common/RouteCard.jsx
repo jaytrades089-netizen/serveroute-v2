@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Link, useNavigate } from 'react-router-dom';
@@ -710,60 +711,64 @@ export default function RouteCard({
                   const qCalModCN = {};
                   if (qDueDateObj) { qCalMod.dueDate = qDueDateObj; qCalModCN.dueDate = 'queue-cal-due'; }
                   if (qSpreadDueDateObj) { qCalMod.spreadDate = qSpreadDueDateObj; qCalModCN.spreadDate = 'queue-cal-spread'; }
-                  return (
-                    <div className="mt-1 bg-white border border-blue-200 rounded-xl shadow-md overflow-hidden">
-                      <style>{`.queue-cal-due{position:relative}.queue-cal-due::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background:#ef4444}.queue-cal-spread{position:relative}.queue-cal-spread::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background:#22c55e}`}</style>
-                      <CalendarPicker
-                        mode="single"
-                        selected={editQueueDate}
-                        onSelect={(date) => setEditQueueDate(date)}
-                        disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                        className="mx-auto"
-                        modifiers={qCalMod}
-                        modifiersClassNames={qCalModCN}
-                      />
-                      {(qDueDateObj || qSpreadDueDateObj) && (
-                        <div className="flex items-center justify-center gap-6 px-3 pb-1">
-                          {qDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-red-500" /><span className="text-xs text-gray-500">D. Date</span></div>}
-                          {qSpreadDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-green-500" /><span className="text-xs text-gray-500">Spread D. Date</span></div>}
+                  return ReactDOM.createPortal(
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }}>
+                      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                        <style>{`.queue-cal-due{position:relative}.queue-cal-due::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background:#ef4444}.queue-cal-spread{position:relative}.queue-cal-spread::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background:#22c55e}`}</style>
+                        <CalendarPicker
+                          mode="single"
+                          selected={editQueueDate}
+                          onSelect={(date) => setEditQueueDate(date)}
+                          disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                          className="mx-auto"
+                          modifiers={qCalMod}
+                          modifiersClassNames={qCalModCN}
+                        />
+                        {(qDueDateObj || qSpreadDueDateObj) && (
+                          <div className="flex items-center justify-center gap-6 px-3 pb-1">
+                            {qDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-red-500" /><span className="text-xs text-gray-500">D. Date</span></div>}
+                            {qSpreadDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-green-500" /><span className="text-xs text-gray-500">Spread D. Date</span></div>}
+                          </div>
+                        )}
+                        <div className="px-3 pb-2 pt-1">
+                          <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
+                          <div className="flex gap-2">
+                            {['AM', 'PM', 'WEEKEND'].map(q => (
+                              <button key={q}
+                                onClick={(e) => { e.stopPropagation(); setEditQueueQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]); }}
+                                className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                  editQueueQualifiers.includes(q)
+                                    ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
+                                      : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
+                                      : 'bg-purple-500 text-white border-purple-500'
+                                    : 'bg-white text-gray-500 border-gray-200'
+                                }`}
+                              >{q}</button>
+                            ))}
+                          </div>
                         </div>
-                      )}
-                      <div className="px-3 pb-2 pt-1">
-                        <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
-                        <div className="flex gap-2">
-                          {['AM', 'PM', 'WEEKEND'].map(q => (
-                            <button key={q}
-                              onClick={(e) => { e.stopPropagation(); setEditQueueQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]); }}
-                              className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                                editQueueQualifiers.includes(q)
-                                  ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
-                                    : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
-                                    : 'bg-purple-500 text-white border-purple-500'
-                                  : 'bg-white text-gray-500 border-gray-200'
-                              }`}
-                            >{q}</button>
-                          ))}
+                        <div className="flex gap-2 px-3 pb-3">
+                          <button onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }} className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
+                          <button onClick={(e) => { e.stopPropagation(); handleUpdateQueueItem(); }} disabled={!editQueueDate || savingQueue} className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">{savingQueue ? 'Saving...' : 'Update'}</button>
                         </div>
                       </div>
-                      <div className="flex gap-2 px-3 pb-3">
-                        <button onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }} className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
-                        <button onClick={(e) => { e.stopPropagation(); handleUpdateQueueItem(); }} disabled={!editQueueDate || savingQueue} className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">{savingQueue ? 'Saving...' : 'Update'}</button>
-                      </div>
-                    </div>
+                    </div>,
+                    document.body
                   );
                 })()}
 
                 {!showQueueCalendar && (
                   <button
-                    onClick={() => setShowQueueCalendar(true)}
+                    onClick={() => { setShowQueueCalendar(true); setEditingQueueIndex(null); setEditQueueDate(null); setEditQueueQualifiers([]); }}
                     className="flex items-center gap-1.5 text-xs font-semibold text-blue-400 hover:text-blue-300 px-2 py-1.5 rounded-lg hover:bg-blue-900/20 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     Add next run
                   </button>
                 )}
-                {showQueueCalendar && (
-                  <div className="mt-2 bg-white border border-blue-200 rounded-xl shadow-md overflow-hidden">
+                {showQueueCalendar && ReactDOM.createPortal(
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={(e) => { e.stopPropagation(); setShowQueueCalendar(false); setPendingQueueDate(null); setPendingQueueQualifiers([]); }}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
                     {(() => {
                       const qDueDateObj = route.due_date ? new Date(route.due_date) : null;
                       let qSpreadDueDateObj = null;
@@ -875,7 +880,9 @@ export default function RouteCard({
                         {savingQueue ? 'Saving...' : 'Add to Queue'}
                       </button>
                     </div>
-                  </div>
+                    </div>
+                  </div>,
+                  document.body
                 )}
 
               </div>
