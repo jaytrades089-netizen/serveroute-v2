@@ -241,10 +241,10 @@ async function cropAndCompressBlob(blob) {
     img.onload = () => {
       URL.revokeObjectURL(url);
       const canvas = document.createElement('canvas');
-      const cropX = Math.round(img.width * 0.05);
-      const cropY = Math.round(img.height * 0.20);
-      const cropWidth = Math.round(img.width * 0.90);
-      const cropHeight = Math.round(img.height * 0.60);
+      const cropX = Math.round(img.width * 0.15);
+      const cropY = Math.round(img.height * 0.24);
+      const cropWidth = Math.round(img.width * 0.70);
+      const cropHeight = Math.round(img.height * 0.52);
       let outputWidth = cropWidth;
       let outputHeight = cropHeight;
       const maxWidth = 1920, maxHeight = 1080;
@@ -298,10 +298,10 @@ export async function captureAndCompressImage(videoElement) {
     throw new Error('Video stream not ready — dimensions unavailable');
   }
   const canvas = document.createElement('canvas');
-  const cropX = Math.round(videoWidth * 0.05);
-  const cropY = Math.round(videoHeight * 0.20);
-  const cropWidth = Math.round(videoWidth * 0.90);
-  const cropHeight = Math.round(videoHeight * 0.60);
+  const cropX = Math.round(videoWidth * 0.15);
+  const cropY = Math.round(videoHeight * 0.24);
+  const cropWidth = Math.round(videoWidth * 0.70);
+  const cropHeight = Math.round(videoHeight * 0.52);
   let outputWidth = cropWidth;
   let outputHeight = cropHeight;
   const maxWidth = 1920, maxHeight = 1080;

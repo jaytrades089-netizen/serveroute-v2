@@ -122,6 +122,7 @@ export default function ScanRouteSetup() {
   const flexibleAttempts = Math.max(0, requiredAttempts - qualifierAttempts);
 
   const handleCreateRoute = async () => {
+    console.log('Create Route clicked', { hasSession: !!session, userId: user?.id, routeName, dueDate, isCreating });
     if (!session || !user) return;
 
     if (!routeName.trim()) {
@@ -173,7 +174,9 @@ export default function ScanRouteSetup() {
         routeData.assigned_by = user.id;
       }
 
+      console.log('Creating route with data', routeData);
       const route = await base44.entities.Route.create(routeData);
+      console.log('Route created', route);
 
       // Create addresses with geocoding
       const mapquestApiKey = userSettings?.mapquest_api_key;
@@ -273,11 +276,13 @@ export default function ScanRouteSetup() {
       } else {
         navigate(createPageUrl('WorkerRoutes'));
       }
+      return;
 
     } catch (error) {
       console.error('Error creating route:', error);
       toast.error('Failed to create route: ' + error.message);
     } finally {
+      console.log('Create Route finished');
       setIsCreating(false);
     }
   };

@@ -10,7 +10,7 @@ import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
 import WorkPhaseBlocks from '../components/home/WorkPhaseBlocks';
 import StatBoxes from '../components/home/StatBoxes';
-import ActiveRoutesList from '../components/home/ActiveRoutesList';
+import ActiveRoutesList from '../components/home/ActiveRoutesList.jsx';
 import LocationTracker from '../components/worker/LocationTracker';
 import AddressSearch from '../components/common/AddressSearch';
 import ComboRouteCard from '../components/common/ComboRouteCard';
@@ -131,6 +131,22 @@ export default function WorkerHome() {
     staleTime: 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,
     refetchInterval: 30000
+  });
+
+  // Fetch attempts for active routes to compute qualifier completion
+  const { data: allAttempts = [] } = useQuery({
+    queryKey: ['workerAttemptsHome', user?.id, routeIds],
+    queryFn: async () => {
+      if (!user?.id || routes.length === 0) return [];
+      const results = await Promise.all(
+        routes.filter(r => r.status !== 'archived').map(r =>
+          base44.entities.Attempt.filter({ route_id: r.id })
+        )
+      );
+      return results.flat();
+    },
+    enabled: !!user?.id && routes.length > 0,
+    staleTime: 2 * 60 * 1000
   });
 
   // Fetch active combo routes
@@ -259,7 +275,7 @@ export default function WorkerHome() {
           </div>
         ))}
 
-        <ActiveRoutesList routes={activeRoutes} />
+        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} />
       </main>
 
       <BottomNav currentPage="WorkerHome" />

@@ -12,7 +12,7 @@ const FILTER_OPTIONS = [
   { key: 'zip', label: 'Zip', icon: Hash },
 ];
 
-export default function AddressSearch({ routes = [], addresses = [], workers = [], isBossView = false, className }) {
+export default function AddressSearch({ routes = [], addresses = [], workers = [], isBossView = false, className, showArchivedToggle = false, archivedOnly = false, onToggleArchived }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [includeArchived, setIncludeArchived] = useState(false);
@@ -37,11 +37,15 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
     const ids = new Set();
     routes.forEach(r => {
       if (r.deleted_at) return;
-      if (!includeArchived && r.status === 'archived') return;
+      if (archivedOnly) {
+        if (r.status !== 'archived') return;
+      } else if (!includeArchived && r.status === 'archived') {
+        return;
+      }
       ids.add(r.id);
     });
     return ids;
-  }, [routes, includeArchived]);
+  }, [routes, includeArchived, archivedOnly]);
 
   const toggleFilter = (key) => {
     setFilters(prev => {
@@ -140,6 +144,22 @@ export default function AddressSearch({ routes = [], addresses = [], workers = [
       {/* Filter chips - show when focused and no text typed */}
       {showFilters && query.trim().length === 0 && (
         <div ref={containerRef} className="absolute left-0 right-0 top-full mt-1 z-50 rounded-lg p-3" style={{ background: '#201f21', border: '1px solid #363436', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.4)' }}>
+          {showArchivedToggle && onToggleArchived && (
+            <button
+              type="button"
+              tabIndex={0}
+              onMouseDown={e => e.preventDefault()}
+              onClick={onToggleArchived}
+              className="w-full flex items-center justify-between px-3 py-2 mb-3 rounded-lg text-sm font-medium border transition-colors"
+              style={archivedOnly ? { background: '#502f50', color: '#e5b9e1', border: '1px solid #e5b9e1' } : { background: '#1c1b1d', color: '#8a7f87', border: '1px solid #363436' }}
+            >
+              <span className="flex items-center gap-2">
+                <Archive className="w-4 h-4" />
+                {archivedOnly ? 'Showing archived' : 'Show archived'}
+              </span>
+              <span className="text-xs">{archivedOnly ? 'On' : 'Off'}</span>
+            </button>
+          )}
           <p className="text-xs font-medium mb-2" style={{ color: '#8a7f87' }}>Search by:</p>
           <div className="flex flex-wrap gap-2">
             {FILTER_OPTIONS.map(opt => {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { FileText, Bell } from 'lucide-react';
 
-export default function Header({ user, unreadCount = 0, actionButton = null, showArchived, onArchiveToggle }) {
+export default function Header({ user, unreadCount = 0, actionButton = null }) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 
   return (
-    <>
+    <div style={{ position: 'sticky', top: 0, zIndex: 40 }}>
     <header style={{
       background: '#0F0B10',
       color: '#e6e1e4',
@@ -24,35 +24,15 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      position: 'sticky',
-      top: 0,
-      zIndex: 40,
     }}>
-      <div className="flex items-center gap-2">
-        <FileText className="w-6 h-6" style={{ color: '#e5b9e1' }} />
-        <span className="font-bold text-lg" style={{ color: '#E6E1E4' }}>ServeRoute</span>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <FileText className="w-5 h-5 flex-shrink-0" style={{ color: '#e5b9e1' }} />
+        <span className="font-bold text-base leading-none truncate" style={{ color: '#E6E1E4' }}>ServeRoute</span>
       </div>
       
-      <div className="flex items-center gap-2 ml-auto">
-        <span className="font-bold text-lg" style={{ color: '#E6E1E4' }}>{dateStr}&nbsp;&nbsp;{timeStr}</span>
+      <div className="flex items-center gap-1.5 ml-auto min-w-0">
+        <span className="font-bold text-sm leading-none whitespace-nowrap" style={{ color: '#E6E1E4' }}>{dateStr}&nbsp;&nbsp;{timeStr}</span>
         {actionButton}
-        {onArchiveToggle && (
-          <button
-            onClick={onArchiveToggle}
-            className="font-bold text-sm rounded-lg transition-colors"
-            style={{
-              width: 36,
-              height: 36,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: showArchived ? '#502f50' : 'rgba(255,255,255,0.08)',
-              color: showArchived ? '#e5b9e1' : '#8a7f87',
-            }}
-          >
-            A
-          </button>
-        )}
         <Link to={createPageUrl('Notifications')} className="relative">
           <div className="w-9 h-9 rounded-lg transition-colors flex items-center justify-center" style={{
             background: 'rgba(255,255,255,0.08)',
@@ -69,6 +49,6 @@ export default function Header({ user, unreadCount = 0, actionButton = null, sho
       </div>
     </header>
     <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))' }} />
-  </>
+    </div>
   );
 }

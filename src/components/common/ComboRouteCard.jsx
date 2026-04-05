@@ -19,69 +19,40 @@ export default function ComboRouteCard({ combo, routes = [] }) {
   return (
     <div
       onClick={() => navigate(createPageUrl(`WorkerComboRouteDetail?id=${combo.id}`))}
-      className="rounded-2xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 ring-2 ring-purple-500 ring-offset-2 shadow-purple-500/30 bg-white border border-purple-200"
+      className="cursor-pointer hover:opacity-90 active:scale-[0.99] transition-all duration-200"
+      style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(233,195,73,0.40)', borderRadius: '1rem' }}
     >
       {/* Active Banner */}
-      <div className="px-4 py-2 bg-purple-500 border-b border-purple-600">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-3 w-3">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
-          </span>
-          <span className="text-xs font-bold text-white uppercase tracking-wide">
-            Active Combo Route
-          </span>
-        </div>
+      <div className="px-3 py-1.5 rounded-t-2xl flex items-center gap-2" style={{ background: 'rgba(233,195,73,0.15)', borderBottom: '1px solid rgba(233,195,73,0.30)' }}>
+        <span className="relative flex h-2.5 w-2.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: '#e9c349' }} />
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: '#e9c349' }} />
+        </span>
+        <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e9c349' }}>Active Combo Route</span>
       </div>
 
-      <div className="px-4 pt-4 pb-3">
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center flex-shrink-0">
-            <Shuffle className="w-6 h-6 text-purple-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-bold text-gray-900">Combo Route</h3>
-            {displayDate && (
-              <p className="text-sm text-gray-500">{displayDate}</p>
-            )}
-          </div>
-          <ChevronRight className="w-5 h-5 text-purple-400 mt-1 flex-shrink-0" />
+      <div className="px-4 py-3 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(233,195,73,0.15)' }}>
+          <Shuffle className="w-5 h-5" style={{ color: '#e9c349' }} />
         </div>
-      </div>
-
-      {/* Folder list */}
-      {folderNames.length > 0 && (
-        <div className="px-4 pb-3">
-          <div className="flex flex-wrap gap-1.5">
-            {folderNames.map((name, i) => (
-              <span
-                key={i}
-                className="text-xs font-bold px-2.5 py-1 rounded-full bg-purple-100 text-purple-700 border border-purple-200"
-              >
-                {name}
-              </span>
-            ))}
+        <div className="flex-1 min-w-0">
+          {folderNames.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1">
+              {folderNames.map((name, i) => (
+                <span key={i} className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                  {name}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center gap-3 text-xs" style={{ color: '#8a7f87' }}>
+            <span><span className="font-bold" style={{ color: '#e6e1e4' }}>{combo.total_addresses || 0}</span> addresses</span>
+            <span><span className="font-bold" style={{ color: '#e6e1e4' }}>{folderNames.length}</span> folders</span>
           </div>
         </div>
-      )}
-
-      {/* Stats */}
-      <div className="px-4 pb-3">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-gray-500">
-            <span className="font-bold text-purple-600">{combo.total_addresses || 0}</span> addresses
-          </span>
-          <span className="text-gray-500">
-            <span className="font-bold text-purple-600">{folderNames.length}</span> folders
-          </span>
-        </div>
-      </div>
-
-      {/* Continue Button */}
-      <div className="px-4 py-3 border-t border-purple-100">
-        <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-purple-500 text-white font-bold text-sm">
-          <Play className="w-4 h-4" />
-          Continue Combo Route
+        <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl flex-shrink-0" style={{ background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)' }}>
+          <Play className="w-3.5 h-3.5" style={{ color: '#e9c349' }} />
+          <span className="text-xs font-bold" style={{ color: '#e9c349' }}>Continue</span>
         </div>
       </div>
     </div>

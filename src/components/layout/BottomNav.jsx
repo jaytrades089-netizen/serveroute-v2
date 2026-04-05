@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { Home, MapPin, Settings, Camera, MessageCircle } from 'lucide-react';
 
 const leftNavItems = [
-{ id: 'home', label: 'Dashboard', icon: Home, page: 'WorkerHome' },
+{ id: 'home', label: 'Dash', icon: Home, page: 'WorkerHome' },
 { id: 'routes', label: 'Routes', icon: MapPin, page: 'WorkerRoutes' }];
 
 
@@ -53,7 +53,7 @@ export default function BottomNav({ currentPage }) {
               style={{
                 color: isActive ? '#e9c349' : '#8a7f87'
               }}
-              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors">
+              className="flex-1 flex flex-col items-center justify-center py-2 rounded-lg transition-colors">
               
               <Icon className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">{item.label}</span>
@@ -64,7 +64,7 @@ export default function BottomNav({ currentPage }) {
         {/* Center Scan Button */}
         <Link
           to={createPageUrl('ScanDocumentType')}
-          className="flex flex-col items-center -mt-4">
+          className="flex-1 flex flex-col items-center justify-end -mt-4">
           
           <div
             className="rounded-2xl flex items-center justify-center transition-all"
@@ -84,9 +84,10 @@ export default function BottomNav({ currentPage }) {
             fontSize: 12,
             fontWeight: 500,
             marginTop: 4,
-            color: isScanActive ? '#e9c349' : '#8a7f87'
+            color: isScanActive ? '#e9c349' : '#8a7f87',
+            textAlign: 'center'
           }}>
-            Bulk Scan
+            Scan
           </span>
         </Link>
 
@@ -102,7 +103,7 @@ export default function BottomNav({ currentPage }) {
               style={{
                 color: isActive ? '#e9c349' : '#8a7f87'
               }}
-              className="flex flex-col items-center py-2 px-3 rounded-lg transition-colors">
+              className="flex-1 flex flex-col items-center justify-center py-2 rounded-lg transition-colors">
               
               <Icon className="w-6 h-6" />
               <span className="text-xs mt-1 font-medium">{item.label}</span>

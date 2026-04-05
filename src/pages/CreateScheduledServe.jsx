@@ -79,8 +79,13 @@ export default function CreateScheduledServe() {
   const getDateTimeDisplay = useCallback(() => {
     if (!selectedDate) return '';
     const s = idxToTime(startHourIdx, startMinIdx, startAmPmIdx);
-    return `${format(selectedDate, 'EEE, MMM d, yyyy')} at ${formatTimeDisplay(s.hour, s.minute, s.ampm)}`;
-  }, [selectedDate, startHourIdx, startMinIdx, startAmPmIdx]);
+    const e = idxToTime(endHourIdx, endMinIdx, endAmPmIdx);
+    const startTime = formatTimeDisplay(s.hour, s.minute, s.ampm);
+    const endTime = formatTimeDisplay(e.hour, e.minute, e.ampm);
+    const dateStr = format(selectedDate, 'EEE, MMM d, yyyy');
+    if (startTime !== endTime) return `${dateStr} between ${startTime} - ${endTime}`;
+    return `${dateStr} at ${startTime}`;
+  }, [selectedDate, startHourIdx, startMinIdx, startAmPmIdx, endHourIdx, endMinIdx, endAmPmIdx]);
 
   const getDateTimeISO = useCallback(() => {
     if (!selectedDate) return null;
@@ -267,6 +272,48 @@ export default function CreateScheduledServe() {
             />
             {selectedDate && (
               <p className="text-sm text-blue-600 font-medium mt-3 text-center">{getDateTimeDisplay()}</p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Location */}
+        <Card>
+          <CardContent className="p-4">
+            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
+              <MapPin className="w-3.5 h-3.5" /> LOCATION
+            </label>
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button
+                onClick={() => setLocationType('posting')}
+                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  locationType === 'posting'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                Place of Posting
+              </button>
+              <button
+                onClick={() => setLocationType('meeting')}
+                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  locationType === 'meeting'
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 bg-white text-gray-600'
+                }`}
+              >
+                Meeting Place
+              </button>
+            </div>
+            {locationType === 'posting' ? (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                Will use: {formatted.line1}, {formatted.line2}
+              </div>
+            ) : (
+              <Input
+                placeholder="Enter meeting place address..."
+                value={meetingAddress}
+                onChange={(e) => setMeetingAddress(e.target.value)}
+              />
             )}
           </CardContent>
         </Card>

@@ -186,6 +186,7 @@ export default function WorkerComboRouteDetail() {
       await base44.entities.ComboRoute.update(comboId, { status: 'completed' });
 
       queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.invalidateQueries({ queryKey: ['activeComboRoutes'] });
       toast.success('Combo route stopped. Routes returned to folders.');
       navigate(createPageUrl('WorkerRoutes'));
     } catch (error) {
@@ -203,8 +204,8 @@ export default function WorkerComboRouteDetail() {
   // Loading states
   if (comboLoading || addressesLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
@@ -212,19 +213,17 @@ export default function WorkerComboRouteDetail() {
   // Not found
   if (!combo) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24">
-        <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3">
-          <Link to={createPageUrl('WorkerRoutes')}>
+      <div style={{ minHeight: '100vh', background: 'transparent' }}>
+        <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10" style={{ border: '1px solid #363436' }}>
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <h1 className="font-bold text-lg">Combo Route</h1>
         </header>
         <div className="flex flex-col items-center justify-center p-8 mt-16">
-          <AlertCircle className="w-12 h-12 text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium mb-4">Combo route not found</p>
-          <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>
-            Back to My Routes
-          </Button>
+          <AlertCircle className="w-12 h-12 mb-3" style={{ color: '#4B5563' }} />
+          <p className="font-medium mb-4" style={{ color: '#8a7f87' }}>Combo route not found</p>
+          <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>Back to My Routes</Button>
         </div>
       </div>
     );
@@ -245,15 +244,14 @@ export default function WorkerComboRouteDetail() {
   }));
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-6">
-      {/* Purple header */}
-      <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
-        <Link to={createPageUrl('WorkerRoutes')}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 24 }}>
+      <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors" style={{ border: '1px solid #363436' }}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div className="flex-1">
-          <h1 className="font-bold text-lg">Combo Route</h1>
-          <p className="text-sm text-purple-100">
+          <h1 className="font-bold text-lg" style={{ color: '#e6e1e4' }}>Combo Route</h1>
+          <p className="text-sm" style={{ color: '#8a7f87' }}>
             {progress.remaining} remaining across {routes.length} folders
           </p>
         </div>
@@ -263,52 +261,51 @@ export default function WorkerComboRouteDetail() {
         {/* Started / Stop / Est Done boxes */}
         <div className="grid grid-cols-3 gap-1.5 mb-3">
           {/* Start Time */}
-          <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-200">
-            <p className="text-sm font-bold text-blue-600">
+          <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
+            <p className="text-sm font-bold" style={{ color: '#e9c349' }}>
               {comboMetrics.startedAt
                 ? comboMetrics.startedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
                 : new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
             </p>
-            <p className="text-[10px] text-blue-500 font-medium">Started</p>
+            <p className="text-[10px] font-medium" style={{ color: '#8a7f87' }}>Started</p>
           </div>
 
           {/* Stop Route */}
           <div
-            className="bg-red-50 rounded-lg p-2 text-center border border-red-300 cursor-pointer hover:bg-red-100 transition-colors flex flex-col items-center justify-center"
+            className="rounded-lg p-2 text-center cursor-pointer flex flex-col items-center justify-center transition-opacity hover:opacity-90"
+            style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)' }}
             onClick={handleStopCombo}
           >
             {stopping ? (
-              <Loader2 className="w-5 h-5 text-red-500 animate-spin mb-0.5" />
+              <Loader2 className="w-5 h-5 animate-spin mb-0.5" style={{ color: '#ef4444' }} />
             ) : (
-              <Pause className="w-5 h-5 text-red-500 mb-0.5" />
+              <Pause className="w-5 h-5 mb-0.5" style={{ color: '#ef4444' }} />
             )}
-            <p className="text-[10px] text-red-600 font-bold">Stop Combo</p>
+            <p className="text-[10px] font-bold" style={{ color: '#ef4444' }}>Stop Combo</p>
           </div>
 
           {/* Est Completion */}
-          <div className="bg-green-50 rounded-lg p-2 text-center border border-green-200">
-            <p className="text-sm font-bold text-green-600">
+          <div className="rounded-lg p-2 text-center" style={{ background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.30)' }}>
+            <p className="text-sm font-bold" style={{ color: '#22c55e' }}>
               {comboMetrics.estCompletion.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
             </p>
-            <p className="text-[10px] text-green-500 font-medium">Est. Done</p>
+            <p className="text-[10px] font-medium" style={{ color: '#22c55e' }}>Est. Done</p>
           </div>
         </div>
 
         {/* Progress bar with miles and time */}
         <div className="mb-4">
-          <div className="flex justify-between text-[10px] text-gray-500 mb-0.5">
+          <div className="flex justify-between text-[10px] mb-0.5" style={{ color: '#8a7f87' }}>
             <span>{progress.served} of {progress.total} complete</span>
-            <span className="text-purple-600 font-medium">
-              {comboMetrics.remainingMiles.toFixed(1)} mi left
-            </span>
+            <span className="font-medium" style={{ color: '#8a7f87' }}>{comboMetrics.remainingMiles.toFixed(1)} mi left</span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.10)' }}>
             <div
-              className="h-full bg-gradient-to-r from-purple-500 to-purple-400 transition-all duration-500"
+              className="h-full bg-gradient-to-r from-green-500 to-green-400 transition-all duration-500"
               style={{ width: `${progress.pct}%` }}
             />
           </div>
-          <div className="flex justify-between text-[10px] text-gray-400 mt-0.5">
+          <div className="flex justify-between text-[10px] mt-0.5" style={{ color: '#8a7f87' }}>
             <span>{progress.pct}% done</span>
             <span>
               {comboMetrics.remainingMinutes >= 60

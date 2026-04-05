@@ -13,7 +13,8 @@ export default function SubmitReceipt() {
   const addressId = urlParams.get('addressId');
   const routeId = urlParams.get('routeId');
   const attemptId = urlParams.get('attemptId');
-  const parentReceiptId = urlParams.get('parentReceiptId'); // For resubmissions
+  const parentReceiptId = urlParams.get('parentReceiptId');
+  const returnTo = urlParams.get('returnTo'); // Combo route return path // For resubmissions
 
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -97,7 +98,8 @@ export default function SubmitReceipt() {
   }
 
   // Ownership check - workers can only submit receipts for their own routes
-  if (user?.role === 'server' && route && route.worker_id !== user.id) {
+  // Skip check if coming from a combo route (worker owns the combo, not necessarily each sub-route)
+  if (user?.role === 'server' && route && route.worker_id !== user.id && !returnTo) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <p className="text-gray-600 mb-4">You don't have access to submit receipts for this route</p>
@@ -116,9 +118,13 @@ export default function SubmitReceipt() {
     queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
     queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
     queryClient.invalidateQueries({ queryKey: ['scheduledServesCountBadge', routeId] });
+    queryClient.invalidateQueries({ queryKey: ['comboDetailAddresses'] });
+    queryClient.invalidateQueries({ queryKey: ['comboDetailAttempts'] });
     
-    // Force immediate navigation back to the route detail page
-    if (routeId) {
+    // If coming from combo route, return there — never navigate to sub-folder
+    if (returnTo) {
+      navigate(createPageUrl(returnTo), { replace: true });
+    } else if (routeId) {
       navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`), { replace: true });
     } else {
       window.history.back();

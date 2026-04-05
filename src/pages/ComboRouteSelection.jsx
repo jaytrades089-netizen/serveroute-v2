@@ -20,7 +20,10 @@ import BottomNav from '@/components/layout/BottomNav';
 
 export default function ComboRouteSelection() {
   const navigate = useNavigate();
-  const [selectedRoutes, setSelectedRoutes] = useState([]);
+  const urlParams = new URLSearchParams(window.location.search);
+  const preselect = urlParams.get('preselect');
+  const preselectIds = preselect ? preselect.split(',').filter(Boolean) : [];
+  const [selectedRoutes, setSelectedRoutes] = useState(preselectIds);
   const [selectedEndLocation, setSelectedEndLocation] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
 
@@ -272,135 +275,150 @@ export default function ComboRouteSelection() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       {/* Header */}
-      <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3">
-        <Link to={createPageUrl('WorkerRoutes')}>
+      <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors" style={{ border: '1px solid #363436' }}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h1 className="font-bold text-lg">Combo Route</h1>
-          <p className="text-sm text-purple-100">Combine multiple routes</p>
+          <h1 className="font-bold text-lg" style={{ color: '#e6e1e4' }}>Combo Route</h1>
+          <p className="text-sm" style={{ color: '#8a7f87' }}>Combine multiple routes</p>
         </div>
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
         {/* End Location Selection */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              <MapPin className="w-4 h-4 inline mr-1" />
-              End Location
-            </label>
-            <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select where to end" />
-              </SelectTrigger>
-              <SelectContent>
-                {savedLocations.map(loc => (
-                  <SelectItem key={loc.id} value={loc.id}>
-                    {loc.label} - {loc.address?.substring(0, 30)}...
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {savedLocations.length === 0 && (
-              <p className="text-xs text-gray-500 mt-2">
-                No saved locations. Add one in Settings.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <label className="flex items-center gap-2 text-sm font-semibold mb-3" style={{ color: '#8a7f87' }}>
+            <MapPin className="w-4 h-4" />
+            End Location
+          </label>
+          <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
+            <SelectTrigger style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}>
+              <SelectValue placeholder="Select where to end" />
+            </SelectTrigger>
+            <SelectContent>
+              {savedLocations.map(loc => (
+                <SelectItem key={loc.id} value={loc.id}>
+                  {loc.label} - {loc.address?.substring(0, 30)}...
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {savedLocations.length === 0 && (
+            <p className="text-xs mt-2" style={{ color: '#6B7280' }}>No saved locations. Add one in Settings.</p>
+          )}
+        </div>
 
         {/* Route Selection */}
-        <Card className="mb-4">
-          <CardContent className="p-4">
-            <h2 className="font-semibold mb-3">Select Routes to Combine</h2>
-            
-            {routesLoading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
-              </div>
-            ) : routes.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                <p>No routes available to combine</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {routes.map(route => {
-                  const addressCount = routeAddressCounts[route.id] || 0;
-                  const isSelected = selectedRoutes.includes(route.id);
-                  
-                  return (
-                    <div
-                      key={route.id}
-                      onClick={() => toggleRouteSelection(route.id)}
-                      className={`p-4 rounded-xl cursor-pointer border-2 transition-all ${
-                        isSelected
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 bg-white hover:border-gray-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors ${
-                          isSelected
-                            ? 'bg-purple-500 border-purple-500 text-white'
-                            : 'border-gray-300 bg-white'
-                        }`}>
-                          {isSelected && <Check className="w-4 h-4" />}
-                        </div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900">{route.folder_name}</p>
-                          <div className="flex items-center gap-3 text-sm text-gray-500">
-                            <span>{addressCount} addresses</span>
-                            {route.due_date && (
-                              <span className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
-                                {format(new Date(route.due_date), 'MMM d')}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+        <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <h2 className="font-semibold mb-3" style={{ color: '#e6e1e4' }}>Select Routes to Combine</h2>
+
+          {routesLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#e9c349' }} />
+            </div>
+          ) : routes.length === 0 ? (
+            <div className="text-center py-8">
+              <AlertCircle className="w-8 h-8 mx-auto mb-2" style={{ color: '#4B5563' }} />
+              <p style={{ color: '#6B7280' }}>No routes available to combine</p>
+            </div>
+          ) : (() => {
+            const scheduledRoutes = routes.filter(r => preselectIds.includes(r.id));
+            const otherRoutes = routes.filter(r => !preselectIds.includes(r.id));
+
+            const renderRouteRow = (route) => {
+              const addressCount = routeAddressCounts[route.id] || 0;
+              const isSelected = selectedRoutes.includes(route.id);
+              return (
+                <div
+                  key={route.id}
+                  onClick={() => toggleRouteSelection(route.id)}
+                  className="rounded-xl p-4 cursor-pointer transition-all"
+                  style={isSelected
+                    ? { background: 'rgba(233,195,73,0.15)', border: '2px solid rgba(233,195,73,0.60)' }
+                    : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.10)' }
+                  }
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-md border-2 flex items-center justify-center transition-colors flex-shrink-0"
+                      style={isSelected
+                        ? { background: '#e9c349', borderColor: '#e9c349', color: '#0F0B10' }
+                        : { borderColor: '#363436', background: 'transparent' }
+                      }>
+                      {isSelected && <Check className="w-4 h-4" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold" style={{ color: '#e6e1e4' }}>{route.folder_name}</p>
+                      <div className="flex items-center gap-3 text-sm" style={{ color: '#6B7280' }}>
+                        <span>{addressCount} addresses</span>
+                        {route.due_date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            {format(new Date(route.due_date), 'MMM d')}
+                          </span>
+                        )}
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div className="space-y-4">
+                {scheduledRoutes.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(233,195,73,0.15)', border: '1px solid rgba(233,195,73,0.35)' }}>
+                      <Shuffle className="w-3.5 h-3.5" style={{ color: '#e9c349' }} />
+                      <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e9c349' }}>Scheduled Combo</span>
+                    </div>
+                    <div className="space-y-2">
+                      {scheduledRoutes.map(renderRouteRow)}
+                    </div>
+                  </div>
+                )}
+
+                {otherRoutes.length > 0 && (
+                  <div>
+                    {scheduledRoutes.length > 0 && (
+                      <p className="text-xs font-semibold uppercase tracking-wide mb-2 px-1" style={{ color: '#6B7280' }}>Other Routes</p>
+                    )}
+                    <div className="space-y-2">
+                      {otherRoutes.map(renderRouteRow)}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            );
+          })()}
+        </div>
 
         {/* Summary */}
-        <div className="bg-purple-100 rounded-xl p-4 mb-4">
-          <p className="text-center text-purple-900">
-            Selected: <strong>{selectedRoutes.length} routes</strong> ({getTotalAddresses()} addresses)
+        <div className="rounded-xl p-4 mb-4 text-center" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
+          <p style={{ color: '#8a7f87' }}>
+            Selected: <span className="font-bold" style={{ color: '#e6e1e4' }}>{selectedRoutes.length} routes</span>
+            <span style={{ color: '#6B7280' }}> ({getTotalAddresses()} addresses)</span>
           </p>
         </div>
 
         {/* Optimize Button */}
-        <Button
+        <button
           onClick={handleOptimizeCombo}
           disabled={selectedRoutes.length < 2 || !selectedEndLocation || isOptimizing}
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-6 text-lg rounded-xl"
+          className="w-full rounded-xl py-4 font-bold text-base flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
+          style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
         >
           {isOptimizing ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              Optimizing...
-            </>
+            <><Loader2 className="w-5 h-5 animate-spin" /> Optimizing...</>
           ) : (
-            <>
-              <Shuffle className="w-5 h-5 mr-2" />
-              Optimize Combo Route
-            </>
+            <><Shuffle className="w-5 h-5" /> Optimize Combo Route</>
           )}
-        </Button>
+        </button>
 
         {selectedRoutes.length < 2 && (
-          <p className="text-center text-sm text-gray-500 mt-2">
-            Select at least 2 routes to combine
-          </p>
+          <p className="text-center text-sm mt-2" style={{ color: '#6B7280' }}>Select at least 2 routes to combine</p>
         )}
       </main>
 

@@ -1,11 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { MapPin, Calendar, Clock, CheckCircle } from 'lucide-react';
+import { MapPin, Calendar, Clock } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
-export default function ActiveRoutesList({ routes = [] }) {
-  // Filter out archived/completed routes, sort: active first, then by run_date, then due_date
+export default function ActiveRoutesList({ routes = [], attempts = [] }) {
+  const routeNameMap = React.useMemo(() => {
+    const map = {};
+    routes.forEach(r => { map[r.id] = r.folder_name; });
+    return map;
+  }, [routes]);
+
+  const attemptsByRoute = React.useMemo(() => {
+    const map = {};
+    attempts.forEach(a => {
+      if (!map[a.route_id]) map[a.route_id] = [];
+      map[a.route_id].push(a);
+    });
+    return map;
+  }, [attempts]);
+
   const doableRoutes = routes
     .filter(r => r.status !== 'archived' && r.status !== 'completed')
     .sort((a, b) => {
@@ -21,7 +35,19 @@ export default function ActiveRoutesList({ routes = [] }) {
       return dateA - dateB;
     });
 
-  // Group by run_date
+  const qualifierSortScore = (qualifiers = []) => {
+    const qs = qualifiers.map(q => q.toLowerCase());
+    const hasAM = qs.includes('am');
+    const hasPM = qs.includes('pm');
+    const hasWKND = qs.includes('weekend');
+    if (hasAM && hasWKND) return 0;
+    if (hasAM) return 1;
+    if (hasWKND && !hasPM) return 2;
+    if (hasPM && hasWKND) return 3;
+    if (hasPM) return 4;
+    return 5;
+  };
+
   const groups = {};
   const unscheduled = [];
   doableRoutes.forEach(route => {
@@ -39,14 +65,6 @@ export default function ActiveRoutesList({ routes = [] }) {
       return (
         <span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }}>
           Active
-        </span>
-      );
-    }
-    if (status === 'completed') {
-      return (
-        <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(75,85,99,0.20)', color: '#6B7280' }}>
-          <CheckCircle className="w-3 h-3" />
-          Done
         </span>
       );
     }
@@ -68,7 +86,7 @@ export default function ActiveRoutesList({ routes = [] }) {
 
   const renderRouteCard = (route) => {
     const isActive = route.status === 'active';
-    const letter = (route.folder_name || 'R').charAt(0).toUpperCase();
+    const letter = (route.folder_name || 'R').replace(/^route\s*/i, '').trim().substring(0, 3).toUpperCase();
 
     const estTotalMinutes = (() => {
       if (!route.total_drive_time_minutes || route.total_drive_time_minutes <= 0) return null;
@@ -85,14 +103,8 @@ export default function ActiveRoutesList({ routes = [] }) {
       return `${m}m`;
     })();
 
-    // Due date label: "Fri 4/4"
-    const dueDateLabel = (() => {
-      const d = route.due_date ? new Date(route.due_date) : null;
-      if (!d) return null;
-      return format(d, 'EEE M/d');
-    })();
+    const dueDateLabel = route.due_date ? format(new Date(route.due_date), 'EEE M/d') : null;
 
-    // Spread due date label
     const spreadDateLabel = (() => {
       if (route.spread_due_date) return format(new Date(route.spread_due_date), 'EEE M/d');
       if (route.first_attempt_date) {
@@ -104,8 +116,11 @@ export default function ActiveRoutesList({ routes = [] }) {
       return null;
     })();
 
-    // Qualifier badges — all three shown, highlight ones in run_qualifiers
-    const completedQuals = (route.run_qualifiers || []).map(q => q.toLowerCase());
+    const routeAttempts = attemptsByRoute[route.id] || [];
+    const completedQuals = [];
+    if (routeAttempts.some(a => a.has_am)) completedQuals.push('am');
+    if (routeAttempts.some(a => a.has_pm)) completedQuals.push('pm');
+    if (routeAttempts.some(a => a.has_weekend)) completedQuals.push('weekend');
     const allQuals = [
       { key: 'am', label: 'AM' },
       { key: 'pm', label: 'PM' },
@@ -117,7 +132,7 @@ export default function ActiveRoutesList({ routes = [] }) {
         key={route.id}
         to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
         className="block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
-        style={{ 
+        style={{
           background: 'rgba(14, 20, 44, 0.55)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -125,15 +140,14 @@ export default function ActiveRoutesList({ routes = [] }) {
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
       >
-        {/* Top row: letter badge + run date + status badge */}
         <div className="flex items-center gap-3 mb-2">
           <div
-            className="rounded-lg w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0"
-            style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1' }}
+            className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
+            style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
           >
             {letter}
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2">
+          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
             {route.run_date ? (
               <>
                 <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
@@ -150,13 +164,17 @@ export default function ActiveRoutesList({ routes = [] }) {
                 {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
               </span>
             )}
+            {route.combo_route_ids?.length > 0 && route.combo_route_ids.map(cid => (
+              <span key={cid} className="inline-flex items-center gap-1 text-[10px] font-bold rounded px-1.5 py-0.5 uppercase"
+                style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                Combo With: {routeNameMap[cid] || 'Route'}
+              </span>
+            ))}
           </div>
           {getStatusBadge(route.status, !!route.run_date)}
         </div>
 
-        {/* Metrics row: duration, remaining, due, spread */}
         <div className="flex gap-4 mb-2">
-          {/* Left column: Duration stacked over Remaining */}
           <div>
             {estTimeLabel && (
               <div className="mb-1">
@@ -171,7 +189,6 @@ export default function ActiveRoutesList({ routes = [] }) {
               </div>
             </div>
           </div>
-          {/* Right of duration: Due + Spread side by side */}
           <div className="flex gap-4">
             {dueDateLabel && (
               <div>
@@ -188,8 +205,7 @@ export default function ActiveRoutesList({ routes = [] }) {
           </div>
         </div>
 
-        {/* Qualifier badges bottom right — all three, completed ones lit */}
-        <div className="flex justify-end gap-1">
+        <div className="flex justify-end gap-1 flex-wrap">
           {allQuals.map(({ key, label }) => {
             const done = completedQuals.includes(key);
             return (
@@ -239,7 +255,7 @@ export default function ActiveRoutesList({ routes = [] }) {
                   <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
                   <span className="text-sm font-bold truncate" style={{ color: '#e9c349' }}>{dayLabel}</span>
                 </div>
-                {groups[dateKey].map(route => renderRouteCard(route))}
+                {[...groups[dateKey]].sort((a, b) => qualifierSortScore(a.run_qualifiers) - qualifierSortScore(b.run_qualifiers)).map(route => renderRouteCard(route))}
               </div>
             );
           })}

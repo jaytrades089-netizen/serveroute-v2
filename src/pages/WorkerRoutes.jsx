@@ -275,19 +275,36 @@ export default function WorkerRoutes() {
       <Header 
         user={user} 
         unreadCount={notifications.length}
-        showArchived={filter === 'archived'}
-        onArchiveToggle={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
       />
       
       <main className="px-4 py-3 max-w-lg mx-auto">
         <div className="flex items-center gap-2 mb-4">
-          <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
+          <Link to={(() => {
+              // Find the first route with combo_route_ids and build a preselect param
+              const comboRoute = routes.find(r => r.combo_route_ids?.length > 0);
+              if (comboRoute) {
+                const ids = [comboRoute.id, ...comboRoute.combo_route_ids].join(',');
+                return createPageUrl(`ComboRouteSelection?preselect=${ids}`);
+              }
+              return createPageUrl('ComboRouteSelection');
+            })()} className="shrink-0">
             <Button
               size="sm"
               className="bg-transparent hover:bg-purple-600/20 text-purple-400 text-xs px-2.5 h-[38px] border border-purple-500"
             >
               <Shuffle className="w-3.5 h-3.5 mr-1" />
-              Combo
+              Combo{(() => {
+                const seen = new Set();
+                let count = 0;
+                routes.forEach(r => {
+                  if (r.combo_route_ids?.length > 0 && !seen.has(r.id)) {
+                    count++;
+                    seen.add(r.id);
+                    r.combo_route_ids.forEach(id => seen.add(id));
+                  }
+                });
+                return count > 0 ? ` (${count})` : '';
+              })()}
             </Button>
           </Link>
           <div className="flex-1">
@@ -296,6 +313,9 @@ export default function WorkerRoutes() {
               addresses={allAddresses}
               isBossView={false}
               className=""
+              showArchivedToggle={true}
+              archivedOnly={filter === 'archived'}
+              onToggleArchived={() => setFilter(filter === 'archived' ? 'all' : 'archived')}
             />
           </div>
         </div>
@@ -350,6 +370,20 @@ export default function WorkerRoutes() {
             // Sort group keys by date ascending
             const groupKeys = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
 
+            // Qualifier sort score within a date group
+            const qualifierSortScore = (qualifiers = []) => {
+              const qs = qualifiers.map(q => q.toLowerCase());
+              const hasAM = qs.includes('am');
+              const hasPM = qs.includes('pm');
+              const hasWKND = qs.includes('weekend');
+              if (hasAM && hasWKND) return 0;
+              if (hasAM) return 1;
+              if (hasWKND && !hasPM) return 2;
+              if (hasPM && hasWKND) return 3;
+              if (hasPM) return 4;
+              return 5;
+            };
+
             // Map scheduled serves to their run dates
             const servesByDate = {};
             scheduledServes.forEach(s => {
@@ -383,6 +417,7 @@ export default function WorkerRoutes() {
                   isBossView={false}
                   attempts={attemptsByRoute[route.id] || []}
                   addresses={allAddresses}
+                  allRoutes={routes}
                   onDelete={handleDeleteRoute}
                   onArchive={handleArchiveRoute}
                   onEdit={handleEditRoute}
@@ -416,7 +451,7 @@ export default function WorkerRoutes() {
                       </h2>
                     </div>
                     <div className="space-y-3">
-                      {routesInGroup.map(renderRouteCard)}
+                      {[...routesInGroup].sort((a, b) => qualifierSortScore(a.run_qualifiers) - qualifierSortScore(b.run_qualifiers)).map(renderRouteCard)}
                       {servesInGroup.map(s => (
                         <ScheduledServeCard key={s.id} serve={s} />
                       ))}

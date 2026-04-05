@@ -274,6 +274,14 @@
       },
       "default": [],
       "description": "Queue of future planned runs \u2014 each item: { date: yyyy-MM-dd, qualifiers: [] }"
+    },
+    "combo_route_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "IDs of other routes planned to run together as a combo"
     }
   },
   "required": [

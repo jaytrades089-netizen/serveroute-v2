@@ -446,8 +446,9 @@ export default function AddressCard({
         // For postings, auto-navigate to SubmitReceipt page
         if (isPosting) {
           toast.success('Photo saved! Review and submit the receipt.');
+          const returnParam = comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : '';
           navigate(createPageUrl(
-            `SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true`
+            `SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true${returnParam}`
           ));
           return; // Skip the normal toast below
         }
@@ -1696,18 +1697,18 @@ export default function AddressCard({
                     {/* Secondary Actions Row */}
                     <div className="flex gap-2">
                       <Link 
-                        to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true`)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1"
+                       to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true${comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : ''}`)}
+                       onClick={(e) => e.stopPropagation()}
+                       className="flex-1"
                       >
-                        <Button 
-                          className="w-full h-14 font-bold text-sm rounded-xl flex items-center justify-center gap-2"
-                          style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
-                        >
-                          <Shield className="w-5 h-5" />
-                          <span>SERVED</span>
-                        </Button>
-                      </Link>
+                       <Button 
+                         className="w-full h-14 font-bold text-sm rounded-xl flex items-center justify-center gap-2"
+                         style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
+                       >
+                         <Shield className="w-5 h-5" />
+                         <span>SERVED</span>
+                       </Button>
+                       </Link>
                     </div>
                   </>
                 )}

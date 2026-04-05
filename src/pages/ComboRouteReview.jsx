@@ -89,41 +89,39 @@ export default function ComboRouteReview() {
 
   if (comboLoading || addressesLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   if (!combo) {
     return (
-      <div className="min-h-screen bg-gray-50 pb-24">
-        <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3">
-          <Link to={createPageUrl('WorkerRoutes')}>
+      <div style={{ minHeight: '100vh', background: 'transparent' }}>
+        <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10" style={{ border: '1px solid #363436' }}>
             <ChevronLeft className="w-6 h-6" />
           </Link>
           <h1 className="font-bold text-lg">Combo Route</h1>
         </header>
         <div className="flex flex-col items-center justify-center p-8 mt-16">
-          <AlertCircle className="w-12 h-12 text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium mb-4">Combo route not found</p>
-          <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>
-            Back to My Routes
-          </Button>
+          <AlertCircle className="w-12 h-12 mb-3" style={{ color: '#4B5563' }} />
+          <p className="font-medium mb-4" style={{ color: '#8a7f87' }}>Combo route not found</p>
+          <Button onClick={() => navigate(createPageUrl('WorkerRoutes'))}>Back to My Routes</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
-      <header className="bg-purple-500 text-white px-4 py-3 flex items-center gap-3">
-        <Link to={createPageUrl('WorkerRoutes')}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 24 }}>
+      <header style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+        <Link to={createPageUrl('WorkerRoutes')} className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors" style={{ border: '1px solid #363436' }}>
           <ChevronLeft className="w-6 h-6" />
         </Link>
         <div>
-          <h1 className="font-bold text-lg">Review Combo Route</h1>
-          <p className="text-sm text-purple-100">{addresses.length} addresses across {routes.length} folders</p>
+          <h1 className="font-bold text-lg" style={{ color: '#e6e1e4' }}>Review Combo Route</h1>
+          <p className="text-sm" style={{ color: '#8a7f87' }}>{addresses.length} addresses across {routes.length} folders</p>
         </div>
       </header>
 
@@ -135,22 +133,22 @@ export default function ComboRouteReview() {
             ? new Date(Date.now() + mins * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })
             : '—';
           return (
-            <div className="bg-white rounded-xl border border-purple-100 shadow-sm mb-4">
+            <div className="rounded-2xl mb-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)' }}>
               <div className="grid grid-cols-3 gap-3 p-4">
                 <div className="flex flex-col items-center text-center">
-                  <MapPin className="w-4 h-4 mb-1 text-purple-600" />
-                  <span className="text-lg font-bold text-purple-600">{combo.total_miles?.toFixed(1) || '—'} mi</span>
-                  <span className="text-xs text-gray-500">Total Miles</span>
+                  <MapPin className="w-4 h-4 mb-1" style={{ color: '#e9c349' }} />
+                  <span className="text-lg font-bold" style={{ color: '#e9c349' }}>{combo.total_miles?.toFixed(1) || '—'} mi</span>
+                  <span className="text-xs" style={{ color: '#6B7280' }}>Total Miles</span>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <Clock className="w-4 h-4 mb-1 text-purple-600" />
-                  <span className="text-lg font-bold text-purple-600">{driveLabel}</span>
-                  <span className="text-xs text-gray-500">Drive Time</span>
+                  <Clock className="w-4 h-4 mb-1" style={{ color: '#e9c349' }} />
+                  <span className="text-lg font-bold" style={{ color: '#e9c349' }}>{driveLabel}</span>
+                  <span className="text-xs" style={{ color: '#6B7280' }}>Drive Time</span>
                 </div>
                 <div className="flex flex-col items-center text-center">
-                  <CheckCircle className="w-4 h-4 mb-1 text-green-600" />
-                  <span className="text-lg font-bold text-green-600">{estDone}</span>
-                  <span className="text-xs text-gray-500">Est. Done</span>
+                  <CheckCircle className="w-4 h-4 mb-1" style={{ color: '#22c55e' }} />
+                  <span className="text-lg font-bold" style={{ color: '#22c55e' }}>{estDone}</span>
+                  <span className="text-xs" style={{ color: '#6B7280' }}>Est. Done</span>
                 </div>
               </div>
             </div>
@@ -159,10 +157,10 @@ export default function ComboRouteReview() {
         {groupedBlocks.map((block, blockIdx) => (
           <div key={`${block.route_id}-${blockIdx}`} className="mb-4">
             {/* Folder header */}
-            <div className="flex items-center gap-2 mb-2 px-1">
-              <FolderOpen className="w-4 h-4 text-purple-500" />
-              <h2 className="text-sm font-bold text-gray-800">{block.folder_name}</h2>
-              <span className="text-xs text-gray-400">({block.addresses.length})</span>
+            <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg" style={{ background: 'rgba(233,195,73,0.15)', border: '1px solid rgba(233,195,73,0.35)' }}>
+              <FolderOpen className="w-4 h-4" style={{ color: '#e9c349' }} />
+              <h2 className="text-sm font-bold" style={{ color: '#e9c349' }}>{block.folder_name}</h2>
+              <span className="text-xs" style={{ color: '#8a7f87' }}>({block.addresses.length})</span>
             </div>
 
             <div className="space-y-2">
@@ -171,24 +169,21 @@ export default function ComboRouteReview() {
                 return (
                   <div
                     key={addr.id}
-                    className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3"
+                    className="rounded-xl p-3 flex items-center gap-3"
+                    style={{ background: 'rgba(14,20,44,0.55)', border: '1px solid rgba(255,255,255,0.10)' }}
                   >
-                    <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'rgba(233,195,73,0.20)', color: '#e9c349' }}>
                       {addr.order_index || '?'}
                     </div>
                     <div className="min-w-0 flex-1">
                       {addr.defendant_name && (
-                        <p className="text-xs font-medium text-gray-500 truncate">{addr.defendant_name}</p>
+                        <p className="text-xs font-medium truncate" style={{ color: '#8a7f87' }}>{addr.defendant_name}</p>
                       )}
-                      <p className="text-sm font-semibold text-gray-900 truncate">{formatted.line1}</p>
-                      <p className="text-xs text-gray-500 truncate">{formatted.line2}</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: '#e6e1e4' }}>{formatted.line1}</p>
+                      <p className="text-xs truncate" style={{ color: '#6B7280' }}>{formatted.line2}</p>
                     </div>
                     {addr.serve_type && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0 ${
-                        addr.serve_type === 'posting' ? 'bg-green-100 text-green-700' :
-                        addr.serve_type === 'garnishment' ? 'bg-purple-100 text-purple-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: 'rgba(233,195,73,0.15)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.30)' }}>
                         {addr.serve_type.toUpperCase()}
                       </span>
                     )}
@@ -200,12 +195,13 @@ export default function ComboRouteReview() {
         ))}
 
         {/* Start Button */}
-        <Button
+        <button
           onClick={() => navigate(createPageUrl(`WorkerComboRouteDetail?id=${comboId}`))}
-          className="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-6 text-lg rounded-xl mt-4"
+          className="w-full rounded-xl py-4 font-bold text-base flex items-center justify-center gap-2 mt-4 transition-opacity hover:opacity-90"
+          style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
         >
           Start Combo Route
-        </Button>
+        </button>
       </main>
 
 

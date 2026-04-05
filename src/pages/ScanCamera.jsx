@@ -491,7 +491,7 @@ export default function ScanCamera() {
     } else if (isBulkScan) {
       navigate(createPageUrl(`BulkScanOptimize?sessionId=${session.id}`));
     } else {
-      navigate(createPageUrl(`ScanSortReview?sessionId=${session.id}`));
+      navigate(createPageUrl(`ScanPreview?sessionId=${session.id}`));
     }
   };
 
@@ -561,19 +561,19 @@ export default function ScanCamera() {
         
         {cameraStatus === 'active' && (
                         <>
-                          {/* Blur overlay - top (covers 20% from top) */}
-                          <div className="absolute top-0 left-0 right-0 h-[20%] backdrop-blur-sm bg-black/40" />
-                          {/* Blur overlay - bottom (covers 20% from bottom) */}
-                          <div className="absolute bottom-0 left-0 right-0 h-[20%] backdrop-blur-sm bg-black/40" />
+                          {/* Blur overlay - top */}
+                          <div className="absolute top-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
+                          {/* Blur overlay - bottom */}
+                          <div className="absolute bottom-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
                           {/* Blur overlay - left */}
-                          <div className="absolute top-[20%] left-0 w-[5%] h-[60%] backdrop-blur-sm bg-black/40" />
+                          <div className="absolute top-[24%] left-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
                           {/* Blur overlay - right */}
-                          <div className="absolute top-[20%] right-0 w-[5%] h-[60%] backdrop-blur-sm bg-black/40" />
+                          <div className="absolute top-[24%] right-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
                           {/* Clear center box with border — only this area gets sent to OCR */}
-                          <div className="absolute top-[20%] left-[5%] w-[90%] h-[60%] border-2 border-white/70 rounded-lg pointer-events-none" />
+                          <div className="absolute top-[24%] left-[15%] w-[70%] h-[52%] border-2 border-white/70 rounded-lg pointer-events-none" />
                           {/* Center crosshair hint */}
-                          <div className="absolute top-[48%] left-1/2 -translate-x-1/2 text-white/50 text-xs font-medium pointer-events-none">
-                            Center document here
+                          <div className="absolute top-[48%] left-1/2 -translate-x-1/2 text-white/60 text-xs font-medium pointer-events-none">
+                            Keep only one address inside this box
                           </div>
                         </>
                       )}
@@ -638,7 +638,7 @@ export default function ScanCamera() {
       </div>
 
       {/* Hint Text */}
-      <p className="text-center text-xs text-gray-500 bg-white py-1 border-b">Please center text with margins on all sides</p>
+      <p className="text-center text-xs text-gray-500 bg-white py-1 border-b">Hold closer and keep just one address inside the box</p>
 
       {/* Capture Bar */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-3">
