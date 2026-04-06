@@ -279,32 +279,13 @@ export default function WorkerRoutes() {
       
       <main className="px-4 py-3 max-w-lg mx-auto">
         <div className="flex items-center gap-2 mb-4">
-          <Link to={(() => {
-              // Find the first route with combo_route_ids and build a preselect param
-              const comboRoute = routes.find(r => r.combo_route_ids?.length > 0);
-              if (comboRoute) {
-                const ids = [comboRoute.id, ...comboRoute.combo_route_ids].join(',');
-                return createPageUrl(`ComboRouteSelection?preselect=${ids}`);
-              }
-              return createPageUrl('ComboRouteSelection');
-            })()} className="shrink-0">
+          <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
             <Button
               size="sm"
               className="bg-transparent hover:bg-purple-600/20 text-purple-400 text-xs px-2.5 h-[38px] border border-purple-500"
             >
               <Shuffle className="w-3.5 h-3.5 mr-1" />
-              Combo{(() => {
-                const seen = new Set();
-                let count = 0;
-                routes.forEach(r => {
-                  if (r.combo_route_ids?.length > 0 && !seen.has(r.id)) {
-                    count++;
-                    seen.add(r.id);
-                    r.combo_route_ids.forEach(id => seen.add(id));
-                  }
-                });
-                return count > 0 ? ` (${count})` : '';
-              })()}
+              Combo{activeComboRoutes.length > 0 ? ` (${activeComboRoutes.length})` : ''}
             </Button>
           </Link>
           <div className="flex-1">
