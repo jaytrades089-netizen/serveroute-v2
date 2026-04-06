@@ -123,15 +123,12 @@ export default function WorkerRouteDetail() {
     queryFn: async () => {
       if (!routeId) return [];
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
-      // Return in creation order — display order is derived from route.optimized_order in sortedAddresses useMemo
       return addrs.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
     },
     enabled: !!routeId,
     staleTime: 2 * 60 * 1000,
     gcTime: 10 * 60 * 1000
   });
-
-
 
   // Badge count for scheduled serves tab
   const { data: scheduledServesCount = 0 } = useQuery({
@@ -188,8 +185,7 @@ export default function WorkerRouteDetail() {
     return { total, completed, percentage };
   }, [addresses]);
 
-  // Derive display order from route.optimized_order — never stored per-address
-  // Served addresses not in optimized_order sort to the end automatically
+  // Derive display order from route.optimized_order
   const sortedAddresses = useMemo(() => {
     if (!addresses.length) return addresses;
     if (route?.optimized_order?.length > 0) {
@@ -201,7 +197,6 @@ export default function WorkerRouteDetail() {
         return aIdx - bIdx;
       });
     }
-    // Fallback: creation order (route not yet optimized)
     return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
   }, [addresses, route?.optimized_order]);
 
@@ -214,12 +209,11 @@ export default function WorkerRouteDetail() {
     
     if (totalAddresses === 0) return route.total_miles;
     
-    // Calculate remaining as percentage of total
     const remainingPercentage = (totalAddresses - completedCount) / totalAddresses;
     return route.total_miles * remainingPercentage;
   }, [route?.total_miles, addresses]);
 
-  // Calculate total route duration (start time to est completion)
+  // Calculate total route duration
   const calculateRouteDuration = useMemo(() => {
     if (!route?.started_at || !route?.est_completion_time) return null;
     
@@ -238,24 +232,6 @@ export default function WorkerRouteDetail() {
       return `${hours}h ${minutes}m`;
     }
   }, [route?.started_at, route?.est_completion_time]);
-
-  // Calculate remaining time until est completion
-  const calculateRemainingTime = useMemo(() => {
-    if (!route?.est_completion_time) return null;
-    
-    const now = new Date();
-    const end = new Date(route.est_completion_time);
-    const remainingMinutes = Math.max(0, Math.round((end - now) / 60000));
-    
-    const hours = Math.floor(remainingMinutes / 60);
-    const minutes = remainingMinutes % 60;
-    
-    if (hours === 0) {
-      return `${minutes}m left`;
-    } else {
-      return `${hours}h ${minutes}m left`;
-    }
-  }, [route?.est_completion_time]);
 
   // Get updated est completion based on progress
   const getUpdatedEstCompletion = useMemo(() => {
@@ -287,31 +263,37 @@ export default function WorkerRouteDetail() {
       estCompletion,
       progress: progress.percentage
     };
-  }, [route, calculateProgress]);
+  }, [route, calculateProgress, addresses]);
 
-  // Update est completion at milestones (25%, 50%, 75%, 100%)
-  useEffect(() => {
-    const progress = calculateProgress;
-    const milestones = [25, 50, 75, 100];
+  // Calculate remaining time in real-time from getUpdatedEstCompletion
+  const calculateRemainingTime = useMemo(() => {
+    const updated = getUpdatedEstCompletion;
+    if (!updated) return null;
     
-    // Check if we hit a new milestone
-    const currentMilestone = milestones.find(m => progress.percentage >= m && m > lastMilestoneChecked);
+    const remainingMinutes = Math.max(0, updated.remainingMinutes);
+    const hours = Math.floor(remainingMinutes / 60);
+    const minutes = remainingMinutes % 60;
     
-    if (currentMilestone && route?.id && route?.status === 'active') {
-      setLastMilestoneChecked(currentMilestone);
-      
-      // Update route with new est completion
-      const updateEstCompletion = async () => {
-        const updated = getUpdatedEstCompletion;
-        if (updated) {
-          await base44.entities.Route.update(route.id, {
-            est_completion_time: updated.estCompletion.toISOString()
-          });
-        }
-      };
-      updateEstCompletion();
+    if (hours === 0) {
+      return `${minutes}m left`;
+    } else if (minutes === 0) {
+      return `${hours}h left`;
+    } else {
+      return `${hours}h ${minutes}m left`;
     }
-  }, [calculateProgress.percentage, lastMilestoneChecked, route?.id, route?.status, getUpdatedEstCompletion]);
+  }, [getUpdatedEstCompletion]);
+
+  // Update est completion in real-time as progress changes
+  useEffect(() => {
+    if (!route?.id || route?.status !== 'active') return;
+    
+    const updated = getUpdatedEstCompletion;
+    if (updated) {
+      base44.entities.Route.update(route.id, {
+        est_completion_time: updated.estCompletion.toISOString()
+      }).catch(err => console.warn('Failed to update est completion:', err));
+    }
+  }, [calculateProgress.percentage, route?.id, route?.status, getUpdatedEstCompletion]);
 
   if (routeLoading) {
     return (
@@ -541,12 +523,12 @@ export default function WorkerRouteDetail() {
               </div>
               <div className="flex justify-between text-[10px] mt-0.5" style={{ color: '#8a7f87' }}>
                 <span>{calculateProgress.percentage}% done</span>
-                <span>{calculateRemainingTime}</span>
+                <span>{calculateRemainingTime || '--'}</span>
               </div>
             </div>
           </>
         ) : (
-          // NOT ACTIVE: Show regular stats (Total, Served, Pending) + Start Route bar
+          // NOT ACTIVE: Show regular stats (Total, Served, Pending)
           <>
           <div className={`grid grid-cols-3 gap-2 mb-3`}>
               <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
