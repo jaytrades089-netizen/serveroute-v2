@@ -237,17 +237,18 @@ export default function WorkerRouteDetail() {
   const getUpdatedEstCompletion = useMemo(() => {
     if (!route?.started_at) return null;
     
-    const progress = calculateProgress;
     const startTime = new Date(route.started_at);
     const now = new Date();
     const elapsedMinutes = Math.round((now - startTime) / 60000);
     
     const timeAtAddress = route.time_at_address_minutes || 2;
     const totalDriveTime = route.total_drive_time_minutes || 0;
-    // Total time = drive time + (dwell time at each address)
-    const totalRouteTime = totalDriveTime + (progress.total * timeAtAddress);
+    const totalAddresses = addresses.length;
     
-    // Calculate remaining time: total - elapsed
+    // Total route time = drive time + (time per address × total # addresses)
+    const totalRouteTime = totalDriveTime + (totalAddresses * timeAtAddress);
+    
+    // Remaining time = total route time - elapsed time
     const remainingMinutes = Math.max(0, Math.round(totalRouteTime - elapsedMinutes));
     const estCompletion = new Date(now.getTime() + remainingMinutes * 60000);
     
@@ -256,9 +257,10 @@ export default function WorkerRouteDetail() {
       elapsedMinutes,
       remainingMinutes,
       estCompletion,
-      progress: progress.percentage,
+      progress: calculateProgress.percentage,
       totalRouteTime
     };
+  }, [route?.started_at, route?.total_drive_time_minutes, route?.time_at_address_minutes, addresses.length, calculateProgress.percentage]);
 
   // Calculate remaining time in real-time from getUpdatedEstCompletion
   const calculateRemainingTime = useMemo(() => {
@@ -815,5 +817,3 @@ export default function WorkerRouteDetail() {
     </div>
   );
 }
-
-export default WorkerRouteDetail;
