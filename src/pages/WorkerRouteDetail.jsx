@@ -235,25 +235,20 @@ export default function WorkerRouteDetail() {
 
   // Get updated est completion based on progress
   const getUpdatedEstCompletion = useMemo(() => {
-    if (!route?.started_at || !route?.total_drive_time_minutes) return null;
+    if (!route?.started_at) return null;
     
     const progress = calculateProgress;
     const startTime = new Date(route.started_at);
     const now = new Date();
     const elapsedMinutes = Math.round((now - startTime) / 60000);
     
-    const visitedCount = addresses.filter(a => a.served || a.status !== 'pending').length;
-    const remainingAddresses = Math.max(0, progress.total - visitedCount);
     const timeAtAddress = route.time_at_address_minutes || 2;
-    
-    // Estimate remaining drive time proportionally
     const totalDriveTime = route.total_drive_time_minutes || 0;
-    const remainingDriveTime = progress.total > 0 
-      ? totalDriveTime * (remainingAddresses / progress.total) 
-      : 0;
-    const remainingAddressTime = remainingAddresses * timeAtAddress;
-    const remainingMinutes = Math.round(remainingDriveTime + remainingAddressTime);
+    // Total time = drive time + (dwell time at each address)
+    const totalRouteTime = totalDriveTime + (progress.total * timeAtAddress);
     
+    // Calculate remaining time: total - elapsed
+    const remainingMinutes = Math.max(0, Math.round(totalRouteTime - elapsedMinutes));
     const estCompletion = new Date(now.getTime() + remainingMinutes * 60000);
     
     return {
@@ -261,9 +256,9 @@ export default function WorkerRouteDetail() {
       elapsedMinutes,
       remainingMinutes,
       estCompletion,
-      progress: progress.percentage
+      progress: progress.percentage,
+      totalRouteTime
     };
-  }, [route, calculateProgress, addresses]);
 
   // Calculate remaining time in real-time from getUpdatedEstCompletion
   const calculateRemainingTime = useMemo(() => {
@@ -820,3 +815,5 @@ export default function WorkerRouteDetail() {
     </div>
   );
 }
+
+export default WorkerRouteDetail;
