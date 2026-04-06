@@ -276,7 +276,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           <p style={{ color: '#9CA3AF' }}>No routes</p>
         </div>
       ) : (
-        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '2px' }}>
+        <div>
           {groupKeys.map(dateKey => {
             const dt = parseISO(dateKey);
             let dayLabel;
