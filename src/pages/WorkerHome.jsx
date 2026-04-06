@@ -29,7 +29,9 @@ function getCurrentPhase(timezone = 'America/Detroit') {
   const isWeekend = day === 'Sat' || day === 'Sun';
   
   if (isWeekend) {
-    if (hour >= 8 && hour < 21) return 'weekend';
+    if (hour >= 8 && hour < 12) return ['am', 'weekend'];
+    if (hour >= 17 && hour < 21) return ['pm', 'weekend'];
+    if (hour >= 12 && hour < 17) return ['weekend'];
     return 'ntc';
   }
   

@@ -8,6 +8,7 @@ const qualifierPhases = [
 ];
 
 export default function WorkPhaseBlocks({ currentPhase }) {
+  const activePhases = Array.isArray(currentPhase) ? currentPhase : [currentPhase];
   const isNtcActive = currentPhase === 'ntc';
 
   return (
@@ -17,7 +18,7 @@ export default function WorkPhaseBlocks({ currentPhase }) {
       <div className="grid grid-cols-3 gap-2">
         {qualifierPhases.map((phase) => {
           const Icon = phase.icon;
-          const isActive = currentPhase === phase.id;
+          const isActive = activePhases.includes(phase.id);
           return (
             <div
               key={phase.id}
