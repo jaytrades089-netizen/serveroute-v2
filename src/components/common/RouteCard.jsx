@@ -68,7 +68,6 @@ function ProgressBar({ served, total }) {
 }
 
 function RouteCardMenu({ route, onEdit, onArchive, onDelete, onScheduleRunDate }) {
-  // If no handlers provided, just show three-dot icon
   if (!onDelete && !onArchive && !onEdit && !onScheduleRunDate) {
     return <MoreHorizontal className="w-5 h-5 text-gray-400" />;
   }
@@ -130,12 +129,11 @@ function RouteCardMenu({ route, onEdit, onArchive, onDelete, onScheduleRunDate }
   );
 }
 
-
-
 export default function RouteCard({ 
   route, 
   onClick,
   linkTo,
+  noClick = false,
   showWorker = false,
   workerName,
   showActions = false,
@@ -154,7 +152,6 @@ export default function RouteCard({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  // Must be declared before useState so it can initialize showScheduleQueue
   const initialRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
 
   const [showRunDatePicker, setShowRunDatePicker] = React.useState(false);
@@ -170,7 +167,6 @@ export default function RouteCard({
   const [pendingQualifiers, setPendingQualifiers] = React.useState(route.run_qualifiers || []);
   const [pendingDate, setPendingDate] = React.useState(route.run_date ? parseISO(route.run_date) : undefined);
 
-  // Sync pending qualifiers and date when route data changes
   React.useEffect(() => {
     setPendingQualifiers(route.run_qualifiers || []);
     setPendingDate(route.run_date ? parseISO(route.run_date) : undefined);
@@ -180,7 +176,6 @@ export default function RouteCard({
     setPendingQualifiers(prev => prev.includes(q) ? prev.filter(x => x !== q) : [...prev, q]);
   };
 
-  // Wrapper that intercepts the special '__open_picker__' signal from the menu
   const handleScheduleRunDate = onScheduleRunDate 
     ? (routeId, dateOrSignal) => {
         if (dateOrSignal === '__open_picker__') {
@@ -190,6 +185,7 @@ export default function RouteCard({
         }
       }
     : undefined;
+
   const progress = route.total_addresses > 0 
     ? Math.round((route.served_count / route.total_addresses) * 100) 
     : 0;
@@ -201,14 +197,11 @@ export default function RouteCard({
 
   const statusConfig = STATUS_CONFIG[route.status] || STATUS_CONFIG.draft;
 
-  // If onClick is explicitly a no-op function, disable card-level click navigation
-
   const handleAddToQueue = async () => {
     if (!pendingQueueDate) return;
     setSavingQueue(true);
     const newEntry = { date: format(pendingQueueDate, 'yyyy-MM-dd'), qualifiers: pendingQueueQualifiers };
     const newQueue = [...scheduledRuns, newEntry];
-    // Optimistic update — show immediately
     setScheduledRuns(newQueue);
     setPendingQueueDate(null);
     setPendingQueueQualifiers([]);
@@ -227,7 +220,6 @@ export default function RouteCard({
   const handleRemoveFromQueue = async (index) => {
     setSavingQueue(true);
     const newQueue = scheduledRuns.filter((_, i) => i !== index);
-    // Optimistic update — show immediately
     setScheduledRuns(newQueue);
     try {
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
@@ -278,15 +270,12 @@ export default function RouteCard({
     }
   };
 
-  const isClickDisabled = onClick && onClick.toString().replace(/\s/g, '') === '()=>{}';
-  
   const handleCardClick = () => {
-    if (isClickDisabled) return;
+    if (noClick) return;
     if (onClick) {
       onClick(route);
     } else if (linkTo) {
-      const url = linkTo.includes('?') ? linkTo : linkTo;
-      navigate(createPageUrl(url));
+      navigate(createPageUrl(linkTo));
     } else if (isBossView) {
       navigate(createPageUrl(`BossRouteDetail?id=${route.id}`));
     } else {
@@ -296,12 +285,10 @@ export default function RouteCard({
 
   const isActiveRoute = route.status === 'active';
   
-  // Calculate stats
   const totalAddresses = route.total_addresses || 0;
   const servedCount = route.served_count || 0;
   const pendingCount = totalAddresses - servedCount;
   
-  // Calculate HAS/NEEDS qualifiers - use actual address records for served status
   const routeAddressList = (addresses || []).filter(a => a.route_id === route.id);
   const servedAddressIds = new Set();
   routeAddressList.forEach(addr => {
@@ -340,7 +327,6 @@ export default function RouteCard({
   const earnedBadges = Object.keys(routeHas).filter(k => routeHas[k]);
   const neededBadges = Object.keys(routeNeeds).filter(k => routeNeeds[k]);
   
-  // Spread days from route
   const spreadDays = route.minimum_days_spread || route.spread_type || 14;
 
   const estTotalMinutes = (() => {
@@ -358,31 +344,19 @@ export default function RouteCard({
     return `${m}m`;
   })();
   
-  // Check if ALL addresses have met requirements (ready for turn-in)
   const allAddressesComplete = (() => {
     if (!addresses || addresses.length === 0) return false;
-    
     const routeAddresses = addresses.filter(a => a.route_id === route.id && !a.served && a.status !== 'served');
     if (routeAddresses.length === 0) {
-      // All addresses served or no unserved addresses
       return route.served_count > 0 && route.served_count === route.total_addresses;
     }
-    
     const requiredAttempts = route.required_attempts || 3;
     const minimumDaysSpread = route.minimum_days_spread || 10;
-    
-    // Check each unserved address
     for (const addr of routeAddresses) {
       const addressAttempts = (attempts || []).filter(a => a.address_id === addr.id && a.status === 'completed');
-      
-      // Check qualifiers
       const qualifierStatus = getNeededQualifiers(addressAttempts);
       if (!qualifierStatus.isComplete) return false;
-      
-      // Check attempt count
       if (addressAttempts.length < requiredAttempts) return false;
-      
-      // Check spread (calendar days)
       if (addressAttempts.length >= 2) {
         const attemptDates = addressAttempts.map(a => {
           const d = new Date(a.attempt_time);
@@ -393,14 +367,25 @@ export default function RouteCard({
         const daysDiff = (lastDate - firstDate) / (1000 * 60 * 60 * 24);
         if (daysDiff < minimumDaysSpread) return false;
       } else {
-        return false; // Need at least 2 attempts for spread
+        return false;
       }
     }
-    
     return true;
   })();
 
+  // Calendar modifier class names — single definition used by all three calendar instances below
+  const calDue = 'rc-cal-due';
+  const calSpread = 'rc-cal-spread';
+
   return (
+    <>
+    {/* Single shared calendar CSS — one injection, three calendars share it */}
+    <style>{`
+      .rc-cal-due{position:relative}
+      .rc-cal-due::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#ef4444}
+      .rc-cal-spread{position:relative}
+      .rc-cal-spread::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#22c55e}
+    `}</style>
     <div
       style={{
         background: 'rgba(14, 20, 44, 0.55)',
@@ -411,7 +396,7 @@ export default function RouteCard({
         marginBottom: '12px'
       }}
       onClick={handleCardClick}
-      className={`transition-all duration-200 ${isClickDisabled ? '' : 'cursor-pointer hover:opacity-90 active:scale-[0.99]'}`}
+      className={`transition-all duration-200 ${noClick ? '' : 'cursor-pointer hover:opacity-90 active:scale-[0.99]'}`}
     >
       {/* All Complete Banner */}
       {allAddressesComplete && (
@@ -456,14 +441,13 @@ export default function RouteCard({
         </div>
       )}
 
-      {/* Header: Route Name + Address Count + Spread Badge */}
+      {/* Header: Route Name + Badges */}
       <div className="px-4 pt-4 pb-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
             <h3 className="text-xl font-bold leading-tight" style={{ color: '#e6e1e4' }}>
               {route.folder_name}
             </h3>
-
             {showWorker && workerName && (
               <p className="text-sm flex items-center gap-1 mt-0.5" style={{ color: '#8a7f87' }}>
                 <User className="w-3 h-3" /> {workerName}
@@ -482,8 +466,6 @@ export default function RouteCard({
             {(() => {
               const requiredAttempts = route.required_attempts || 3;
               if (!requiredAttempts || requiredAttempts <= 0) return null;
-              
-              // Count completed attempts per unserved address (only for addresses on this route)
               const routeAddressIds = new Set(routeAddressList.map(a => a.id));
               const attemptsByAddress = {};
               (attempts || []).forEach(att => {
@@ -491,11 +473,8 @@ export default function RouteCard({
                   attemptsByAddress[att.address_id] = (attemptsByAddress[att.address_id] || 0) + 1;
                 }
               });
-              
               const counts = Object.values(attemptsByAddress);
-              // Show the minimum attempts across unserved addresses (the "round" everyone is at)
               const minAttempts = counts.length > 0 ? Math.min(...counts) : 0;
-              
               return (
                 <span className="text-xs px-2 py-1 rounded-full" style={{ color: '#8a7f87', background: '#363436' }}>
                   {minAttempts}/{requiredAttempts}
@@ -506,22 +485,17 @@ export default function RouteCard({
         </div>
       </div>
 
-      {/* Stats Row: Total / Served / Pending */}
+      {/* Stats Row */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3">
-          {/* Total */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{totalAddresses}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Total</p>
           </div>
-          
-          {/* Served */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{servedCount}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Served</p>
           </div>
-          
-          {/* Pending */}
           <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-3 text-center">
             <p className="text-sm font-bold" style={{ color: '#E6E1E4' }}>{pendingCount}</p>
             <p className="text-xs font-medium mt-0.5" style={{ color: '#6B7280' }}>Pending</p>
@@ -532,7 +506,6 @@ export default function RouteCard({
       {/* HAS / DUE / NEEDS Row */}
       <div className="px-4 pb-3">
         <div className="grid grid-cols-3 gap-3 items-stretch">
-          {/* HAS */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Has</p>
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
@@ -545,20 +518,14 @@ export default function RouteCard({
               )}
             </div>
           </div>
-          
-          {/* DUE */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Due</p>
             <div className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}>
-              <span className="text-sm font-medium" style={
-                isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }
-              }>
+              <span className="text-sm font-medium" style={isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }}>
                 {route.due_date ? format(new Date(route.due_date), 'MMM d') : 'No date'}
               </span>
               {route.first_attempt_date && (
-                <span className="text-[10px] mt-0.5" style={
-                  isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }
-                }>
+                <span className="text-[10px] mt-0.5" style={isOverdue ? { color: '#ef4444' } : { color: '#8a7f87' }}>
                   {(() => {
                     const firstAttempt = new Date(route.first_attempt_date);
                     const spreadDueDate = new Date(firstAttempt);
@@ -573,8 +540,6 @@ export default function RouteCard({
               )}
             </div>
           </div>
-          
-          {/* NEEDS */}
           <div className="text-center flex flex-col">
             <p className="text-xs font-semibold mb-1.5" style={{ color: '#8a7f87' }}>Needs</p>
             <div style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="rounded-xl p-2.5 h-full flex flex-col items-center justify-center gap-1">
@@ -583,7 +548,6 @@ export default function RouteCard({
                   <QualifierBadges badges={neededBadges} size="small" />
                 </div>
               ) : null}
-              {/* Show 3rd attempt deadline based on spread */}
               {route.first_attempt_date && pendingCount > 0 ? (
                 <span className="inline-flex items-center whitespace-nowrap px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-300">
                   3rd by: {format((() => {
@@ -603,7 +567,6 @@ export default function RouteCard({
 
       {/* Bottom Action Bar */}
       <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {/* + Schedule button row */}
         {onScheduleRunDate && !isBossView && (
           <div className="mb-2" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center">
@@ -621,11 +584,7 @@ export default function RouteCard({
                     {onScheduleRunDate && (
                       <span
                         role="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          onScheduleRunDate(route.id, null, []);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); e.preventDefault(); onScheduleRunDate(route.id, null, []); }}
                         className="ml-1 p-0.5 rounded-full hover:bg-red-100 text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -652,20 +611,14 @@ export default function RouteCard({
               )}
             </div>
 
-            {/* EXPANDED QUEUE SECTION */}
             {showScheduleQueue && route.run_date && (
               <div className="mt-2 ml-2 border-l-2 border-yellow-600/30 pl-3 space-y-1.5" onClick={(e) => e.stopPropagation()}>
-                  {scheduledRuns.length === 0 && !showQueueCalendar && (
-                  <p className="text-[10px] italic px-1" style={{ color: '#8a7f87' }}>
-                    No additional runs queued
-                  </p>
+                {scheduledRuns.length === 0 && !showQueueCalendar && (
+                  <p className="text-[10px] italic px-1" style={{ color: '#8a7f87' }}>No additional runs queued</p>
                 )}
 
                 {(showQueueCalendar || editingQueueIndex !== null) && (
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }}
-                  />
+                  <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }} />
                 )}
 
                 {scheduledRuns.map((item, idx) => (
@@ -697,12 +650,13 @@ export default function RouteCard({
                     </div>
                   </div>
                 ))}
+
                 {editingQueueIndex !== null && (() => {
                   const qDueDateObj = route.due_date ? parseISO(route.due_date) : null;
                   let qSpreadDueDateObj = null;
                   if (route.first_attempt_date) {
-                    const firstAttemptDate = parseISO(route.first_attempt_date);
-                    qSpreadDueDateObj = new Date(firstAttemptDate);
+                    const d = parseISO(route.first_attempt_date);
+                    qSpreadDueDateObj = new Date(d);
                     qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
                   } else if (qDueDateObj) {
                     qSpreadDueDateObj = new Date(qDueDateObj);
@@ -710,12 +664,11 @@ export default function RouteCard({
                   }
                   const qCalMod = {};
                   const qCalModCN = {};
-                  if (qDueDateObj) { qCalMod.dueDate = qDueDateObj; qCalModCN.dueDate = 'queue-cal-due'; }
-                  if (qSpreadDueDateObj) { qCalMod.spreadDate = qSpreadDueDateObj; qCalModCN.spreadDate = 'queue-cal-spread'; }
+                  if (qDueDateObj) { qCalMod.dueDate = qDueDateObj; qCalModCN.dueDate = calDue; }
+                  if (qSpreadDueDateObj) { qCalMod.spreadDate = qSpreadDueDateObj; qCalModCN.spreadDate = calSpread; }
                   return ReactDOM.createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }}>
                       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <style>{`.queue-cal-due{position:relative}.queue-cal-due::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#ef4444}.queue-cal-spread{position:relative}.queue-cal-spread::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#22c55e}`}</style>
                         <CalendarPicker
                           mode="single"
                           selected={editQueueDate}
@@ -782,122 +735,90 @@ export default function RouteCard({
                     Add next run
                   </button>
                 )}
+
                 {showQueueCalendar && ReactDOM.createPortal(
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={(e) => { e.stopPropagation(); setShowQueueCalendar(false); setPendingQueueDate(null); setPendingQueueQualifiers([]); }}>
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                    {(() => {
-                      const qDueDateObj = route.due_date ? parseISO(route.due_date) : null;
-                      let qSpreadDueDateObj = null;
-                      if (route.first_attempt_date) {
-                        const firstAttemptDate = parseISO(route.first_attempt_date);
-                        qSpreadDueDateObj = new Date(firstAttemptDate);
-                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
-                      } else if (qDueDateObj) {
-                        qSpreadDueDateObj = new Date(qDueDateObj);
-                        qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() - (route.minimum_days_spread || 14));
-                      }
-                      const qCalendarModifiers = {};
-                      const qCalendarModifiersClassNames = {};
-                      if (qDueDateObj) {
-                        qCalendarModifiers.dueDate = qDueDateObj;
-                        qCalendarModifiersClassNames.dueDate = 'queue-cal-due-date';
-                      }
-                      if (qSpreadDueDateObj) {
-                        qCalendarModifiers.spreadDate = qSpreadDueDateObj;
-                        qCalendarModifiersClassNames.spreadDate = 'queue-cal-spread-date';
-                      }
-                      return (
-                        <>
-                          <style>{`.queue-cal-due-date{position:relative}.queue-cal-due-date::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#ef4444}.queue-cal-spread-date{position:relative}.queue-cal-spread-date::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#22c55e}`}</style>
-                          <CalendarPicker
-                            mode="single"
-                            selected={pendingQueueDate}
-                            onSelect={(date) => setPendingQueueDate(date)}
-                            disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                            className="w-full mx-auto"
-                            modifiers={qCalendarModifiers}
-                            modifiersClassNames={qCalendarModifiersClassNames}
-                            classNames={{
-                              months: "w-full flex justify-center",
-                              month: "w-full",
-                              table: "w-full border-collapse",
-                              head_row: "flex w-full justify-between",
-                              head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
-                              row: "flex w-full justify-between mt-1",
-                              cell: "flex-1 flex items-center justify-center p-0",
-                              day: "h-10 w-10 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors overflow-visible relative",
-                              day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
-                              day_today: "bg-gray-100 font-bold",
-                              nav: "flex items-center justify-between px-2 pb-2",
-                              nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
-                              caption: "text-base font-semibold text-center py-2"
-                            }}
-                          />
-                          {(qDueDateObj || qSpreadDueDateObj) && (
-                            <div className="flex items-center justify-center gap-6 px-3 pb-2 pt-1">
-                              {qDueDateObj && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
-                                  <span className="text-xs text-gray-500">D. Date</span>
-                                </div>
-                              )}
-                              {qSpreadDueDateObj && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
-                                  <span className="text-xs text-gray-500">Spread D. Date</span>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                    <div className="px-3 pb-2">
-                      <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
-                      <div className="flex gap-2">
-                        {['AM', 'PM', 'WEEKEND'].map(q => (
-                          <button
-                            key={q}
-                            onClick={() => togglePendingQualifier(q)}
-                            className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                              pendingQueueQualifiers.includes(q)
-                                ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
-                                  : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
-                                  : 'bg-purple-500 text-white border-purple-500'
-                                : 'bg-white text-gray-500 border-gray-200'
-                            }`}
-                          >
-                            {q}
-                          </button>
-                        ))}
+                      {(() => {
+                        const qDueDateObj = route.due_date ? parseISO(route.due_date) : null;
+                        let qSpreadDueDateObj = null;
+                        if (route.first_attempt_date) {
+                          const d = parseISO(route.first_attempt_date);
+                          qSpreadDueDateObj = new Date(d);
+                          qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
+                        } else if (qDueDateObj) {
+                          qSpreadDueDateObj = new Date(qDueDateObj);
+                          qSpreadDueDateObj.setDate(qSpreadDueDateObj.getDate() - (route.minimum_days_spread || 14));
+                        }
+                        const qCalendarModifiers = {};
+                        const qCalendarModifiersClassNames = {};
+                        if (qDueDateObj) { qCalendarModifiers.dueDate = qDueDateObj; qCalendarModifiersClassNames.dueDate = calDue; }
+                        if (qSpreadDueDateObj) { qCalendarModifiers.spreadDate = qSpreadDueDateObj; qCalendarModifiersClassNames.spreadDate = calSpread; }
+                        return (
+                          <>
+                            <CalendarPicker
+                              mode="single"
+                              selected={pendingQueueDate}
+                              onSelect={(date) => setPendingQueueDate(date)}
+                              disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
+                              className="w-full mx-auto"
+                              modifiers={qCalendarModifiers}
+                              modifiersClassNames={qCalendarModifiersClassNames}
+                              classNames={{
+                                months: "w-full flex justify-center",
+                                month: "w-full",
+                                table: "w-full border-collapse",
+                                head_row: "flex w-full justify-between",
+                                head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
+                                row: "flex w-full justify-between mt-1",
+                                cell: "flex-1 flex items-center justify-center p-0",
+                                day: "h-10 w-10 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors overflow-visible relative",
+                                day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
+                                day_today: "bg-gray-100 font-bold",
+                                nav: "flex items-center justify-between px-2 pb-2",
+                                nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
+                                caption: "text-base font-semibold text-center py-2"
+                              }}
+                            />
+                            {(qDueDateObj || qSpreadDueDateObj) && (
+                              <div className="flex items-center justify-center gap-6 px-3 pb-2 pt-1">
+                                {qDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-red-500"></span><span className="text-xs text-gray-500">D. Date</span></div>}
+                                {qSpreadDueDateObj && <div className="flex items-center gap-1.5"><span className="inline-block w-4 h-1 rounded bg-green-500"></span><span className="text-xs text-gray-500">Spread D. Date</span></div>}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      <div className="px-3 pb-2">
+                        <p className="text-[10px] font-semibold text-gray-500 mb-1.5 uppercase">Qualifier</p>
+                        <div className="flex gap-2">
+                          {['AM', 'PM', 'WEEKEND'].map(q => (
+                            <button key={q} onClick={() => togglePendingQualifier(q)}
+                              className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                                pendingQueueQualifiers.includes(q)
+                                  ? q === 'AM' ? 'bg-amber-500 text-white border-amber-500'
+                                    : q === 'PM' ? 'bg-blue-500 text-white border-blue-500'
+                                    : 'bg-purple-500 text-white border-purple-500'
+                                  : 'bg-white text-gray-500 border-gray-200'
+                              }`}
+                            >{q}</button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2 px-3 pb-3">
-                      <button
-                        onClick={() => { setShowQueueCalendar(false); setPendingQueueDate(null); setPendingQueueQualifiers([]); }}
-                        className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        onClick={handleAddToQueue}
-                        disabled={!pendingQueueDate || savingQueue}
-                        className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        {savingQueue ? 'Saving...' : 'Add to Queue'}
-                      </button>
-                    </div>
+                      <div className="flex gap-2 px-3 pb-3">
+                        <button onClick={() => { setShowQueueCalendar(false); setPendingQueueDate(null); setPendingQueueQualifiers([]); }} className="flex-1 py-1.5 text-xs rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button onClick={handleAddToQueue} disabled={!pendingQueueDate || savingQueue} className="flex-1 py-1.5 text-xs rounded-lg bg-blue-500 text-white font-semibold hover:bg-blue-600 disabled:opacity-40 disabled:cursor-not-allowed">{savingQueue ? 'Saving...' : 'Add to Queue'}</button>
+                      </div>
                     </div>
                   </div>,
                   document.body
                 )}
-
               </div>
             )}
           </div>
         )}
 
-        {/* Full-screen overlay calendar */}
+        {/* Full-screen run date picker */}
         {showRunDatePicker && (() => {
           const dueDateObj = route.due_date ? new Date(route.due_date) : null;
           let spreadDueDateObj = null;
@@ -910,14 +831,8 @@ export default function RouteCard({
           }
           const calendarModifiers = {};
           const calendarModifiersClassNames = {};
-          if (dueDateObj) {
-            calendarModifiers.dueDate = dueDateObj;
-            calendarModifiersClassNames.dueDate = 'calendar-due-date';
-          }
-          if (spreadDueDateObj) {
-            calendarModifiers.spreadDate = spreadDueDateObj;
-            calendarModifiersClassNames.spreadDate = 'calendar-spread-date';
-          }
+          if (dueDateObj) { calendarModifiers.dueDate = dueDateObj; calendarModifiersClassNames.dueDate = calDue; }
+          if (spreadDueDateObj) { calendarModifiers.spreadDate = spreadDueDateObj; calendarModifiersClassNames.spreadDate = calSpread; }
           const originalDate = route.run_date ? parseISO(route.run_date) : undefined;
           const originalQualifiers = route.run_qualifiers || [];
           const dateChanged = pendingDate?.toDateString() !== originalDate?.toDateString();
@@ -930,12 +845,6 @@ export default function RouteCard({
             >
               <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
                 <div className="p-4">
-                  <style>{`
-                    .calendar-due-date { position: relative; }
-                    .calendar-due-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #ef4444; }
-                    .calendar-spread-date { position: relative; }
-                    .calendar-spread-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #22c55e; }
-                  `}</style>
                   <CalendarPicker
                     mode="single"
                     selected={pendingDate}
@@ -1002,7 +911,6 @@ export default function RouteCard({
               onScheduleRunDate={handleScheduleRunDate}
             />
           </div>
-
           <button 
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-colors"
             style={{ border: '1px solid #363436' }}
@@ -1021,5 +929,6 @@ export default function RouteCard({
         </div>
       </div>
     </div>
+    </>
   );
 }

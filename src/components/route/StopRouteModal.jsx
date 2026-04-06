@@ -36,7 +36,6 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
   const pendingAddresses = addresses.filter(a => !a.served);
   const servedAddresses = addresses.filter(a => a.served);
 
-  // Duration calc
   const startedAt = route.started_at ? new Date(route.started_at) : null;
   const now = new Date();
   const elapsedMs = startedAt ? now - startedAt : 0;
@@ -57,7 +56,6 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
   const handleConfirmStop = async () => {
     setSaving(true);
     try {
-      // Save schedule + stop in one update
       const currentQueue = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
       const updatedQueue = autoFilledFromQueue ? currentQueue.slice(1) : currentQueue;
 
@@ -161,7 +159,7 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
               </div>
             )}
             
-            {/* Date Picker */}
+            {/* Date Picker Button */}
             <button
               onClick={() => setShowCalendar(!showCalendar)}
               className="w-full flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm hover:bg-gray-50 mb-2"
@@ -178,6 +176,15 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
                 </span>
               )}
             </button>
+
+            {/* Transparent overlay — tapping outside the calendar closes just the calendar */}
+            {showCalendar && (
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowCalendar(false)}
+              />
+            )}
+
             {showCalendar && (() => {
               const dueDateObj = route.due_date ? new Date(route.due_date) : null;
               let spreadDueDateObj = null;
@@ -185,7 +192,6 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
                 spreadDueDateObj = new Date(route.first_attempt_date);
                 spreadDueDateObj.setDate(spreadDueDateObj.getDate() + (route.minimum_days_spread || 14));
               }
-              
               const calendarModifiers = {};
               const calendarModifiersClassNames = {};
               if (dueDateObj) {
@@ -196,58 +202,38 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
                 calendarModifiers.spreadDate = spreadDueDateObj;
                 calendarModifiersClassNames.spreadDate = 'stop-cal-spread-date';
               }
-
               return (
-                <div className="mb-2 bg-white border border-gray-200 rounded-lg shadow-md">
+                <div className="relative z-20 mb-2 bg-white border border-gray-200 rounded-lg shadow-md">
                   <style>{`
                     .stop-cal-due-date { position: relative; }
-                    .stop-cal-due-date::after {
-                      content: '';
-                      position: absolute;
-                      bottom: 2px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      width: 18px;
-                      height: 3px;
-                      border-radius: 2px;
-                      background-color: #ef4444;
-                    }
+                    .stop-cal-due-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #ef4444; }
                     .stop-cal-spread-date { position: relative; }
-                    .stop-cal-spread-date::after {
-                      content: '';
-                      position: absolute;
-                      bottom: 2px;
-                      left: 50%;
-                      transform: translateX(-50%);
-                      width: 18px;
-                      height: 3px;
-                      border-radius: 2px;
-                      background-color: #22c55e;
-                    }
+                    .stop-cal-spread-date::after { content: ''; position: absolute; bottom: 2px; left: 50%; transform: translateX(-50%); width: 18px; height: 3px; border-radius: 2px; background-color: #22c55e; }
                   `}</style>
                   <Calendar
                     mode="single"
                     selected={nextRunDate}
-                    onSelect={(date) => { setNextRunDate(date); }}
+                    onSelect={(date) => { setNextRunDate(date); setShowCalendar(false); }}
                     disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                     modifiers={calendarModifiers}
                     modifiersClassNames={calendarModifiersClassNames}
                   />
-                  {/* Legend */}
-                  <div className="flex items-center justify-center gap-6 px-3 pb-3">
-                    {dueDateObj && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
-                        <span className="text-xs text-gray-500">D. Date</span>
-                      </div>
-                    )}
-                    {spreadDueDateObj && (
-                      <div className="flex items-center gap-1.5">
-                        <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
-                        <span className="text-xs text-gray-500">Spread D. Date</span>
-                      </div>
-                    )}
-                  </div>
+                  {(dueDateObj || spreadDueDateObj) && (
+                    <div className="flex items-center justify-center gap-6 px-3 pb-3">
+                      {dueDateObj && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-block w-4 h-1 rounded bg-red-500"></span>
+                          <span className="text-xs text-gray-500">D. Date</span>
+                        </div>
+                      )}
+                      {spreadDueDateObj && (
+                        <div className="flex items-center gap-1.5">
+                          <span className="inline-block w-4 h-1 rounded bg-green-500"></span>
+                          <span className="text-xs text-gray-500">Spread D. Date</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })()}
@@ -273,12 +259,7 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
 
           {/* Bottom Buttons */}
           <div className="flex gap-2 pt-1">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={saving}
-              className="flex-1"
-            >
+            <Button variant="outline" onClick={onClose} disabled={saving} className="flex-1">
               Cancel
             </Button>
             <Button
