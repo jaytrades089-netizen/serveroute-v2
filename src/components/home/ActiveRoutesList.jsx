@@ -222,7 +222,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           </div>
         </div>
         {(dueDateLabel || spreadDateLabel) && (
-          <div className="flex gap-4 mb-2">
+          <div className="mb-2">
             {dueDateLabel && (
               <div>
                 <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
@@ -230,64 +230,13 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               </div>
             )}
             {spreadDateLabel && (
-              <div>
+              <div className="mt-1">
                 <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
                 <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
               </div>
             )}
           </div>
         )}
-
-        <div className="flex justify-end">
-          {!hasAnyAttempts ? (
-            <div className="flex gap-1">
-              {allQuals.map(({ key, label }) => (
-                <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
-                  {label}
-                </span>
-              ))}
-            </div>
-          ) : allQualifiersMet ? (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
-              <div className="flex items-center gap-1">
-                {allQuals.map(({ key, label }) => (
-                  <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                    style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
-                    {label}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 items-end">
-              {attemptList.map(({ num, am, pm, weekend, count }) => {
-                const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
-                return (
-                  <div key={num} className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
-                    <div className="flex items-center gap-1">
-                      {allQuals.map(({ key, label }) => (
-                        <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                          style={activeKeys.includes(key)
-                            ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
-                            : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
-                          }>
-                          {label}
-                        </span>
-                      ))}
-                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
-                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
-                        {count}
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
       </Link>
     );
   };
