@@ -78,9 +78,6 @@
 
 
 @layer base {
-  html, body {
-    overflow-x: clip;
-  }
   * {
     @apply border-border outline-ring/50;
   }
