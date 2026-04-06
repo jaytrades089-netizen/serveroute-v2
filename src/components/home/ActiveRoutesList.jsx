@@ -197,12 +197,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                 {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
               </span>
             )}
-            {route.combo_route_ids?.length > 0 && route.combo_route_ids.map(cid => (
-              <span key={cid} className="inline-flex items-center gap-1 text-[10px] font-bold rounded px-1.5 py-0.5 uppercase"
-                style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
-                Combo With: {routeNameMap[cid] || 'Route'}
-              </span>
-            ))}
+
           </div>
           {getStatusBadge(route.status, !!route.run_date)}
         </div>
