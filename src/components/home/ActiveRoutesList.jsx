@@ -239,21 +239,25 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             <div className="flex flex-col gap-1 items-end">
               {comboList.map(([comboKey, count], idx) => {
                 const activeKeys = comboKey.split('+');
+                const headerLabel = activeKeys.map(k => k === 'weekend' ? 'WKND' : k.toUpperCase()).join(' · ');
                 return (
-                  <div key={idx} className="flex items-center gap-1">
-                    {allQuals.map(({ key, label }) => (
-                      <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                        style={activeKeys.includes(key)
-                          ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
-                          : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
-                        }>
-                        {label}
+                  <div key={idx} className="flex flex-col items-end gap-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>{headerLabel}</span>
+                    <div className="flex items-center gap-1">
+                      {allQuals.map(({ key, label }) => (
+                        <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                          style={activeKeys.includes(key)
+                            ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
+                            : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
+                          }>
+                          {label}
+                        </span>
+                      ))}
+                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
+                        {count}
                       </span>
-                    ))}
-                    <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
-                      style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
-                      {count}
-                    </span>
+                    </div>
                   </div>
                 );
               })}
