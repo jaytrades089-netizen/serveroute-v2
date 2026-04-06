@@ -146,12 +146,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setIsShuffling(true);
     try {
       const shuffled = [...addresses].sort(() => Math.random() - 0.5);
-      for (let i = 0; i < shuffled.length; i++) {
-        await base44.entities.Address.update(shuffled[i].id, { 
-          order_index: i + 1,
-          zone_label: null
-        });
-      }
+      const shuffledOrder = shuffled.map(a => a.id);
+      await base44.entities.Route.update(routeId, { optimized_order: shuffledOrder });
+      await queryClient.refetchQueries({ queryKey: ['route', routeId] });
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
       setIsOptimized(false);
       setRouteMetrics(null);
@@ -312,7 +309,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       console.log(`Optimizing ${validAddresses.length} addresses...`);
       console.log('GPS start:', startLat, startLng);
-      console.log('End location:', endLocation.address, endLocation.latitude, endLocation.longitude);
+      console.log('End location:', endLocation?.address, endLocation?.latitude, endLocation?.longitude);
       toast.info(`Optimizing ${validAddresses.length} stops from GPS (${startLat.toFixed(4)}, ${startLng.toFixed(4)})...`);
 
       const optimizedAddresses = await optimizeWithHybrid(
@@ -372,23 +369,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
-      // Save each address with its new order_index from optimization
+      // Save optimized order + metrics to Route in a single write
+      // order_index is never stored on individual addresses — derived at render time from route.optimized_order
       console.log('Saving optimized order...');
-      for (let i = 0; i < optimizedAddresses.length; i++) {
-        const addr = optimizedAddresses[i];
-        try {
-          await base44.entities.Address.update(addr.id, {
-            order_index: i + 1,
-            zone_label: addr.zone_label || null
-          });
-        } catch (err) {
-          console.warn(`Failed to update order for address ${addr.id}:`, err);
-        }
-      }
-
-      // Save metrics to route
+      const optimizedOrder = optimizedAddresses.map(a => a.id);
       try {
         await base44.entities.Route.update(routeId, {
+          optimized_order: optimizedOrder,
           total_miles: metrics.totalMiles,
           total_drive_time_minutes: metrics.totalTimeMinutes,
           time_at_address_minutes: timeAtAddress
@@ -396,7 +383,18 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         await queryClient.refetchQueries({ queryKey: ['route', routeId] });
         await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       } catch (saveErr) {
-        console.warn('Could not save route metrics:', saveErr);
+        console.warn('Could not save optimized order or route metrics:', saveErr);
+      }
+
+      // Update zone labels on addresses (cosmetic only — does not affect routing order)
+      for (const addr of optimizedAddresses) {
+        if (addr.zone_label) {
+          try {
+            await base44.entities.Address.update(addr.id, { zone_label: addr.zone_label });
+          } catch (err) {
+            console.warn(`Failed to update zone label for ${addr.id}:`, err);
+          }
+        }
       }
 
       // Force immediate refetch so the address list updates right away with new order

@@ -123,14 +123,8 @@ export default function WorkerRouteDetail() {
     queryFn: async () => {
       if (!routeId) return [];
       const addrs = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
-      return addrs.sort((a, b) => {
-        const aIdx = (a.order_index && a.order_index > 0) ? a.order_index : null;
-        const bIdx = (b.order_index && b.order_index > 0) ? b.order_index : null;
-        if (aIdx !== null && bIdx !== null) return aIdx - bIdx;
-        if (aIdx !== null) return -1;
-        if (bIdx !== null) return 1;
-        return new Date(a.created_date || 0) - new Date(b.created_date || 0);
-      });
+      // Return in creation order — display order is derived from route.optimized_order in sortedAddresses useMemo
+      return addrs.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
     },
     enabled: !!routeId,
     staleTime: 2 * 60 * 1000,
@@ -193,6 +187,23 @@ export default function WorkerRouteDetail() {
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     return { total, completed, percentage };
   }, [addresses]);
+
+  // Derive display order from route.optimized_order — never stored per-address
+  // Served addresses not in optimized_order sort to the end automatically
+  const sortedAddresses = useMemo(() => {
+    if (!addresses.length) return addresses;
+    if (route?.optimized_order?.length > 0) {
+      const orderMap = {};
+      route.optimized_order.forEach((id, idx) => { orderMap[id] = idx; });
+      return [...addresses].sort((a, b) => {
+        const aIdx = orderMap[a.id] ?? Infinity;
+        const bIdx = orderMap[b.id] ?? Infinity;
+        return aIdx - bIdx;
+      });
+    }
+    // Fallback: creation order (route not yet optimized)
+    return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
+  }, [addresses, route?.optimized_order]);
 
   // Calculate remaining miles based on completed addresses
   const calculateRemainingMiles = useMemo(() => {
@@ -778,7 +789,7 @@ export default function WorkerRouteDetail() {
           </div>
         ) : (
           <AnimatedAddressList
-            addresses={searchFilter ? addresses.filter(a => a.id === searchFilter) : addresses}
+            addresses={searchFilter ? sortedAddresses.filter(a => a.id === searchFilter) : sortedAddresses}
             attempts={attempts}
             routeId={routeId}
             onMessageBoss={handleMessageBoss}
@@ -818,7 +829,7 @@ export default function WorkerRouteDetail() {
           onClose={() => setShowOptimizeModal(false)}
           onOptimized={async () => {
             setShowOptimizeModal(false);
-            // Force refetch with fresh data after optimization updates order_index values
+            // Refetch route (picks up new optimized_order) and addresses
             await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
             await queryClient.refetchQueries({ queryKey: ['route', routeId] });
           }}
