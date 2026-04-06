@@ -249,7 +249,7 @@ export default function WorkerHome() {
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80, overflowX: 'hidden' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-3 max-w-lg mx-auto">
