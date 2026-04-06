@@ -721,9 +721,24 @@ export default function RouteCard({
                           selected={editQueueDate}
                           onSelect={(date) => setEditQueueDate(date)}
                           disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                          className="mx-auto"
+                          className="w-full mx-auto"
                           modifiers={qCalMod}
                           modifiersClassNames={qCalModCN}
+                          classNames={{
+                            months: "w-full flex justify-center",
+                            month: "w-full",
+                            table: "w-full border-collapse",
+                            head_row: "flex w-full justify-between",
+                            head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
+                            row: "flex w-full justify-between mt-1",
+                            cell: "flex-1 flex items-center justify-center p-0",
+                            day: "h-10 w-10 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors overflow-visible relative",
+                            day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
+                            day_today: "bg-gray-100 font-bold",
+                            nav: "flex items-center justify-between px-2 pb-2",
+                            nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
+                            caption: "text-base font-semibold text-center py-2"
+                          }}
                         />
                         {(qDueDateObj || qSpreadDueDateObj) && (
                           <div className="flex items-center justify-center gap-6 px-3 pb-1">
@@ -799,9 +814,24 @@ export default function RouteCard({
                             selected={pendingQueueDate}
                             onSelect={(date) => setPendingQueueDate(date)}
                             disabled={(date) => date < new Date(new Date().setHours(0,0,0,0))}
-                            className="mx-auto"
+                            className="w-full mx-auto"
                             modifiers={qCalendarModifiers}
                             modifiersClassNames={qCalendarModifiersClassNames}
+                            classNames={{
+                              months: "w-full flex justify-center",
+                              month: "w-full",
+                              table: "w-full border-collapse",
+                              head_row: "flex w-full justify-between",
+                              head_cell: "flex-1 text-center text-sm font-medium text-gray-500 py-2",
+                              row: "flex w-full justify-between mt-1",
+                              cell: "flex-1 flex items-center justify-center p-0",
+                              day: "h-10 w-10 rounded-full text-sm font-medium flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors overflow-visible relative",
+                              day_selected: "!bg-transparent !text-gray-900 !font-bold !ring-2 !ring-black !ring-offset-1",
+                              day_today: "bg-gray-100 font-bold",
+                              nav: "flex items-center justify-between px-2 pb-2",
+                              nav_button: "h-9 w-9 rounded-full hover:bg-gray-100 flex items-center justify-center",
+                              caption: "text-base font-semibold text-center py-2"
+                            }}
                           />
                           {(qDueDateObj || qSpreadDueDateObj) && (
                             <div className="flex items-center justify-center gap-6 px-3 pb-2 pt-1">
