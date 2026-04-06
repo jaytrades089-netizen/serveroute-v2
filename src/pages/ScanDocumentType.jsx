@@ -67,90 +67,87 @@ export default function ScanDocumentType() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div style={{ minHeight: '100vh', background: 'transparent' }} className="flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
+      <div style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }} className="px-4 py-3 flex items-center gap-3">
         <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" style={{ color: '#e6e1e4' }}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
         </Link>
-        <h1 className="text-lg font-semibold">Scan Documents</h1>
+        <h1 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>Scan Documents</h1>
       </div>
 
       <div className="flex-1 p-4 max-w-lg mx-auto w-full">
-        <p className="text-gray-600 mb-6 text-center">
+        <p className="mb-6 text-center" style={{ color: '#8a7f87' }}>
           What type of document are you scanning?
         </p>
 
         <div className="space-y-4">
           {/* Part 1: Serve card */}
           {(() => { const info = DOCUMENT_INFO['serve']; return (
-            <Card
+            <div
               key="serve"
-              className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300"
+              className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
+              style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)' }}
               onClick={() => handleSelectType('serve')}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl">{info.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{info.name}</h3>
-                      <p className="text-lg font-bold text-green-600">${info.rate}</p>
-                    </div>
-                    <p className="text-xs text-gray-500">{info.schedule} • {info.description}</p>
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">{info.icon}</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>{info.name}</h3>
+                    <p className="text-lg font-bold" style={{ color: '#22c55e' }}>${info.rate}</p>
                   </div>
+                  <p className="text-xs" style={{ color: '#8a7f87' }}>{info.schedule} • {info.description}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ); })()}
 
           {/* Part 2: Bulk Scan card */}
-          <Card
-            className="cursor-pointer hover:shadow-md transition-shadow border-2 border-orange-300 hover:border-orange-500 bg-orange-50/50"
+          <div
+            className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
+            style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(233,195,73,0.35)' }}
             onClick={() => navigate(createPageUrl('ScanCamera?type=serve'))}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-orange-100 flex items-center justify-center">
-                  <Layers className="w-6 h-6 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-orange-800">Bulk Scan</h3>
-                  <p className="text-xs text-gray-500">Scan a large batch and sort into piles before saving</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: 'rgba(233,195,73,0.15)' }}>
+                <Layers className="w-6 h-6" style={{ color: '#e9c349' }} />
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold" style={{ color: '#e9c349' }}>Bulk Scan</h3>
+                <p className="text-xs" style={{ color: '#8a7f87' }}>Scan a large batch and sort into piles before saving</p>
+              </div>
+            </div>
+          </div>
 
           {/* Part 3: Garnishment and Posting cards */}
           {Object.entries(DOCUMENT_INFO).filter(([type]) => type !== 'serve').map(([type, info]) => (
-            <Card
+            <div
               key={type}
-              className="cursor-pointer hover:shadow-md transition-shadow border-2 hover:border-blue-300"
+              className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
+              style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)' }}
               onClick={() => handleSelectType(type)}
             >
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl">{info.icon}</div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{info.name}</h3>
-                      <p className="text-lg font-bold text-green-600">${info.rate}</p>
-                    </div>
-                    <p className="text-xs text-gray-500">{info.schedule} • {info.description}</p>
+              <div className="flex items-center gap-3">
+                <div className="text-3xl">{info.icon}</div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>{info.name}</h3>
+                    <p className="text-lg font-bold" style={{ color: '#22c55e' }}>${info.rate}</p>
                   </div>
+                  <p className="text-xs" style={{ color: '#8a7f87' }}>{info.schedule} • {info.description}</p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
 
           {/* Divider */}
@@ -161,31 +158,30 @@ export default function ScanDocumentType() {
           </div>
 
           {/* Add to Existing Route */}
-          <Card 
-            className="cursor-pointer hover:shadow-md transition-shadow border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/50"
+          <div
+            className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
+            style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(99,102,241,0.35)', borderStyle: 'dashed' }}
             onClick={() => navigate(createPageUrl('ScanCamera?type=serve&mode=addToRoute'))}
           >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <FolderPlus className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-blue-800">Add to Existing Route</h3>
-                  <p className="text-xs text-gray-500">Scan addresses and add them to a route you already have</p>
-                </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                <FolderPlus className="w-6 h-6" style={{ color: '#a5b4fc' }} />
               </div>
-            </CardContent>
-          </Card>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold" style={{ color: '#a5b4fc' }}>Add to Existing Route</h3>
+                <p className="text-xs" style={{ color: '#8a7f87' }}>Scan addresses and add them to a route you already have</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Fixed Cancel Button at Bottom */}
-      <div className="bg-white border-t p-4 max-w-lg mx-auto w-full">
+      <div className="p-4 max-w-lg mx-auto w-full" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
-          <Button variant="outline" className="w-full">
+          <button className="w-full py-3 rounded-xl font-semibold transition-opacity hover:opacity-90" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#8a7f87' }}>
             Cancel
-          </Button>
+          </button>
         </Link>
       </div>
 
