@@ -4,7 +4,7 @@ import { createPageUrl } from '@/utils';
 import { MapPin, Calendar, Clock } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
-export default function ActiveRoutesList({ routes = [], attempts = [] }) {
+export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [] }) {
   const routeNameMap = React.useMemo(() => {
     const map = {};
     routes.forEach(r => { map[r.id] = r.folder_name; });
@@ -123,9 +123,17 @@ export default function ActiveRoutesList({ routes = [], attempts = [] }) {
       { key: 'weekend', label: 'WKND' },
     ];
 
-    // Group attempts by address and build qualifier combo per address
+    // Only count pending (non-served, non-returned) addresses for qualifier badges
+    const pendingAddressIds = new Set(
+      addresses
+        .filter(a => a.route_id === route.id && !a.served && a.status !== 'returned')
+        .map(a => a.id)
+    );
+
+    // Group attempts by address and build qualifier combo per address (pending only)
     const addressQualMap = {};
     routeAttempts.forEach(a => {
+      if (pendingAddressIds.size > 0 && !pendingAddressIds.has(a.address_id)) return;
       if (!addressQualMap[a.address_id]) addressQualMap[a.address_id] = { am: false, pm: false, weekend: false };
       if (a.has_am) addressQualMap[a.address_id].am = true;
       if (a.has_pm) addressQualMap[a.address_id].pm = true;

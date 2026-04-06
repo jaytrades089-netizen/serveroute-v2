@@ -275,7 +275,7 @@ export default function WorkerHome() {
           </div>
         ))}
 
-        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} />
+        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} />
       </main>
 
       <BottomNav currentPage="WorkerHome" />
