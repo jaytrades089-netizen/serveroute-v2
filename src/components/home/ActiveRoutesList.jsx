@@ -146,6 +146,20 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       .map(([num, quals]) => ({ num: Number(num), am: quals.am, pm: quals.pm, weekend: quals.weekend, count: quals.addresses.size }));
     const hasAnyAttempts = attemptList.length > 0;
 
+    // Check if all pending addresses have all 3 qualifiers covered (combined across attempts)
+    const addressCoverage = {};
+    routeAttempts.forEach(a => {
+      if (!pendingAddressIds.has(a.address_id)) return;
+      if (!addressCoverage[a.address_id]) addressCoverage[a.address_id] = { am: false, pm: false, weekend: false };
+      if (a.has_am) addressCoverage[a.address_id].am = true;
+      if (a.has_pm) addressCoverage[a.address_id].pm = true;
+      if (a.has_weekend) addressCoverage[a.address_id].weekend = true;
+    });
+    const pendingIds = [...pendingAddressIds];
+    const allQualifiersMet = pendingIds.length > 0 && pendingIds.every(id =>
+      addressCoverage[id]?.am && addressCoverage[id]?.pm && addressCoverage[id]?.weekend
+    );
+
     return (
       <Link
         key={route.id}
@@ -233,6 +247,18 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                   {label}
                 </span>
               ))}
+            </div>
+          ) : allQualifiersMet ? (
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
+              <div className="flex items-center gap-1">
+                {allQuals.map(({ key, label }) => (
+                  <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                    style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
+                    {label}
+                  </span>
+                ))}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col gap-1 items-end">
