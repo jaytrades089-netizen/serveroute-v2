@@ -37,7 +37,7 @@ export default function BottomNav({ currentPage }) {
       paddingRight: 8,
       paddingTop: 8,
       paddingBottom: 8,
-      zIndex: 50
+      zIndex: 9999
     }} className="px-2 py-2 opacity-100 frosted-glass-light fixed bottom-0 left-0 right-0 z-50 bottom-nav-bar">
       <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))', marginBottom: 8 }} />
       <div className="max-w-lg mx-auto flex justify-around items-end">
