@@ -130,22 +130,21 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         .map(a => a.id)
     );
 
-    // Group attempts by address and build qualifier combo per address (pending only)
-    const addressQualMap = {};
+    // Group attempts by attempt_number to show "Attempt 1", "Attempt 2" etc.
+    const attemptsByNumber = {};
     routeAttempts.forEach(a => {
       if (pendingAddressIds.size > 0 && !pendingAddressIds.has(a.address_id)) return;
-      if (!addressQualMap[a.address_id]) addressQualMap[a.address_id] = { am: false, pm: false, weekend: false };
-      if (a.has_am) addressQualMap[a.address_id].am = true;
-      if (a.has_pm) addressQualMap[a.address_id].pm = true;
-      if (a.has_weekend) addressQualMap[a.address_id].weekend = true;
+      const num = a.attempt_number || 1;
+      if (!attemptsByNumber[num]) attemptsByNumber[num] = { am: false, pm: false, weekend: false, addresses: new Set() };
+      if (a.has_am) attemptsByNumber[num].am = true;
+      if (a.has_pm) attemptsByNumber[num].pm = true;
+      if (a.has_weekend) attemptsByNumber[num].weekend = true;
+      attemptsByNumber[num].addresses.add(a.address_id);
     });
-    const comboGroups = {};
-    Object.values(addressQualMap).forEach(quals => {
-      const comboKey = ['am', 'pm', 'weekend'].filter(k => quals[k]).join('+');
-      if (comboKey) comboGroups[comboKey] = (comboGroups[comboKey] || 0) + 1;
-    });
-    const comboList = Object.entries(comboGroups).sort((a, b) => b[1] - a[1]);
-    const hasAnyAttempts = comboList.length > 0;
+    const attemptList = Object.entries(attemptsByNumber)
+      .sort((a, b) => Number(a[0]) - Number(b[0]))
+      .map(([num, quals]) => ({ num: Number(num), am: quals.am, pm: quals.pm, weekend: quals.weekend, count: quals.addresses.size }));
+    const hasAnyAttempts = attemptList.length > 0;
 
     return (
       <Link
@@ -237,12 +236,11 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             </div>
           ) : (
             <div className="flex flex-col gap-1 items-end">
-              {comboList.map(([comboKey, count], idx) => {
-                const activeKeys = comboKey.split('+');
-                const headerLabel = activeKeys.map(k => k === 'weekend' ? 'WKND' : k.toUpperCase()).join(' · ');
+              {attemptList.map(({ num, am, pm, weekend, count }) => {
+                const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
                 return (
-                  <div key={idx} className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>{headerLabel}</span>
+                  <div key={num} className="flex flex-col items-end gap-0.5">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
                     <div className="flex items-center gap-1">
                       {allQuals.map(({ key, label }) => (
                         <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
