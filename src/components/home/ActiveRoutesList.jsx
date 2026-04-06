@@ -208,21 +208,21 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         </div>
 
         <div className="flex gap-4 mb-2">
-          <div>
-            {estTimeLabel && (
-              <div className="mb-1">
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
-                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
-              </div>
-            )}
+          {estTimeLabel && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
-                {(route.total_addresses || 0) - (route.served_count || 0)}
-              </div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
+              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+            </div>
+          )}
+          <div>
+            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
+            <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
+              {(route.total_addresses || 0) - (route.served_count || 0)}
             </div>
           </div>
-          <div className="flex gap-4">
+        </div>
+        {(dueDateLabel || spreadDateLabel) && (
+          <div className="flex gap-4 mb-2">
             {dueDateLabel && (
               <div>
                 <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
@@ -236,7 +236,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               </div>
             )}
           </div>
-        </div>
+        )}
 
         <div className="flex justify-end">
           {!hasAnyAttempts ? (
