@@ -117,15 +117,27 @@ export default function ActiveRoutesList({ routes = [], attempts = [] }) {
     })();
 
     const routeAttempts = attemptsByRoute[route.id] || [];
-    const completedQuals = [];
-    if (routeAttempts.some(a => a.has_am)) completedQuals.push('am');
-    if (routeAttempts.some(a => a.has_pm)) completedQuals.push('pm');
-    if (routeAttempts.some(a => a.has_weekend)) completedQuals.push('weekend');
     const allQuals = [
       { key: 'am', label: 'AM' },
       { key: 'pm', label: 'PM' },
       { key: 'weekend', label: 'WKND' },
     ];
+
+    // Group attempts by address and build qualifier combo per address
+    const addressQualMap = {};
+    routeAttempts.forEach(a => {
+      if (!addressQualMap[a.address_id]) addressQualMap[a.address_id] = { am: false, pm: false, weekend: false };
+      if (a.has_am) addressQualMap[a.address_id].am = true;
+      if (a.has_pm) addressQualMap[a.address_id].pm = true;
+      if (a.has_weekend) addressQualMap[a.address_id].weekend = true;
+    });
+    const comboGroups = {};
+    Object.values(addressQualMap).forEach(quals => {
+      const comboKey = ['am', 'pm', 'weekend'].filter(k => quals[k]).join('+');
+      if (comboKey) comboGroups[comboKey] = (comboGroups[comboKey] || 0) + 1;
+    });
+    const comboList = Object.entries(comboGroups).sort((a, b) => b[1] - a[1]).slice(0, 2);
+    const hasAnyAttempts = comboList.length > 0;
 
     return (
       <Link
@@ -205,22 +217,40 @@ export default function ActiveRoutesList({ routes = [], attempts = [] }) {
           </div>
         </div>
 
-        <div className="flex justify-end gap-1 flex-wrap">
-          {allQuals.map(({ key, label }) => {
-            const done = completedQuals.includes(key);
-            return (
-              <span
-                key={key}
-                className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                style={done
-                  ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
-                  : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
-                }
-              >
-                {label}
-              </span>
-            );
-          })}
+        <div className="flex justify-end">
+          {!hasAnyAttempts ? (
+            <div className="flex gap-1">
+              {allQuals.map(({ key, label }) => (
+                <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                  style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1 items-end">
+              {comboList.map(([comboKey, count], idx) => {
+                const activeKeys = comboKey.split('+');
+                return (
+                  <div key={idx} className="flex items-center gap-1">
+                    {allQuals.map(({ key, label }) => (
+                      <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                        style={activeKeys.includes(key)
+                          ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
+                          : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
+                        }>
+                        {label}
+                      </span>
+                    ))}
+                    <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                      style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </Link>
     );
@@ -238,7 +268,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [] }) {
           <p style={{ color: '#9CA3AF' }}>No routes</p>
         </div>
       ) : (
-        <div>
+        <div style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '2px' }}>
           {groupKeys.map(dateKey => {
             const dt = parseISO(dateKey);
             let dayLabel;
