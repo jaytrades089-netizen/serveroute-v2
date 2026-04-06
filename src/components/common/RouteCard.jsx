@@ -715,7 +715,7 @@ export default function RouteCard({
                   return ReactDOM.createPortal(
                     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" onClick={(e) => { e.stopPropagation(); closeQueueCalendar(); }}>
                       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-                        <style>{`.queue-cal-due{background-color:rgba(239,68,68,0.18)!important;color:#ef4444!important;font-weight:700;border-radius:50%!important}.queue-cal-spread{background-color:rgba(34,197,94,0.18)!important;color:#22c55e!important;font-weight:700;border-radius:50%!important}`}</style>
+                        <style>{`.queue-cal-due{position:relative}.queue-cal-due::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#ef4444}.queue-cal-spread{position:relative}.queue-cal-spread::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#22c55e}`}</style>
                         <CalendarPicker
                           mode="single"
                           selected={editQueueDate}
@@ -793,7 +793,7 @@ export default function RouteCard({
                       }
                       return (
                         <>
-                          <style>{`.queue-cal-due-date{background-color:rgba(239,68,68,0.18)!important;color:#ef4444!important;font-weight:700;border-radius:50%!important}.queue-cal-spread-date{background-color:rgba(34,197,94,0.18)!important;color:#22c55e!important;font-weight:700;border-radius:50%!important}`}</style>
+                          <style>{`.queue-cal-due-date{position:relative}.queue-cal-due-date::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#ef4444}.queue-cal-spread-date{position:relative}.queue-cal-spread-date::after{content:'';position:absolute;bottom:2px;left:50%;transform:translateX(-50%);width:18px;height:3px;border-radius:2px;background-color:#22c55e}`}</style>
                           <CalendarPicker
                             mode="single"
                             selected={pendingQueueDate}
