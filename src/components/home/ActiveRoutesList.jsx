@@ -136,7 +136,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [] }) {
       const comboKey = ['am', 'pm', 'weekend'].filter(k => quals[k]).join('+');
       if (comboKey) comboGroups[comboKey] = (comboGroups[comboKey] || 0) + 1;
     });
-    const comboList = Object.entries(comboGroups).sort((a, b) => b[1] - a[1]).slice(0, 2);
+    const comboList = Object.entries(comboGroups).sort((a, b) => b[1] - a[1]);
     const hasAnyAttempts = comboList.length > 0;
 
     return (
