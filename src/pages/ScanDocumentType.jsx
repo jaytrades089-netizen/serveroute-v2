@@ -191,10 +191,10 @@ export default function ScanDocumentType() {
 
       {/* Session Recovery Dialog */}
       <Dialog open={showRecoveryDialog} onOpenChange={setShowRecoveryDialog}>
-        <DialogContent>
+        <DialogContent style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}>
           <DialogHeader>
-            <DialogTitle>Resume Previous Session?</DialogTitle>
-            <DialogDescription>
+            <DialogTitle style={{ color: '#e6e1e4' }}>Resume Previous Session?</DialogTitle>
+            <DialogDescription style={{ color: '#8a7f87' }}>
               You have an unfinished scanning session.
             </DialogDescription>
           </DialogHeader>
@@ -203,26 +203,34 @@ export default function ScanDocumentType() {
             <div className="py-4 space-y-2">
               <p className="flex items-center gap-2">
                 <span>{DOCUMENT_INFO[recoverableSession.documentType]?.icon}</span>
-                <span className="font-medium">
+                <span className="font-medium" style={{ color: '#e6e1e4' }}>
                   Type: {DOCUMENT_INFO[recoverableSession.documentType]?.name}
                 </span>
               </p>
-              <p className="text-gray-600">
+              <p style={{ color: '#8a7f87' }}>
                 📍 Addresses scanned: {recoverableSession.addresses?.length || 0}
               </p>
-              <p className="text-gray-500 text-sm">
+              <p className="text-sm" style={{ color: '#6B7280' }}>
                 🕐 Last activity: {new Date(recoverableSession.lastUpdated).toLocaleString()}
               </p>
             </div>
           )}
 
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button onClick={handleResumeSession} className="w-full">
+            <button
+              onClick={handleResumeSession}
+              className="w-full py-3 rounded-xl font-bold transition-opacity hover:opacity-90"
+              style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+            >
               Resume Session
-            </Button>
-            <Button variant="outline" onClick={handleStartFresh} className="w-full">
+            </button>
+            <button
+              onClick={handleStartFresh}
+              className="w-full py-3 rounded-xl font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#8a7f87' }}
+            >
               Start Fresh (discard previous)
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

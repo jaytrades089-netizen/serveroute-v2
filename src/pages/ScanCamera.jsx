@@ -519,8 +519,8 @@ export default function ScanCamera() {
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: 'transparent' }} className="flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
@@ -535,16 +535,16 @@ export default function ScanCamera() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div style={{ minHeight: '100vh', background: 'transparent' }} className="flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
+      <div style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }} className="px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link to={createPageUrl(isBoss ? 'BossDashboard' : 'WorkerHome')}>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" style={{ color: '#e6e1e4' }}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-lg font-semibold">Scan Documents</h1>
+          <h1 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>Scan Documents</h1>
         </div>
       </div>
 
@@ -638,21 +638,16 @@ export default function ScanCamera() {
       </div>
 
       {/* Hint Text */}
-      <p className="text-center text-xs text-gray-500 bg-white py-1 border-b">Hold closer and keep just one address inside the box</p>
+      <p className="text-center text-xs py-1.5" style={{ color: '#8a7f87', background: 'rgba(11,15,30,0.70)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Hold closer and keep just one address inside the box</p>
 
       {/* Capture Bar */}
-      <div className="bg-white border-b px-4 py-3 flex items-center justify-between gap-3">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileUpload}
-        />
+      <div style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }} className="px-4 py-3 flex items-center justify-between gap-3">
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileUpload} />
         
         {cameraStatus === 'active' ? (
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+            style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+            className="gap-2 hover:opacity-90"
             onClick={handleCapture}
             disabled={isProcessing || showShutter}
           >
@@ -661,7 +656,8 @@ export default function ScanCamera() {
           </Button>
         ) : (
           <Button
-            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+            style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+            className="gap-2 hover:opacity-90"
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
           >
@@ -671,44 +667,33 @@ export default function ScanCamera() {
         )}
 
         <div className="flex items-center gap-1">
-          <Button
-            variant={documentType === 'serve' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleDocTypeChange('serve')}
-            className={documentType === 'serve' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
-          >
-            Serve
-          </Button>
-          <Button
-            variant={documentType === 'garnishment' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleDocTypeChange('garnishment')}
-            className={documentType === 'garnishment' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
-          >
-            Garnishment
-          </Button>
-          <Button
-            variant={documentType === 'posting' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => handleDocTypeChange('posting')}
-            className={documentType === 'posting' ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
-          >
-            Posting
-          </Button>
+          {['serve', 'garnishment', 'posting'].map(type => (
+            <button
+              key={type}
+              onClick={() => handleDocTypeChange(type)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize"
+              style={documentType === type
+                ? { background: 'rgba(233,195,73,0.25)', border: '1px solid rgba(233,195,73,0.60)', color: '#e9c349' }
+                : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#8a7f87' }
+              }
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Address List - Scrollable */}
-      <div className="flex-1 overflow-y-auto bg-gray-50 px-4 py-3">
-        <p className="text-sm font-medium text-gray-700 mb-3">
+      <div className="flex-1 overflow-y-auto px-4 py-3" style={{ background: 'transparent' }}>
+        <p className="text-sm font-bold mb-3 uppercase tracking-wide" style={{ color: '#8a7f87' }}>
           SCANNED ADDRESSES ({session.addresses.length})
         </p>
 
         {session.addresses.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Camera className="w-10 h-10 mx-auto mb-2 text-gray-300" />
-            <p className="text-sm">No addresses scanned yet</p>
-            <p className="text-xs">Capture or upload documents to begin</p>
+          <div className="text-center py-8">
+            <Camera className="w-10 h-10 mx-auto mb-2" style={{ color: '#363436' }} />
+            <p className="text-sm" style={{ color: '#6B7280' }}>No addresses scanned yet</p>
+            <p className="text-xs" style={{ color: '#4B5563' }}>Capture or upload documents to begin</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -716,117 +701,89 @@ export default function ScanCamera() {
               // Failed OCR card (bulk mode)
               if (addr.status === 'failed') {
                 return (
-                  <Card key={addr.tempId} className="bg-red-50 border-2 border-red-300">
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-sm text-red-800">Could not extract address</p>
-                          <p className="text-xs text-red-600 mb-2">{addr.error}</p>
-                          <input
-                            type="text"
-                            className="w-full border border-red-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-400"
-                            placeholder="Type address manually..."
-                            value={addr.manualEntry || ''}
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              const current = sessionRef.current;
-                              if (!current) return;
-                              const updatedAddresses = current.addresses.map(a =>
-                                a.tempId === addr.tempId
-                                  ? { ...a, manualEntry: val, status: val.length > 5 ? 'resolved' : 'failed' }
-                                  : a
-                              );
-                              const updatedSession = { ...current, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
-                              updateSession(updatedSession);
-                              saveScanSession(updatedSession);
-                            }}
-                          />
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-red-400 hover:text-red-600"
-                          onClick={() => handleRemoveAddress(addr.tempId)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                  <div key={addr.tempId} className="rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.40)' }}>
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm" style={{ color: '#fca5a5' }}>Could not extract address</p>
+                        <p className="text-xs mb-2" style={{ color: '#f87171' }}>{addr.error}</p>
+                        <input
+                          type="text"
+                          className="w-full rounded-lg px-3 py-2 text-sm focus:outline-none"
+                          style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(239,68,68,0.40)', color: '#e6e1e4' }}
+                          placeholder="Type address manually..."
+                          value={addr.manualEntry || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            const current = sessionRef.current;
+                            if (!current) return;
+                            const updatedAddresses = current.addresses.map(a =>
+                              a.tempId === addr.tempId
+                                ? { ...a, manualEntry: val, status: val.length > 5 ? 'resolved' : 'failed' }
+                                : a
+                            );
+                            const updatedSession = { ...current, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
+                            updateSession(updatedSession);
+                            saveScanSession(updatedSession);
+                          }}
+                        />
                       </div>
-                    </CardContent>
-                  </Card>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" style={{ color: '#f87171' }} onClick={() => handleRemoveAddress(addr.tempId)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 );
               }
 
               const conf = getConfidenceDisplay(addr.confidence || 0);
               const ConfIcon = conf.icon;
+              const confColor = conf.color.includes('green') ? '#22c55e' : conf.color.includes('yellow') ? '#eab308' : '#ef4444';
               
               return (
-                <Card key={addr.tempId} className={`${conf.bg} border`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <ConfIcon className={`w-5 h-5 ${conf.color} flex-shrink-0 mt-0.5`} />
-                        <div className="min-w-0 flex-1">
-                          <p className="font-semibold text-sm text-gray-900 break-words">
-                            {addr.defendantName || 'Unknown Defendant'}
-                          </p>
-                          <p className="font-bold text-sm text-gray-900 break-words">
-                            {addr.extractedData?.street?.toUpperCase() || 'FAILED TO EXTRACT ADDRESS'}
-                          </p>
-                          <p className="text-sm text-gray-900 break-words">
-                            {addr.extractedData?.city ? `${addr.extractedData.city.toUpperCase()}, ${addr.extractedData.state.toUpperCase()} ${addr.extractedData.zip}` : ''}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                              addr.extractedData?.documentType === 'garnishment' ? 'bg-purple-100 text-purple-700' :
-                              addr.extractedData?.documentType === 'posting' ? 'bg-green-100 text-green-700' :
-                              'bg-blue-100 text-blue-700'
-                            }`}>
-                              {(addr.extractedData?.documentType || documentType).charAt(0).toUpperCase() + (addr.extractedData?.documentType || documentType).slice(1)}
-                            </span>
-                            <span className={`text-xs ${conf.color}`}>
-                              {conf.label}
-                            </span>
-                          </div>
+                <div key={addr.tempId} className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <ConfIcon className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: confColor }} />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm break-words" style={{ color: '#d0c3cb' }}>
+                          {addr.defendantName || 'Unknown Defendant'}
+                        </p>
+                        <p className="font-bold text-sm break-words" style={{ color: '#e6e1e4' }}>
+                          {addr.extractedData?.street?.toUpperCase() || 'FAILED TO EXTRACT ADDRESS'}
+                        </p>
+                        <p className="text-sm break-words" style={{ color: '#e6e1e4' }}>
+                          {addr.extractedData?.city ? `${addr.extractedData.city.toUpperCase()}, ${addr.extractedData.state.toUpperCase()} ${addr.extractedData.zip}` : ''}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.10)', color: '#8a7f87' }}>
+                            {(addr.extractedData?.documentType || documentType).charAt(0).toUpperCase() + (addr.extractedData?.documentType || documentType).slice(1)}
+                          </span>
+                          <span className="text-xs" style={{ color: confColor }}>
+                            {conf.label}
+                          </span>
                         </div>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-gray-400 hover:text-gray-600"
-                          >
-                            <MoreVertical className="w-4 h-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem 
-                            onClick={() => {
-                              const updatedSession = {
-                                ...session,
-                                currentStep: 'route_setup',
-                                lastUpdated: new Date().toISOString()
-                              };
-                              saveScanSession(updatedSession);
-                              navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}&edit=${addr.tempId}`));
-                            }}
-                          >
-                            <Pencil className="w-4 h-4 mr-2" />
-                            Edit Address
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={() => handleRemoveAddress(addr.tempId)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                     </div>
-                  </CardContent>
-                </Card>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" style={{ color: '#6B7280' }}>
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { const updatedSession = { ...session, currentStep: 'route_setup', lastUpdated: new Date().toISOString() }; saveScanSession(updatedSession); navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}&edit=${addr.tempId}`)); }}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit Address
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={() => handleRemoveAddress(addr.tempId)}>
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -837,21 +794,25 @@ export default function ScanCamera() {
       {(() => {
         const hasUnresolvedFailures = isBulkScan && session.addresses.some(a => a.status === 'failed');
         return (
-          <div className="bg-white border-t p-4">
+          <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
             {hasUnresolvedFailures && (
-              <p className="text-xs text-red-500 text-center mb-2">Resolve all failed scans before continuing</p>
+              <p className="text-xs text-red-400 text-center mb-2">Resolve all failed scans before continuing</p>
             )}
-            <Button
-              className={`w-full h-12 text-base text-white ${isAddToRouteMode ? 'bg-blue-600 hover:bg-blue-700' : 'bg-orange-500 hover:bg-orange-600'}`}
+            <button
+              className="w-full h-12 text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
+              style={isAddToRouteMode
+                ? { background: 'rgba(99,102,241,0.20)', border: '1px solid rgba(99,102,241,0.50)', color: '#a5b4fc' }
+                : { background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }
+              }
               onClick={handleSaveRoute}
               disabled={session.addresses.length === 0 || hasUnresolvedFailures}
             >
-          <Save className="w-5 h-5 mr-2" />
-              {isAddToRouteMode 
-                ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})` 
+              <Save className="w-5 h-5" />
+              {isAddToRouteMode
+                ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
                 : `Save Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
               }
-            </Button>
+            </button>
           </div>
         );
       })()}

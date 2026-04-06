@@ -59,14 +59,14 @@ export default function WorkerSettings() {
 
   if (userLoading || settingsLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(to bottom, #0F0B10, #1A141D)', paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header user={user} />
       
       <main className="px-4 py-6 max-w-lg mx-auto space-y-4">
@@ -75,57 +75,49 @@ export default function WorkerSettings() {
         {/* Quick Links */}
         <div className="grid grid-cols-2 gap-3">
           <Link to={createPageUrl('WorkerVacationRequest')}>
-            <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }} className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ background: '#502f50' }}>
-                  <Calendar className="w-5 h-5" style={{ color: '#e9c349' }} />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>Time Off</p>
-                  <p className="text-xs" style={{ color: '#8a7f87' }}>Request vacation</p>
-                </div>
-                <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-              </CardContent>
-            </Card>
+            <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer h-full p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
+                <Calendar className="w-5 h-5" style={{ color: '#e9c349' }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>Time Off</p>
+                <p className="text-xs" style={{ color: '#8a7f87' }}>Request vacation</p>
+              </div>
+              <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
+            </div>
           </Link>
           <Link to={createPageUrl('WorkerStats')}>
-            <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }} className="hover:shadow-md transition-shadow cursor-pointer h-full">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className="p-2 rounded-lg" style={{ background: '#502f50' }}>
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Stats</p>
-                  <p className="text-xs" style={{ color: '#8a7f87' }}>View performance</p>
-                </div>
-                <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-              </CardContent>
-            </Card>
+            <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer h-full p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
+                <TrendingUp className="w-5 h-5" style={{ color: '#22c55e' }} />
+              </div>
+              <div className="flex-1">
+                <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Stats</p>
+                <p className="text-xs" style={{ color: '#8a7f87' }}>View performance</p>
+              </div>
+              <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
+            </div>
           </Link>
         </div>
 
         <Link to={createPageUrl('WorkerReceipts')}>
-          <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }} className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg" style={{ background: '#502f50' }}>
-                <FileCheck className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Receipts</p>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>View submitted receipts</p>
-              </div>
-              <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-            </CardContent>
-          </Card>
+          <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
+              <FileCheck className="w-5 h-5" style={{ color: '#a78bfa' }} />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Receipts</p>
+              <p className="text-xs" style={{ color: '#8a7f87' }}>View submitted receipts</p>
+            </div>
+            <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
+          </div>
         </Link>
 
-        <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e6e1e4' }}>
-              <User className="w-5 h-5" /> Profile
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}>
+            <User className="w-5 h-5" /> Profile
+          </h3>
+          <div className="space-y-3">
             <div>
               <Label className="text-xs" style={{ color: '#8a7f87' }}>Name</Label>
               <p className="font-medium" style={{ color: '#e6e1e4' }}>{user?.full_name}</p>
@@ -138,23 +130,19 @@ export default function WorkerSettings() {
               <Label className="text-xs" style={{ color: '#8a7f87' }}>Role</Label>
               <p className="font-medium capitalize" style={{ color: '#e6e1e4' }}>{user?.role}</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e6e1e4' }}>
-              <MapPin className="w-5 h-5" /> Map Settings
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><MapPin className="w-5 h-5" /> Map Settings</h3>
+          <div className="space-y-4">
             <div>
               <Label style={{ color: '#e6e1e4' }}>Default Map Provider</Label>
               <Select
                 value={settings?.default_map_provider || 'mapquest'}
                 onValueChange={(value) => updateSettingsMutation.mutate({ default_map_provider: value })}
               >
-                <SelectTrigger style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}>
+                <SelectTrigger style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -165,165 +153,90 @@ export default function WorkerSettings() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <Label style={{ color: '#e6e1e4' }}>Default Starting Location</Label>
-              <Input
-                placeholder="Enter address"
-                value={settings?.default_starting_location || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ default_starting_location: e.target.value })}
-                style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}
-              />
+              <Input placeholder="Enter address" value={settings?.default_starting_location || ''} onChange={(e) => updateSettingsMutation.mutate({ default_starting_location: e.target.value })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
             </div>
-
             <div>
               <Label style={{ color: '#e6e1e4' }}>Default Ending Location</Label>
-              <Input
-                placeholder="Enter address"
-                value={settings?.default_ending_location || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ default_ending_location: e.target.value })}
-                style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}
-              />
+              <Input placeholder="Enter address" value={settings?.default_ending_location || ''} onChange={(e) => updateSettingsMutation.mutate({ default_ending_location: e.target.value })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
             </div>
-
-            <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid #363436' }}>
+            <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
               <div>
                 <Label style={{ color: '#e6e1e4' }}>Show Area Labels on Route</Label>
                 <p className="text-xs" style={{ color: '#8a7f87' }}>Groups stops by area when viewing an optimized route</p>
               </div>
-              <Switch
-                checked={settings?.show_zone_labels !== false}
-                onCheckedChange={(checked) => updateSettingsMutation.mutate({ show_zone_labels: checked })}
-              />
+              <Switch checked={settings?.show_zone_labels !== false} onCheckedChange={(checked) => updateSettingsMutation.mutate({ show_zone_labels: checked })} />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e6e1e4' }}>
-              <Key className="w-5 h-5" /> API Keys
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Key className="w-5 h-5" /> API Keys</h3>
+          <div className="space-y-4">
             <div>
               <Label style={{ color: '#e6e1e4' }}>HERE Maps API Key (Geocoding)</Label>
               <p className="text-xs mb-1" style={{ color: '#8a7f87' }}>Used for address lookup (geocoding). Improves coordinate accuracy. Free tier supported.</p>
-              <Input
-                type="password"
-                placeholder="Enter your HERE API key"
-                value={settings?.here_api_key || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ 
-                  here_api_key: e.target.value,
-                  here_key_validated: false
-                })}
-                style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}
-              />
-              {settings?.here_key_validated && (
-                <p className="text-xs text-green-600 mt-1">✓ Key validated</p>
-              )}
+              <Input type="password" placeholder="Enter your HERE API key" value={settings?.here_api_key || ''} onChange={(e) => updateSettingsMutation.mutate({ here_api_key: e.target.value, here_key_validated: false })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
+              {settings?.here_key_validated && <p className="text-xs text-green-500 mt-1">✓ Key validated</p>}
             </div>
             <div>
               <Label style={{ color: '#e6e1e4' }}>MapQuest API Key</Label>
               <p className="text-xs mb-1" style={{ color: '#8a7f87' }}>Required for route optimization. Powers zone-based routing.</p>
-              <Input
-                type="password"
-                placeholder="Enter your MapQuest API key"
-                value={settings?.mapquest_api_key || ''}
-                onChange={(e) => updateSettingsMutation.mutate({ 
-                  mapquest_api_key: e.target.value,
-                  mapquest_key_validated: false
-                })}
-                style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4' }}
-              />
-              {settings?.mapquest_key_validated && (
-                <p className="text-xs text-green-600 mt-1">✓ Key validated</p>
-              )}
+              <Input type="password" placeholder="Enter your MapQuest API key" value={settings?.mapquest_api_key || ''} onChange={(e) => updateSettingsMutation.mutate({ mapquest_api_key: e.target.value, mapquest_key_validated: false })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
+              {settings?.mapquest_key_validated && <p className="text-xs text-green-500 mt-1">✓ Key validated</p>}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e6e1e4' }}>
-              <Bell className="w-5 h-5" /> Notifications & Location
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Bell className="w-5 h-5" /> Notifications & Location</h3>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <Label style={{ color: '#e6e1e4' }}>Push Notifications</Label>
                 <p className="text-xs" style={{ color: '#8a7f87' }}>Get alerts even when app is closed</p>
               </div>
               {user?.push_enabled ? (
-                <span className="text-xs text-green-600 font-medium">✓ Enabled</span>
+                <span className="text-xs text-green-500 font-medium">✓ Enabled</span>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowPushDialog(true)}
-                >
-                  Enable
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowPushDialog(true)}>Enable</Button>
               )}
             </div>
-            <div className="flex items-center justify-between" style={{ borderTop: '1px solid #363436', paddingTop: 16 }}>
+            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
               <div>
                 <Label style={{ color: '#e6e1e4' }}>Location Sharing</Label>
                 <p className="text-xs" style={{ color: '#8a7f87' }}>Share location while working</p>
               </div>
               {user?.location_permission ? (
-                <span className="text-xs text-green-600 font-medium">✓ Enabled</span>
+                <span className="text-xs text-green-500 font-medium">✓ Enabled</span>
               ) : (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowLocationDialog(true)}
-                >
-                  Enable
-                </Button>
+                <Button variant="outline" size="sm" onClick={() => setShowLocationDialog(true)}>Enable</Button>
               )}
             </div>
-            <div className="flex items-center justify-between" style={{ borderTop: '1px solid #363436', paddingTop: 16 }}>
+            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
               <div>
                 <Label style={{ color: '#e6e1e4' }}>In-App Notifications</Label>
                 <p className="text-xs" style={{ color: '#8a7f87' }}>Show notifications in app</p>
               </div>
-              <Switch
-                checked={user?.notification_in_app !== false}
-                onCheckedChange={(checked) => {
-                  base44.auth.updateMe({ notification_in_app: checked });
-                  queryClient.invalidateQueries({ queryKey: ['currentUser'] });
-                  toast.success('Setting updated');
-                }}
-              />
+              <Switch checked={user?.notification_in_app !== false} onCheckedChange={(checked) => { base44.auth.updateMe({ notification_in_app: checked }); queryClient.invalidateQueries({ queryKey: ['currentUser'] }); toast.success('Setting updated'); }} />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg flex items-center gap-2" style={{ color: '#e6e1e4' }}>
-              <Navigation className="w-5 h-5" /> Preferences
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Navigation className="w-5 h-5" /> Preferences</h3>
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <Label style={{ color: '#e6e1e4' }}>Left-handed Mode</Label>
-              <Switch
-                checked={settings?.left_handed_mode || false}
-                onCheckedChange={(checked) => updateSettingsMutation.mutate({ left_handed_mode: checked })}
-              />
+              <Switch checked={settings?.left_handed_mode || false} onCheckedChange={(checked) => updateSettingsMutation.mutate({ left_handed_mode: checked })} />
             </div>
-            <div className="flex items-center justify-between" style={{ borderTop: '1px solid #363436', paddingTop: 16 }}>
+            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
               <Label style={{ color: '#e6e1e4' }}>Dark Mode</Label>
-              <Switch
-                checked={settings?.dark_mode || false}
-                onCheckedChange={(checked) => updateSettingsMutation.mutate({ dark_mode: checked })}
-              />
+              <Switch checked={settings?.dark_mode || false} onCheckedChange={(checked) => updateSettingsMutation.mutate({ dark_mode: checked })} />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <Button 
           variant="destructive" 
