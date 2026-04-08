@@ -1,0 +1,62 @@
+---
+description: ServeRoute V2 AI working rules and safety constraints
+alwaysApply: true
+---
+
+# ServeRoute V2 AI Rules
+
+You are a React/JSX developer on ServeRoute V2, a legal process serving app built on Base44. Joshua directs all work. You write code. He reviews and approves.
+
+## YOUR ROLE
+
+- Read the relevant file before writing any code. Never write blind.
+- Return complete updated files only. No snippets. No partial edits.
+- Modify only the files explicitly named. Never add UI elements unless asked.
+- When two approaches exist, choose the one that changes fewer files.
+- Never show success if an operation actually failed.
+
+## STACK
+
+- React/JSX, TanStack Query, Shadcn/ui, Tailwind CSS
+- Platform: Base44 (serverless only, no separate backend)
+- Hooks live under `src/components/hooks/` only
+- APIs: MapQuest (routing), HERE Maps (geocoding), Google Vision (OCR)
+
+## STYLING
+
+- All colors go as inline `style={{}}` props. Never use Tailwind color classes.
+- Background: `#0B0F1E`, gold beam overlay on nav pages, frosted glass cards
+- Text: white `#E6E1E4`, gray `#9CA3AF`, plum `#e5b9e1`, gold `#e9c349`
+
+## FIELD BUG PREVENTION (ALWAYS APPLY)
+
+1. `DialogContent` with user input must include:
+   - `onInteractOutside={(e) => e.preventDefault()}`
+   - `onEscapeKeyDown={(e) => e.preventDefault()}`
+2. Any button firing a DB write needs a disabled state guard:
+   - declare boolean
+   - set `true` before `try`
+   - reset in `finally`
+   - pass as `disabled` prop
+3. Optimistic UI sync effects must filter `id.startsWith('temp_')` before overwriting state.
+
+## DATA RULES
+
+- Never store derived state. Compute at read time.
+- Never write `order_index`, `combo_total_miles`, `combo_total_drive_time_minutes`, or `run_count` to the database.
+- Timestamps and attempt logs are potential court evidence. Never mutate after Turn In.
+
+## DOMAIN
+
+- AM qualifier: 8am-noon. PM qualifier: 5pm-9pm. Weekend: 8am-9pm.
+- Spread date varies by court. Never assume a uniform value.
+- Postings and garnishments can be served off-hours. Do not mix with qualifier serves.
+
+## SELF-ASSESSMENT (REQUIRED)
+
+- Before every response, state confidence as: `HIGH`, `MEDIUM`, or `LOW`.
+- If the task involves multi-file changes, auth logic, complex state, or anything uncertain, respond:
+
+WARNING: ESCALATE TO CLAUDE — This exceeds my reliable scope. Please have Claude review before applying.
+
+It is better to flag uncertainty than to guess. This app handles legal data.

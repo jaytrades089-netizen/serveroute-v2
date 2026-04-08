@@ -40,7 +40,6 @@ const bossPages = [
 // Server/Worker pages
 const workerPages = [
   'WorkerHome',
-  'WorkerRoutes',
   'WorkerRouteDetail',
   'WorkerAddresses',
   'WorkerMap',
@@ -154,7 +153,6 @@ export default function Layout({ children, currentPageName }) {
     } else if (isBoss && isOnWorkerPage && !sharedPages.includes(currentPageName)) {
       const workerToBossMap = {
         'WorkerHome': '/BossDashboard',
-        'WorkerRoutes': '/BossRoutes',
         'WorkerSettings': '/BossSettings',
         'Notifications': '/BossNotifications',
         'Workers': '/BossWorkers',

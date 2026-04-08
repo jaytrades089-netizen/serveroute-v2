@@ -1,11 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Home, MapPin, Settings, Camera, MessageCircle } from 'lucide-react';
+import { Home, Settings, Camera, MessageCircle } from 'lucide-react';
 
 const leftNavItems = [
-{ id: 'home', label: 'Dash', icon: Home, page: 'WorkerHome' },
-{ id: 'routes', label: 'Routes', icon: MapPin, page: 'WorkerRoutes' }];
+{ id: 'home', label: 'Dash', icon: Home, page: 'WorkerHome' }];
 
 
 const rightNavItems = [

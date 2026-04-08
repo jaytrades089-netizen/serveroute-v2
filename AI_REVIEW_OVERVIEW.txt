@@ -1,0 +1,123 @@
+ServeRoute V2 - Architecture and Risk Overview
+
+Summary
+ServeRoute V2 captures real process-serving workflows well (qualifiers, receipts, RTO, role-based behavior) and has a solid React Query + shadcn/ui foundation. The main concern is that the codebase is now in a "works now, risky to scale safely" phase due to very large components, non-atomic multi-entity writes, and scattered data/cache logic.
+
+Top issues and proposed fixes
+
+1) Giant "god components" (AddressCard, RouteCard, WorkerRouteDetail, WorkerPayout)
+Problem:
+- UI, business logic, async flows, and DB writes are all mixed in very large files.
+- This increases regression risk and makes testing/refactors slower.
+
+How to fix:
+- Refactor in place without behavior changes first.
+- Extract feature hooks (data + mutations), for example:
+  - useAddressAttempts(addressId, routeId)
+  - useRouteScheduling(route)
+  - useWorkerPayoutData(workerId, dateRange)
+- Extract presentational components that are props-only and have no Base44 calls.
+- Keep current external props/signatures so parent screens do not break.
+- Add focused tests for extracted pure logic (qualifier calculations, spread-date checks, counters).
+
+2) Non-atomic legal/evidence flows (especially receipt submit flows)
+Problem:
+- Multi-step writes across Receipt, Attempt, Address, Route, and ScheduledServe are executed sequentially.
+- If one step fails mid-flow, records can become contradictory.
+
+How to fix:
+- Preferred: move critical multi-entity flows into one server-side Base44 function/API call.
+- If client-side must remain:
+  - Create a single transaction helper with strict step ordering.
+  - Track completed steps and apply compensation (rollback-like behavior) on failure where possible.
+  - Add idempotency guards to avoid double-apply.
+- Return one canonical success/failure result to UI and only show success when all required steps complete.
+
+3) Evidence mutability risk after capture
+Problem:
+- Attempt deletion and direct edits to notes/time can compromise legal evidence chain unless tightly constrained.
+
+How to fix:
+- Enforce lifecycle locks:
+  - After Turn In / receipt-approved state, worker edits and deletes should be blocked.
+- Prefer append-only correction model:
+  - Keep original record immutable.
+  - Add correction/supersede records with actor + timestamp.
+- Ensure backend enforces these permissions/rules, not just UI.
+
+4) Fragile React Query key/invalidation strategy
+Problem:
+- Query keys are scattered string literals; typos/drift can silently break cache behavior.
+
+How to fix:
+- Add centralized query key factory module, e.g. queryKeys.
+- Migrate useQuery/useMutation/invalidateQueries to that module.
+- Remove orphan invalidations and standardize key naming conventions.
+
+5) Denormalized counters can drift (served_count, attempts_count, total_addresses)
+Problem:
+- Counters are computed/written in multiple places, creating race conditions under concurrent actions.
+
+How to fix:
+- Do not persist derived state unless absolutely required.
+- Compute at read time where possible.
+- Where persistence is required:
+  - Move to single backend-owned recompute/update helper(s).
+  - Add integrity checks (no negatives, recalc from source on mismatch).
+
+6) Polling + broad invalidation network churn
+Problem:
+- Frequent polling plus broad invalidation creates unnecessary load and stale-jitter behavior.
+
+How to fix:
+- Introduce shared polling hook:
+  - centralized intervals/backoff
+  - visibility-aware polling
+  - targeted refetch/invalidation only
+- Prefer narrow query refreshes over "invalidate many keys".
+- Adopt event-driven updates if platform capabilities allow.
+
+7) Split auth/session source of truth
+Problem:
+- AuthContext, Layout logic, and separate current-user hooks can diverge.
+
+How to fix:
+- Define one authoritative auth data path.
+- Centralize route/role gate logic in one place (layout/guard).
+- Have pages consume a single standard hook/context contract.
+
+8) Styling consistency implementation drift
+Problem:
+- Theme direction is strong, but style implementation is mixed and repetitive.
+
+How to fix:
+- Create design tokens/constants for colors/surfaces.
+- Extract tiny shared primitives (e.g., FrostedCard, StatusPill).
+- Replace repeated inline style blocks gradually in high-traffic screens first.
+
+Strengths worth keeping
+- Strong domain coverage of real ServeRoute workflows.
+- Broad use of loading/disabled/toast feedback patterns.
+- Existing reusable hooks/services that can support incremental refactor.
+- Good foundation to improve safely without a rewrite.
+
+Suggested phased execution plan
+Phase 1 (Safety-first):
+- Lock evidence mutability rules.
+- Centralize query keys.
+- Wrap multi-entity write flows with explicit success/failure guards.
+
+Phase 2 (Stability):
+- Extract hooks + presentational components from AddressCard/RouteCard.
+- Unify auth source of truth.
+
+Phase 3 (Scale/maintainability):
+- Move critical write orchestration to server-side endpoints/functions.
+- Reduce polling churn and normalize data refresh strategy.
+- Standardize style tokens/primitives.
+
+Note for Claude review
+Please validate:
+- Which flows should be hard-locked for legal immutability.
+- Whether Base44 supports true transactional server-side writes or best-available compensation.
+- Priority order for refactors that minimizes production risk while preserving field usability.
