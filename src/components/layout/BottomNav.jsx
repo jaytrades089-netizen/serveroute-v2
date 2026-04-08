@@ -69,7 +69,7 @@ export default function BottomNav({ currentPage }) {
         zIndex: 9999
       }} className="px-2 py-2 opacity-100 frosted-glass-light fixed bottom-0 left-0 right-0 z-50 bottom-nav-bar">
         <div style={{ height: 1, background: 'linear-gradient(to right, rgba(233,195,73,0.55), rgba(233,195,73,0.0))', marginBottom: 8 }} />
-        <div className="max-w-lg mx-auto flex justify-around items-end">
+        <div className="max-w-lg mx-auto flex justify-around items-center">
 
           {/* Dash */}
           <Link
@@ -98,7 +98,7 @@ export default function BottomNav({ currentPage }) {
           {/* Center Scan Button */}
           <Link
             to={createPageUrl('ScanDocumentType')}
-            className="flex-1 flex flex-col items-center justify-end -mt-4">
+            className="flex-1 flex flex-col items-center justify-center">
             <div
               className="rounded-2xl flex items-center justify-center transition-all"
               style={{
@@ -108,6 +108,7 @@ export default function BottomNav({ currentPage }) {
                 background: '#e9c349',
                 boxShadow: '0 4px 12px rgba(233, 195, 73, 0.4)',
                 marginBottom: -4,
+                marginTop: -16,
                 animation: 'pulse-glow 2s infinite'
               }}>
               <Camera className="w-7 h-7" style={{ color: '#0F0B10' }} />
@@ -115,7 +116,7 @@ export default function BottomNav({ currentPage }) {
             <span style={{
               fontSize: 12,
               fontWeight: 500,
-              marginTop: 4,
+              marginTop: 8,
               color: isScanActive ? '#e9c349' : '#8a7f87',
               textAlign: 'center'
             }}>
