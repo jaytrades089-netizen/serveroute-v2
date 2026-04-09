@@ -6,12 +6,43 @@ import { createPageUrl } from '@/utils';
 import { ChevronLeft, Phone, CalendarIcon, MapPin, FileText, Loader2, Copy, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { formatAddress } from '@/components/utils/addressUtils';
 import { getCompanyId } from '@/components/utils/companyUtils';
 import { format } from 'date-fns';
 import DateTimeWheelPicker from '@/components/common/DateTimeWheelPicker';
+
+// ── shared style tokens ──────────────────────────────────────────────────────
+const card = {
+  background: 'rgba(14, 20, 44, 0.55)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255,255,255,0.10)',
+  borderRadius: '16px',
+  padding: '16px',
+};
+const label = {
+  fontSize: '10px',
+  fontWeight: 700,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  color: '#6B7280',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px',
+  marginBottom: '10px',
+};
+const inputStyle = {
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: '10px',
+  color: '#E6E1E4',
+  fontSize: '14px',
+  padding: '10px 12px',
+  width: '100%',
+  outline: 'none',
+};
+// ────────────────────────────────────────────────────────────────────────────
 
 export default function CreateScheduledServe() {
   const navigate = useNavigate();
@@ -22,11 +53,9 @@ export default function CreateScheduledServe() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
 
-  // Wheel picker indices — start at noon (12:00 PM)
-  // HOURS: index 0=1, ..., 11=12. Noon = index 11 (12), PM = index 1
-  const [startHourIdx, setStartHourIdx] = useState(11); // 12
-  const [startMinIdx, setStartMinIdx] = useState(0);   // :00
-  const [startAmPmIdx, setStartAmPmIdx] = useState(1); // PM
+  const [startHourIdx, setStartHourIdx] = useState(11);
+  const [startMinIdx, setStartMinIdx] = useState(0);
+  const [startAmPmIdx, setStartAmPmIdx] = useState(1);
   const [endHourIdx, setEndHourIdx] = useState(11);
   const [endMinIdx, setEndMinIdx] = useState(0);
   const [endAmPmIdx, setEndAmPmIdx] = useState(1);
@@ -35,12 +64,10 @@ export default function CreateScheduledServe() {
   const MINUTES = ['00','15','30','45'];
   const AMPM = ['AM','PM'];
 
-  // Convert wheel indices to h/m/ampm strings
   const idxToTime = (hIdx, mIdx, apIdx) => ({
-    hour: HOURS[hIdx],
-    minute: MINUTES[mIdx],
-    ampm: AMPM[apIdx]
+    hour: HOURS[hIdx], minute: MINUTES[mIdx], ampm: AMPM[apIdx]
   });
+
   const [notes, setNotes] = useState('');
   const [locationType, setLocationType] = useState('posting');
   const [meetingAddress, setMeetingAddress] = useState('');
@@ -99,7 +126,6 @@ export default function CreateScheduledServe() {
     return dt.toISOString();
   }, [selectedDate, startHourIdx, startMinIdx, startAmPmIdx]);
 
-  // Build notes template
   const buildTemplate = useCallback(() => {
     const defendantName = address?.defendant_name || '(unknown)';
     const locationLabel = locationType === 'posting' ? 'Place of Posting' : 'Meeting Place';
@@ -107,11 +133,9 @@ export default function CreateScheduledServe() {
       ? fullPostingAddress
       : (meetingAddress || '(not entered)');
     const dateTimeStr = getDateTimeDisplay() || '(not selected)';
-
     return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${phoneNumber || '(not entered)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}`;
   }, [address, locationType, fullPostingAddress, meetingAddress, getDateTimeDisplay, phoneNumber]);
 
-  // Auto-populate notes on first load
   const [templateInitialized, setTemplateInitialized] = useState(false);
   useEffect(() => {
     if (address && !templateInitialized) {
@@ -120,58 +144,38 @@ export default function CreateScheduledServe() {
     }
   }, [address, templateInitialized, buildTemplate]);
 
-  // Update template when dependencies change (only if user hasn't manually edited away from template)
   useEffect(() => {
-    if (templateInitialized) {
-      setNotes(buildTemplate());
-    }
+    if (templateInitialized) setNotes(buildTemplate());
   }, [locationType, meetingAddress, selectedDate, startHourIdx, startMinIdx, startAmPmIdx, phoneNumber, buildTemplate, templateInitialized]);
 
   const handleCopyNotes = () => {
-    navigator.clipboard.writeText(notes).then(() => {
-      toast.success('Copied', { duration: 1500 });
-    }).catch(() => {
-      toast.error('Failed to copy');
-    });
+    navigator.clipboard.writeText(notes)
+      .then(() => toast.success('Copied', { duration: 1500 }))
+      .catch(() => toast.error('Failed to copy'));
   };
 
   const handleSave = async () => {
-    if (!selectedDate) {
-      toast.error('Please select a date');
-      return;
-    }
+    if (!selectedDate) { toast.error('Please select a date'); return; }
     const isoDate = getDateTimeISO();
-
     if (locationType === 'meeting' && !meetingAddress.trim()) {
-      toast.error('Please enter a meeting place address');
-      return;
+      toast.error('Please enter a meeting place address'); return;
     }
-
     setSaving(true);
     const companyId = getCompanyId(user) || address?.company_id;
-
-    let meetingLat = null;
-    let meetingLng = null;
+    let meetingLat = null, meetingLng = null;
 
     if (locationType === 'meeting' && meetingAddress.trim()) {
       const geocodeResult = await base44.integrations.Core.InvokeLLM({
         prompt: `Geocode this address and return lat/lng coordinates: "${meetingAddress}". If you cannot geocode it, return null values.`,
         response_json_schema: {
-          type: "object",
-          properties: {
-            lat: { type: "number" },
-            lng: { type: "number" },
-            valid: { type: "boolean" }
-          }
+          type: 'object',
+          properties: { lat: { type: 'number' }, lng: { type: 'number' }, valid: { type: 'boolean' } }
         }
       });
-
       if (!geocodeResult.valid) {
         toast.error('Could not geocode meeting place address. Please check the address and try again.');
-        setSaving(false);
-        return;
+        setSaving(false); return;
       }
-
       meetingLat = geocodeResult.lat;
       meetingLng = geocodeResult.lng;
     }
@@ -184,7 +188,7 @@ export default function CreateScheduledServe() {
         company_id: companyId,
         phone_number: phoneNumber,
         scheduled_datetime: isoDate,
-        notes: notes,
+        notes,
         location_type: locationType,
         meeting_place_address: locationType === 'meeting' ? meetingAddress : null,
         meeting_place_lat: meetingLat,
@@ -193,7 +197,6 @@ export default function CreateScheduledServe() {
         defendant_name: address?.defendant_name || '',
         folder_name: route?.folder_name || ''
       });
-
       toast.success('Scheduled serve created');
       navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
     } catch (error) {
@@ -206,151 +209,164 @@ export default function CreateScheduledServe() {
 
   if (addressLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'transparent' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
-
-
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
-      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3 sticky top-0 z-50">
-        <button onClick={() => navigate(-1)}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 32 }}>
+      {/* Header */}
+      <header
+        className="px-4 py-3 flex items-center gap-3 sticky top-0 z-50"
+        style={{
+          background: 'rgba(10,14,30,0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          borderBottom: '1px solid rgba(233,195,73,0.20)'
+        }}
+      >
+        <button onClick={() => navigate(-1)} style={{ color: '#e9c349' }}>
           <ChevronLeft className="w-6 h-6" />
         </button>
-        <h1 className="font-bold text-lg">Schedule Serve</h1>
+        <h1 className="font-bold text-lg" style={{ color: '#E6E1E4' }}>Schedule Serve</h1>
       </header>
 
-      <main className="px-4 py-4 max-w-lg mx-auto space-y-4">
+      <main className="px-4 py-4 max-w-lg mx-auto space-y-3">
+
         {/* Address Info */}
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs font-semibold text-gray-500 mb-1">ADDRESS</p>
-            <p className="font-bold text-gray-900">{formatted.line1}</p>
-            <p className="text-sm text-gray-500">{formatted.line2}</p>
-            {address?.defendant_name && (
-              <p className="text-sm text-gray-600 mt-1">{address.defendant_name}</p>
-            )}
-          </CardContent>
-        </Card>
+        <div style={card}>
+          <div style={label}><MapPin className="w-3.5 h-3.5" style={{ color: '#e5b9e1' }} />Address</div>
+          <p className="font-bold text-sm" style={{ color: '#E6E1E4' }}>{formatted.line1}</p>
+          <p className="text-xs mt-0.5" style={{ color: '#9CA3AF' }}>{formatted.line2}</p>
+          {address?.defendant_name && (
+            <p className="text-sm mt-1" style={{ color: '#d0c3cb' }}>{address.defendant_name}</p>
+          )}
+        </div>
 
         {/* Phone Number */}
-        <Card>
-          <CardContent className="p-4">
-            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-2">
-              <Phone className="w-3.5 h-3.5" /> PHONE NUMBER
-            </label>
-            <Input
-              type="tel"
-              placeholder="(555) 123-4567"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-            />
-          </CardContent>
-        </Card>
+        <div style={card}>
+          <label style={label}><Phone className="w-3.5 h-3.5" style={{ color: '#e5b9e1' }} />Phone Number</label>
+          <input
+            type="tel"
+            placeholder="(555) 123-4567"
+            value={phoneNumber}
+            onChange={e => setPhoneNumber(e.target.value)}
+            style={{ ...inputStyle }}
+          />
+        </div>
 
-        {/* Combined Date + Time Picker */}
-        <Card>
-          <CardContent className="p-4">
-            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <CalendarIcon className="w-3.5 h-3.5" /> DATE &amp; TIME
-            </label>
-            <DateTimeWheelPicker
-              date={selectedDate}
-              onDateChange={setSelectedDate}
-              startHourIndex={startHourIdx}
-              startMinuteIndex={startMinIdx}
-              startAmPmIndex={startAmPmIdx}
-              onStartChange={(h, m, ap) => { setStartHourIdx(h); setStartMinIdx(m); setStartAmPmIdx(ap); }}
-              endHourIndex={endHourIdx}
-              endMinuteIndex={endMinIdx}
-              endAmPmIndex={endAmPmIdx}
-              onEndChange={(h, m, ap) => { setEndHourIdx(h); setEndMinIdx(m); setEndAmPmIdx(ap); }}
-              showEnd={true}
-            />
-            {selectedDate && (
-              <p className="text-sm text-blue-600 font-medium mt-3 text-center">{getDateTimeDisplay()}</p>
-            )}
-          </CardContent>
-        </Card>
+        {/* Date & Time */}
+        <div style={card}>
+          <label style={label}><CalendarIcon className="w-3.5 h-3.5" style={{ color: '#e5b9e1' }} />Date &amp; Time</label>
+          <DateTimeWheelPicker
+            date={selectedDate}
+            onDateChange={setSelectedDate}
+            startHourIndex={startHourIdx}
+            startMinuteIndex={startMinIdx}
+            startAmPmIndex={startAmPmIdx}
+            onStartChange={(h, m, ap) => { setStartHourIdx(h); setStartMinIdx(m); setStartAmPmIdx(ap); }}
+            endHourIndex={endHourIdx}
+            endMinuteIndex={endMinIdx}
+            endAmPmIndex={endAmPmIdx}
+            onEndChange={(h, m, ap) => { setEndHourIdx(h); setEndMinIdx(m); setEndAmPmIdx(ap); }}
+            showEnd={true}
+          />
+          {selectedDate && (
+            <p className="text-sm font-semibold mt-3 text-center" style={{ color: '#e9c349' }}>
+              {getDateTimeDisplay()}
+            </p>
+          )}
+        </div>
 
         {/* Location */}
-        <Card>
-          <CardContent className="p-4">
-            <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5 mb-3">
-              <MapPin className="w-3.5 h-3.5" /> LOCATION
-            </label>
-            <div className="grid grid-cols-2 gap-2 mb-3">
+        <div style={card}>
+          <label style={label}><MapPin className="w-3.5 h-3.5" style={{ color: '#e5b9e1' }} />Location</label>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {['posting', 'meeting'].map(type => (
               <button
-                onClick={() => setLocationType('posting')}
-                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  locationType === 'posting'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-600'
-                }`}
+                key={type}
+                onClick={() => setLocationType(type)}
+                style={{
+                  padding: '10px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  border: locationType === type ? '2px solid #e9c349' : '1px solid rgba(255,255,255,0.10)',
+                  background: locationType === type ? 'rgba(233,195,73,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: locationType === type ? '#e9c349' : '#6B7280',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
               >
-                Place of Posting
+                {type === 'posting' ? 'Place of Posting' : 'Meeting Place'}
               </button>
-              <button
-                onClick={() => setLocationType('meeting')}
-                className={`p-3 rounded-xl text-sm font-semibold border-2 transition-all ${
-                  locationType === 'meeting'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-200 bg-white text-gray-600'
-                }`}
-              >
-                Meeting Place
-              </button>
+            ))}
+          </div>
+          {locationType === 'posting' ? (
+            <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: '10px', padding: '10px 12px' }}>
+              <p className="text-xs" style={{ color: '#9CA3AF' }}>Will use: {formatted.line1}, {formatted.line2}</p>
             </div>
-            {locationType === 'posting' ? (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-                Will use: {formatted.line1}, {formatted.line2}
-              </div>
-            ) : (
-              <Input
-                placeholder="Enter meeting place address..."
-                value={meetingAddress}
-                onChange={(e) => setMeetingAddress(e.target.value)}
-              />
-            )}
-          </CardContent>
-        </Card>
+          ) : (
+            <input
+              placeholder="Enter meeting place address..."
+              value={meetingAddress}
+              onChange={e => setMeetingAddress(e.target.value)}
+              style={inputStyle}
+            />
+          )}
+        </div>
 
         {/* Notes */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-semibold text-gray-500 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" /> NOTES
-              </label>
-              <button
-                onClick={handleCopyNotes}
-                className="flex items-center gap-1 text-xs text-blue-600 font-medium hover:text-blue-800 transition-colors px-2 py-1 rounded-lg hover:bg-blue-50"
-              >
-                <Copy className="w-3.5 h-3.5" />
-                Copy
-              </button>
-            </div>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
-              rows={6}
-            />
-          </CardContent>
-        </Card>
+        <div style={card}>
+          <div className="flex items-center justify-between mb-2">
+            <label style={{ ...label, marginBottom: 0 }}><FileText className="w-3.5 h-3.5" style={{ color: '#e5b9e1' }} />Notes</label>
+            <button
+              onClick={handleCopyNotes}
+              className="flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-lg transition-colors hover:opacity-80"
+              style={{ color: '#e9c349', background: 'rgba(233,195,73,0.12)', border: '1px solid rgba(233,195,73,0.25)' }}
+            >
+              <Copy className="w-3.5 h-3.5" /> Copy
+            </button>
+          </div>
+          <textarea
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            rows={6}
+            style={{
+              ...inputStyle,
+              resize: 'none',
+              fontFamily: 'inherit',
+              lineHeight: 1.5
+            }}
+          />
+        </div>
 
         {/* Save Button */}
-        <Button
+        <button
           onClick={handleSave}
           disabled={saving || !selectedDate}
-          className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm"
+          style={{
+            width: '100%',
+            height: '52px',
+            borderRadius: '14px',
+            background: saving || !selectedDate ? 'rgba(233,195,73,0.25)' : '#e9c349',
+            color: saving || !selectedDate ? 'rgba(233,195,73,0.5)' : '#0B0F1E',
+            fontWeight: 700,
+            fontSize: '15px',
+            border: 'none',
+            cursor: saving || !selectedDate ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            transition: 'all 0.15s'
+          }}
         >
-          {saving ? <Loader2 className="w-5 h-5 animate-spin mr-2" /> : null}
+          {saving && <Loader2 className="w-5 h-5 animate-spin" />}
           Create Scheduled Serve
-        </Button>
+        </button>
       </main>
     </div>
   );
