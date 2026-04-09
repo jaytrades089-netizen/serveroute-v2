@@ -86,8 +86,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     staleTime: 10 * 60 * 1000
   });
 
-  const mapquestKey = userSettings?.mapquest_api_key || backendApiKeys?.mapquest_api_key || null;
-  const hereKey = userSettings?.here_api_key || backendApiKeys?.here_api_key || null;
+  const mapquestKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key || null;
+  const hereKey = backendApiKeys?.here_api_key || userSettings?.here_api_key || null;
 
   const handleDeleteLocation = async (locId) => {
     try {
