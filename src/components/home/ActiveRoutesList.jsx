@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2, CalendarDays } from 'lucide-react';
+import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2, CalendarDays, Pencil } from 'lucide-react';
 import ScheduleRunModal from './ScheduleRunModal';
+import EditRouteModal from './EditRouteModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,8 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], onArchive, onDelete }) {
   const [schedulingRoute, setSchedulingRoute] = useState(null);
+  const [editingRoute, setEditingRoute] = useState(null);
+
   const routeNameMap = React.useMemo(() => {
     const map = {};
     routes.forEach(r => { map[r.id] = r.folder_name; });
@@ -139,14 +142,12 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       { key: 'weekend', label: 'WKND' },
     ];
 
-    // Only count pending (non-served, non-returned) addresses for qualifier badges
     const pendingAddressIds = new Set(
       addresses
         .filter(a => a.route_id === route.id && !a.served && a.status !== 'returned')
         .map(a => a.id)
     );
 
-    // Group attempts by attempt_number to show "Attempt 1", "Attempt 2" etc.
     const attemptsByNumber = {};
     routeAttempts.forEach(a => {
       if (pendingAddressIds.size > 0 && !pendingAddressIds.has(a.address_id)) return;
@@ -162,7 +163,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       .map(([num, quals]) => ({ num: Number(num), am: quals.am, pm: quals.pm, weekend: quals.weekend, count: quals.addresses.size }));
     const hasAnyAttempts = attemptList.length > 0;
 
-    // Check if all pending addresses have all 3 qualifiers covered (combined across attempts)
     const addressCoverage = {};
     routeAttempts.forEach(a => {
       if (!pendingAddressIds.has(a.address_id)) return;
@@ -285,6 +285,10 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={e => { e.preventDefault(); setEditingRoute(route); }}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Route
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}>
                 <CalendarDays className="w-4 h-4 mr-2" />
                 Schedule Runs
@@ -408,6 +412,12 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           route={schedulingRoute}
           onClose={() => setSchedulingRoute(null)}
           onSaved={() => setSchedulingRoute(null)}
+        />
+      )}
+      {editingRoute && (
+        <EditRouteModal
+          route={editingRoute}
+          onClose={() => setEditingRoute(null)}
         />
       )}
     </div>
