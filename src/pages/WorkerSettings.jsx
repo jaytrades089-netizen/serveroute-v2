@@ -72,47 +72,6 @@ export default function WorkerSettings() {
       <main className="px-4 py-6 max-w-lg mx-auto space-y-4">
         <h1 className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>Settings</h1>
 
-        {/* Quick Links */}
-        <div className="grid grid-cols-2 gap-3">
-          <Link to={createPageUrl('WorkerVacationRequest')}>
-            <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer h-full p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
-                <Calendar className="w-5 h-5" style={{ color: '#e9c349' }} />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>Time Off</p>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>Request vacation</p>
-              </div>
-              <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-            </div>
-          </Link>
-          <Link to={createPageUrl('WorkerStats')}>
-            <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer h-full p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
-                <TrendingUp className="w-5 h-5" style={{ color: '#22c55e' }} />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Stats</p>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>View performance</p>
-              </div>
-              <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-            </div>
-          </Link>
-        </div>
-
-        <Link to={createPageUrl('WorkerReceipts')}>
-          <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="hover:opacity-90 transition-opacity cursor-pointer p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg" style={{ background: 'rgba(80,47,80,0.60)' }}>
-              <FileCheck className="w-5 h-5" style={{ color: '#a78bfa' }} />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm" style={{ color: '#e6e1e4' }}>My Receipts</p>
-              <p className="text-xs" style={{ color: '#8a7f87' }}>View submitted receipts</p>
-            </div>
-            <ChevronRight className="w-4 h-4" style={{ color: '#8a7f87' }} />
-          </div>
-        </Link>
-
         <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}>
             <User className="w-5 h-5" /> Profile
@@ -250,7 +209,6 @@ export default function WorkerSettings() {
 
       <BottomNav currentPage="WorkerSettings" />
 
-      {/* Permission Dialogs */}
       <PushPermissionDialog 
         open={showPushDialog} 
         onOpenChange={setShowPushDialog}
