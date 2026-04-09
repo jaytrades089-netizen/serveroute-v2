@@ -435,17 +435,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         console.warn('Could not save optimized order or route metrics:', saveErr);
       }
 
-      // Save order_index and zone_label to each address BEFORE refetch
-      for (const addr of optimizedAddresses) {
-        const updates = { order_index: addr.order_index };
-        if (addr.zone_label) updates.zone_label = addr.zone_label;
-        try {
-          await base44.entities.Address.update(addr.id, updates);
-        } catch (err) {
-          console.warn(`Failed to update address ${addr.id}:`, err);
-        }
-      }
-
       // Force immediate refetch so the address list updates right away with new order
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
