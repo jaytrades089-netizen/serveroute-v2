@@ -95,11 +95,11 @@ export default function ScheduleRunModal({ route, onClose, onSaved }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={onClose}>
       <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)' }} />
       <div
-        className="relative w-full max-w-lg rounded-t-2xl p-5"
-        style={{ background: '#0F1A2E', border: '1px solid rgba(255,255,255,0.12)', borderBottom: 'none', maxHeight: '80vh', overflowY: 'auto' }}
+        className="relative w-full max-w-lg rounded-2xl p-5"
+        style={{ background: '#0F1A2E', border: '1px solid rgba(255,255,255,0.12)', maxHeight: '85vh', overflowY: 'auto' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
