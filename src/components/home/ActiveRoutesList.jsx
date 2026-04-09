@@ -223,8 +223,9 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           background: 'rgba(14, 20, 44, 0.55)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.18)',
-          borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
+          border: isActive ? '2px solid rgba(229,179,225,0.60)' : '2px solid rgba(229,179,225,0.35)',
+          boxShadow: isActive ? '0 0 14px rgba(229,179,225,0.20), inset 0 0 0 1px rgba(229,179,225,0.12)' : '0 0 10px rgba(229,179,225,0.12), inset 0 0 0 1px rgba(229,179,225,0.08)',
+          borderLeft: isActive ? '4px solid #e5b9e1' : '2px solid rgba(229,179,225,0.35)'
         }}
       >
         {/* Absolutely positioned right column: status badge + scheduled run chips */}
