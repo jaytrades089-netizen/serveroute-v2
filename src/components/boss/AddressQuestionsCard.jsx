@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MessageCircle, ChevronRight, Clock, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-import { formatAddress } from '@/components/address/AddressCard';
+import { formatAddress } from '@/components/utils/addressFormatter';
 
 export default function AddressQuestionsCard({ companyId }) {
   const { data: questions = [], isLoading, isError } = useQuery({
