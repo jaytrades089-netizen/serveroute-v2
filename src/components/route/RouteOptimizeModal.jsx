@@ -198,6 +198,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setRouteMetrics(null);
 
     try {
+      // Clear stale optimized_order before re-optimizing to prevent old order from sticking
+      await base44.entities.Route.update(routeId, { optimized_order: [] });
+
       let startLat, startLng;
 
       if (useCurrentLocation) {
