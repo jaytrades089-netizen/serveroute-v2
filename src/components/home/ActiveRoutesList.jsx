@@ -1,10 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { MapPin, Calendar, Clock } from 'lucide-react';
+import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
-export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [] }) {
+export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], onArchive, onDelete }) {
   const routeNameMap = React.useMemo(() => {
     const map = {};
     routes.forEach(r => { map[r.id] = r.folder_name; });
@@ -161,10 +167,9 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     );
 
     return (
-      <Link
+      <div
         key={route.id}
-        to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
-        className="block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
+        className="block rounded-2xl p-4 mb-3 relative"
         style={{
           background: 'rgba(14, 20, 44, 0.55)',
           backdropFilter: 'blur(20px)',
@@ -173,6 +178,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
       >
+      <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
         <div className="flex items-center gap-3 mb-2">
           <div
             className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
@@ -234,7 +240,36 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           </div>
         )}
 
-        <div className="flex justify-end">
+        <div className="flex justify-between items-end">
+          {/* Hamburger menu — bottom left */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild onClick={e => e.preventDefault()}>
+              <button
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-white/10"
+                style={{ color: '#6B7280', border: '1px solid rgba(255,255,255,0.12)' }}
+                onClick={e => e.preventDefault()}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {onArchive && (
+                <DropdownMenuItem onClick={e => { e.preventDefault(); onArchive(route); }}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Route
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <DropdownMenuItem className="text-red-600" onClick={e => { e.preventDefault(); onDelete(route); }}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Route
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Qualifier badges — bottom right */}
+          <div className="flex-1 flex justify-end">
           {!hasAnyAttempts ? (
             <div className="flex gap-1">
               {allQuals.map(({ key, label }) => (
@@ -283,8 +318,10 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               })}
             </div>
           )}
+          </div>
         </div>
       </Link>
+      </div>
     );
   };
 

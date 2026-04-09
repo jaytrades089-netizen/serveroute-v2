@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
@@ -15,6 +15,7 @@ import LocationTracker from '../components/worker/LocationTracker';
 import AddressSearch from '../components/common/AddressSearch';
 import ComboRouteCard from '../components/common/ComboRouteCard';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
@@ -247,6 +248,38 @@ export default function WorkerHome() {
     return effectiveDueDate <= nextPayrollDate;
   });
 
+  const handleArchiveRoute = useCallback(async (route) => {
+    const confirmed = window.confirm(`Archive "${route.folder_name}"?\n\nYou can unarchive it anytime from the Routes page.`);
+    if (!confirmed) return;
+    try {
+      await base44.entities.Route.update(route.id, {
+        pre_archive_status: route.status,
+        status: 'archived',
+        archived_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      toast.success(`"${route.folder_name}" archived`);
+    } catch (e) {
+      toast.error('Failed to archive route');
+    }
+  }, [user?.id, queryClient]);
+
+  const handleDeleteRoute = useCallback(async (route) => {
+    const confirmed = window.confirm(`Delete "${route.folder_name}"?\n\nThis will remove the route and all its addresses. This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await base44.entities.Route.update(route.id, { deleted_at: new Date().toISOString(), status: 'deleted' });
+      const routeAddresses = await base44.entities.Address.filter({ route_id: route.id, deleted_at: null });
+      for (const addr of routeAddresses) {
+        await base44.entities.Address.update(addr.id, { deleted_at: new Date().toISOString() });
+      }
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      toast.success(`"${route.folder_name}" deleted`);
+    } catch (e) {
+      toast.error('Failed to delete route');
+    }
+  }, [user?.id, queryClient]);
+
   const firstName = user?.full_name?.split(' ')[0] || 'there';
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
@@ -277,7 +310,7 @@ export default function WorkerHome() {
           </div>
         ))}
 
-        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} />
+        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} onArchive={handleArchiveRoute} onDelete={handleDeleteRoute} />
       </main>
 
       <BottomNav currentPage="WorkerHome" />
