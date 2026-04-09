@@ -14,7 +14,9 @@ import ActiveRoutesList from '../components/home/ActiveRoutesList.jsx';
 import LocationTracker from '../components/worker/LocationTracker';
 import AddressSearch from '../components/common/AddressSearch';
 import ComboRouteCard from '../components/common/ComboRouteCard';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Shuffle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
@@ -255,11 +257,24 @@ export default function WorkerHome() {
       <Header user={user} unreadCount={notifications.length} />
       
       <main className="px-4 py-3 max-w-lg mx-auto">
-        <AddressSearch
-          routes={routes}
-          addresses={addresses}
-          isBossView={false}
-        />
+        <div className="flex items-center gap-2 mb-4">
+          <Link to={createPageUrl('ComboRouteSelection')} className="shrink-0">
+            <Button
+              size="sm"
+              className="bg-transparent hover:bg-purple-600/20 text-purple-400 text-xs px-2.5 h-[38px] border border-purple-500"
+            >
+              <Shuffle className="w-3.5 h-3.5 mr-1" />
+              Combo{activeComboRoutes.length > 0 ? ` (${activeComboRoutes.length})` : ''}
+            </Button>
+          </Link>
+          <div className="flex-1">
+            <AddressSearch
+              routes={routes}
+              addresses={addresses}
+              isBossView={false}
+            />
+          </div>
+        </div>
 
         <WorkPhaseBlocks currentPhase={currentPhase} />
         
@@ -277,7 +292,7 @@ export default function WorkerHome() {
           </div>
         ))}
 
-        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} />
+        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} userId={user?.id} />
       </main>
 
       <BottomNav currentPage="WorkerHome" />

@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
 import { MapPin, Calendar, Clock } from 'lucide-react';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
+import ScheduledServeCard from '../scheduled/ScheduledServeCard';
 
-export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [] }) {
+export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId }) {
+  const [activeTab, setActiveTab] = useState('routes');
+
   const routeNameMap = React.useMemo(() => {
     const map = {};
     routes.forEach(r => { map[r.id] = r.folder_name; });
@@ -19,6 +24,17 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     });
     return map;
   }, [attempts]);
+
+  // Fetch open scheduled serves for this worker
+  const { data: scheduledServes = [] } = useQuery({
+    queryKey: ['workerScheduledServes', userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      return base44.entities.ScheduledServe.filter({ worker_id: userId, status: 'open' });
+    },
+    enabled: !!userId,
+    staleTime: 60 * 1000
+  });
 
   const doableRoutes = routes
     .filter(r => r.status !== 'archived' && r.status !== 'completed')
@@ -48,6 +64,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     return 5;
   };
 
+  // Build route groups by run_date
   const groups = {};
   const unscheduled = [];
   doableRoutes.forEach(route => {
@@ -58,7 +75,36 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       unscheduled.push(route);
     }
   });
-  const groupKeys = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
+
+  // Map scheduled serves to their run dates
+  const servesByDate = {};
+  scheduledServes.forEach(s => {
+    const dateKey = s.scheduled_datetime ? s.scheduled_datetime.split('T')[0] : null;
+    if (dateKey) {
+      if (!servesByDate[dateKey]) servesByDate[dateKey] = [];
+      servesByDate[dateKey].push(s);
+    }
+  });
+
+  // Build combined group keys (routes + scheduled serves)
+  const allDateKeys = new Set([
+    ...Object.keys(groups),
+    ...Object.keys(servesByDate)
+  ]);
+  const groupKeys = [...allDateKeys].sort((a, b) => new Date(a) - new Date(b));
+
+  // Serves with no date (ungrouped)
+  const ungroupedServes = scheduledServes.filter(s => {
+    const dateKey = s.scheduled_datetime?.split('T')[0];
+    return !dateKey || !allDateKeys.has(dateKey);
+  });
+
+  // Sorted scheduled serves for the Scheduled tab (closest first)
+  const sortedScheduledServes = [...scheduledServes].sort((a, b) => {
+    const aDate = a.scheduled_datetime ? new Date(a.scheduled_datetime) : new Date('9999-12-31');
+    const bDate = b.scheduled_datetime ? new Date(b.scheduled_datetime) : new Date('9999-12-31');
+    return aDate - bDate;
+  });
 
   const getStatusBadge = (status, hasRunDate) => {
     if (status === 'active') {
@@ -123,14 +169,12 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       { key: 'weekend', label: 'WKND' },
     ];
 
-    // Only count pending (non-served, non-returned) addresses for qualifier badges
     const pendingAddressIds = new Set(
       addresses
         .filter(a => a.route_id === route.id && !a.served && a.status !== 'returned')
         .map(a => a.id)
     );
 
-    // Group attempts by attempt_number to show "Attempt 1", "Attempt 2" etc.
     const attemptsByNumber = {};
     routeAttempts.forEach(a => {
       if (pendingAddressIds.size > 0 && !pendingAddressIds.has(a.address_id)) return;
@@ -146,7 +190,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       .map(([num, quals]) => ({ num: Number(num), am: quals.am, pm: quals.pm, weekend: quals.weekend, count: quals.addresses.size }));
     const hasAnyAttempts = attemptList.length > 0;
 
-    // Check if all pending addresses have all 3 qualifiers covered (combined across attempts)
     const addressCoverage = {};
     routeAttempts.forEach(a => {
       if (!pendingAddressIds.has(a.address_id)) return;
@@ -197,7 +240,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                 {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
               </span>
             )}
-
           </div>
           {getStatusBadge(route.status, !!route.run_date)}
         </div>
@@ -290,42 +332,115 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
 
   return (
     <div className="mb-6">
-      <div className="mb-3">
-        <h2 className="text-xl font-bold" style={{ color: '#e6e1e4' }}>My Routes</h2>
+      {/* Section header with tabs */}
+      <div className="flex items-center gap-3 mb-3">
+        <button
+          onClick={() => setActiveTab('routes')}
+          className="text-xl font-bold transition-opacity"
+          style={{
+            color: activeTab === 'routes' ? '#e6e1e4' : '#4B5563',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer'
+          }}
+        >
+          My Routes
+        </button>
+        <button
+          onClick={() => setActiveTab('scheduled')}
+          className="text-xl font-bold transition-opacity flex items-center gap-1.5"
+          style={{
+            color: activeTab === 'scheduled' ? '#e6e1e4' : '#4B5563',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            cursor: 'pointer'
+          }}
+        >
+          Scheduled
+          {scheduledServes.length > 0 && (
+            <span
+              className="text-xs font-semibold rounded-full px-2 py-0.5"
+              style={{
+                background: activeTab === 'scheduled' ? 'rgba(99,102,241,0.30)' : 'rgba(99,102,241,0.15)',
+                color: activeTab === 'scheduled' ? '#a5b4fc' : '#6B7280',
+                fontSize: '11px'
+              }}
+            >
+              {scheduledServes.length}
+            </span>
+          )}
+        </button>
       </div>
 
-      {doableRoutes.length === 0 ? (
-        <div className="frosted-glass rounded-xl p-8 text-center">
-          <MapPin className="w-10 h-10 mx-auto mb-2" style={{ color: '#4B5563' }} />
-          <p style={{ color: '#9CA3AF' }}>No routes</p>
-        </div>
-      ) : (
+      {/* ── SCHEDULED TAB ── */}
+      {activeTab === 'scheduled' && (
         <div>
-          {groupKeys.map(dateKey => {
-            const dt = parseISO(dateKey);
-            let dayLabel;
-            if (isToday(dt)) {
-              dayLabel = `Today — ${format(dt, 'EEE, MMM d')}`;
-            } else if (isTomorrow(dt)) {
-              dayLabel = `Tomorrow — ${format(dt, 'EEE, MMM d')}`;
-            } else {
-              dayLabel = format(dt, 'EEEE, MMM d');
-            }
-            return (
-              <div key={dateKey}>
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg mt-3 mb-2" style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)' }}>
-                  <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
-                  <span className="text-sm font-bold truncate" style={{ color: '#e9c349' }}>{dayLabel}</span>
-                </div>
-                {[...groups[dateKey]].sort((a, b) => qualifierSortScore(a.run_qualifiers) - qualifierSortScore(b.run_qualifiers)).map(route => renderRouteCard(route))}
-              </div>
-            );
-          })}
-
-          {groupKeys.length > 0 && unscheduled.length > 0 && (
-            <p className="text-xs font-semibold mt-4 mb-2 px-1" style={{ color: '#6B7280' }}>Unscheduled</p>
+          {sortedScheduledServes.length === 0 ? (
+            <div className="frosted-glass rounded-xl p-8 text-center">
+              <Calendar className="w-10 h-10 mx-auto mb-2" style={{ color: '#4B5563' }} />
+              <p style={{ color: '#9CA3AF' }}>No scheduled serves</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sortedScheduledServes.map(s => (
+                <ScheduledServeCard key={s.id} serve={s} />
+              ))}
+            </div>
           )}
-          {unscheduled.map(route => renderRouteCard(route))}
+        </div>
+      )}
+
+      {/* ── MY ROUTES TAB ── */}
+      {activeTab === 'routes' && (
+        <div>
+          {doableRoutes.length === 0 ? (
+            <div className="frosted-glass rounded-xl p-8 text-center">
+              <MapPin className="w-10 h-10 mx-auto mb-2" style={{ color: '#4B5563' }} />
+              <p style={{ color: '#9CA3AF' }}>No routes</p>
+            </div>
+          ) : (
+            <div>
+              {/* Dated groups (routes + scheduled serves interleaved) */}
+              {groupKeys.map(dateKey => {
+                const dt = parseISO(dateKey);
+                let dayLabel;
+                if (isToday(dt)) {
+                  dayLabel = `Today — ${format(dt, 'EEE, MMM d')}`;
+                } else if (isTomorrow(dt)) {
+                  dayLabel = `Tomorrow — ${format(dt, 'EEE, MMM d')}`;
+                } else {
+                  dayLabel = format(dt, 'EEEE, MMM d');
+                }
+                const routesInGroup = groups[dateKey] || [];
+                const servesInGroup = servesByDate[dateKey] || [];
+                return (
+                  <div key={dateKey}>
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg mt-3 mb-2" style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)' }}>
+                      <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
+                      <span className="text-sm font-bold truncate" style={{ color: '#e9c349' }}>{dayLabel}</span>
+                    </div>
+                    {[...routesInGroup].sort((a, b) => qualifierSortScore(a.run_qualifiers) - qualifierSortScore(b.run_qualifiers)).map(route => renderRouteCard(route))}
+                    {servesInGroup.map(s => (
+                      <ScheduledServeCard key={s.id} serve={s} />
+                    ))}
+                  </div>
+                );
+              })}
+
+              {/* Ungrouped scheduled serves */}
+              {ungroupedServes.map(s => (
+                <ScheduledServeCard key={s.id} serve={s} />
+              ))}
+
+              {/* Unscheduled routes */}
+              {groupKeys.length > 0 && unscheduled.length > 0 && (
+                <p className="text-xs font-semibold mt-4 mb-2 px-1" style={{ color: '#6B7280' }}>Unscheduled</p>
+              )}
+              {unscheduled.map(route => renderRouteCard(route))}
+            </div>
+          )}
         </div>
       )}
     </div>
