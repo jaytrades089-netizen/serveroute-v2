@@ -197,6 +197,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setIsOptimized(false);
     setRouteMetrics(null);
 
+    // Clear existing optimized order so stale data can't persist during re-optimization
+    try {
+      await base44.entities.Route.update(routeId, { optimized_order: [] });
+    } catch (e) {
+      console.warn('Could not clear optimized_order before re-optimization:', e);
+    }
+
     try {
       let startLat, startLng;
 
@@ -382,8 +389,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
-      // Save optimized order + metrics to Route in a single write
-      // order_index is never stored on individual addresses — derived at render time from route.optimized_order
+      // Save optimized order + metrics to Route
       console.log('Saving optimized order...');
       const optimizedOrder = optimizedAddresses.map(a => a.id);
       try {
@@ -393,8 +399,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           total_drive_time_minutes: metrics.totalTimeMinutes,
           time_at_address_minutes: timeAtAddress
         });
-        await queryClient.refetchQueries({ queryKey: ['route', routeId] });
-        await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       } catch (saveErr) {
         console.warn('Could not save optimized order or route metrics:', saveErr);
       }
@@ -410,10 +414,12 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         }
       }
 
-      // Force immediate refetch so the address list updates right away with new order
+      // Invalidate ALL related queries to force fresh data with new order
+      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
-      toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {
       console.error('Optimization failed:', error);
