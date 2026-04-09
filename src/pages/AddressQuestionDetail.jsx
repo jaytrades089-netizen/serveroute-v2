@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { formatAddress } from '@/components/utils/addressFormatter';
+import { formatAddress } from '@/components/utils/addressUtils';
 import BossBottomNav from '@/components/boss/BossBottomNav';
 
 const CATEGORY_INFO = {
@@ -100,7 +100,6 @@ export default function AddressQuestionDetail() {
         answer: reply.trim()
       });
 
-      // Notify the worker
       await base44.entities.Notification.create({
         user_id: question.asked_by,
         company_id: user.company_id,
@@ -171,7 +170,6 @@ export default function AddressQuestionDetail() {
       </header>
 
       <div className="p-4 max-w-lg mx-auto space-y-4">
-        {/* From & Date */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-gray-400" />
@@ -183,7 +181,6 @@ export default function AddressQuestionDetail() {
           </div>
         </div>
 
-        {/* Address Info */}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -199,13 +196,11 @@ export default function AddressQuestionDetail() {
           </CardContent>
         </Card>
 
-        {/* Category */}
         <Badge className={`${categoryInfo.color} text-sm`}>
           <CategoryIcon className="w-4 h-4 mr-1" />
           {categoryInfo.label}
         </Badge>
 
-        {/* Message */}
         <Card>
           <CardContent className="p-4">
             <p className="text-sm font-medium text-gray-500 mb-2">MESSAGE:</p>
@@ -213,21 +208,15 @@ export default function AddressQuestionDetail() {
           </CardContent>
         </Card>
 
-        {/* Photo */}
         {question.photo_url && (
           <Card>
             <CardContent className="p-4">
               <p className="text-sm font-medium text-gray-500 mb-2">ATTACHED PHOTO:</p>
-              <img 
-                src={question.photo_url} 
-                alt="Attached" 
-                className="rounded-lg max-w-full"
-              />
+              <img src={question.photo_url} alt="Attached" className="rounded-lg max-w-full" />
             </CardContent>
           </Card>
         )}
 
-        {/* Reply Section */}
         {question.status === 'pending' ? (
           <Card>
             <CardContent className="p-4">
@@ -267,13 +256,8 @@ export default function AddressQuestionDetail() {
           </Card>
         ) : null}
 
-        {/* Mark Resolved */}
         {question.status !== 'resolved' && (
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={handleMarkResolved}
-          >
+          <Button variant="outline" className="w-full" onClick={handleMarkResolved}>
             <CheckCircle className="w-4 h-4 mr-2" />
             Mark as Resolved
           </Button>
