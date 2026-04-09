@@ -10,15 +10,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, LogOut, User, MapPin, Bell, Key, Calendar, TrendingUp, ChevronRight, Navigation, FileCheck } from 'lucide-react';
+import { Loader2, LogOut, User, MapPin, Key, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
-import PushPermissionDialog from '../components/notifications/PushPermissionDialog';
 import LocationPermissionDialog from '../components/notifications/LocationPermissionDialog';
 
 export default function WorkerSettings() {
   const queryClient = useQueryClient();
-  const [showPushDialog, setShowPushDialog] = useState(false);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
 
   const { data: user, isLoading: userLoading } = useQuery({
@@ -72,6 +69,7 @@ export default function WorkerSettings() {
       <main className="px-4 py-6 max-w-lg mx-auto space-y-4">
         <h1 className="text-2xl font-bold" style={{ color: '#e6e1e4' }}>Settings</h1>
 
+        {/* Profile */}
         <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}>
             <User className="w-5 h-5" /> Profile
@@ -92,6 +90,7 @@ export default function WorkerSettings() {
           </div>
         </div>
 
+        {/* Map Settings */}
         <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><MapPin className="w-5 h-5" /> Map Settings</h3>
           <div className="space-y-4">
@@ -130,59 +129,7 @@ export default function WorkerSettings() {
           </div>
         </div>
 
-        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Key className="w-5 h-5" /> API Keys</h3>
-          <div className="space-y-4">
-            <div>
-              <Label style={{ color: '#e6e1e4' }}>HERE Maps API Key (Geocoding)</Label>
-              <p className="text-xs mb-1" style={{ color: '#8a7f87' }}>Used for address lookup (geocoding). Improves coordinate accuracy. Free tier supported.</p>
-              <Input type="password" placeholder="Enter your HERE API key" value={settings?.here_api_key || ''} onChange={(e) => updateSettingsMutation.mutate({ here_api_key: e.target.value, here_key_validated: false })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
-              {settings?.here_key_validated && <p className="text-xs text-green-500 mt-1">✓ Key validated</p>}
-            </div>
-            <div>
-              <Label style={{ color: '#e6e1e4' }}>MapQuest API Key</Label>
-              <p className="text-xs mb-1" style={{ color: '#8a7f87' }}>Required for route optimization. Powers zone-based routing.</p>
-              <Input type="password" placeholder="Enter your MapQuest API key" value={settings?.mapquest_api_key || ''} onChange={(e) => updateSettingsMutation.mutate({ mapquest_api_key: e.target.value, mapquest_key_validated: false })} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} />
-              {settings?.mapquest_key_validated && <p className="text-xs text-green-500 mt-1">✓ Key validated</p>}
-            </div>
-          </div>
-        </div>
-
-        <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
-          <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Bell className="w-5 h-5" /> Notifications & Location</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label style={{ color: '#e6e1e4' }}>Push Notifications</Label>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>Get alerts even when app is closed</p>
-              </div>
-              {user?.push_enabled ? (
-                <span className="text-xs text-green-500 font-medium">✓ Enabled</span>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setShowPushDialog(true)}>Enable</Button>
-              )}
-            </div>
-            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
-              <div>
-                <Label style={{ color: '#e6e1e4' }}>Location Sharing</Label>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>Share location while working</p>
-              </div>
-              {user?.location_permission ? (
-                <span className="text-xs text-green-500 font-medium">✓ Enabled</span>
-              ) : (
-                <Button variant="outline" size="sm" onClick={() => setShowLocationDialog(true)}>Enable</Button>
-              )}
-            </div>
-            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
-              <div>
-                <Label style={{ color: '#e6e1e4' }}>In-App Notifications</Label>
-                <p className="text-xs" style={{ color: '#8a7f87' }}>Show notifications in app</p>
-              </div>
-              <Switch checked={user?.notification_in_app !== false} onCheckedChange={(checked) => { base44.auth.updateMe({ notification_in_app: checked }); queryClient.invalidateQueries({ queryKey: ['currentUser'] }); toast.success('Setting updated'); }} />
-            </div>
-          </div>
-        </div>
-
+        {/* Preferences — includes Location Sharing */}
         <div style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 12 }} className="p-4">
           <h3 className="text-lg font-semibold flex items-center gap-2 mb-3" style={{ color: '#e6e1e4' }}><Navigation className="w-5 h-5" /> Preferences</h3>
           <div className="space-y-4">
@@ -193,6 +140,17 @@ export default function WorkerSettings() {
             <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
               <Label style={{ color: '#e6e1e4' }}>Dark Mode</Label>
               <Switch checked={settings?.dark_mode || false} onCheckedChange={(checked) => updateSettingsMutation.mutate({ dark_mode: checked })} />
+            </div>
+            <div className="flex items-center justify-between" style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16 }}>
+              <div>
+                <Label style={{ color: '#e6e1e4' }}>Location Sharing</Label>
+                <p className="text-xs" style={{ color: '#8a7f87' }}>Share location while working</p>
+              </div>
+              {user?.location_permission ? (
+                <span className="text-xs font-medium" style={{ color: '#22c55e' }}>✓ Enabled</span>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setShowLocationDialog(true)}>Enable</Button>
+              )}
             </div>
           </div>
         </div>
@@ -209,11 +167,6 @@ export default function WorkerSettings() {
 
       <BottomNav currentPage="WorkerSettings" />
 
-      <PushPermissionDialog 
-        open={showPushDialog} 
-        onOpenChange={setShowPushDialog}
-        user={user}
-      />
       <LocationPermissionDialog 
         open={showLocationDialog} 
         onOpenChange={setShowLocationDialog}
