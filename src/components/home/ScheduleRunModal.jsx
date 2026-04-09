@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { X, Plus, Trash2, CalendarDays, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -52,6 +52,19 @@ function RunRow({ run, index, onChange, onRemove }) {
 
 export default function ScheduleRunModal({ route, onClose, onSaved }) {
   const requiredAttempts = route.required_attempts || 3;
+
+  // Compute due date and spread date for display
+  const dueDate = route.due_date ? new Date(route.due_date + 'T12:00:00') : null;
+  const spreadDate = (() => {
+    if (route.spread_due_date) return new Date(route.spread_due_date);
+    if (route.first_attempt_date) {
+      const spreadDays = route.minimum_days_spread || (route.spread_type === '10' ? 10 : 14);
+      const d = new Date(route.first_attempt_date);
+      d.setDate(d.getDate() + spreadDays);
+      return d;
+    }
+    return null;
+  })();
 
   const initRuns = () => {
     if (route.scheduled_runs?.length > 0) return route.scheduled_runs.map(r => ({ ...r }));
@@ -115,6 +128,22 @@ export default function ScheduleRunModal({ route, onClose, onSaved }) {
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Due / Spread date hints */}
+        {(dueDate || spreadDate) && (
+          <div className="flex gap-4 mb-4 px-1">
+            {dueDate && (
+              <div className="text-xs font-semibold" style={{ color: '#ef4444' }}>
+                Due: <span style={{ textDecoration: 'underline' }}>{format(dueDate, 'EEE M/d')}</span>
+              </div>
+            )}
+            {spreadDate && (
+              <div className="text-xs font-semibold" style={{ color: '#22c55e' }}>
+                Spread: <span style={{ textDecoration: 'underline' }}>{format(spreadDate, 'EEE M/d')}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex gap-2 mb-4 text-[10px] font-semibold uppercase" style={{ color: '#6B7280' }}>
