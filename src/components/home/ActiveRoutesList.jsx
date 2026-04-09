@@ -78,19 +78,23 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     }
     if (hasRunDate) {
       return (
-        <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc' }}>
+        <button
+          onClick={e => { e.preventDefault(); onScheduleClick?.(); }}
+          className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
+          style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc', cursor: 'pointer' }}
+        >
           <Calendar className="w-3 h-3" />
           Scheduled
-        </span>
+        </button>
       );
     }
     return (
       <button
         onClick={e => { e.preventDefault(); onScheduleClick?.(); }}
-        className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
-        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', cursor: 'pointer' }}
+        className="flex items-center gap-1.5 text-sm font-bold rounded-full px-3 py-1.5 transition-colors hover:opacity-80"
+        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.45)', cursor: 'pointer' }}
       >
-        <CalendarDays className="w-3 h-3" />
+        <CalendarDays className="w-4 h-4" />
         Unscheduled
       </button>
     );
@@ -332,21 +336,26 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         </div>
       </Link>
 
-      {/* Scheduled runs — shown below the card content */}
+      {/* Scheduled runs — compact chips right under status badge */}
       {route.scheduled_runs?.length > 0 && (
-        <div className="mt-2 flex flex-col gap-1">
-          {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
-            <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
-              <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#a5b4fc' }} />
-              <span className="text-xs font-semibold" style={{ color: '#a5b4fc' }}>{new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-              {run.qualifiers?.length > 0 && (
-                <span className="text-[10px] font-bold rounded px-1.5 py-0.5 uppercase ml-auto" style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
-                  {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        <button
+          onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
+          className="mt-2 w-full text-left"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
+              <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
+                <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#a5b4fc' }} />
+                <span className="text-xs font-semibold" style={{ color: '#a5b4fc' }}>{new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+                {run.qualifiers?.length > 0 && (
+                  <span className="text-[10px] font-bold rounded px-1 py-0.5 uppercase" style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                    {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </button>
       )}
       </div>
     );
