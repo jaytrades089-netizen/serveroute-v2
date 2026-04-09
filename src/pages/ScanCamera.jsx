@@ -59,15 +59,10 @@ export default function ScanCamera() {
 
   const processingLockRef = useRef(false);
 
-  // Helper to update both state and ref atomically
   const updateSession = (newSession) => {
     sessionRef.current = newSession;
     setSession(newSession);
   };
-
-
-
-
 
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
@@ -89,7 +84,6 @@ export default function ScanCamera() {
     enabled: !!user?.id
   });
 
-  // Initialize session
   useEffect(() => {
     if (!user) return;
 
@@ -123,110 +117,66 @@ export default function ScanCamera() {
     }
   }, [user, initialType, sessionId]);
 
-  // Start camera
   useEffect(() => {
     if (!session) return;
 
     let mounted = true;
 
     async function startCamera() {
-      // Check if mediaDevices API is available
       if (!navigator.mediaDevices) {
-        console.error('mediaDevices API not available');
         setCameraStatus('error');
         return;
       }
 
-      // Small delay to ensure video element is mounted
       await new Promise(resolve => setTimeout(resolve, 100));
-
       if (!mounted) return;
 
       try {
         let stream = null;
         
-        // Try multiple fallback strategies for Android compatibility
         const constraints = [
-          // Strategy 1: Exact rear camera with resolution hints for Android stability
-          { 
-            video: { 
-              facingMode: { exact: 'environment' },
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }, 
-            audio: false 
-          },
-          // Strategy 2: Preferred rear camera with resolution hints
-          { 
-            video: { 
-              facingMode: 'environment',
-              width: { ideal: 1280 },
-              height: { ideal: 720 }
-            }, 
-            audio: false 
-          },
-          // Strategy 3: Any camera (fallback)
+          { video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+          { video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
           { video: true, audio: false }
         ];
 
         for (const constraint of constraints) {
           try {
             stream = await navigator.mediaDevices.getUserMedia(constraint);
-            console.log('Camera started with constraint:', constraint);
             break;
           } catch (e) {
-            console.log('Failed constraint:', constraint, e.name);
             continue;
           }
         }
 
-        if (!stream) {
-          throw new Error('Could not access any camera');
-        }
-
-        if (!mounted) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
+        if (!stream) throw new Error('Could not access any camera');
+        if (!mounted) { stream.getTracks().forEach(track => track.stop()); return; }
 
         streamRef.current = stream;
         
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           
-          // Use both event listener and direct play for compatibility
           const playVideo = async () => {
             try {
               await videoRef.current.play();
-              if (mounted) {
-                setCameraStatus('active');
-              }
+              if (mounted) setCameraStatus('active');
             } catch (playErr) {
-              console.error('Video play error:', playErr);
-              // On some devices, muted autoplay works better
-              if (mounted) {
-                setCameraStatus('active'); // Still mark as active, video might be playing
-              }
+              if (mounted) setCameraStatus('active');
             }
           };
 
           if (videoRef.current.readyState >= 2) {
-            // Video already has enough data
             playVideo();
           } else {
             videoRef.current.onloadeddata = playVideo;
-            // Fallback timeout
             setTimeout(() => {
-              if (mounted && cameraStatus === 'initializing') {
-                playVideo();
-              }
+              if (mounted && cameraStatus === 'initializing') playVideo();
             }, 1000);
           }
         }
       } catch (error) {
-        console.error('Camera error:', error);
         if (!mounted) return;
-        
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
           setCameraStatus('denied');
         } else {
@@ -245,16 +195,13 @@ export default function ScanCamera() {
     };
   }, [session?.id]);
 
-  // Auto-save session
   useEffect(() => {
     if (!session) return;
-    
     const interval = setInterval(() => saveScanSession(session), 5000);
     const handleVisibility = () => {
       if (document.visibilityState === 'hidden') saveScanSession(session);
     };
     document.addEventListener('visibilitychange', handleVisibility);
-
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
@@ -262,7 +209,6 @@ export default function ScanCamera() {
   }, [session]);
 
   const processImage = async (imageBase64) => {
-    // Always read from ref to avoid stale closure
     const currentSession = sessionRef.current;
     if (!currentSession) return;
 
@@ -270,7 +216,6 @@ export default function ScanCamera() {
     setProcessingText('Processing image...');
 
     try {
-      // Check rate limits
       const rateCheck = ocrRateLimiter.check();
       if (!rateCheck.allowed) {
         toast.error(ERROR_MESSAGES[rateCheck.reason] || 'Rate limit exceeded');
@@ -279,7 +224,6 @@ export default function ScanCamera() {
       }
 
       const quality = await checkImageQuality(imageBase64);
-
       if (!quality.canProcess) {
         toast.error(quality.issues[0]?.message || 'Poor image quality');
         setIsProcessing(false);
@@ -296,14 +240,12 @@ export default function ScanCamera() {
           sessionId: currentSession.dbSessionId
         });
       } catch (invokeError) {
-        console.error('Function invoke error:', invokeError);
         toast.error('Network error — check your connection and try again');
         setIsProcessing(false);
         return;
       }
 
       if (!response || !response.data) {
-        console.error('Invalid response from processOCR:', response);
         toast.error('Server error — please try again');
         setIsProcessing(false);
         return;
@@ -312,13 +254,11 @@ export default function ScanCamera() {
       const result = response.data;
 
       if (result.error) {
-        console.error('OCR error:', result.error, result.details);
         toast.error(result.error === 'OCR service not configured' ? 'OCR not available' : 'Failed to process image');
         setIsProcessing(false);
         return;
       }
 
-      // Only add successful extractions to the list
       if (!result.success || !result.parsedAddress) {
         if (!isBulkScan) {
           toast.error('No address found — try centering the document and scanning again');
@@ -326,7 +266,6 @@ export default function ScanCamera() {
           setProcessingText('');
           return;
         }
-        // Bulk mode: add a failed record the worker must resolve manually
         const failedAddress = {
           tempId: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
           imageBase64,
@@ -338,11 +277,7 @@ export default function ScanCamera() {
         };
         const latestSession = sessionRef.current;
         const updatedAddresses = [failedAddress, ...latestSession.addresses];
-        const updatedSession = {
-          ...latestSession,
-          addresses: updatedAddresses,
-          lastUpdated: new Date().toISOString()
-        };
+        const updatedSession = { ...latestSession, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
         updateSession(updatedSession);
         saveScanSession(updatedSession);
         toast.error('Could not read address — type it in below before continuing');
@@ -370,30 +305,21 @@ export default function ScanCamera() {
         error: null
       };
 
-      // Bulk mode: geocode immediately after OCR
       if (isBulkScan) {
         const apiKey = userSettings?.mapquest_api_key;
         if (apiKey && newAddress.extractedData?.fullAddress) {
           try {
             const coords = await geocodeWithMapQuest(newAddress.extractedData.fullAddress, apiKey);
-            if (coords) {
-              newAddress.lat = coords.lat;
-              newAddress.lng = coords.lng;
-            }
+            if (coords) { newAddress.lat = coords.lat; newAddress.lng = coords.lng; }
           } catch (err) {
             console.warn('Geocode failed for:', newAddress.extractedData.fullAddress);
           }
         }
       }
 
-      // Re-read ref to get the absolute latest (in case another capture completed between await calls)
       const latestSession = sessionRef.current;
       const updatedAddresses = [newAddress, ...latestSession.addresses];
-      const updatedSession = {
-        ...latestSession,
-        addresses: updatedAddresses,
-        lastUpdated: new Date().toISOString()
-      };
+      const updatedSession = { ...latestSession, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
 
       updateSession(updatedSession);
       saveScanSession(updatedSession);
@@ -407,13 +333,10 @@ export default function ScanCamera() {
         });
       }
 
-      // Record successful OCR call for rate limiting
       ocrRateLimiter.record();
       toast.success('Address extracted');
 
     } catch (error) {
-      console.error('OCR error:', error);
-
       toast.error(error.message || ERROR_MESSAGES.ocr_failed);
     } finally {
       setIsProcessing(false);
@@ -422,26 +345,16 @@ export default function ScanCamera() {
   };
 
   const handleCapture = async () => {
-
-    if (!videoRef.current || processingLockRef.current) {
-
-      return;
-    }
+    if (!videoRef.current || processingLockRef.current) return;
     processingLockRef.current = true;
     try {
-      // Capture image while video is still playing — no pause/play cycle needed.
-      // setShowShutter provides the visual freeze via solid black overlay.
-      // pause() + play() causes AbortError in Android Chrome, killing the stream.
       const imageBase64 = await captureAndCompressImage(videoRef.current);
       setShowShutter(true);
       await processImage(imageBase64);
       await new Promise(resolve => setTimeout(resolve, 800));
     } catch (err) {
-      console.error('Capture error:', err);
-
       toast.error(err.message || 'Capture failed — please try again');
     } finally {
-      // Always clear shutter and release lock, even on error
       setShowShutter(false);
       await new Promise(resolve => setTimeout(resolve, 200));
       processingLockRef.current = false;
@@ -451,7 +364,6 @@ export default function ScanCamera() {
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async (e) => {
       const base64 = e.target.result.split(',')[1];
@@ -465,11 +377,7 @@ export default function ScanCamera() {
     const current = sessionRef.current;
     if (!current) return;
     const updatedAddresses = current.addresses.filter(a => a.tempId !== tempId);
-    const updatedSession = {
-      ...current,
-      addresses: updatedAddresses,
-      lastUpdated: new Date().toISOString()
-    };
+    const updatedSession = { ...current, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
     updateSession(updatedSession);
     saveScanSession(updatedSession);
   };
@@ -478,14 +386,8 @@ export default function ScanCamera() {
 
   const handleSaveRoute = () => {
     if (!session || session.addresses.length === 0) return;
-    
-    const updatedSession = {
-      ...session,
-      currentStep: 'route_setup',
-      lastUpdated: new Date().toISOString()
-    };
+    const updatedSession = { ...session, currentStep: 'route_setup', lastUpdated: new Date().toISOString() };
     saveScanSession(updatedSession);
-    
     if (isAddToRouteMode) {
       navigate(createPageUrl(`ScanAddToRoute?sessionId=${session.id}`));
     } else if (isBulkScan) {
@@ -499,19 +401,11 @@ export default function ScanCamera() {
     const current = sessionRef.current;
     if (!current) return;
     setDocumentType(newType);
-    const updatedSession = {
-      ...current,
-      documentType: newType,
-      lastUpdated: new Date().toISOString()
-    };
+    const updatedSession = { ...current, documentType: newType, lastUpdated: new Date().toISOString() };
     updateSession(updatedSession);
     saveScanSession(updatedSession);
-    
     if (current.dbSessionId) {
-      base44.entities.ScanSession.update(current.dbSessionId, {
-        document_type: newType,
-        last_activity_at: new Date().toISOString()
-      });
+      base44.entities.ScanSession.update(current.dbSessionId, { document_type: newType, last_activity_at: new Date().toISOString() });
     }
   };
 
@@ -525,13 +419,10 @@ export default function ScanCamera() {
     );
   }
 
-  const docInfo = DOCUMENT_INFO[documentType];
-  const validCount = session.addresses.filter(a => a.status === 'extracted').length;
-
   const getConfidenceDisplay = (confidence) => {
-    if (confidence >= 0.90) return { icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-50', label: `${Math.round(confidence * 100)}%` };
-    if (confidence >= 0.75) return { icon: AlertTriangle, color: 'text-yellow-500', bg: 'bg-yellow-50', label: 'Tap to edit' };
-    return { icon: XCircle, color: 'text-red-500', bg: 'bg-red-50', label: 'Tap to fix' };
+    if (confidence >= 0.90) return { icon: CheckCircle, color: 'text-green-500', label: `${Math.round(confidence * 100)}%` };
+    if (confidence >= 0.75) return { icon: AlertTriangle, color: 'text-yellow-500', label: 'Tap to edit' };
+    return { icon: XCircle, color: 'text-red-500', label: 'Tap to fix' };
   };
 
   return (
@@ -544,39 +435,37 @@ export default function ScanCamera() {
               <ArrowLeft className="w-5 h-5" />
             </Button>
           </Link>
-          <h1 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>Scan Documents</h1>
+          <h1 className="text-lg font-semibold" style={{ color: isBulkScan ? '#e9c349' : '#e6e1e4' }}>
+            {isBulkScan ? '⬡ Bulk Scan' : 'Scan Documents'}
+          </h1>
         </div>
+        {isBulkScan && (
+          <span className="text-xs px-2 py-1 rounded-full" style={{ background: 'rgba(233,195,73,0.2)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.4)' }}>
+            BULK MODE
+          </span>
+        )}
       </div>
 
-      {/* Camera View - 30% height */}
+      {/* Camera View */}
       <div className="h-[30vh] bg-gray-900 relative">
-        {/* Always render video element so ref is available */}
         <video
           ref={videoRef}
           className={`absolute inset-0 w-full h-full object-cover ${cameraStatus === 'active' ? '' : 'hidden'}`}
-          playsInline
-          muted
-          autoPlay
+          playsInline muted autoPlay
         />
         
         {cameraStatus === 'active' && (
-                        <>
-                          {/* Blur overlay - top */}
-                          <div className="absolute top-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
-                          {/* Blur overlay - bottom */}
-                          <div className="absolute bottom-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
-                          {/* Blur overlay - left */}
-                          <div className="absolute top-[24%] left-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
-                          {/* Blur overlay - right */}
-                          <div className="absolute top-[24%] right-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
-                          {/* Clear center box with border — only this area gets sent to OCR */}
-                          <div className="absolute top-[24%] left-[15%] w-[70%] h-[52%] border-2 border-white/70 rounded-lg pointer-events-none" />
-                          {/* Center crosshair hint */}
-                          <div className="absolute top-[48%] left-1/2 -translate-x-1/2 text-white/60 text-xs font-medium pointer-events-none">
-                            Keep only one address inside this box
-                          </div>
-                        </>
-                      )}
+          <>
+            <div className="absolute top-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
+            <div className="absolute bottom-0 left-0 right-0 h-[24%] backdrop-blur-sm bg-black/45" />
+            <div className="absolute top-[24%] left-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
+            <div className="absolute top-[24%] right-0 w-[15%] h-[52%] backdrop-blur-sm bg-black/45" />
+            <div className="absolute top-[24%] left-[15%] w-[70%] h-[52%] border-2 border-white/70 rounded-lg pointer-events-none" />
+            <div className="absolute top-[48%] left-1/2 -translate-x-1/2 text-white/60 text-xs font-medium pointer-events-none">
+              Keep only one address inside this box
+            </div>
+          </>
+        )}
 
         {cameraStatus === 'initializing' && (
           <div className="absolute inset-0 flex items-center justify-center p-4">
@@ -592,14 +481,8 @@ export default function ScanCamera() {
             <div className="text-center text-white">
               <AlertCircle className="w-10 h-10 mx-auto mb-2 text-yellow-400" />
               <p className="text-sm mb-2">Camera permission denied</p>
-              <p className="text-xs text-gray-400 mb-3">Enable camera in browser settings or use upload</p>
-              <Button 
-                size="sm" 
-                className="bg-orange-500 hover:bg-orange-600"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4 mr-1" />
-                Upload Photo Instead
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-1" /> Upload Photo Instead
               </Button>
             </div>
           </div>
@@ -610,23 +493,15 @@ export default function ScanCamera() {
             <div className="text-center text-white">
               <AlertCircle className="w-10 h-10 mx-auto mb-2 text-red-400" />
               <p className="text-sm mb-2">Camera unavailable</p>
-              <Button 
-                size="sm" 
-                className="bg-orange-500 hover:bg-orange-600"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="w-4 h-4 mr-1" />
-                Upload Photo Instead
+              <Button size="sm" className="bg-orange-500 hover:bg-orange-600" onClick={() => fileInputRef.current?.click()}>
+                <Upload className="w-4 h-4 mr-1" /> Upload Photo Instead
               </Button>
             </div>
           </div>
         )}
 
-        {/* Shutter / Processing overlay */}
         {(showShutter || isProcessing) && (
-          <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-150 ${
-            showShutter ? 'bg-black' : 'bg-black/70'
-          }`}>
+          <div className={`absolute inset-0 flex items-center justify-center transition-colors duration-150 ${showShutter ? 'bg-black' : 'bg-black/70'}`}>
             {isProcessing && (
               <div className="text-center text-white">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
@@ -637,8 +512,9 @@ export default function ScanCamera() {
         )}
       </div>
 
-      {/* Hint Text */}
-      <p className="text-center text-xs py-1.5" style={{ color: '#8a7f87', background: 'rgba(11,15,30,0.70)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>Hold closer and keep just one address inside the box</p>
+      <p className="text-center text-xs py-1.5" style={{ color: '#8a7f87', background: 'rgba(11,15,30,0.70)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        Hold closer and keep just one address inside the box
+      </p>
 
       {/* Capture Bar */}
       <div style={{ background: 'rgba(11,15,30,0.75)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)' }} className="px-4 py-3 flex items-center justify-between gap-3">
@@ -651,8 +527,7 @@ export default function ScanCamera() {
             onClick={handleCapture}
             disabled={isProcessing || showShutter}
           >
-            <Camera className="w-5 h-5" />
-            Capture
+            <Camera className="w-5 h-5" /> Capture
           </Button>
         ) : (
           <Button
@@ -661,8 +536,7 @@ export default function ScanCamera() {
             onClick={() => fileInputRef.current?.click()}
             disabled={isProcessing}
           >
-            <Upload className="w-5 h-5" />
-            Upload
+            <Upload className="w-5 h-5" /> Upload
           </Button>
         )}
 
@@ -683,7 +557,7 @@ export default function ScanCamera() {
         </div>
       </div>
 
-      {/* Address List - Scrollable */}
+      {/* Address List */}
       <div className="flex-1 overflow-y-auto px-4 py-3" style={{ background: 'transparent' }}>
         <p className="text-sm font-bold mb-3 uppercase tracking-wide" style={{ color: '#8a7f87' }}>
           SCANNED ADDRESSES ({session.addresses.length})
@@ -698,7 +572,6 @@ export default function ScanCamera() {
         ) : (
           <div className="space-y-2">
             {session.addresses.map((addr) => {
-              // Failed OCR card (bulk mode)
               if (addr.status === 'failed') {
                 return (
                   <div key={addr.tempId} className="rounded-xl p-4" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.40)' }}>
@@ -759,9 +632,7 @@ export default function ScanCamera() {
                           <span className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'rgba(255,255,255,0.10)', color: '#8a7f87' }}>
                             {(addr.extractedData?.documentType || documentType).charAt(0).toUpperCase() + (addr.extractedData?.documentType || documentType).slice(1)}
                           </span>
-                          <span className="text-xs" style={{ color: confColor }}>
-                            {conf.label}
-                          </span>
+                          <span className="text-xs" style={{ color: confColor }}>{conf.label}</span>
                         </div>
                       </div>
                     </div>
@@ -773,12 +644,10 @@ export default function ScanCamera() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => { const updatedSession = { ...session, currentStep: 'route_setup', lastUpdated: new Date().toISOString() }; saveScanSession(updatedSession); navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}&edit=${addr.tempId}`)); }}>
-                          <Pencil className="w-4 h-4 mr-2" />
-                          Edit Address
+                          <Pencil className="w-4 h-4 mr-2" /> Edit Address
                         </DropdownMenuItem>
                         <DropdownMenuItem className="text-red-600" onClick={() => handleRemoveAddress(addr.tempId)}>
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -790,7 +659,7 @@ export default function ScanCamera() {
         )}
       </div>
 
-      {/* Save Route Button - Fixed Bottom */}
+      {/* Save Button */}
       {(() => {
         const hasUnresolvedFailures = isBulkScan && session.addresses.some(a => a.status === 'failed');
         return (
@@ -802,6 +671,8 @@ export default function ScanCamera() {
               className="w-full h-12 text-base font-bold rounded-xl flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
               style={isAddToRouteMode
                 ? { background: 'rgba(99,102,241,0.20)', border: '1px solid rgba(99,102,241,0.50)', color: '#a5b4fc' }
+                : isBulkScan
+                ? { background: 'rgba(233,195,73,0.30)', border: '2px solid rgba(233,195,73,0.70)', color: '#e9c349' }
                 : { background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }
               }
               onClick={handleSaveRoute}
@@ -809,14 +680,15 @@ export default function ScanCamera() {
             >
               <Save className="w-5 h-5" />
               {isAddToRouteMode
-                ? `Add to Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
+                ? `Add to Route (${session.addresses.length})`
+                : isBulkScan
+                ? `Optimize Routes (${session.addresses.length} scanned) →`
                 : `Save Route (${session.addresses.length} address${session.addresses.length !== 1 ? 'es' : ''})`
               }
             </button>
           </div>
         );
       })()}
-
     </div>
   );
 }
