@@ -10,7 +10,7 @@ import { MapPin, Navigation, Plus, Loader2, X, Home, Building, Briefcase, Shuffl
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from 'sonner';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { optimizeWithHybrid, geocodeAddress } from '@/components/services/OptimizationService';
+import { optimizeWithHybrid, geocodeAddress, calculateDistanceFeet } from '@/components/services/OptimizationService';
 import LocationPicker from './LocationPicker';
 
 const TIME_AT_ADDRESS_OPTIONS = [
@@ -197,13 +197,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setIsOptimized(false);
     setRouteMetrics(null);
 
-    // Clear existing optimized order so stale data can't persist during re-optimization
-    try {
-      await base44.entities.Route.update(routeId, { optimized_order: [] });
-    } catch (e) {
-      console.warn('Could not clear optimized_order before re-optimization:', e);
-    }
-
     try {
       let startLat, startLng;
 
@@ -279,16 +272,25 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         return;
       }
 
+      // Always fetch fresh addresses directly from DB before optimizing
+      // This ensures re-optimization always has the latest data, not stale props
+      let allFreshAddresses;
+      try {
+        allFreshAddresses = await base44.entities.Address.filter({ route_id: routeId, deleted_at: null });
+      } catch (e) {
+        allFreshAddresses = addresses;
+      }
+
       // Exclude completed addresses
-      let validAddresses = addresses.filter(addr =>
+      let validAddresses = allFreshAddresses.filter(addr =>
         !addr.served &&
         addr.status !== 'served' &&
         addr.status !== 'completed' &&
         addr.status !== 'returned'
       );
 
-      if (validAddresses.length < addresses.length) {
-        console.log(`Excluded ${addresses.length - validAddresses.length} completed address(es) from optimization`);
+      if (validAddresses.length < allFreshAddresses.length) {
+        console.log(`Excluded ${allFreshAddresses.length - validAddresses.length} completed address(es) from optimization`);
       }
 
       const needsGeocoding = validAddresses.filter(a => !a.lat || !a.lng);
@@ -332,7 +334,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       console.log('End location:', endLocation?.address, endLocation?.latitude, endLocation?.longitude);
       toast.info(`Optimizing ${validAddresses.length} stops from GPS (${startLat.toFixed(4)}, ${startLng.toFixed(4)})...`);
 
-      const optimizedAddresses = await optimizeWithHybrid(
+      let optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
         startLat,
         startLng,
@@ -342,15 +344,39 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         routeType || 'fastest'
       );
 
+      // Post-process: rotate the optimized sequence so the address nearest
+      // to the start point is always first. MapQuest sometimes returns a
+      // circular route that is optimal overall but starts at the wrong end.
+      if (optimizedAddresses.length > 1) {
+        let nearestIdx = 0;
+        let nearestDist = Infinity;
+        for (let i = 0; i < optimizedAddresses.length; i++) {
+          const addr = optimizedAddresses[i];
+          const addrLat = addr.lat || addr.latitude;
+          const addrLng = addr.lng || addr.longitude;
+          if (!addrLat || !addrLng) continue;
+          const dist = calculateDistanceFeet(startLat, startLng, addrLat, addrLng);
+          if (dist < nearestDist) { nearestDist = dist; nearestIdx = i; }
+        }
+        if (nearestIdx !== 0) {
+          console.log(`Rotating route: moving address at index ${nearestIdx} to front (nearest to GPS start)`);
+          optimizedAddresses = [
+            ...optimizedAddresses.slice(nearestIdx),
+            ...optimizedAddresses.slice(0, nearestIdx)
+          ];
+          // Re-assign order_index after rotation
+          optimizedAddresses = optimizedAddresses.map((addr, i) => ({ ...addr, order_index: i + 1 }));
+        }
+      }
+
       // Show debug info about optimization result
       if (optimizedAddresses.length > 0) {
         const first = optimizedAddresses[0];
         const firstLabel = (first.normalized_address || first.legal_address || '').substring(0, 40);
-        const distFeet = Math.round(
-          Math.sqrt(
-            Math.pow((first.lat - startLat) * 364000, 2) + 
-            Math.pow((first.lng - startLng) * 288200, 2)
-          )
+        const distFeet = calculateDistanceFeet(
+          startLat, startLng,
+          first.lat || first.latitude,
+          first.lng || first.longitude
         );
         const distMiles = (distFeet / 5280).toFixed(1);
         toast.success(`First stop: ${firstLabel} (${distMiles} mi from GPS)`, { duration: 8000 });
@@ -389,7 +415,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       setOptimizedCount(validAddresses.length);
       setIsOptimized(true);
 
-      // Save optimized order + metrics to Route
+      // Save optimized order + metrics to Route in a single write
+      // order_index is never stored on individual addresses — derived at render time from route.optimized_order
       console.log('Saving optimized order...');
       const optimizedOrder = optimizedAddresses.map(a => a.id);
       try {
@@ -399,6 +426,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
           total_drive_time_minutes: metrics.totalTimeMinutes,
           time_at_address_minutes: timeAtAddress
         });
+        await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+        await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       } catch (saveErr) {
         console.warn('Could not save optimized order or route metrics:', saveErr);
       }
@@ -414,12 +443,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         }
       }
 
-      // Invalidate ALL related queries to force fresh data with new order
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      // Force immediate refetch so the address list updates right away with new order
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {
       console.error('Optimization failed:', error);
