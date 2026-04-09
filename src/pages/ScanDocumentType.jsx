@@ -11,7 +11,6 @@ import {
   checkForRecoverableSession,
   clearScanSession 
 } from '@/components/scanning/ScanningService';
-import { loadSavedBulkSession, clearSavedBulkSession } from '@/pages/BulkScanOptimize';
 import {
   Dialog,
   DialogContent,
@@ -25,8 +24,7 @@ export default function ScanDocumentType() {
   const navigate = useNavigate();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [recoverableSession, setRecoverableSession] = useState(null);
-  const [showBulkReloadDialog, setShowBulkReloadDialog] = useState(false);
-  const [savedBulkSession, setSavedBulkSession] = useState(null);
+  const [showTestDialog, setShowTestDialog] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -39,30 +37,10 @@ export default function ScanDocumentType() {
       setRecoverableSession(session);
       setShowRecoveryDialog(true);
     }
-    const saved = loadSavedBulkSession();
-    if (saved) setSavedBulkSession(saved);
   }, []);
 
   const handleBulkScanTap = () => {
-    if (savedBulkSession) {
-      setShowBulkReloadDialog(true);
-    } else {
-      navigate(createPageUrl('ScanCamera?type=serve&bulk=true'));
-    }
-  };
-
-  const handleReloadBulkSession = () => {
-    sessionStorage.setItem('scanSession_' + savedBulkSession.id, JSON.stringify(savedBulkSession));
-    sessionStorage.setItem('activeScanSession', savedBulkSession.id);
-    setShowBulkReloadDialog(false);
-    navigate(createPageUrl(`BulkScanOptimize?sessionId=${savedBulkSession.id}`));
-  };
-
-  const handleStartFreshBulk = () => {
-    clearSavedBulkSession();
-    setSavedBulkSession(null);
-    setShowBulkReloadDialog(false);
-    navigate(createPageUrl('ScanCamera?type=serve&bulk=true'));
+    setShowTestDialog(true);
   };
 
   const handleSelectType = (documentType) => {
@@ -118,7 +96,7 @@ export default function ScanDocumentType() {
         </p>
 
         <div className="space-y-4">
-          {/* Part 1: Serve card */}
+          {/* Serve card */}
           {(() => { const info = DOCUMENT_INFO['serve']; return (
             <div
               key="serve"
@@ -139,7 +117,7 @@ export default function ScanDocumentType() {
             </div>
           ); })()}
 
-          {/* Part 2: Bulk Scan card */}
+          {/* Bulk Scan card — TEST VERSION */}
           <div
             className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
             style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(233,195,73,0.35)' }}
@@ -150,20 +128,13 @@ export default function ScanDocumentType() {
                 <Layers className="w-6 h-6" style={{ color: '#e9c349' }} />
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold" style={{ color: '#e9c349' }}>Bulk Scan</h3>
-                  {savedBulkSession && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ background: 'rgba(233,195,73,0.2)', color: '#e9c349' }}>
-                      {savedBulkSession.addresses?.filter(a => a.status === 'extracted' || a.status === 'resolved').length} saved
-                    </span>
-                  )}
-                </div>
+                <h3 className="text-lg font-semibold" style={{ color: '#e9c349' }}>Bulk Scan</h3>
                 <p className="text-xs" style={{ color: '#8a7f87' }}>Scan a large batch and sort into piles before saving</p>
               </div>
             </div>
           </div>
 
-          {/* Part 3: Garnishment and Posting cards */}
+          {/* Garnishment and Posting cards */}
           {Object.entries(DOCUMENT_INFO).filter(([type]) => type !== 'serve').map(([type, info]) => (
             <div
               key={type}
@@ -219,6 +190,31 @@ export default function ScanDocumentType() {
         </Link>
       </div>
 
+      {/* TEST DIALOG */}
+      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
+        <DialogContent style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(233,195,73,0.5)', color: '#e6e1e4' }}>
+          <DialogHeader>
+            <DialogTitle style={{ color: '#e9c349' }}>TEST TEST</DialogTitle>
+            <DialogDescription style={{ color: '#8a7f87' }}>
+              Bulk Scan button is working. This file is the NEW version.
+              Click OK to proceed to the camera with bulk=true flag.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => {
+                setShowTestDialog(false);
+                navigate(createPageUrl('ScanCamera?type=serve&bulk=true'));
+              }}
+              className="w-full py-3 rounded-xl font-bold"
+              style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+            >
+              OK — Go to Bulk Scan
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Session Recovery Dialog */}
       <Dialog open={showRecoveryDialog} onOpenChange={setShowRecoveryDialog}>
         <DialogContent style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}>
@@ -228,7 +224,6 @@ export default function ScanDocumentType() {
               You have an unfinished scanning session.
             </DialogDescription>
           </DialogHeader>
-          
           {recoverableSession && (
             <div className="py-4 space-y-2">
               <p className="flex items-center gap-2">
@@ -245,7 +240,6 @@ export default function ScanDocumentType() {
               </p>
             </div>
           )}
-
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <button
               onClick={handleResumeSession}
@@ -260,44 +254,6 @@ export default function ScanDocumentType() {
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#8a7f87' }}
             >
               Start Fresh (discard previous)
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Bulk Session Reload Dialog */}
-      <Dialog open={showBulkReloadDialog} onOpenChange={setShowBulkReloadDialog}>
-        <DialogContent style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }} onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle style={{ color: '#e6e1e4' }}>Reload Saved Scans?</DialogTitle>
-            <DialogDescription style={{ color: '#8a7f87' }}>
-              You have a saved bulk scan session.
-            </DialogDescription>
-          </DialogHeader>
-          {savedBulkSession && (
-            <div className="py-4 space-y-2">
-              <p style={{ color: '#e6e1e4' }}>
-                📍 {savedBulkSession.addresses?.filter(a => a.status === 'extracted' || a.status === 'resolved').length || 0} addresses scanned
-              </p>
-              <p className="text-sm" style={{ color: '#8a7f87' }}>
-                🕐 Saved: {new Date(savedBulkSession.savedAt || savedBulkSession.lastUpdated).toLocaleString()}
-              </p>
-            </div>
-          )}
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <button
-              onClick={handleReloadBulkSession}
-              className="w-full py-3 rounded-xl font-bold transition-opacity hover:opacity-90"
-              style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
-            >
-              Reload Saved Scans
-            </button>
-            <button
-              onClick={handleStartFreshBulk}
-              className="w-full py-3 rounded-xl font-semibold transition-opacity hover:opacity-90"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', color: '#8a7f87' }}
-            >
-              Start Fresh (discard saved)
             </button>
           </DialogFooter>
         </DialogContent>
