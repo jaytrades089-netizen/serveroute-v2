@@ -223,23 +223,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             >
               {letter}
             </div>
-            <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-              {route.run_date ? (
-                <>
-                  <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
-                  <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'EEE MMM d')}</span>
-                </>
-              ) : (
-                <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
-              )}
-              {route.run_qualifiers?.length > 0 && (
-                <span
-                  className="text-[10px] font-semibold rounded px-1.5 py-0.5 uppercase"
-                  style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}
-                >
-                  {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
-                </span>
-              )}
+            <div className="flex-1 min-w-0">
             </div>
           </div>
 
