@@ -59,6 +59,7 @@ function CalendarOverlay({ value, onSelect, onClose, dueDate, spreadDate }) {
           }}
           modifiers={modifiers}
           modifiersStyles={modifiersStyles}
+          modifiersClassNames={{ today: 'rdp-today-green' }}
           styles={{
             root: { margin: 0, color: '#e6e1e4' },
             caption: { color: '#e6e1e4' },
@@ -66,6 +67,7 @@ function CalendarOverlay({ value, onSelect, onClose, dueDate, spreadDate }) {
             day: { color: '#e6e1e4', borderRadius: 8 },
           }}
         />
+        <style>{`.rdp-today-green { border: 2px solid #22c55e !important; border-radius: 6px !important; background: transparent !important; }`}</style>
       </div>
     </div>
   );
