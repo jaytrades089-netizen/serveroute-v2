@@ -213,9 +213,31 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                 {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
               </span>
             )}
-
           </div>
-          {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
+          {/* Right column: status badge + scheduled run chips */}
+          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+            {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
+            {route.scheduled_runs?.length > 0 && (
+              <button
+                onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
+                className="flex flex-col gap-0.5 items-end"
+              >
+                {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
+                  <div key={i} className="flex items-center gap-1">
+                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#a5b4fc' }}>
+                      {new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
+                    </span>
+                    {run.qualifiers?.length > 0 && (
+                      <span className="text-[10px] font-bold rounded px-2 py-0.5 uppercase"
+                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                        {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="flex gap-4 mb-2">
@@ -336,27 +358,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         </div>
       </Link>
 
-      {/* Scheduled runs — compact chips right under status badge */}
-      {route.scheduled_runs?.length > 0 && (
-        <button
-          onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
-          className="mt-2 w-full text-left"
-        >
-          <div className="flex flex-wrap gap-1.5">
-            {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
-              <div key={i} className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
-                <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#a5b4fc' }} />
-                <span className="text-xs font-semibold" style={{ color: '#a5b4fc' }}>{new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
-                {run.qualifiers?.length > 0 && (
-                  <span className="text-[10px] font-bold rounded px-1 py-0.5 uppercase" style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
-                    {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </button>
-      )}
       </div>
     );
   };
