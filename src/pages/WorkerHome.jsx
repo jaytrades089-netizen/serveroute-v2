@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
@@ -17,6 +17,7 @@ import ComboRouteCard from '../components/common/ComboRouteCard';
 import { Loader2, Shuffle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import { RouteSkeleton, StatSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
@@ -49,14 +50,11 @@ export default function WorkerHome() {
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
-  // Auth is handled by Layout - no redirect needed here
-
   // Set worker status to active when page loads
   useEffect(() => {
     if (!user?.id) return;
 
     const setActive = async () => {
-      // Only update if not already active
       if (user.worker_status !== 'active') {
         await base44.auth.updateMe({
           worker_status: 'active',
@@ -68,19 +66,12 @@ export default function WorkerHome() {
 
     setActive();
 
-    // Set to offline when leaving page
     const handleVisibilityChange = () => {
-      if (document.hidden) {
-        // Don't set offline immediately - let it timeout
-      } else {
-        // Coming back - set active again
-        setActive();
-      }
+      if (!document.hidden) setActive();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Heartbeat - update last_active_at every 2 minutes
     const heartbeat = setInterval(() => {
       base44.auth.updateMe({ last_active_at: new Date().toISOString() });
     }, 2 * 60 * 1000);
@@ -107,14 +98,14 @@ export default function WorkerHome() {
   });
 
   const routeIds = routes.map(r => r.id).sort().join(',');
+
   const { data: addresses = [] } = useQuery({
     queryKey: ['workerAddresses', user?.id, routeIds],
     queryFn: async () => {
       if (routes.length === 0) return [];
-      const addressPromises = routes.map(r => 
-        base44.entities.Address.filter({ route_id: r.id, deleted_at: null })
+      const results = await Promise.all(
+        routes.map(r => base44.entities.Address.filter({ route_id: r.id, deleted_at: null }))
       );
-      const results = await Promise.all(addressPromises);
       return results.flat();
     },
     enabled: routes.length > 0,
@@ -126,10 +117,7 @@ export default function WorkerHome() {
     queryKey: ['notifications', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.Notification.filter({ 
-        user_id: user.id,
-        read: false 
-      });
+      return base44.entities.Notification.filter({ user_id: user.id, read: false });
     },
     enabled: !!user?.id,
     staleTime: 60 * 1000,
@@ -137,7 +125,6 @@ export default function WorkerHome() {
     refetchInterval: 30000
   });
 
-  // Fetch attempts for active routes to compute qualifier completion
   const { data: allAttempts = [] } = useQuery({
     queryKey: ['workerAttemptsHome', user?.id, routeIds],
     queryFn: async () => {
@@ -153,7 +140,6 @@ export default function WorkerHome() {
     staleTime: 2 * 60 * 1000
   });
 
-  // Fetch active combo routes
   const { data: activeComboRoutes = [] } = useQuery({
     queryKey: ['activeComboRoutes', user?.id],
     queryFn: async () => {
@@ -164,21 +150,46 @@ export default function WorkerHome() {
     staleTime: 60 * 1000
   });
 
-  // Load user settings for payroll day/hour
   const { data: userSettings } = useUserSettings(user?.id);
 
   useEffect(() => {
     const timezone = user?.settings?.timezone || 'America/Detroit';
     setCurrentPhase(getCurrentPhase(timezone));
-    
-    const interval = setInterval(() => {
-      setCurrentPhase(getCurrentPhase(timezone));
-    }, 60000);
-    
+    const interval = setInterval(() => setCurrentPhase(getCurrentPhase(timezone)), 60000);
     return () => clearInterval(interval);
   }, [user]);
 
+  const handleArchiveRoute = useCallback(async (route) => {
+    const confirmed = window.confirm(`Archive "${route.folder_name}"?\n\nYou can unarchive it anytime from the Routes page.`);
+    if (!confirmed) return;
+    try {
+      await base44.entities.Route.update(route.id, {
+        pre_archive_status: route.status,
+        status: 'archived',
+        archived_at: new Date().toISOString()
+      });
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      toast.success(`"${route.folder_name}" archived`);
+    } catch (e) {
+      toast.error('Failed to archive route');
+    }
+  }, [user?.id, queryClient]);
 
+  const handleDeleteRoute = useCallback(async (route) => {
+    const confirmed = window.confirm(`Delete "${route.folder_name}"?\n\nThis will remove the route and all its addresses. This cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await base44.entities.Route.update(route.id, { deleted_at: new Date().toISOString(), status: 'deleted' });
+      const routeAddresses = await base44.entities.Address.filter({ route_id: route.id, deleted_at: null });
+      for (const addr of routeAddresses) {
+        await base44.entities.Address.update(addr.id, { deleted_at: new Date().toISOString() });
+      }
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      toast.success(`"${route.folder_name}" deleted`);
+    } catch (e) {
+      toast.error('Failed to delete route');
+    }
+  }, [user?.id, queryClient]);
 
   if (userLoading || !user) {
     return (
@@ -201,27 +212,18 @@ export default function WorkerHome() {
     );
   }
 
-  // Show both assigned and active routes on home (exclude archived/completed)
   const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned' || r.status === 'ready');
   const activeRouteIds = activeRoutes.map(r => r.id);
-  
-  // Pending addresses only from active routes
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
-  
-  // Served count = addresses served after last turn-in
-  // Only count if they have a previous_turn_in_date, otherwise use payroll period logic
-  const previousTurnInDate = userSettings?.previous_turn_in_date ? new Date(userSettings.previous_turn_in_date) : null;
-  
+
   const servedAddresses = activeAddresses.filter(a => {
     if (!a.served || !a.served_at) return false;
     if (a.status === 'returned') return false;
-    // Exclude addresses already locked into a payroll record (already turned in)
     if (a.payroll_record_id && a.payroll_record_id !== '') return false;
     return true;
   });
 
-  // Due Soon = routes due on or before the next payroll turn-in date
   const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
   const now = new Date();
   const currentDayOfWeek = now.getDay();
@@ -248,9 +250,6 @@ export default function WorkerHome() {
     if (!effectiveDueDate) return false;
     return effectiveDueDate <= nextPayrollDate;
   });
-
-  const firstName = user?.full_name?.split(' ')[0] || 'there';
-  const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
@@ -285,19 +284,24 @@ export default function WorkerHome() {
           dueSoon={dueSoonRoutes.length}
         />
         
-        {/* Active Combo Route Card */}
         {activeComboRoutes.map(combo => (
           <div key={combo.id} className="mb-4">
             <ComboRouteCard combo={combo} routes={routes} />
           </div>
         ))}
 
-        <ActiveRoutesList routes={activeRoutes} attempts={allAttempts} addresses={addresses} userId={user?.id} />
+        <ActiveRoutesList
+          routes={activeRoutes}
+          attempts={allAttempts}
+          addresses={addresses}
+          userId={user?.id}
+          onArchive={handleArchiveRoute}
+          onDelete={handleDeleteRoute}
+        />
       </main>
 
       <BottomNav currentPage="WorkerHome" />
 
-      {/* Location tracker - active when user has permission and has an active route */}
       <LocationTracker 
         user={user} 
         enabled={user?.location_permission && activeRoutes.length > 0}

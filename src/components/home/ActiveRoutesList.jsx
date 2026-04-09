@@ -3,18 +3,22 @@ import { Link } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { createPageUrl } from '@/utils';
-import { MapPin, Calendar, Clock } from 'lucide-react';
+import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2, CalendarDays, Pencil } from 'lucide-react';
+import ScheduleRunModal from './ScheduleRunModal';
+import EditRouteModal from './EditRouteModal';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import ScheduledServeCard from '../scheduled/ScheduledServeCard';
 
-export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId }) {
+export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId, onArchive, onDelete }) {
   const [activeTab, setActiveTab] = useState('routes');
-
-  const routeNameMap = React.useMemo(() => {
-    const map = {};
-    routes.forEach(r => { map[r.id] = r.folder_name; });
-    return map;
-  }, [routes]);
+  const [schedulingRoute, setSchedulingRoute] = useState(null);
+  const [editingRoute, setEditingRoute] = useState(null);
 
   const attemptsByRoute = React.useMemo(() => {
     const map = {};
@@ -106,7 +110,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     return aDate - bDate;
   });
 
-  const getStatusBadge = (status, hasRunDate) => {
+  const getStatusBadge = (status, hasRunDate, onScheduleClick) => {
     if (status === 'active') {
       return (
         <span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }}>
@@ -116,17 +120,25 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     }
     if (hasRunDate) {
       return (
-        <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc' }}>
+        <button
+          onClick={e => { e.preventDefault(); onScheduleClick?.(); }}
+          className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
+          style={{ background: 'rgba(99,102,241,0.20)', color: '#a5b4fc', cursor: 'pointer' }}
+        >
           <Calendar className="w-3 h-3" />
           Scheduled
-        </span>
+        </button>
       );
     }
     return (
-      <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(156,163,175,0.20)', color: '#9CA3AF' }}>
-        <Clock className="w-3 h-3" />
+      <button
+        onClick={e => { e.preventDefault(); onScheduleClick?.(); }}
+        className="flex items-center gap-1.5 text-sm font-bold rounded-full px-3 py-1.5 transition-colors hover:opacity-80"
+        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.45)', cursor: 'pointer' }}
+      >
+        <CalendarDays className="w-4 h-4" />
         Unscheduled
-      </span>
+      </button>
     );
   };
 
@@ -204,10 +216,9 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     );
 
     return (
-      <Link
+      <div
         key={route.id}
-        to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)}
-        className="block rounded-2xl p-4 mb-3 transition-opacity hover:opacity-90"
+        className="block rounded-2xl p-4 mb-3 relative"
         style={{
           background: 'rgba(14, 20, 44, 0.55)',
           backdropFilter: 'blur(20px)',
@@ -216,117 +227,167 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
       >
-        <div className="flex items-center gap-3 mb-2">
-          <div
-            className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
-            style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
-          >
-            {letter}
-          </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-            {route.run_date ? (
-              <>
-                <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
-                <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'EEE MMM d')}</span>
-              </>
-            ) : (
-              <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
-            )}
-            {route.run_qualifiers?.length > 0 && (
-              <span
-                className="text-[10px] font-semibold rounded px-1.5 py-0.5 uppercase"
-                style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}
-              >
-                {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
-              </span>
-            )}
-          </div>
-          {getStatusBadge(route.status, !!route.run_date)}
+        {/* Absolutely positioned right column: status badge + scheduled run chips */}
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+          {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
+          {route.scheduled_runs?.length > 0 && (
+            <button
+              onClick={() => setSchedulingRoute(route)}
+              className="flex flex-col gap-0.5 items-end"
+            >
+              {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#a5b4fc' }}>
+                    {new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
+                  </span>
+                  {run.qualifiers?.length > 0 && (
+                    <span className="text-[10px] font-bold rounded px-2 py-0.5 uppercase"
+                      style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                      {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </button>
+          )}
         </div>
 
-        <div className="flex gap-4 mb-2">
-          {estTimeLabel && (
+        {/* Clickable link area */}
+        <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
+          {/* Top row: letter + run date */}
+          <div className="flex items-start gap-3 mb-2">
+            <div
+              className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
+              style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
+            >
+              {letter}
+            </div>
+            <div className="flex-1 min-w-0" />
+          </div>
+
+          {/* Metrics row */}
+          <div className="flex gap-4 mb-2">
+            {estTimeLabel && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
+                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+              </div>
+            )}
             <div>
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
+              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
+                {(route.total_addresses || 0) - (route.served_count || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Due / Spread dates */}
+          {(dueDateLabel || spreadDateLabel) && (
+            <div className="mb-2">
+              {dueDateLabel && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
+                  <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
+                </div>
+              )}
+              {spreadDateLabel && (
+                <div className="mt-1">
+                  <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
+                  <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
+                </div>
+              )}
             </div>
           )}
-          <div>
-            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
-            <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
-              {(route.total_addresses || 0) - (route.served_count || 0)}
-            </div>
-          </div>
-        </div>
+        </Link>
 
-        {(dueDateLabel || spreadDateLabel) && (
-          <div className="mb-2">
-            {dueDateLabel && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
-                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
-              </div>
-            )}
-            {spreadDateLabel && (
-              <div className="mt-1">
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
-                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Bottom row: menu + qualifier badges — outside Link to avoid nesting issues */}
+        <div className="flex justify-between items-end mt-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-white/10"
+                style={{ color: '#6B7280', border: '1px solid rgba(255,255,255,0.12)' }}
+              >
+                <MoreHorizontal className="w-4 h-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={() => setEditingRoute(route)}>
+                <Pencil className="w-4 h-4 mr-2" />
+                Edit Route
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSchedulingRoute(route)}>
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Schedule Runs
+              </DropdownMenuItem>
+              {onArchive && (
+                <DropdownMenuItem onClick={() => onArchive(route)}>
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive Route
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <DropdownMenuItem className="text-red-600" onClick={() => onDelete(route)}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Route
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
-        <div className="flex justify-end">
-          {!hasAnyAttempts ? (
-            <div className="flex gap-1">
-              {allQuals.map(({ key, label }) => (
-                <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
-                  {label}
-                </span>
-              ))}
-            </div>
-          ) : allQualifiersMet ? (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
-              <div className="flex items-center gap-1">
+          {/* Qualifier badges */}
+          <div className="flex-1 flex justify-end">
+            {!hasAnyAttempts ? (
+              <div className="flex gap-1">
                 {allQuals.map(({ key, label }) => (
                   <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                    style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
+                    style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
                     {label}
                   </span>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 items-end">
-              {attemptList.map(({ num, am, pm, weekend, count }) => {
-                const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
-                return (
-                  <div key={num} className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
-                    <div className="flex items-center gap-1">
-                      {allQuals.map(({ key, label }) => (
-                        <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                          style={activeKeys.includes(key)
-                            ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
-                            : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
-                          }>
-                          {label}
+            ) : allQualifiersMet ? (
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
+                <div className="flex items-center gap-1">
+                  {allQuals.map(({ key, label }) => (
+                    <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                      style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 items-end">
+                {attemptList.map(({ num, am, pm, weekend, count }) => {
+                  const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
+                  return (
+                    <div key={num} className="flex flex-col items-end gap-0.5">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
+                      <div className="flex items-center gap-1">
+                        {allQuals.map(({ key, label }) => (
+                          <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                            style={activeKeys.includes(key)
+                              ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
+                              : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
+                            }>
+                            {label}
+                          </span>
+                        ))}
+                        <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                          style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
+                          {count}
                         </span>
-                      ))}
-                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
-                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
-                        {count}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
-      </Link>
+      </div>
     );
   };
 
@@ -402,7 +463,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             </div>
           ) : (
             <div>
-              {/* Dated groups (routes + scheduled serves interleaved) */}
               {groupKeys.map(dateKey => {
                 const dt = parseISO(dateKey);
                 let dayLabel;
@@ -429,12 +489,10 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                 );
               })}
 
-              {/* Ungrouped scheduled serves */}
               {ungroupedServes.map(s => (
                 <ScheduledServeCard key={s.id} serve={s} />
               ))}
 
-              {/* Unscheduled routes */}
               {groupKeys.length > 0 && unscheduled.length > 0 && (
                 <p className="text-xs font-semibold mt-4 mb-2 px-1" style={{ color: '#6B7280' }}>Unscheduled</p>
               )}
@@ -442,6 +500,20 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             </div>
           )}
         </div>
+      )}
+
+      {schedulingRoute && (
+        <ScheduleRunModal
+          route={schedulingRoute}
+          onClose={() => setSchedulingRoute(null)}
+          onSaved={() => setSchedulingRoute(null)}
+        />
+      )}
+      {editingRoute && (
+        <EditRouteModal
+          route={editingRoute}
+          onClose={() => setEditingRoute(null)}
+        />
       )}
     </div>
   );
