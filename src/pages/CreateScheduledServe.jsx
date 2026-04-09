@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronLeft, Phone, CalendarIcon, MapPin, FileText, Loader2, Copy, Clock } from 'lucide-react';
@@ -46,6 +46,7 @@ const inputStyle = {
 
 export default function CreateScheduledServe() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const addressId = urlParams.get('addressId');
   const routeId = urlParams.get('routeId');
@@ -198,6 +199,9 @@ export default function CreateScheduledServe() {
         folder_name: route?.folder_name || ''
       });
       toast.success('Scheduled serve created');
+      // Invalidate so the Scheduled tab and badge count update immediately on return
+      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
     } catch (error) {
       console.error('Failed to create scheduled serve:', error);

@@ -29,9 +29,12 @@ export function QualifierBadge({ badge, size = 'default' }) {
 export function QualifierBadges({ badges, size = 'default' }) {
   if (!badges || badges.length === 0) return null;
   
+  // Deduplicate — normalize to uppercase then remove dupes before rendering
+  const uniqueBadges = [...new Set(badges.map(b => (b || '').toUpperCase().trim()).filter(Boolean))];
+
   return (
     <div className="flex gap-1 flex-wrap">
-      {badges.map((badge, i) => (
+      {uniqueBadges.map((badge, i) => (
         <QualifierBadge key={i} badge={badge} size={size} />
       ))}
     </div>
