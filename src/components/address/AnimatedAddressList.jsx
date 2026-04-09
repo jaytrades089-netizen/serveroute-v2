@@ -143,13 +143,12 @@ export default function AnimatedAddressList({
       };
     }
 
-    // If route has an optimized_order, use order_index (GPS-based driving order)
-    // Otherwise fall back to spread due date sorting
-    const isActiveRoute = !!(route?.optimized_order?.length > 0);
-    const activeSort = isActiveRoute ? sortByOrder : sortBySpreadDue;
+    // If route has an optimized_order, preserve the incoming array order (already sorted
+    // by WorkerRouteDetail using optimized_order). Otherwise sort by spread due date.
+    const isOptimized = !!(route?.optimized_order?.length > 0);
 
     return {
-      activeAddresses: active.sort(activeSort),
+      activeAddresses: isOptimized ? active : active.sort(sortBySpreadDue),
       attemptedTodayAddresses: attemptedToday.sort(sortBySpreadDue),
       completedAddresses: served.sort(sortByOrder)
     };
