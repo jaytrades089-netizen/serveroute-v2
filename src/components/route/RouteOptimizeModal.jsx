@@ -41,6 +41,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   const [isStarting, setIsStarting] = useState(false);
   const [deletingLocationId, setDeletingLocationId] = useState(null);
   const [routeType, setRouteType] = useState('fastest'); // 'fastest' = time, 'shortest' = miles
+  const [optimizeStatus, setOptimizeStatus] = useState('');
+  const [optimizeProgress, setOptimizeProgress] = useState(0);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -196,6 +198,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setLocationError(null);
     setIsOptimized(false);
     setRouteMetrics(null);
+    setOptimizeStatus('Starting...');
+    setOptimizeProgress(5);
 
     try {
       // Clear stale optimized_order before re-optimizing to prevent old order from sticking
@@ -206,6 +210,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       if (useCurrentLocation) {
         try {
           toast.info('Getting your current location...');
+          setOptimizeStatus('Getting your GPS location...');
+          setOptimizeProgress(10);
           const position = await new Promise((resolve, reject) => {
             if (!navigator.geolocation) {
               reject(new Error('Geolocation not supported by this device'));
@@ -301,6 +307,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       if (needsGeocoding.length > 0) {
         console.log(`Geocoding ${needsGeocoding.length} addresses...`);
         toast.info(`Geocoding ${needsGeocoding.length} addresses...`);
+        setOptimizeStatus(`Locating ${needsGeocoding.length} address${needsGeocoding.length !== 1 ? 'es' : ''} on the map...`);
+        setOptimizeProgress(30);
 
         const hereApiKey = hereKey;
 
@@ -336,6 +344,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       console.log('GPS start:', startLat, startLng);
       console.log('End location:', endLocation?.address, endLocation?.latitude, endLocation?.longitude);
       toast.info(`Optimizing ${validAddresses.length} stops from GPS (${startLat.toFixed(4)}, ${startLng.toFixed(4)})...`);
+      setOptimizeStatus(`Calculating best route for ${validAddresses.length} stops...`);
+      setOptimizeProgress(55);
 
       let optimizedAddresses = await optimizeWithHybrid(
         validAddresses,
@@ -421,6 +431,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       // Save optimized order + metrics to Route in a single write
       // order_index is never stored on individual addresses — derived at render time from route.optimized_order
       console.log('Saving optimized order...');
+      setOptimizeStatus('Saving route order...');
+      setOptimizeProgress(85);
       const optimizedOrder = optimizedAddresses.map(a => a.id);
       try {
         await base44.entities.Route.update(routeId, {
@@ -438,6 +450,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       // Force immediate refetch so the address list updates right away with new order
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      setOptimizeStatus('Route optimized!');
+      setOptimizeProgress(100);
       toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {
@@ -503,6 +517,21 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
             <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
           </button>
         </div>
+
+        {isOptimizing && (
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-semibold" style={{ color: '#e9c349' }}>{optimizeStatus}</span>
+              <span className="text-xs font-bold" style={{ color: '#e9c349' }}>{optimizeProgress}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.10)' }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${optimizeProgress}%`, background: 'linear-gradient(90deg, #e9c349, #f5d97a)' }}
+              />
+            </div>
+          </div>
+        )}
 
         {!isOptimized && (
         <>
