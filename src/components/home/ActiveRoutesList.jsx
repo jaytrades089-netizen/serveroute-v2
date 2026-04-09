@@ -189,7 +189,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         }}
       >
       <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-start gap-3 mb-2">
           <div
             className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
             style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
