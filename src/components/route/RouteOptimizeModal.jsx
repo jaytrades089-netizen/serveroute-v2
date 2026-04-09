@@ -77,6 +77,18 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     enabled: !!user?.id
   });
 
+  const { data: backendApiKeys } = useQuery({
+    queryKey: ['backendApiKeys'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getApiKeys', {});
+      return res.data;
+    },
+    staleTime: 10 * 60 * 1000
+  });
+
+  const mapquestKey = userSettings?.mapquest_api_key || backendApiKeys?.mapquest_api_key || null;
+  const hereKey = userSettings?.here_api_key || backendApiKeys?.here_api_key || null;
+
   const handleDeleteLocation = async (locId) => {
     try {
       await base44.entities.SavedLocation.delete(locId);
@@ -105,12 +117,13 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     }
     setSavingLocation(true);
     try {
-      const apiKey = userSettings?.mapquest_api_key;
+      const apiKey = mapquestKey;
       if (!apiKey) {
-        toast.error('MapQuest API key not configured. Please add it in Settings.');
+        toast.error('MapQuest API key not configured.');
         setSavingLocation(false);
         return;
       }
+
       const geocodeUrl = `https://www.mapquestapi.com/geocoding/v1/address?key=${apiKey}&location=${encodeURIComponent(newLocationAddress)}`;
       const response = await fetch(geocodeUrl);
       const data = await response.json();
@@ -173,9 +186,9 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       toast.error('Please select an end location or an optimization mode');
       return;
     }
-    const apiKey = userSettings?.mapquest_api_key;
+    const apiKey = mapquestKey;
     if (!apiKey) {
-      toast.error('MapQuest API key not configured. Go to Settings to add it.');
+      toast.error('MapQuest API key not configured.');
       return;
     }
 
@@ -277,7 +290,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         console.log(`Geocoding ${needsGeocoding.length} addresses...`);
         toast.info(`Geocoding ${needsGeocoding.length} addresses...`);
 
-        const hereApiKey = userSettings?.here_api_key || null;
+        const hereApiKey = hereKey;
 
         for (const addr of needsGeocoding) {
           const fullAddress = addr.normalized_address || addr.legal_address;
