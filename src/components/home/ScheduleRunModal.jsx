@@ -1,0 +1,149 @@
+import React, { useState } from 'react';
+import { base44 } from '@/api/base44Client';
+import { format, parseISO } from 'date-fns';
+import { X, Plus, Trash2, CalendarDays, Check } from 'lucide-react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+
+const QUALIFIERS = [
+  { key: 'am', label: 'AM' },
+  { key: 'pm', label: 'PM' },
+  { key: 'weekend', label: 'WKND' },
+];
+
+function RunRow({ run, index, onChange, onRemove }) {
+  return (
+    <div className="flex items-center gap-2 mb-2">
+      <input
+        type="date"
+        value={run.date}
+        onChange={e => onChange(index, { ...run, date: e.target.value })}
+        className="flex-1 rounded-lg px-3 py-2 text-sm font-medium focus:outline-none"
+        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#e6e1e4' }}
+      />
+      <div className="flex gap-1">
+        {QUALIFIERS.map(q => {
+          const active = run.qualifiers?.includes(q.key);
+          return (
+            <button
+              key={q.key}
+              onClick={() => {
+                const qs = run.qualifiers || [];
+                const next = active ? qs.filter(x => x !== q.key) : [...qs, q.key];
+                onChange(index, { ...run, qualifiers: next });
+              }}
+              className="text-[10px] font-bold rounded px-2 py-1 uppercase transition-colors"
+              style={active
+                ? { background: 'rgba(233,195,73,0.25)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.5)' }
+                : { background: 'rgba(255,255,255,0.05)', color: '#4B5563', border: '1px solid rgba(255,255,255,0.10)' }
+              }
+            >
+              {q.label}
+            </button>
+          );
+        })}
+      </div>
+      <button onClick={() => onRemove(index)} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors" style={{ color: '#6B7280' }}>
+        <Trash2 className="w-4 h-4" />
+      </button>
+    </div>
+  );
+}
+
+export default function ScheduleRunModal({ route, onClose, onSaved }) {
+  const requiredAttempts = route.required_attempts || 3;
+
+  const initRuns = () => {
+    if (route.scheduled_runs?.length > 0) return route.scheduled_runs.map(r => ({ ...r }));
+    if (route.run_date) return [{ date: route.run_date, qualifiers: route.run_qualifiers || [] }];
+    // Pre-fill N empty slots for required attempts
+    return Array.from({ length: requiredAttempts }, () => ({ date: '', qualifiers: [] }));
+  };
+
+  const [runs, setRuns] = useState(initRuns);
+  const [saving, setSaving] = useState(false);
+
+  const handleChange = (i, updated) => {
+    setRuns(prev => prev.map((r, idx) => idx === i ? updated : r));
+  };
+  const handleRemove = (i) => setRuns(prev => prev.filter((_, idx) => idx !== i));
+  const handleAdd = () => setRuns(prev => [...prev, { date: '', qualifiers: [] }]);
+
+  const handleSave = async () => {
+    const validRuns = runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (validRuns.length === 0) {
+      toast.error('Add at least one run date');
+      return;
+    }
+    setSaving(true);
+    try {
+      const first = validRuns[0];
+      await base44.entities.Route.update(route.id, {
+        run_date: first.date,
+        run_qualifiers: first.qualifiers || [],
+        scheduled_runs: validRuns,
+        status: route.status === 'ready' || route.status === 'assigned' ? route.status : route.status,
+      });
+      toast.success('Runs scheduled!');
+      onSaved?.();
+      onClose();
+    } catch (e) {
+      toast.error('Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={onClose}>
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.6)' }} />
+      <div
+        className="relative w-full max-w-lg rounded-t-2xl p-5"
+        style={{ background: '#0F1A2E', border: '1px solid rgba(255,255,255,0.12)', borderBottom: 'none', maxHeight: '80vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-5 h-5" style={{ color: '#e9c349' }} />
+            <div>
+              <h2 className="font-bold text-base" style={{ color: '#e6e1e4' }}>Schedule Runs</h2>
+              <p className="text-xs" style={{ color: '#6B7280' }}>{route.folder_name} · {requiredAttempts} attempts required</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-white/10" style={{ color: '#6B7280' }}>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Legend */}
+        <div className="flex gap-2 mb-4 text-[10px] font-semibold uppercase" style={{ color: '#6B7280' }}>
+          <span className="flex-1">Date</span>
+          <span>Qualifiers</span>
+          <span className="w-8" />
+        </div>
+
+        {runs.map((run, i) => (
+          <RunRow key={i} run={run} index={i} onChange={handleChange} onRemove={handleRemove} />
+        ))}
+
+        <button
+          onClick={handleAdd}
+          className="flex items-center gap-2 text-sm font-semibold mt-2 mb-5 px-3 py-2 rounded-lg w-full transition-colors hover:bg-white/10"
+          style={{ color: '#e9c349', border: '1px dashed rgba(233,195,73,0.35)' }}
+        >
+          <Plus className="w-4 h-4" /> Add Run
+        </button>
+
+        <Button
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full font-bold"
+          style={{ background: '#e9c349', color: '#0F0B10' }}
+        >
+          {saving ? 'Saving…' : <><Check className="w-4 h-4 mr-1" /> Save Schedule</>}
+        </Button>
+      </div>
+    </div>
+  );
+}

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Clock, MoreHorizontal, Archive, Trash2, CalendarDays } from 'lucide-react';
+import ScheduleRunModal from './ScheduleRunModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,6 +12,7 @@ import {
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 
 export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], onArchive, onDelete }) {
+  const [schedulingRoute, setSchedulingRoute] = useState(null);
   const routeNameMap = React.useMemo(() => {
     const map = {};
     routes.forEach(r => { map[r.id] = r.folder_name; });
@@ -66,7 +68,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
   });
   const groupKeys = Object.keys(groups).sort((a, b) => new Date(a) - new Date(b));
 
-  const getStatusBadge = (status, hasRunDate) => {
+  const getStatusBadge = (status, hasRunDate, onScheduleClick) => {
     if (status === 'active') {
       return (
         <span className="text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }}>
@@ -83,10 +85,14 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       );
     }
     return (
-      <span className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5" style={{ background: 'rgba(156,163,175,0.20)', color: '#9CA3AF' }}>
-        <Clock className="w-3 h-3" />
+      <button
+        onClick={e => { e.preventDefault(); onScheduleClick?.(); }}
+        className="flex items-center gap-1 text-xs font-medium rounded-full px-2 py-0.5 transition-colors hover:opacity-80"
+        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', cursor: 'pointer' }}
+      >
+        <CalendarDays className="w-3 h-3" />
         Unscheduled
-      </span>
+      </button>
     );
   };
 
@@ -205,7 +211,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             )}
 
           </div>
-          {getStatusBadge(route.status, !!route.run_date)}
+          {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
         </div>
 
         <div className="flex gap-4 mb-2">
@@ -253,6 +259,10 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
+              <DropdownMenuItem onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}>
+                <CalendarDays className="w-4 h-4 mr-2" />
+                Schedule Runs
+              </DropdownMenuItem>
               {onArchive && (
                 <DropdownMenuItem onClick={e => { e.preventDefault(); onArchive(route); }}>
                   <Archive className="w-4 h-4 mr-2" />
@@ -321,6 +331,23 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           </div>
         </div>
       </Link>
+
+      {/* Scheduled runs — shown below the card content */}
+      {route.scheduled_runs?.length > 0 && (
+        <div className="mt-2 flex flex-col gap-1">
+          {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
+            <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'rgba(99,102,241,0.12)', border: '1px solid rgba(99,102,241,0.25)' }}>
+              <Calendar className="w-3 h-3 flex-shrink-0" style={{ color: '#a5b4fc' }} />
+              <span className="text-xs font-semibold" style={{ color: '#a5b4fc' }}>{new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+              {run.qualifiers?.length > 0 && (
+                <span className="text-[10px] font-bold rounded px-1.5 py-0.5 uppercase ml-auto" style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                  {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       </div>
     );
   };
@@ -364,6 +391,14 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           )}
           {unscheduled.map(route => renderRouteCard(route))}
         </div>
+      )}
+
+      {schedulingRoute && (
+        <ScheduleRunModal
+          route={schedulingRoute}
+          onClose={() => setSchedulingRoute(null)}
+          onSaved={() => setSchedulingRoute(null)}
+        />
       )}
     </div>
   );
