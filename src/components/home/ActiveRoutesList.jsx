@@ -196,7 +196,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           >
             {letter}
           </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+          <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
             {route.run_date ? (
               <>
                 <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
