@@ -13,7 +13,7 @@ import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import RTOModal from './RTOModal';
 import PhotoViewer from './PhotoViewer';
-import QualifierBadges from '@/components/common/QualifierBadges';
+import QualifierBadge from '@/components/qualifier/QualifierBadge';
 
 export default function AddressCard({
   address,
@@ -544,7 +544,7 @@ export default function AddressCard({
                               </p>
                               {attempt.comment && <p className="text-xs truncate" style={{ color: '#8a7f87' }}>{attempt.comment}</p>}
                             </div>
-                            <QualifierBadges badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
+                            <QualifierBadge badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
                           </div>
                         ))}
                       </div>
@@ -561,7 +561,7 @@ export default function AddressCard({
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
           <div className="px-4 pb-3 border-t border-[#363436]">
             <div className="pt-3">
-              <QualifierBadges badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} size="default" />
+              <QualifierBadge badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} size="default" />
               <p className="text-xs mt-2" style={{ color: '#8a7f87' }}>
                 {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
               </p>
@@ -775,7 +775,7 @@ export default function AddressCard({
                         {new Date(attempt.attempt_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                       </span>
                     </div>
-                    <QualifierBadges badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
+                    <QualifierBadge badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
                     {attempt.comment && <p className="text-xs mt-1" style={{ color: '#8a7f87' }}>{attempt.comment}</p>}
                     {attempt.photo_urls?.length > 0 && (
                       <div className="flex gap-2 flex-wrap mt-2">
