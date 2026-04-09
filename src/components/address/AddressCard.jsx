@@ -86,7 +86,6 @@ export default function AddressCard({
 }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  // In combo routes, routeId is the comboId — use address.route_id for the REAL route
   const actualRouteId = address.route_id || routeId;
   const formatted = formatAddressUtil(address);
   const receiptStatus = address.receipt_status;
@@ -96,42 +95,23 @@ export default function AddressCard({
   const receiptNeedsRevision = receiptStatus === 'needs_revision';
   const isVerified = address.verification_status === 'verified';
   
-  // Local attempts state (can be updated after logging)
   const [localAttempts, setLocalAttempts] = useState(allAttempts);
   const attemptCount = localAttempts.length;
-  
-  // Tab state - 0 = home/summary, 1-5 = attempt details
   const [activeTab, setActiveTab] = useState(0);
-  
-  // Evidence capture state
   const [showCamera, setShowCamera] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [savingEvidence, setSavingEvidence] = useState(false);
   const [showPhotoViewer, setShowPhotoViewer] = useState(false);
-  
-  // Attempt logging state
   const [finalizingAttempt, setFinalizingAttempt] = useState(false);
-  
-  // Edit notes state
   const [editingNotes, setEditingNotes] = useState(false);
   const [editedNotesText, setEditedNotesText] = useState('');
-  
-
-  
-  // Boss action states
   const [showBossAddAttempt, setShowBossAddAttempt] = useState(false);
   const [showRequestAttempt, setShowRequestAttempt] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
-  
-  // Worker request states
   const [showRequestDetail, setShowRequestDetail] = useState(false);
   const [workerReplyText, setWorkerReplyText] = useState('');
-  
-  // Edit mode state
   const [isEditing, setIsEditing] = useState(false);
-  
-  // RTO modal state
   const [showRTOModal, setShowRTOModal] = useState(false);
   const [savingRTO, setSavingRTO] = useState(false);
   const [editFields, setEditFields] = useState({
@@ -143,14 +123,11 @@ export default function AddressCard({
     serve_type: address.serve_type || 'serve'
   });
 
-  // Helper to invalidate the correct attempt/address queries
-  // In combo routes, the query keys are different from regular routes
   const invalidateAttemptQueries = () => {
     if (comboRouteIds) {
       queryClient.invalidateQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] });
       queryClient.invalidateQueries({ queryKey: ['comboDetailAddresses', comboRouteIds] });
     }
-    // Always invalidate the real route's queries too
     queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
     queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
     if (routeId !== actualRouteId) {
@@ -159,33 +136,23 @@ export default function AddressCard({
     }
   };
 
-  // Get current user
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
     queryFn: () => base44.auth.me()
   });
 
-  // Determine if current user can edit attempt times
   const canEditAttemptTimes = React.useMemo(() => {
     if (!user) return false;
-    
-    // Boss can always edit
     if (user.role === 'boss' || user.role === 'admin') return true;
-    
-    // Check grace period (5 days from account creation)
     const createdAt = user.created_date ? new Date(user.created_date) : null;
     if (createdAt) {
       const daysSinceCreated = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
       if (daysSinceCreated <= 5) return true;
     }
-    
-    // Check boss-enabled editing
     if (user.editing_enabled) return true;
-    
     return false;
   }, [user]);
   
-  // Fetch pending request for this address
   const { data: pendingRequest } = useQuery({
     queryKey: ['attemptRequest', address.id],
     queryFn: async () => {
@@ -198,18 +165,15 @@ export default function AddressCard({
     enabled: !!address.has_pending_request
   });
   
-  // Sync local attempts with props — preserve any pending temp attempts
   React.useEffect(() => {
     setLocalAttempts(prev => {
       const pendingTemps = prev.filter(a => a.id?.startsWith('temp_'));
       if (pendingTemps.length === 0) return allAttempts;
-      // Keep temps that don't yet exist on the server, merge with server data
       const serverIds = new Set(allAttempts.map(a => a.id));
       return [...allAttempts, ...pendingTemps.filter(t => !serverIds.has(t.id))];
     });
   }, [allAttempts]);
 
-  // Hide bottom nav when camera is open
   React.useEffect(() => {
     if (showCamera) {
       document.body.classList.add('camera-active');
@@ -219,21 +183,16 @@ export default function AddressCard({
     return () => document.body.classList.remove('camera-active');
   }, [showCamera]);
   
-  // Sort attempts by date for consistent ordering
   const sortedAttempts = [...localAttempts].sort((a, b) => 
     new Date(a.attempt_time) - new Date(b.attempt_time)
   );
   
-  // Find in-progress attempt (evidence taken but not finalized)
   const inProgressAttempt = sortedAttempts.find(a => a.status === 'in_progress');
   const hasInProgressAttempt = !!inProgressAttempt;
 
   const handleNavigate = (e) => {
     e.stopPropagation();
-    
-    // Extract street number + first 2 letters of street name for clipboard
     const streetLine = formatted.line1 || '';
-    // Match: number(s) followed by space(s) and at least 2 letters
     const match = streetLine.match(/^(\d+)\s+([A-Za-z]{1,2})/i);
     if (match) {
       const clipboardText = `${match[1]} ${match[2].toUpperCase()}`;
@@ -241,92 +200,56 @@ export default function AddressCard({
         navigator.clipboard.writeText(clipboardText);
         toast.success(`Copied: ${clipboardText}`);
       } catch (err) {
-        // Fallback for browsers that don't support clipboard API
         toast.info(`Address: ${clipboardText}`);
       }
     }
-    
     const addressStr = `${formatted.line1}, ${formatted.line2}`;
     const encoded = encodeURIComponent(addressStr);
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`, '_blank');
   };
 
-  // Card click only triggers if custom onClick is provided
   const handleCardClick = () => {
-    if (onClick) {
-      onClick(address);
-    }
+    if (onClick) onClick(address);
   };
 
-  // CAPTURE EVIDENCE - Opens camera
-  // If there's already an in_progress attempt, this adds more photos to it
-  // If no in_progress attempt, this will create a new draft attempt on save
   const handleCaptureEvidence = (e) => {
     e.stopPropagation();
     setShowCamera(true);
   };
 
-  // Photo taken from camera
   const handlePhotoTaken = async ({ file, dataUrl }) => {
     setCapturedPhoto({ file, dataUrl });
     setShowCamera(false);
     setShowCommentModal(true);
   };
 
-  // Save evidence with comment - THIS CREATES THE DRAFT ATTEMPT
-  // OPTIMISTIC UI: Close modal immediately, save in background
   const handleSaveEvidence = async (comment) => {
     if (!capturedPhoto) return;
-    
-    // Comment is required for new attempts, EXCEPT postings
     if (!hasInProgressAttempt && !comment.trim() && address.serve_type !== 'posting') {
       toast.error('Please add a description');
       return;
     }
-    
-    // Keep modal open with progress bar while saving
     const photoToUpload = capturedPhoto;
     setSavingEvidence(true);
-    
-    // Continue upload in background
     try {
-      // Upload photo
-      const { file_url } = await base44.integrations.Core.UploadFile({ 
-        file: photoToUpload.file 
-      });
-
-      // Close modal now that upload is done
+      const { file_url } = await base44.integrations.Core.UploadFile({ file: photoToUpload.file });
       setCapturedPhoto(null);
       setShowCommentModal(false);
-      
       if (hasInProgressAttempt) {
-        // Add photo to existing in_progress attempt
         const existingPhotos = inProgressAttempt.photo_urls || [];
         const existingNotes = inProgressAttempt.notes || '';
-        const newNotes = comment.trim() 
-          ? (existingNotes ? `${existingNotes}\n\n${comment}` : comment)
-          : existingNotes;
-        
+        const newNotes = comment.trim() ? (existingNotes ? `${existingNotes}\n\n${comment}` : comment) : existingNotes;
         await base44.entities.Attempt.update(inProgressAttempt.id, {
           photo_urls: [...existingPhotos, file_url],
           notes: newNotes
         });
-        
-        // Update local state
         const updatedAttempts = localAttempts.map(a => 
-          a.id === inProgressAttempt.id 
-            ? { ...a, photo_urls: [...existingPhotos, file_url], notes: newNotes }
-            : a
+          a.id === inProgressAttempt.id ? { ...a, photo_urls: [...existingPhotos, file_url], notes: newNotes } : a
         );
         setLocalAttempts(updatedAttempts);
-        
         toast.success('Photo added!');
       } else {
-        // CREATE NEW IN_PROGRESS ATTEMPT
-        
-        // Verify worker owns this route before creating attempt
         if (user?.role === 'server') {
-          // Need to check route ownership - fetch route if not passed
           try {
             const routes = await base44.entities.Route.filter({ id: actualRouteId });
             const route = routes[0];
@@ -338,29 +261,19 @@ export default function AddressCard({
             console.warn('Could not verify route ownership:', e);
           }
         }
-        
         const now = new Date();
         const qualifierData = getQualifiers(now);
-
-        // Warn about outside-hours attempts
         if (qualifierData.isOutsideHours) {
           const proceed = window.confirm(
             'This attempt is outside service hours (8 AM - 9 PM Michigan time). ' +
             'It will NOT earn any qualifier credit (AM/PM/WEEKEND). Continue?'
           );
-          if (!proceed) {
-            return;
-          }
+          if (!proceed) return;
         }
-
         const qualifierFields = getQualifierStorageFields(qualifierData);
         const attemptNumber = attemptCount + 1;
         const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
-        
-        // For postings: create as completed immediately, for serves: in_progress
         const isPosting = address.serve_type === 'posting';
-        
-        // OPTIMISTIC: Create local attempt immediately
         const tempAttempt = {
           id: 'temp_' + Date.now(),
           address_id: address.id,
@@ -374,31 +287,21 @@ export default function AddressCard({
           attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...qualifierFields,
           notes: comment,
-          photo_urls: [photoToUpload.dataUrl], // Use dataUrl temporarily
+          photo_urls: [photoToUpload.dataUrl],
         };
-        
-        // Update local state immediately
         setLocalAttempts(prev => [...prev, tempAttempt]);
         setTimeout(() => setActiveTab(attemptNumber), 50);
-        
-        // Get GPS location (don't block)
-        let userLat = null;
-        let userLon = null;
-        let distanceFeet = null;
-        
+        let userLat = null, userLon = null, distanceFeet = null;
         try {
           const position = await getCurrentPosition();
           userLat = position.latitude;
           userLon = position.longitude;
-          
           if (address.lat && address.lng) {
             distanceFeet = calculateDistanceFeet(userLat, userLon, address.lat, address.lng);
           }
         } catch (geoError) {
           console.warn('Geolocation failed:', geoError.message);
         }
-        
-        // Create the real attempt in database
         const newAttempt = await base44.entities.Attempt.create({
           address_id: address.id,
           route_id: actualRouteId,
@@ -417,107 +320,56 @@ export default function AddressCard({
           photo_urls: [file_url],
           synced_at: new Date().toISOString()
         });
-        
-        // Replace temp attempt with real one
-        setLocalAttempts(prev => prev.map(a => 
-          a.id === tempAttempt.id ? newAttempt : a
-        ));
-        
-        // Set first_attempt_date on route if this is the first attempt
+        setLocalAttempts(prev => prev.map(a => a.id === tempAttempt.id ? newAttempt : a));
         if (attemptNumber === 1 && actualRouteId) {
           try {
             const currentRoute = await base44.entities.Route.filter({ id: actualRouteId });
             if (currentRoute[0] && !currentRoute[0].first_attempt_date) {
-              await base44.entities.Route.update(actualRouteId, {
-                first_attempt_date: now.toISOString()
-              });
+              await base44.entities.Route.update(actualRouteId, { first_attempt_date: now.toISOString() });
             }
           } catch (e) {
             console.warn('Failed to set first_attempt_date:', e);
           }
         }
-
-        // Update Address attempts_count
         await base44.entities.Address.update(address.id, {
           attempts_count: attemptNumber,
           status: address.status === 'pending' ? 'attempted' : address.status
         });
-        
-        // For postings, auto-navigate to SubmitReceipt page
         if (isPosting) {
           toast.success('Photo saved! Review and submit the receipt.');
           const returnParam = comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : '';
-          navigate(createPageUrl(
-            `SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true${returnParam}`
-          ));
-          return; // Skip the normal toast below
+          navigate(createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true${returnParam}`));
+          return;
         }
-        
         toast.success(`Evidence saved - ${qualifierData.display}`);
       }
-      
-      // Invalidate queries in background — invalidate BOTH combo and real route keys
       invalidateAttemptQueries();
-      
     } catch (error) {
       console.error('Failed to save evidence:', error);
       toast.error('Failed to save - please try again');
-      // Keep modal open on error so user can retry
     } finally {
       setSavingEvidence(false);
     }
   };
 
-  // LOG ATTEMPT - Shows outcome selector, then logs with selected outcome
   const handleLogAttempt = async (e) => {
     e.stopPropagation();
-    
-    if (!user) {
-      toast.error('Please log in first');
-      return;
-    }
-    
-    // Must have an in_progress attempt to finalize
-    if (!hasInProgressAttempt) {
-      toast.error('Take a photo first! Tap Evidence to start.');
-      return;
-    }
-    
-    // Validate: must have at least 1 photo
+    if (!user) { toast.error('Please log in first'); return; }
+    if (!hasInProgressAttempt) { toast.error('Take a photo first! Tap Evidence to start.'); return; }
     if (!inProgressAttempt.photo_urls || inProgressAttempt.photo_urls.length === 0) {
-      toast.error('You must take at least one photo before logging');
-      return;
+      toast.error('You must take at least one photo before logging'); return;
     }
-    
-    // Log attempt directly - no modal needed
     setFinalizingAttempt(true);
-    
     try {
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
-      
-      // OPTIMISTIC: Update local state immediately for instant feedback
       const updatedAttempts = localAttempts.map(a => 
-        a.id === inProgressAttempt.id 
-          ? { ...a, status: 'completed', outcome: 'other' }
-          : a
+        a.id === inProgressAttempt.id ? { ...a, status: 'completed', outcome: 'other' } : a
       );
       setLocalAttempts(updatedAttempts);
-      
       toast.success(`Attempt ${inProgressAttempt.attempt_number} logged!`);
-      
-      // Write to database FIRST so the refetch in onAttemptLogged gets fresh data
-      await base44.entities.Attempt.update(inProgressAttempt.id, {
-        status: 'completed',
-        outcome: 'other'
-      });
-      
-      // Trigger animation + refetch to move card to "attempted today"
-      if (onAttemptLogged) {
-        onAttemptLogged();
-      }
-      
-      // Audit log in background (non-blocking)
+      await base44.entities.Attempt.update(inProgressAttempt.id, { status: 'completed', outcome: 'other' });
+      if (onAttemptLogged) onAttemptLogged();
       base44.entities.AuditLog.create({
         company_id: companyId,
         action_type: 'attempt_logged',
@@ -536,11 +388,8 @@ export default function AddressCard({
         },
         timestamp: now.toISOString()
       });
-      
-      // Invalidate queries in background
       invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
-      
     } catch (error) {
       console.error('Failed to log attempt:', error);
       toast.error('Failed to log attempt');
@@ -549,45 +398,22 @@ export default function AddressCard({
     }
   };
 
-  // FINALIZE POSTING - Marks address as served/completed
   const handleFinalizePosting = async (e) => {
     e.stopPropagation();
-    
-    if (!user) {
-      toast.error('Please log in first');
-      return;
-    }
-    
+    if (!user) { toast.error('Please log in first'); return; }
     setFinalizingAttempt(true);
-    
     try {
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
-      
-      // Mark address as served
-      await base44.entities.Address.update(address.id, {
-        served: true,
-        served_at: now.toISOString(),
-        status: 'served'
-      });
-
-      // Auto-complete any open scheduled serves for this address
+      await base44.entities.Address.update(address.id, { served: true, served_at: now.toISOString(), status: 'served' });
       try {
-        const openServes = await base44.entities.ScheduledServe.filter({
-          address_id: address.id,
-          status: 'open'
-        });
+        const openServes = await base44.entities.ScheduledServe.filter({ address_id: address.id, status: 'open' });
         for (const serve of openServes) {
-          await base44.entities.ScheduledServe.update(serve.id, {
-            status: 'completed',
-            completed_at: now.toISOString()
-          });
+          await base44.entities.ScheduledServe.update(serve.id, { status: 'completed', completed_at: now.toISOString() });
         }
       } catch (ssErr) {
         console.warn('Failed to complete scheduled serves:', ssErr);
       }
-      
-      // Create audit log
       await base44.entities.AuditLog.create({
         company_id: companyId,
         action_type: 'posting_completed',
@@ -595,26 +421,16 @@ export default function AddressCard({
         actor_role: user.role || 'server',
         target_type: 'address',
         target_id: address.id,
-        details: {
-          route_id: routeId,
-          serve_type: 'posting',
-          attempt_count: attemptCount
-        },
+        details: { route_id: routeId, serve_type: 'posting', attempt_count: attemptCount },
         timestamp: now.toISOString()
       });
-      
-      // Trigger parent callbacks to move card to completed section
       if (onAttemptLogged) onAttemptLogged();
       if (onServed) onServed();
-      
       toast.success('Posting completed! ✓');
-      
-      // Invalidate queries
       invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['address', address.id] });
       queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
       queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
-      
     } catch (error) {
       console.error('Failed to finalize posting:', error);
       toast.error('Failed to complete posting');
@@ -622,10 +438,7 @@ export default function AddressCard({
       setFinalizingAttempt(false);
     }
   };
-  
 
-
-  // Edit notes handler
   const handleEditNotes = (e) => {
     e.stopPropagation();
     if (selectedAttempt) {
@@ -634,38 +447,21 @@ export default function AddressCard({
     }
   };
 
-  // Edit attempt time — recalculates qualifiers
   const handleEditAttemptTime = async (attempt, newTimeValue) => {
     if (!newTimeValue) return;
-    
     const newTime = new Date(newTimeValue);
-    
     try {
-      // Recalculate qualifiers for the new time
       const qualifierData = getQualifiers(newTime);
       const qualifierFields = getQualifierStorageFields(qualifierData);
-      
-      // Update attempt in database
       await base44.entities.Attempt.update(attempt.id, {
         attempt_time: newTime.toISOString(),
         ...qualifierFields,
         manually_edited: true
       });
-      
-      // Update local state
       const updatedAttempts = localAttempts.map(a => 
-        a.id === attempt.id 
-          ? { 
-              ...a, 
-              attempt_time: newTime.toISOString(), 
-              ...qualifierFields,
-              manually_edited: true 
-            }
-          : a
+        a.id === attempt.id ? { ...a, attempt_time: newTime.toISOString(), ...qualifierFields, manually_edited: true } : a
       );
       setLocalAttempts(updatedAttempts);
-      
-      // Create audit log
       const companyId = getCompanyId(user) || address.company_id;
       await base44.entities.AuditLog.create({
         company_id: companyId,
@@ -684,78 +480,47 @@ export default function AddressCard({
         },
         timestamp: new Date().toISOString()
       });
-      
       toast.success(`Time updated — ${qualifierData.display}`);
-      
-      // Invalidate queries
       invalidateAttemptQueries();
-      
     } catch (error) {
       console.error('Failed to edit attempt time:', error);
       toast.error('Failed to update time');
     }
   };
 
-  // RTO handler - Return to Office
   const handleRTO = async (comment) => {
     setSavingRTO(true);
     try {
-      await executeRTO({
-        comment,
-        address,
-        routeId: actualRouteId,
-        user,
-        attemptCount,
-        queryClient
-      });
-      
+      await executeRTO({ comment, address, routeId: actualRouteId, user, attemptCount, queryClient });
       setShowRTOModal(false);
-      
-      // Trigger parent callbacks
       if (onAttemptLogged) onAttemptLogged();
       if (onServed) onServed();
     } catch (error) {
       console.error('Failed to mark as RTO:', error);
-      if (error.message !== 'Comment required') {
-        toast.error('Failed to process RTO');
-      }
+      if (error.message !== 'Comment required') toast.error('Failed to process RTO');
     } finally {
       setSavingRTO(false);
     }
   };
 
-  // Delete address handler
   const handleDeleteAddress = async () => {
     const confirmed = window.confirm(
       `Delete this address?\n\n${formatted.line1}\n${formatted.line2}\n\nAll attempts for this address will also be deleted.`
     );
     if (!confirmed) return;
-    
     try {
-      // Soft-delete the address
-      await base44.entities.Address.update(address.id, {
-        deleted_at: new Date().toISOString()
-      });
-      
-      // Delete all attempts for this address
+      await base44.entities.Address.update(address.id, { deleted_at: new Date().toISOString() });
       for (const attempt of localAttempts) {
         await base44.entities.Attempt.delete(attempt.id);
       }
-      
-      // Update route address count
       if (actualRouteId) {
-        const remainingAddresses = await base44.entities.Address.filter({
-          route_id: actualRouteId,
-          deleted_at: null
-        });
+        const remainingAddresses = await base44.entities.Address.filter({ route_id: actualRouteId, deleted_at: null });
         await base44.entities.Route.update(actualRouteId, {
           total_addresses: remainingAddresses.length,
           served_count: remainingAddresses.filter(a => a.served).length
         });
       }
-      
       toast.success('Address deleted');
-      
       invalidateAttemptQueries();
       queryClient.invalidateQueries({ queryKey: ['route', routeId] });
       queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
@@ -765,7 +530,6 @@ export default function AddressCard({
     }
   };
 
-  // Save edit handler
   const handleSaveEdit = async () => {
     try {
       await base44.entities.Address.update(address.id, {
@@ -777,7 +541,6 @@ export default function AddressCard({
         serve_type: editFields.serve_type,
         manual_edit_flag: true
       });
-      
       setIsEditing(false);
       toast.success('Address updated');
       queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
@@ -787,36 +550,23 @@ export default function AddressCard({
     }
   };
 
-  // Delete attempt handler
   const handleDeleteAttempt = async (attempt) => {
     const confirmed = window.confirm(
       `Delete Attempt ${attempt.attempt_number}?\n\nThis will permanently remove this attempt and its photos.`
     );
     if (!confirmed) return;
-    
     try {
-      // Delete the attempt
       await base44.entities.Attempt.delete(attempt.id);
-      
-      // Update local state
       const updatedAttempts = localAttempts.filter(a => a.id !== attempt.id);
       setLocalAttempts(updatedAttempts);
-      setActiveTab(0); // Go back to summary
-      
-      // Update address attempt count
+      setActiveTab(0);
       await base44.entities.Address.update(address.id, {
         attempts_count: Math.max(0, (address.attempts_count || attemptCount) - 1)
       });
-      
-      // If we deleted the only attempt, reset address status
       if (updatedAttempts.length === 0) {
-        await base44.entities.Address.update(address.id, {
-          status: 'pending'
-        });
+        await base44.entities.Address.update(address.id, { status: 'pending' });
       }
-      
       toast.success(`Attempt ${attempt.attempt_number} deleted`);
-      
       invalidateAttemptQueries();
     } catch (error) {
       console.error('Failed to delete attempt:', error);
@@ -824,26 +574,16 @@ export default function AddressCard({
     }
   };
 
-  // Save edited notes
   const handleSaveNotes = async () => {
     if (!selectedAttempt) return;
-    
     try {
-      await base44.entities.Attempt.update(selectedAttempt.id, {
-        notes: editedNotesText
-      });
-      
-      // Update local state
+      await base44.entities.Attempt.update(selectedAttempt.id, { notes: editedNotesText });
       const updatedAttempts = localAttempts.map(a => 
-        a.id === selectedAttempt.id 
-          ? { ...a, notes: editedNotesText }
-          : a
+        a.id === selectedAttempt.id ? { ...a, notes: editedNotesText } : a
       );
       setLocalAttempts(updatedAttempts);
-      
       setEditingNotes(false);
       toast.success('Notes updated');
-      
       invalidateAttemptQueries();
     } catch (error) {
       console.error('Failed to save notes:', error);
@@ -851,21 +591,17 @@ export default function AddressCard({
     }
   };
 
-  // Determine card state colors
   const isServed = address.served;
   const isRTO = address.status === 'returned';
   const isPriority = attemptCount >= 2 && !isServed;
 
-  // Worker: Reply to request
   const handleWorkerReply = async () => {
     if (!workerReplyText.trim() || !pendingRequest) return;
-    
     try {
       await base44.entities.AttemptRequest.update(pendingRequest.id, {
         worker_reply: workerReplyText.trim(),
         worker_replied_at: new Date().toISOString()
       });
-
       const companyId = getCompanyId(user) || address.company_id;
       await base44.entities.Notification.create({
         user_id: pendingRequest.requested_by,
@@ -876,7 +612,6 @@ export default function AddressCard({
         body: `Reply on ${address.normalized_address || address.legal_address}: "${workerReplyText.trim().substring(0, 100)}"`,
         priority: 'normal'
       });
-
       toast.success('Reply sent');
       setWorkerReplyText('');
       queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
@@ -885,7 +620,6 @@ export default function AddressCard({
     }
   };
 
-  // Get selected attempt data
   const selectedAttempt = activeTab > 0 ? sortedAttempts[activeTab - 1] : null;
 
   return (
@@ -896,15 +630,15 @@ export default function AddressCard({
             ? 'border-2 border-red-500 animate-request-pulse shadow-red-900/30 shadow-lg'
             : isRTO
             ? 'border-2 border-red-400'
-            : 'border border-white/10'
+            : 'border border-[#e5b9e1]/30'
         }`}
         style={{
           background: 'rgba(11, 15, 30, 0.45)',
           backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)'
+          WebkitBackdropFilter: 'blur(16px)',
+          boxShadow: '0 0 10px rgba(229,179,225,0.10), inset 0 0 0 1px rgba(229,179,225,0.06)'
         }}
       >
-        {/* Edit button — shows in edit mode */}
         {editMode && !isEditing && !isServed && (
           <button
             onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
@@ -913,7 +647,7 @@ export default function AddressCard({
             <Pencil className="w-4 h-4 text-blue-600" />
           </button>
         )}
-        {/* Pending Request Banner */}
+
         {address.has_pending_request && pendingRequest && (
           <button
             onClick={(e) => {
@@ -932,25 +666,19 @@ export default function AddressCard({
                 ATTEMPT REQUESTED: {pendingRequest.required_qualifiers?.join(' + ')}
               </span>
               {!isBossView && (
-                <ChevronDown className={`w-3 h-3 text-red-500 ml-auto transition-transform ${
-                  showRequestDetail ? 'rotate-180' : ''
-                }`} />
+                <ChevronDown className={`w-3 h-3 text-red-500 ml-auto transition-transform ${showRequestDetail ? 'rotate-180' : ''}`} />
               )}
             </div>
             {!showRequestDetail && pendingRequest.boss_note && (
-              <p className="text-xs text-red-400 mt-1 pl-6 truncate">
-                "{pendingRequest.boss_note}"
-              </p>
+              <p className="text-xs text-red-400 mt-1 pl-6 truncate">"{pendingRequest.boss_note}"</p>
             )}
           </button>
         )}
 
-        {/* Worker Request Detail Panel */}
         {!isBossView && showRequestDetail && pendingRequest && (
           <div className="px-4 pb-3 bg-red-950/20 border-b border-red-900/40">
             <div className="bg-[#201f21] border border-red-900/40 rounded-xl p-4 mt-2">
               <h4 className="text-sm font-bold text-red-200 mb-2">Attempt Requested</h4>
-              
               <div className="flex gap-2 mb-3 flex-wrap">
                 {pendingRequest.required_qualifiers?.map(q => (
                   <span key={q} className={`px-3 py-1.5 rounded-full text-sm font-bold ${
@@ -958,19 +686,15 @@ export default function AddressCard({
                     q === 'PM' ? 'bg-indigo-100 text-indigo-700' :
                     q === 'WEEKEND' ? 'bg-orange-100 text-orange-700' :
                     'bg-gray-100 text-gray-700'
-                  }`}>
-                    {q === 'ANYTIME' ? 'ANYTIME' : q}
-                  </span>
+                  }`}>{q === 'ANYTIME' ? 'ANYTIME' : q}</span>
                 ))}
               </div>
-
               {pendingRequest.boss_note && (
                 <div className="bg-red-950/20 rounded-lg p-3 mb-3 border border-red-900/40">
                   <p className="text-xs text-[#8a7d87] font-semibold mb-1">FROM BOSS:</p>
                   <p className="text-sm text-[#e6e1e4]">{pendingRequest.boss_note}</p>
                 </div>
               )}
-
               {!pendingRequest.worker_reply ? (
                 <div className="mb-3">
                   <textarea
@@ -982,24 +706,16 @@ export default function AddressCard({
                     maxLength={500}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => { e.stopPropagation(); handleWorkerReply(); }}
-                    className="mt-2"
-                    disabled={!workerReplyText.trim()}
-                  >
-                    <MessageSquare className="w-3 h-3 mr-1" />
-                    Send Reply
+                  <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); handleWorkerReply(); }} className="mt-2" disabled={!workerReplyText.trim()}>
+                    <MessageSquare className="w-3 h-3 mr-1" />Send Reply
                   </Button>
                 </div>
               ) : (
                 <div className="bg-blue-950/30 rounded-lg p-3 mb-3 border border-blue-900/40">
-                <p className="text-xs text-[#8a7d87] font-semibold mb-1">YOUR REPLY:</p>
-                 <p className="text-sm text-[#e6e1e4]">{pendingRequest.worker_reply}</p>
+                  <p className="text-xs text-[#8a7d87] font-semibold mb-1">YOUR REPLY:</p>
+                  <p className="text-sm text-[#e6e1e4]">{pendingRequest.worker_reply}</p>
                 </div>
               )}
-
               <p className="text-xs text-red-400 font-medium">
                 Complete a {pendingRequest.required_qualifiers?.join(' + ')} attempt to fulfill this request.
               </p>
@@ -1007,71 +723,47 @@ export default function AddressCard({
           </div>
         )}
 
-        {/* In-Progress Banner — not for postings (they auto-complete) */}
         {hasInProgressAttempt && !isServed && address.serve_type !== 'posting' && (
           <div className="px-4 py-2 bg-amber-950/30 border-b border-amber-900/40 animate-pulse-glow">
             <div className="flex items-center gap-2 text-amber-300">
               <Camera className="w-4 h-4" />
-              <span className="text-xs font-bold">
-                Evidence captured — tap LOG ATTEMPT to finalize
-              </span>
+              <span className="text-xs font-bold">Evidence captured — tap LOG ATTEMPT to finalize</span>
             </div>
           </div>
         )}
 
-        {/* Attempt Tabs - Only show if there are attempts AND not a posting */}
         {attemptCount > 0 && address.serve_type !== 'posting' && (
           <div className="flex border-b border-[#363436]">
-            {/* Home/Summary Tab */}
             <button
               onClick={(e) => { e.stopPropagation(); setActiveTab(0); }}
-              className={`flex-1 py-2.5 text-xs font-bold transition-colors ${
-                activeTab === 0
-                  ? 'bg-green-500 text-white'
-                  : 'bg-[#2a2a2c] text-[#8a7d87] hover:bg-[#363436]'
-              }`}
+              className={`flex-1 py-2.5 text-xs font-bold transition-colors ${activeTab === 0 ? 'bg-green-500 text-white' : 'bg-[#2a2a2c] text-[#8a7d87] hover:bg-[#363436]'}`}
             >
               <Check className="w-4 h-4 mx-auto" />
             </button>
-            
-            {/* Attempt Tabs A1-A5 */}
             {[1, 2, 3, 4, 5].map((num) => {
               const attempt = sortedAttempts[num - 1];
               const hasAttempt = !!attempt;
               const isActive = activeTab === num;
               const isInProgress = attempt?.status === 'in_progress';
-              
               return (
                 <button
                   key={num}
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    if (hasAttempt) setActiveTab(num); 
-                  }}
+                  onClick={(e) => { e.stopPropagation(); if (hasAttempt) setActiveTab(num); }}
                   disabled={!hasAttempt}
                   className={`flex-1 py-2.5 text-xs font-bold transition-colors relative ${
-                    isActive
-                      ? isInProgress 
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-indigo-600 text-white'
-                      : hasAttempt
-                        ? isInProgress
-                          ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-900/60 animate-pulse'
-                          : 'bg-[#2a2a2c] text-[#d0c3cb] hover:bg-[#363436]'
-                        : 'bg-[#1c1b1d] text-[#363436] cursor-not-allowed'
+                    isActive ? isInProgress ? 'bg-amber-500 text-white' : 'bg-indigo-600 text-white'
+                    : hasAttempt ? isInProgress ? 'bg-amber-900/40 text-amber-300 hover:bg-amber-900/60 animate-pulse' : 'bg-[#2a2a2c] text-[#d0c3cb] hover:bg-[#363436]'
+                    : 'bg-[#1c1b1d] text-[#363436] cursor-not-allowed'
                   }`}
                 >
                   A{num}
-                  {hasAttempt && !isInProgress && (
-                    <Check className="w-2.5 h-2.5 absolute top-1 right-1" />
-                  )}
+                  {hasAttempt && !isInProgress && <Check className="w-2.5 h-2.5 absolute top-1 right-1" />}
                 </button>
               );
             })}
           </div>
         )}
 
-        {/* Header Section with Gradient */}
         <div className={`px-4 py-4 ${
           isRTO ? 'bg-gradient-to-r from-[#2a1010] to-[#1c1b1d]' :
           isServed ? 'bg-gradient-to-r from-[#0d2218] to-[#1c1b1d]' : 
@@ -1079,19 +771,14 @@ export default function AddressCard({
           'bg-gradient-to-r from-[#1e1520] via-[#1c1b1d] to-[#1c1b1d]'
         }`}>
           <div className="flex flex-col">
-            {/* Address Display - Full width vertical layout */}
             <div>
-              <p className={`text-lg font-bold leading-tight ${
-                isRTO ? 'text-red-300' : isServed ? 'text-[#8a7d87]' : 'text-[#e6e1e4]'
-              }`}>
+              <p className={`text-lg font-bold leading-tight ${isRTO ? 'text-red-300' : isServed ? 'text-[#8a7d87]' : 'text-[#e6e1e4]'}`}>
                 {formatted.line1}
               </p>
               <p className={`text-sm ${isRTO ? 'text-red-400' : isServed ? 'text-[#8a7d87]' : 'text-[#8a7d87]'}`}>
                 {formatted.line2}
               </p>
             </div>
-            
-            {/* Separator and Defendant Name + Folder */}
             {(address.defendant_name || folderName || address._folderName) && (
               <>
                 <div className="border-t border-[#363436] my-3" />
@@ -1112,156 +799,79 @@ export default function AddressCard({
           </div>
         </div>
 
-        {/* HOME TAB - Summary with all qualifiers/times */}
         {attemptCount > 0 && !isServed && activeTab === 0 && (
           <div className="px-4 py-3 border-t border-[#363436]">
             {address.serve_type === 'posting' ? (
-              /* ===== POSTING SUMMARY — simplified, no qualifiers ===== */
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">
-                    POSTED SUMMARY
-                  </span>
+                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">POSTED SUMMARY</span>
                 </div>
-
-                {/* Posting Timeline — just date/time + photo icon */}
                 <div className="space-y-2">
                   {sortedAttempts.map((attempt, idx) => (
-                    <div 
-                      key={attempt.id} 
-                      className="flex items-center gap-3 p-2 rounded-lg bg-[#201f21] hover:bg-[#2a2a2c] cursor-pointer"
-                      onClick={(e) => { 
-                        e.stopPropagation(); 
-                        if (attempt.photo_urls?.length > 0) {
-                          setShowPhotoViewer(true);
-                        }
-                      }}
-                    >
+                    <div key={attempt.id} className="flex items-center gap-3 p-2 rounded-lg bg-[#201f21] hover:bg-[#2a2a2c] cursor-pointer"
+                      onClick={(e) => { e.stopPropagation(); if (attempt.photo_urls?.length > 0) setShowPhotoViewer(true); }}>
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold bg-purple-900/30 text-purple-300">
                         <FileText className="w-4 h-4" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-sm font-semibold text-[#e6e1e4]">
-                          {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
-                        </div>
-                        <span className="text-[10px] text-purple-600 font-bold">
-                          POSTED
-                        </span>
+                        <div className="text-sm font-semibold text-[#e6e1e4]">{format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}</div>
+                        <span className="text-[10px] text-purple-600 font-bold">POSTED</span>
                       </div>
-                      {attempt.photo_urls?.length > 0 && (
-                        <ImageIcon className="w-4 h-4 text-blue-500" />
-                      )}
+                      {attempt.photo_urls?.length > 0 && <ImageIcon className="w-4 h-4 text-blue-500" />}
                     </div>
                   ))}
                 </div>
-
-                {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap mt-3">
-                  <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
-                    POSTING
-                  </Badge>
-                  {isVerified && (
-                    <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
-                      VERIFIED
-                    </Badge>
-                  )}
-                  {address.has_dcn && (
-                    <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
-                      DCN
-                    </Badge>
-                  )}
+                  <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">POSTING</Badge>
+                  {isVerified && <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">VERIFIED</Badge>}
+                  {address.has_dcn && <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">DCN</Badge>}
                 </div>
               </>
             ) : (
-              /* ===== REGULAR SERVE SUMMARY — unchanged ===== */
               <>
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">
-                    ATTEMPTS SUMMARY
-                  </span>
+                  <span className="text-xs font-bold text-[#d0c3cb] tracking-wide">ATTEMPTS SUMMARY</span>
                 </div>
-
-                {/* Attempt Timeline */}
                 <div className="space-y-2">
                   {sortedAttempts.map((attempt, idx) => {
                     const isInProgress = attempt.status === 'in_progress';
                     return (
-                      <div 
-                        key={attempt.id} 
-                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${
-                          isInProgress 
-                            ? 'bg-amber-950/30 border border-amber-900/40 hover:bg-amber-950/50' 
-                            : 'bg-[#201f21] hover:bg-[#2a2a2c]'
-                        }`}
-                        onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}
-                      >
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                          isInProgress 
-                            ? 'bg-amber-900/40 text-amber-300' 
-                            : 'bg-indigo-900/30 text-indigo-400'
-                        }`}>
+                      <div key={attempt.id}
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer ${isInProgress ? 'bg-amber-950/30 border border-amber-900/40 hover:bg-amber-950/50' : 'bg-[#201f21] hover:bg-[#2a2a2c]'}`}
+                        onClick={(e) => { e.stopPropagation(); setActiveTab(idx + 1); }}>
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${isInProgress ? 'bg-amber-900/40 text-amber-300' : 'bg-indigo-900/30 text-indigo-400'}`}>
                           A{idx + 1}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-semibold text-[#e6e1e4]">
-                            {format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}
-                          </div>
+                          <div className="text-sm font-semibold text-[#e6e1e4]">{format(new Date(attempt.attempt_time), "M/d/yy h:mm a")}</div>
                           <div className="flex items-center gap-1.5">
-                            <QualifierBadges 
-                              badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} 
-                              size="small" 
-                            />
-                            {isInProgress && (
-                              <span className="text-[10px] text-amber-300 font-bold">
-                                AWAITING OUTCOME
-                              </span>
-                            )}
-                            {attempt.distance_feet && (
-                              <span className="text-[10px] text-blue-500">
-                                {attempt.distance_feet} ft from address
-                              </span>
-                            )}
+                            <QualifierBadges badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
+                            {isInProgress && <span className="text-[10px] text-amber-300 font-bold">AWAITING OUTCOME</span>}
+                            {attempt.distance_feet && <span className="text-[10px] text-blue-500">{attempt.distance_feet} ft from address</span>}
                           </div>
                         </div>
-                        {attempt.photo_urls?.length > 0 && (
-                          <ImageIcon className="w-4 h-4 text-blue-500" />
-                        )}
+                        {attempt.photo_urls?.length > 0 && <ImageIcon className="w-4 h-4 text-blue-500" />}
                       </div>
                     );
                   })}
                 </div>
-
-                {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap mt-3">
-                  {isVerified && (
-                    <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
-                      VERIFIED
-                    </Badge>
-                  )}
-                  {address.has_dcn && (
-                    <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
-                      DCN
-                    </Badge>
-                  )}
+                  {isVerified && <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">VERIFIED</Badge>}
+                  {address.has_dcn && <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">DCN</Badge>}
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* ATTEMPT TAB - Individual attempt details (not for postings) */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
           <div className="px-4 py-3 border-t border-[#363436]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-[#8a7d87]">
                 ATTEMPT {activeTab} {selectedAttempt.status === 'in_progress' && '(IN PROGRESS)'}
               </h3>
-              <QualifierBadges 
-                badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} 
-                size="default" 
-              />
+              <QualifierBadges badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} size="default" />
             </div>
-
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-lg bg-amber-900/30 flex items-center justify-center">
                 <Calendar className="w-5 h-5 text-amber-400" />
@@ -1283,20 +893,11 @@ export default function AddressCard({
                   />
                 ) : (
                   <p className="text-base font-semibold text-[#e6e1e4]">
-                    {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', {
-                      weekday: 'short',
-                      month: 'numeric',
-                      day: 'numeric',
-                      year: '2-digit',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      hour12: true
-                    })}
+                    {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric', year: '2-digit', hour: 'numeric', minute: '2-digit', hour12: true })}
                   </p>
                 )}
               </div>
             </div>
-
             {selectedAttempt.user_latitude && selectedAttempt.user_longitude && (
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-indigo-900/30 flex items-center justify-center">
@@ -1310,7 +911,6 @@ export default function AddressCard({
                 </div>
               </div>
             )}
-
             {selectedAttempt.distance_feet != null && (
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-lg bg-green-900/30 flex items-center justify-center">
@@ -1318,13 +918,10 @@ export default function AddressCard({
                 </div>
                 <div>
                   <p className="text-xs text-[#8a7d87] font-medium">DISTANCE</p>
-                  <p className="text-base font-semibold text-[#e6e1e4]">
-                    {selectedAttempt.distance_feet?.toLocaleString()} feet from address
-                  </p>
+                  <p className="text-base font-semibold text-[#e6e1e4]">{selectedAttempt.distance_feet?.toLocaleString()} feet from address</p>
                 </div>
               </div>
             )}
-
             {editingNotes ? (
               <div className="bg-blue-950/30 rounded-xl p-4 mb-4 border border-blue-800/40">
                 <div className="flex items-center gap-2 mb-2">
@@ -1340,77 +937,39 @@ export default function AddressCard({
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex gap-2 mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => { 
-                      e.stopPropagation(); 
-                      navigator.clipboard.writeText(editedNotesText);
-                      toast.success('Notes copied to clipboard');
-                    }}
-                    className="flex-1"
-                  >
-                    <Copy className="w-4 h-4 mr-1" />
-                    Copy
+                  <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(editedNotesText); toast.success('Notes copied to clipboard'); }} className="flex-1">
+                    <Copy className="w-4 h-4 mr-1" />Copy
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleSaveNotes(); }}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
-                  >
-                    Save
-                  </Button>
+                  <Button size="sm" onClick={(e) => { e.stopPropagation(); handleSaveNotes(); }} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white">Save</Button>
                 </div>
               </div>
             ) : selectedAttempt.notes ? (
-              <div 
-                onClick={handleEditNotes}
-                className="bg-[#201f21] rounded-xl p-4 mb-4 cursor-pointer hover:bg-[#2a2a2c] transition"
-              >
+              <div onClick={handleEditNotes} className="bg-[#201f21] rounded-xl p-4 mb-4 cursor-pointer hover:bg-[#2a2a2c] transition">
                 <div className="flex items-center gap-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-gray-500" />
                   <span className="text-xs text-[#8a7d87] font-medium">NOTES</span>
                 </div>
-                <p className="text-sm text-[#e6e1e4] whitespace-pre-wrap">
-                  {selectedAttempt.notes}
-                </p>
+                <p className="text-sm text-[#e6e1e4] whitespace-pre-wrap">{selectedAttempt.notes}</p>
                 <p className="text-xs text-blue-500 mt-2">Tap to edit</p>
               </div>
             ) : null}
-
             <div className="grid grid-cols-3 gap-2">
-              <Button
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
-                className="h-12 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
-              >
-                <Trash2 className="w-4 h-4" />
-                <span>Delete</span>
+              <Button variant="outline" onClick={(e) => { e.stopPropagation(); handleDeleteAttempt(selectedAttempt); }}
+                className="h-12 border-red-300 text-red-600 hover:bg-red-500 hover:text-white hover:border-red-500 active:bg-red-600 active:border-red-600 transition-all duration-200 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1">
+                <Trash2 className="w-4 h-4" /><span>Delete</span>
               </Button>
-              
-              <Button
-                variant="outline"
-                onClick={handleCaptureEvidence}
-                className="h-12 border-amber-300 text-amber-700 hover:bg-amber-50 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Photo</span>
+              <Button variant="outline" onClick={handleCaptureEvidence}
+                className="h-12 border-amber-300 text-amber-700 hover:bg-amber-50 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1">
+                <Plus className="w-4 h-4" /><span>Add Photo</span>
               </Button>
-              
-              <Button
-                variant="outline"
-                onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }}
-                disabled={!selectedAttempt.photo_urls?.length}
-                className="h-12 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Photos{selectedAttempt.photo_urls?.length ? ` (${selectedAttempt.photo_urls.length})` : ''}</span>
+              <Button variant="outline" onClick={(e) => { e.stopPropagation(); setShowPhotoViewer(true); }} disabled={!selectedAttempt.photo_urls?.length}
+                className="h-12 text-xs font-bold flex flex-col items-center justify-center gap-0.5 px-1">
+                <Camera className="w-4 h-4" /><span>Photos{selectedAttempt.photo_urls?.length ? ` (${selectedAttempt.photo_urls.length})` : ''}</span>
               </Button>
             </div>
           </div>
         )}
 
-        {/* No Attempts Yet - Show badges */}
         {attemptCount === 0 && !isServed && (
           <div className="px-4 py-3 border-t border-[#363436]">
             <div className="flex items-center gap-2 flex-wrap">
@@ -1421,61 +980,32 @@ export default function AddressCard({
               }`}>
                 {(address.serve_type || 'serve').toUpperCase()}
               </Badge>
-              {isVerified && (
-                <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">
-                  VERIFIED
-                </Badge>
-              )}
-              {address.has_dcn && (
-                <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">
-                  DCN
-                </Badge>
-              )}
+              {isVerified && <Badge className="bg-teal-900/30 text-teal-300 border border-teal-800/40 text-[10px] font-bold px-2.5 py-1">VERIFIED</Badge>}
+              {address.has_dcn && <Badge className="bg-purple-900/30 text-purple-300 border border-purple-800/40 text-[10px] font-bold px-2.5 py-1">DCN</Badge>}
               <span className="text-xs text-[#8a7d87] ml-auto">No attempts yet</span>
             </div>
           </div>
         )}
 
-        {/* Served State - Show completion info */}
         {isServed && (
           <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-900/40 bg-red-950/20' : 'border-[#363436] bg-green-950/20'}`}>
             <div className="flex items-center gap-2 flex-wrap">
               {isRTO ? (
                 <Badge className="bg-red-900/30 text-red-300 border border-red-800/40 text-[10px] font-bold px-2.5 py-1">
-                  <RotateCcw className="w-3 h-3 mr-1" />
-                  RETURNED TO OFFICE
+                  <RotateCcw className="w-3 h-3 mr-1" />RETURNED TO OFFICE
                 </Badge>
               ) : (
-                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
-                  SERVED
-                </Badge>
+                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">SERVED</Badge>
               )}
               {!isRTO && receiptApproved ? (
-                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1">
-                  <FileCheck className="w-3 h-3 mr-1" />
-                  RECEIPT APPROVED
-                </Badge>
+                <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1"><FileCheck className="w-3 h-3 mr-1" />RECEIPT APPROVED</Badge>
               ) : !isRTO && receiptPending ? (
-                <Badge className="bg-yellow-900/30 text-yellow-300 border border-yellow-800/40 text-[10px] font-bold px-2.5 py-1">
-                  <Clock className="w-3 h-3 mr-1" />
-                  PENDING REVIEW
-                </Badge>
+                <Badge className="bg-yellow-900/30 text-yellow-300 border border-yellow-800/40 text-[10px] font-bold px-2.5 py-1"><Clock className="w-3 h-3 mr-1" />PENDING REVIEW</Badge>
               ) : !isRTO && receiptNeedsRevision ? (
-                <Badge className="bg-orange-900/30 text-orange-300 border border-orange-800/40 text-[10px] font-bold px-2.5 py-1">
-                  <AlertCircle className="w-3 h-3 mr-1" />
-                  NEEDS REVISION
-                </Badge>
+                <Badge className="bg-orange-900/30 text-orange-300 border border-orange-800/40 text-[10px] font-bold px-2.5 py-1"><AlertCircle className="w-3 h-3 mr-1" />NEEDS REVISION</Badge>
               ) : null}
-              {isRTO && address.rto_at && (
-                <span className="text-xs text-red-300 ml-auto">
-                  {format(new Date(address.rto_at), "M/d/yy 'at' h:mm a")}
-                </span>
-              )}
-              {!isRTO && address.served_at && (
-                <span className="text-xs text-gray-500 ml-auto">
-                  {format(new Date(address.served_at), "M/d/yy 'at' h:mm a")}
-                </span>
-              )}
+              {isRTO && address.rto_at && <span className="text-xs text-red-300 ml-auto">{format(new Date(address.rto_at), "M/d/yy 'at' h:mm a")}</span>}
+              {!isRTO && address.served_at && <span className="text-xs text-gray-500 ml-auto">{format(new Date(address.served_at), "M/d/yy 'at' h:mm a")}</span>}
             </div>
             {isRTO && address.rto_reason && (
               <div className="mt-2 bg-[#201f21] border border-red-900/40 rounded-lg px-3 py-2">
@@ -1483,38 +1013,18 @@ export default function AddressCard({
                 <p className="text-xs text-red-300">{address.rto_reason}</p>
               </div>
             )}
-            
-            {/* Unserve Button */}
-            <Button
-              variant="outline"
-              size="sm"
+            <Button variant="outline" size="sm"
               onClick={async (e) => {
                 e.stopPropagation();
-                const confirmed = window.confirm(
-                  'Mark this address as NOT served?\n\nThis will move it back to your active addresses.'
-                );
+                const confirmed = window.confirm('Mark this address as NOT served?\n\nThis will move it back to your active addresses.');
                 if (!confirmed) return;
-                
                 try {
-                  await base44.entities.Address.update(address.id, {
-                    served: false,
-                    served_at: null,
-                    status: localAttempts.length > 0 ? 'attempted' : 'pending',
-                    receipt_status: 'pending'
-                  });
-                  
-                  // Update route served count
+                  await base44.entities.Address.update(address.id, { served: false, served_at: null, status: localAttempts.length > 0 ? 'attempted' : 'pending', receipt_status: 'pending' });
                   if (actualRouteId) {
-                    const routeAddresses = await base44.entities.Address.filter({
-                      route_id: actualRouteId,
-                      deleted_at: null
-                    });
+                    const routeAddresses = await base44.entities.Address.filter({ route_id: actualRouteId, deleted_at: null });
                     const newServedCount = routeAddresses.filter(a => a.served && a.id !== address.id).length;
-                    await base44.entities.Route.update(actualRouteId, {
-                      served_count: newServedCount
-                    });
+                    await base44.entities.Route.update(actualRouteId, { served_count: newServedCount });
                   }
-                  
                   toast.success('Address marked as not served');
                   invalidateAttemptQueries();
                   queryClient.invalidateQueries({ queryKey: ['route', routeId] });
@@ -1526,194 +1036,91 @@ export default function AddressCard({
               }}
               className="mt-3 w-full text-red-400 border-red-900/40 hover:bg-red-950/30"
             >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Mark as NOT Served
+              <RotateCcw className="w-4 h-4 mr-2" />Mark as NOT Served
             </Button>
           </div>
         )}
 
-        {/* Action Buttons */}
         {showActions && !isServed && (
           <div className="px-4 py-3 space-y-2">
             {isBossView ? (
-              /* ========== BOSS ACTIONS ========== */
               <>
-                {/* Primary row: 3 equal buttons */}
                 <div className="grid grid-cols-3 gap-2">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${actualRouteId}`));
-                    }}
-                    className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                  >
-                    <Pencil className="w-5 h-5" />
-                    <span>EDIT</span>
+                  <Button onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`EditAddress?addressId=${address.id}&routeId=${actualRouteId}`)); }}
+                    className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1">
+                    <Pencil className="w-5 h-5" /><span>EDIT</span>
                   </Button>
-
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowBossAddAttempt(!showBossAddAttempt);
-                      setShowRequestAttempt(false);
-                    }}
-                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
-                      showBossAddAttempt 
-                        ? 'bg-amber-600 hover:bg-amber-700 text-white' 
-                        : 'bg-amber-500 hover:bg-amber-600 text-white'
-                    }`}
-                  >
-                    <Plus className="w-5 h-5" />
-                    <span>ADD ATTEMPT</span>
+                  <Button onClick={(e) => { e.stopPropagation(); setShowBossAddAttempt(!showBossAddAttempt); setShowRequestAttempt(false); }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${showBossAddAttempt ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-amber-500 hover:bg-amber-600 text-white'}`}>
+                    <Plus className="w-5 h-5" /><span>ADD ATTEMPT</span>
                   </Button>
-
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowRequestAttempt(!showRequestAttempt);
-                      setShowBossAddAttempt(false);
-                    }}
-                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${
-                      showRequestAttempt 
-                        ? 'bg-red-600 hover:bg-red-700 text-white' 
-                        : 'bg-red-500 hover:bg-red-600 text-white'
-                    }`}
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    <span>REQUEST</span>
+                  <Button onClick={(e) => { e.stopPropagation(); setShowRequestAttempt(!showRequestAttempt); setShowBossAddAttempt(false); }}
+                    className={`h-14 font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1 ${showRequestAttempt ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white'}`}>
+                    <RotateCcw className="w-5 h-5" /><span>REQUEST</span>
                   </Button>
                 </div>
-
-                {/* Secondary row: 2 buttons */}
                 <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
-                    }}
-                    variant="outline"
-                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <FileText className="w-4 h-4" />
-                    DETAILS
+                  <Button onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`)); }}
+                    variant="outline" className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
+                    <FileText className="w-4 h-4" />DETAILS
                   </Button>
-
-                  <Button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMoveModal(true);
-                    }}
-                    variant="outline"
-                    className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2"
-                  >
-                    <ArrowRightLeft className="w-4 h-4" />
-                    MOVE
+                  <Button onClick={(e) => { e.stopPropagation(); setShowMoveModal(true); }}
+                    variant="outline" className="h-12 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
+                    <ArrowRightLeft className="w-4 h-4" />MOVE
                   </Button>
                 </div>
               </>
             ) : (
-              /* ========== WORKER ACTIONS ========== */
               <>
                 {address.serve_type === 'posting' ? (
-                  /* === POSTING BUTTONS === */
                   <>
-                    {/* Main Action Button */}
                     {attemptCount > 0 ? (
-                      /* Evidence already taken — show FINALIZE POSTING */
-                      <Button 
-                        onClick={handleFinalizePosting}
-                        disabled={finalizingAttempt}
-                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse"
-                      >
-                        {finalizingAttempt ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Shield className="w-4 h-4 mr-2" />
-                        )}
+                      <Button onClick={handleFinalizePosting} disabled={finalizingAttempt}
+                        className="w-full h-12 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl animate-pulse">
+                        {finalizingAttempt ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Shield className="w-4 h-4 mr-2" />}
                         FINALIZE POSTING
                       </Button>
                     ) : (
-                      /* No evidence yet — show TAKE PHOTO */
-                      <Button 
-                        onClick={handleCaptureEvidence}
-                        className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl"
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        TAKE PHOTO
+                      <Button onClick={handleCaptureEvidence} className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl">
+                        <Camera className="w-4 h-4 mr-2" />TAKE PHOTO
                       </Button>
                     )}
-
-                    {/* Posting: 2 buttons — ADD PHOTO + DETAILS */}
                     <div className="grid grid-cols-2 gap-2">
-                      <Button 
-                        onClick={handleCaptureEvidence}
-                        className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                      >
-                        <Plus className="w-5 h-5" />
-                        <span>ADD PHOTO</span>
+                      <Button onClick={handleCaptureEvidence} className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1">
+                        <Plus className="w-5 h-5" /><span>ADD PHOTO</span>
                       </Button>
-                      
-                      <Button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`));
-                        }}
-                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1"
-                      >
-                        <FileText className="w-5 h-5" />
-                        <span>DETAILS</span>
+                      <Button onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`)); }}
+                        className="h-14 bg-gray-500 hover:bg-gray-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1">
+                        <FileText className="w-5 h-5" /><span>DETAILS</span>
                       </Button>
                     </div>
                   </>
                 ) : (
-                  /* === REGULAR SERVE BUTTONS === */
                   <>
-                    {/* Main Action - Changes based on state */}
                     {hasInProgressAttempt ? (
-                      <Button 
-                        onClick={handleLogAttempt}
-                        disabled={finalizingAttempt}
-                        className="w-full h-12 font-bold text-sm rounded-xl animate-pulse"
-                        style={{ background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }}
-                      >
-                        {finalizingAttempt ? (
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        ) : (
-                          <Zap className="w-4 h-4 mr-2" />
-                        )}
+                      <Button onClick={handleLogAttempt} disabled={finalizingAttempt} className="w-full h-12 font-bold text-sm rounded-xl animate-pulse"
+                        style={{ background: 'rgba(233,195,73,0.18)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }}>
+                        {finalizingAttempt ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Zap className="w-4 h-4 mr-2" />}
                         LOG ATTEMPT {inProgressAttempt.attempt_number}
                       </Button>
                     ) : (
-                      <Button 
-                        onClick={handleCaptureEvidence}
-                        className="w-full h-12 font-bold text-sm rounded-xl"
-                        style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
-                      >
-                        <Camera className="w-4 h-4 mr-2" />
-                        TAKE EVIDENCE
+                      <Button onClick={handleCaptureEvidence} className="w-full h-12 font-bold text-sm rounded-xl"
+                        style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}>
+                        <Camera className="w-4 h-4 mr-2" />TAKE EVIDENCE
                       </Button>
                     )}
-
-                    {/* Secondary Actions Row */}
                     <div className="flex gap-2">
-                      <Link 
-                       to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true${comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : ''}`)}
-                       onClick={(e) => e.stopPropagation()}
-                       className="flex-1"
-                      >
-                       <Button 
-                         className="w-full h-14 font-bold text-sm rounded-xl flex items-center justify-center gap-2"
-                         style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
-                       >
-                         <Shield className="w-5 h-5" />
-                         <span>SERVED</span>
-                       </Button>
-                       </Link>
+                      <Link to={createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${selectedAttempt?.id || localAttempts?.[localAttempts.length - 1]?.id || ''}&finalize=true${comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : ''}`)}
+                        onClick={(e) => e.stopPropagation()} className="flex-1">
+                        <Button className="w-full h-14 font-bold text-sm rounded-xl flex items-center justify-center gap-2"
+                          style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}>
+                          <Shield className="w-5 h-5" /><span>SERVED</span>
+                        </Button>
+                      </Link>
                     </div>
                   </>
                 )}
 
-                {/* Navigate Button — ONLY in worker view */}
                 <div className={`flex items-center border border-[#363436] rounded-xl overflow-hidden ${isHighlighted ? 'flash-purple' : ''}`}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -1730,10 +1137,7 @@ export default function AddressCard({
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}>
                         <Pencil className="w-4 h-4 mr-2" />Edit Address
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => { 
-                        e.stopPropagation(); 
-                        navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${actualRouteId}`));
-                      }}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`CreateScheduledServe?addressId=${address.id}&routeId=${actualRouteId}`)); }}>
                         <Clock className="w-4 h-4 mr-2" />Schedule Serve
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }} className="text-red-600 focus:text-red-600">
@@ -1744,129 +1148,75 @@ export default function AddressCard({
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  <button 
-                    onClick={handleNavigate}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-[#2a2a2c] transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}
-                  >
+                  <button onClick={handleNavigate}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 hover:bg-[#2a2a2c] transition-colors ${isHighlighted ? 'text-violet-600' : ''}`}>
                     <Navigation className={`w-5 h-5 ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`} />
                     <span className={`font-bold tracking-wide ${isHighlighted ? 'text-violet-600' : 'text-green-600'}`}>NAVIGATE</span>
                   </button>
                 </div>
-                </>
-                )}
+              </>
+            )}
           </div>
         )}
 
-        {/* Boss Add Attempt — Sub-Component */}
         {isBossView && showBossAddAttempt && (
-          <BossAddAttemptPanel
-            address={address}
-            routeId={routeId}
-            user={user}
-            localAttempts={localAttempts}
-            onAttemptAdded={(newAttempt) => {
-              setLocalAttempts(prev => [...prev, newAttempt]);
-              invalidateAttemptQueries();
-            }}
-            onClose={() => setShowBossAddAttempt(false)}
-            queryClient={queryClient}
-          />
+          <BossAddAttemptPanel address={address} routeId={routeId} user={user} localAttempts={localAttempts}
+            onAttemptAdded={(newAttempt) => { setLocalAttempts(prev => [...prev, newAttempt]); invalidateAttemptQueries(); }}
+            onClose={() => setShowBossAddAttempt(false)} queryClient={queryClient} />
         )}
 
-        {/* Boss Request Attempt — Sub-Component */}
         {isBossView && showRequestAttempt && (
-          <BossRequestAttemptPanel
-            address={address}
-            routeId={routeId}
-            user={user}
-            onClose={() => setShowRequestAttempt(false)}
-            queryClient={queryClient}
-          />
+          <BossRequestAttemptPanel address={address} routeId={routeId} user={user}
+            onClose={() => setShowRequestAttempt(false)} queryClient={queryClient} />
         )}
 
-        {/* Edit Panel — shows when editMode + user taps edit */}
         {isEditing && (
           <div className="px-4 py-3 border-t border-[#363436] bg-[#201f21]" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-3">
               <div>
                 <label className="text-xs font-semibold text-[#8a7d87]">Defendant Name</label>
-                <input
-                  type="text"
-                  value={editFields.defendant_name}
-                  onChange={(e) => setEditFields(prev => ({ ...prev, defendant_name: e.target.value }))}
-                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                  placeholder="Defendant name"
-                />
+                <input type="text" value={editFields.defendant_name} onChange={(e) => setEditFields(prev => ({ ...prev, defendant_name: e.target.value }))}
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1" placeholder="Defendant name" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#8a7d87]">Street Address</label>
-                <input
-                  type="text"
-                  value={editFields.normalized_address}
-                  onChange={(e) => setEditFields(prev => ({ ...prev, normalized_address: e.target.value }))}
-                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                />
+                <input type="text" value={editFields.normalized_address} onChange={(e) => setEditFields(prev => ({ ...prev, normalized_address: e.target.value }))}
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1" />
               </div>
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="text-xs font-semibold text-[#8a7d87]">City</label>
-                  <input
-                    type="text"
-                    value={editFields.city}
-                    onChange={(e) => setEditFields(prev => ({ ...prev, city: e.target.value }))}
-                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                  />
+                  <input type="text" value={editFields.city} onChange={(e) => setEditFields(prev => ({ ...prev, city: e.target.value }))}
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#8a7d87]">State</label>
-                  <input
-                    type="text"
-                    value={editFields.state}
-                    onChange={(e) => setEditFields(prev => ({ ...prev, state: e.target.value }))}
-                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                  />
+                  <input type="text" value={editFields.state} onChange={(e) => setEditFields(prev => ({ ...prev, state: e.target.value }))}
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[#8a7d87]">Zip</label>
-                  <input
-                    type="text"
-                    value={editFields.zip}
-                    onChange={(e) => setEditFields(prev => ({ ...prev, zip: e.target.value }))}
-                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                  />
+                  <input type="text" value={editFields.zip} onChange={(e) => setEditFields(prev => ({ ...prev, zip: e.target.value }))}
+                    className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1" />
                 </div>
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#8a7d87]">Serve Type</label>
-                <select
-                  value={editFields.serve_type}
-                  onChange={(e) => setEditFields(prev => ({ ...prev, serve_type: e.target.value }))}
-                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1"
-                >
+                <select value={editFields.serve_type} onChange={(e) => setEditFields(prev => ({ ...prev, serve_type: e.target.value }))}
+                  className="w-full border border-[#363436] bg-[#1c1b1d] text-[#e6e1e4] rounded-lg px-3 py-2 text-sm mt-1">
                   <option value="serve">Serve</option>
                   <option value="garnishment">Garnishment</option>
                   <option value="posting">Posting</option>
                 </select>
               </div>
               <div className="flex gap-2">
-                <Button
-                  onClick={handleSaveEdit}
-                  className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
-                >
-                  Save Changes
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </Button>
+                <Button onClick={handleSaveEdit} className="flex-1 bg-blue-500 hover:bg-blue-600 text-white">Save Changes</Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Receipt Status Alert */}
         {receiptNeedsRevision && (
           <div className="px-4 py-2 bg-orange-950/30 border-t border-orange-900/40">
             <div className="flex items-center gap-2 text-orange-300">
@@ -1885,47 +1235,24 @@ export default function AddressCard({
         )}
       </div>
 
-      {/* Evidence Camera Modal */}
-      <EvidenceCamera
-        open={showCamera}
-        onClose={() => setShowCamera(false)}
-        onPhotoTaken={handlePhotoTaken}
-      />
+      <EvidenceCamera open={showCamera} onClose={() => setShowCamera(false)} onPhotoTaken={handlePhotoTaken} />
 
-      {/* Evidence Comment Modal */}
       <EvidenceCommentModal
         open={showCommentModal}
-        onClose={() => {
-          setShowCommentModal(false);
-          setCapturedPhoto(null);
-        }}
+        onClose={() => { setShowCommentModal(false); setCapturedPhoto(null); }}
         onSave={handleSaveEvidence}
         photoPreview={capturedPhoto?.dataUrl}
         saving={savingEvidence}
         requireComment={!hasInProgressAttempt && address.serve_type !== 'posting'}
       />
 
-
-
-      {/* Photo Viewer */}
       <PhotoViewer
         open={showPhotoViewer}
         onClose={() => setShowPhotoViewer(false)}
-        photos={address.serve_type === 'posting' 
-          ? (sortedAttempts[0]?.photo_urls || [])
-          : (selectedAttempt?.photo_urls || [])
-        }
+        photos={address.serve_type === 'posting' ? (sortedAttempts[0]?.photo_urls || []) : (selectedAttempt?.photo_urls || [])}
       />
 
-      {/* RTO Modal */}
-      <RTOModal
-        open={showRTOModal}
-        onClose={() => setShowRTOModal(false)}
-        onSubmit={handleRTO}
-        address={address}
-        saving={savingRTO}
-      />
-
+      <RTOModal open={showRTOModal} onClose={() => setShowRTOModal(false)} onSubmit={handleRTO} address={address} saving={savingRTO} />
     </>
   );
 }

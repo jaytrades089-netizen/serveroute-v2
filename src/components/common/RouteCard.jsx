@@ -391,7 +391,8 @@ export default function RouteCard({
         background: 'rgba(14, 20, 44, 0.55)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255,255,255,0.10)',
+        border: '1.5px solid rgba(229,179,225,0.35)',
+        boxShadow: '0 0 10px rgba(229,179,225,0.12), inset 0 0 0 1px rgba(229,179,225,0.08)',
         borderRadius: '1rem',
         marginBottom: '12px'
       }}
