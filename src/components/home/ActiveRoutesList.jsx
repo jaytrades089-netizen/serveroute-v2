@@ -188,41 +188,12 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           borderLeft: isActive ? '3px solid #e5b9e1' : '1px solid rgba(255,255,255,0.18)'
         }}
       >
-      <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
-        {/* Top row: letter + run date (left), status badge + scheduled runs (right, absolutely positioned) */}
-        <div className="flex items-start gap-3 mb-2">
-          <div
-            className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
-            style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
-          >
-            {letter}
-          </div>
-          <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
-            {route.run_date ? (
-              <>
-                <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
-                <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'EEE MMM d')}</span>
-              </>
-            ) : (
-              <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
-            )}
-            {route.run_qualifiers?.length > 0 && (
-              <span
-                className="text-[10px] font-semibold rounded px-1.5 py-0.5 uppercase"
-                style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}
-              >
-                {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
-              </span>
-            )}
-          </div>
-        </div>
-
         {/* Absolutely positioned right column: status badge + scheduled run chips */}
         <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
           {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
           {route.scheduled_runs?.length > 0 && (
             <button
-              onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
+              onClick={() => setSchedulingRoute(route)}
               className="flex flex-col gap-0.5 items-end"
             >
               {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
@@ -242,67 +213,99 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           )}
         </div>
 
-        <div className="flex gap-4 mb-2">
-          {estTimeLabel && (
+        {/* Clickable link area */}
+        <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
+          {/* Top row: letter + run date */}
+          <div className="flex items-start gap-3 mb-2">
+            <div
+              className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
+              style={{ background: 'rgba(229,179,225,0.15)', color: '#e5b9e1', minWidth: '2rem', fontSize: letter.length >= 3 ? '10px' : letter.length === 2 ? '11px' : '14px' }}
+            >
+              {letter}
+            </div>
+            <div className="flex-1 min-w-0 flex items-center gap-2 overflow-hidden">
+              {route.run_date ? (
+                <>
+                  <span className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Run Date </span>
+                  <span className="text-xs" style={{ color: '#9CA3AF' }}>{format(parseISO(route.run_date), 'EEE MMM d')}</span>
+                </>
+              ) : (
+                <span className="text-xs" style={{ color: '#6B7280' }}>No run date</span>
+              )}
+              {route.run_qualifiers?.length > 0 && (
+                <span
+                  className="text-[10px] font-semibold rounded px-1.5 py-0.5 uppercase"
+                  style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}
+                >
+                  {route.run_qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join(' · ')}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Metrics row */}
+          <div className="flex gap-4 mb-2">
+            {estTimeLabel && (
+              <div>
+                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
+                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+              </div>
+            )}
             <div>
-              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Duration</div>
-              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{estTimeLabel}</div>
+              <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
+              <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
+                {(route.total_addresses || 0) - (route.served_count || 0)}
+              </div>
+            </div>
+          </div>
+
+          {/* Due / Spread dates */}
+          {(dueDateLabel || spreadDateLabel) && (
+            <div className="mb-2">
+              {dueDateLabel && (
+                <div>
+                  <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
+                  <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
+                </div>
+              )}
+              {spreadDateLabel && (
+                <div className="mt-1">
+                  <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
+                  <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
+                </div>
+              )}
             </div>
           )}
-          <div>
-            <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Remaining</div>
-            <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>
-              {(route.total_addresses || 0) - (route.served_count || 0)}
-            </div>
-          </div>
-        </div>
+        </Link>
 
-        {(dueDateLabel || spreadDateLabel) && (
-          <div className="mb-2">
-            {dueDateLabel && (
-              <div>
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Due</div>
-                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{dueDateLabel}</div>
-              </div>
-            )}
-            {spreadDateLabel && (
-              <div className="mt-1">
-                <div className="text-[10px] uppercase tracking-wide" style={{ color: '#6B7280' }}>Spread</div>
-                <div className="text-sm font-semibold" style={{ color: '#E6E1E4' }}>{spreadDateLabel}</div>
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="flex justify-between items-end">
-          {/* Hamburger menu — bottom left */}
+        {/* Bottom row: menu + qualifier badges — outside Link to avoid nesting issues */}
+        <div className="flex justify-between items-end mt-1">
           <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={e => e.preventDefault()}>
+            <DropdownMenuTrigger asChild>
               <button
                 className="flex items-center justify-center w-7 h-7 rounded-lg transition-colors hover:bg-white/10"
                 style={{ color: '#6B7280', border: '1px solid rgba(255,255,255,0.12)' }}
-                onClick={e => e.preventDefault()}
               >
                 <MoreHorizontal className="w-4 h-4" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={e => { e.preventDefault(); setEditingRoute(route); }}>
+              <DropdownMenuItem onClick={() => setEditingRoute(route)}>
                 <Pencil className="w-4 h-4 mr-2" />
                 Edit Route
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}>
+              <DropdownMenuItem onClick={() => setSchedulingRoute(route)}>
                 <CalendarDays className="w-4 h-4 mr-2" />
                 Schedule Runs
               </DropdownMenuItem>
               {onArchive && (
-                <DropdownMenuItem onClick={e => { e.preventDefault(); onArchive(route); }}>
+                <DropdownMenuItem onClick={() => onArchive(route)}>
                   <Archive className="w-4 h-4 mr-2" />
                   Archive Route
                 </DropdownMenuItem>
               )}
               {onDelete && (
-                <DropdownMenuItem className="text-red-600" onClick={e => { e.preventDefault(); onDelete(route); }}>
+                <DropdownMenuItem className="text-red-600" onClick={() => onDelete(route)}>
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Route
                 </DropdownMenuItem>
@@ -310,59 +313,58 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Qualifier badges — bottom right */}
+          {/* Qualifier badges */}
           <div className="flex-1 flex justify-end">
-          {!hasAnyAttempts ? (
-            <div className="flex gap-1">
-              {allQuals.map(({ key, label }) => (
-                <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
-                  {label}
-                </span>
-              ))}
-            </div>
-          ) : allQualifiersMet ? (
-            <div className="flex flex-col items-end gap-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
-              <div className="flex items-center gap-1">
+            {!hasAnyAttempts ? (
+              <div className="flex gap-1">
                 {allQuals.map(({ key, label }) => (
                   <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                    style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
+                    style={{ background: 'rgba(255,255,255,0.05)', color: '#4B5563' }}>
                     {label}
                   </span>
                 ))}
               </div>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1 items-end">
-              {attemptList.map(({ num, am, pm, weekend, count }) => {
-                const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
-                return (
-                  <div key={num} className="flex flex-col items-end gap-0.5">
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
-                    <div className="flex items-center gap-1">
-                      {allQuals.map(({ key, label }) => (
-                        <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
-                          style={activeKeys.includes(key)
-                            ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
-                            : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
-                          }>
-                          {label}
+            ) : allQualifiersMet ? (
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#22c55e' }}>All Qualifiers Met</span>
+                <div className="flex items-center gap-1">
+                  {allQuals.map(({ key, label }) => (
+                    <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                      style={{ background: 'rgba(34,197,94,0.18)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.35)' }}>
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 items-end">
+                {attemptList.map(({ num, am, pm, weekend, count }) => {
+                  const activeKeys = [am && 'am', pm && 'pm', weekend && 'weekend'].filter(Boolean);
+                  return (
+                    <div key={num} className="flex flex-col items-end gap-0.5">
+                      <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6B7280' }}>Attempt {num}</span>
+                      <div className="flex items-center gap-1">
+                        {allQuals.map(({ key, label }) => (
+                          <span key={key} className="text-[10px] font-semibold rounded px-2 py-0.5 uppercase"
+                            style={activeKeys.includes(key)
+                              ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1' }
+                              : { background: 'rgba(255,255,255,0.05)', color: '#4B5563' }
+                            }>
+                            {label}
+                          </span>
+                        ))}
+                        <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
+                          style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
+                          {count}
                         </span>
-                      ))}
-                      <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5"
-                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)', minWidth: '20px', textAlign: 'center' }}>
-                        {count}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      </Link>
       </div>
     );
   };
