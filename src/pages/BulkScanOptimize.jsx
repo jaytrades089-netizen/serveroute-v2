@@ -7,8 +7,27 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { ArrowLeft, Layers, Clock, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Layers, Clock, Loader2, AlertCircle, CheckCircle, Save } from 'lucide-react';
 import { toast } from 'sonner';
+
+const BULK_SAVE_KEY = 'bulk_scan_saved_session';
+
+export function saveBulkSession(session) {
+  localStorage.setItem(BULK_SAVE_KEY, JSON.stringify({
+    ...session,
+    savedAt: new Date().toISOString()
+  }));
+}
+
+export function loadSavedBulkSession() {
+  const data = localStorage.getItem(BULK_SAVE_KEY);
+  if (!data) return null;
+  try { return JSON.parse(data); } catch { return null; }
+}
+
+export function clearSavedBulkSession() {
+  localStorage.removeItem(BULK_SAVE_KEY);
+}
 
 const TIME_OPTIONS = [
   { label: '2h', minutes: 120 },
@@ -120,6 +139,12 @@ export default function BulkScanOptimize() {
 
   const handleLooksGood = () => {
     navigate(createPageUrl(`ScanSortReview?sessionId=${session.id}`));
+  };
+
+  const handleSaveScans = () => {
+    if (!session) return;
+    saveBulkSession(session);
+    toast.success(`${validAddresses.length} scanned addresses saved — reload anytime from Bulk Scan`);
   };
 
   if (!session) {
@@ -269,26 +294,46 @@ export default function BulkScanOptimize() {
         )}
       </div>
 
-      {/* Fixed bottom bar — only shown during result state */}
-      {showResult && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
-          <div className="max-w-lg mx-auto flex gap-3">
+      {/* Fixed bottom bar — always visible once session loaded */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
+        <div className="max-w-lg mx-auto flex gap-3">
+          {showResult ? (
+            <>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowResult(false)}
+              >
+                Re-optimize
+              </Button>
+              <Button
+                variant="outline"
+                className="flex items-center gap-1 px-3"
+                onClick={handleSaveScans}
+                title="Save scanned addresses so you can reload them next time"
+              >
+                <Save className="w-4 h-4" />
+              </Button>
+              <Button
+                className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={handleLooksGood}
+              >
+                Sort Documents →
+              </Button>
+            </>
+          ) : (
             <Button
               variant="outline"
-              className="flex-1"
-              onClick={() => setShowResult(false)}
+              className="flex items-center gap-2"
+              onClick={handleSaveScans}
+              disabled={validAddresses.length === 0}
             >
-              Re-optimize
+              <Save className="w-4 h-4" />
+              Save Scans ({validAddresses.length})
             </Button>
-            <Button
-              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white"
-              onClick={handleLooksGood}
-            >
-              Looks Good — Sort Documents →
-            </Button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
