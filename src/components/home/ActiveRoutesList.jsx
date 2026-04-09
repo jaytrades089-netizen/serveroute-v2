@@ -189,6 +189,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
         }}
       >
       <Link to={createPageUrl(`WorkerRouteDetail?id=${route.id}`)} className="block">
+        {/* Top row: letter + run date (left), status badge + scheduled runs (right, absolutely positioned) */}
         <div className="flex items-start gap-3 mb-2">
           <div
             className="rounded-lg h-8 flex items-center justify-center font-bold flex-shrink-0 px-2"
@@ -214,30 +215,31 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               </span>
             )}
           </div>
-          {/* Right column: status badge + scheduled run chips */}
-          <div className="flex flex-col items-end gap-1 flex-shrink-0">
-            {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
-            {route.scheduled_runs?.length > 0 && (
-              <button
-                onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
-                className="flex flex-col gap-0.5 items-end"
-              >
-                {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
-                  <div key={i} className="flex items-center gap-1">
-                    <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#a5b4fc' }}>
-                      {new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
+        </div>
+
+        {/* Absolutely positioned right column: status badge + scheduled run chips */}
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-1">
+          {getStatusBadge(route.status, !!route.run_date, () => setSchedulingRoute(route))}
+          {route.scheduled_runs?.length > 0 && (
+            <button
+              onClick={e => { e.preventDefault(); setSchedulingRoute(route); }}
+              className="flex flex-col gap-0.5 items-end"
+            >
+              {route.scheduled_runs.filter(r => r.date).sort((a, b) => new Date(a.date) - new Date(b.date)).map((run, i) => (
+                <div key={i} className="flex items-center gap-1">
+                  <span className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#a5b4fc' }}>
+                    {new Date(run.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'numeric', day: 'numeric' })}
+                  </span>
+                  {run.qualifiers?.length > 0 && (
+                    <span className="text-[10px] font-bold rounded px-2 py-0.5 uppercase"
+                      style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
+                      {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
                     </span>
-                    {run.qualifiers?.length > 0 && (
-                      <span className="text-[10px] font-bold rounded px-2 py-0.5 uppercase"
-                        style={{ background: 'rgba(233,195,73,0.18)', color: '#e9c349', border: '1px solid rgba(233,195,73,0.35)' }}>
-                        {run.qualifiers.map(q => q === 'weekend' ? 'WKND' : q.toUpperCase()).join('·')}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </button>
-            )}
-          </div>
+                  )}
+                </div>
+              ))}
+            </button>
+          )}
         </div>
 
         <div className="flex gap-4 mb-2">
@@ -361,7 +363,6 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           </div>
         </div>
       </Link>
-
       </div>
     );
   };
