@@ -13,7 +13,7 @@ import EvidenceCamera from './EvidenceCamera';
 import EvidenceCommentModal from './EvidenceCommentModal';
 import RTOModal from './RTOModal';
 import PhotoViewer from './PhotoViewer';
-import { QualifierBadges } from '@/components/qualifier/QualifierBadge';
+import QualifierBadge from '@/components/qualifier/QualifierBadge';
 
 export default function AddressCard({
   address,
@@ -53,6 +53,7 @@ export default function AddressCard({
   const selectedAttempt = sortedAttempts[activeTab - 1] || null;
   const isVerified = address.verification_status === 'verified';
 
+  // Check for in-progress attempt (has photo but no qualifier yet — posting flow)
   const hasInProgressAttempt = sortedAttempts.some(a =>
     a.photo_urls?.length > 0 &&
     !a.qualifier &&
@@ -63,6 +64,7 @@ export default function AddressCard({
     ? sortedAttempts.find(a => a.photo_urls?.length > 0 && !a.qualifier && (!a.qualifier_badges || a.qualifier_badges.length === 0))
     : null;
 
+  // Card border color based on status
   const cardBorder = isServed
     ? '1px solid rgba(34,197,94,0.35)'
     : isRTO
@@ -96,6 +98,8 @@ export default function AddressCard({
     setShowCamera(false);
 
     if (address.serve_type === 'posting') {
+      // For postings, create an attempt record immediately with the photo
+      // but without qualifier — worker will finalize later
       try {
         const existingInProgress = sortedAttempts.find(a =>
           a.photo_urls?.length > 0 &&
@@ -104,9 +108,13 @@ export default function AddressCard({
         );
 
         if (existingInProgress) {
+          // Add photo to existing in-progress attempt
           const updatedPhotos = [...(existingInProgress.photo_urls || []), photoUrl];
-          await base44.entities.Attempt.update(existingInProgress.id, { photo_urls: updatedPhotos });
+          await base44.entities.Attempt.update(existingInProgress.id, {
+            photo_urls: updatedPhotos
+          });
         } else {
+          // Create new in-progress attempt
           await base44.entities.Attempt.create({
             address_id: address.id,
             route_id: routeId,
@@ -125,6 +133,7 @@ export default function AddressCard({
       return;
     }
 
+    // Non-posting: open comment modal
     setShowCommentModal(true);
   };
 
@@ -213,6 +222,7 @@ export default function AddressCard({
       const now = new Date().toISOString();
 
       if (isPosting && inProgressAttempt) {
+        // Finalize the in-progress posting attempt
         await base44.entities.Attempt.update(inProgressAttempt.id, {
           qualifier: 'POSTING',
           qualifier_badges: ['POSTING'],
@@ -237,6 +247,7 @@ export default function AddressCard({
 
       await base44.entities.Address.update(address.id, addressUpdates);
 
+      // Update route served count
       const currentRoute = await base44.entities.Route.filter({ id: routeId });
       const routeData = currentRoute[0];
       if (routeData) {
@@ -245,6 +256,7 @@ export default function AddressCard({
         });
       }
 
+      // Notify boss
       try {
         const allUsers = await base44.entities.User.filter({ company_id: routeData?.company_id });
         const bosses = allUsers.filter(u => u.role === 'boss' || u.role === 'admin');
@@ -266,6 +278,7 @@ export default function AddressCard({
         console.warn('Failed to notify boss:', notifErr);
       }
 
+      // Audit log
       try {
         await base44.entities.AuditLog.create({
           action_type: 'posting_completed',
@@ -350,6 +363,7 @@ export default function AddressCard({
         className="rounded-2xl overflow-hidden"
         style={{ background: cardBg, border: cardBorder, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}
       >
+        {/* In-progress posting warning banner */}
         {hasInProgressAttempt && !isServed && (
           <div
             className={`px-4 py-2 flex items-center gap-2 cursor-pointer ${
@@ -366,6 +380,7 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* RTO Warning Banner */}
         {isRTO && !isServed && (
           <div className="px-4 pb-3 bg-red-950/20 border-b border-red-900/40">
             <div className="pt-3 flex items-start gap-2">
@@ -392,6 +407,7 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Main card tap area */}
         <div
           className="px-4 pt-3 pb-2 cursor-pointer"
           onClick={() => {
@@ -404,12 +420,14 @@ export default function AddressCard({
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
+              {/* Zone label */}
               {showZoneLabels && address.zone_label && (
                 <div className="flex items-center gap-1 mb-1">
                   <Tag className="w-3 h-3" style={{ color: '#e5b9e1' }} />
                   <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#e5b9e1' }}>{address.zone_label}</span>
                 </div>
               )}
+              {/* Folder name for combo routes */}
               {address._folderName && (
                 <div className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: '#8a7f87' }}>
                   {address._folderName}
@@ -422,6 +440,7 @@ export default function AddressCard({
               )}
             </div>
 
+            {/* Stop number badge */}
             {index !== undefined && (
               <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs"
                 style={{ background: isServed ? 'rgba(34,197,94,0.20)' : 'rgba(255,255,255,0.10)', color: isServed ? '#86efac' : '#e6e1e4', border: isServed ? '1px solid rgba(34,197,94,0.40)' : '1px solid rgba(255,255,255,0.15)' }}>
@@ -431,8 +450,10 @@ export default function AddressCard({
           </div>
         </div>
 
+        {/* Action buttons — only show when not served and showActions is true */}
         {!isServed && showActions && !editMode && (
           <>
+            {/* Posting in-progress expanded view */}
             {hasInProgressAttempt && isExpanded && (
               <div className="px-4 pb-3 bg-red-950/20 border-b border-red-900/40">
                 <div className="bg-red-950/20 rounded-lg p-3 mb-3 border border-red-900/40">
@@ -440,12 +461,24 @@ export default function AddressCard({
                   {inProgressAttempt?.photo_urls?.length > 0 && (
                     <div className="flex gap-2 flex-wrap">
                       {inProgressAttempt.photo_urls.map((url, i) => (
-                        <img key={i} src={url} alt="Evidence" className="w-16 h-16 rounded-lg object-cover cursor-pointer"
-                          onClick={() => { setPhotoViewerIndex(i); setShowPhotoViewer(true); }} />
+                        <img
+                          key={i}
+                          src={url}
+                          alt="Evidence"
+                          className="w-16 h-16 rounded-lg object-cover cursor-pointer"
+                          onClick={() => { setPhotoViewerIndex(i); setShowPhotoViewer(true); }}
+                        />
                       ))}
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Regular attempt tabs */}
+            {hasInProgressAttempt && !isServed && address.serve_type !== 'posting' && (
+              <div className="px-4 pb-2">
+                <p className="text-xs" style={{ color: '#8a7f87' }}>Attempt in progress</p>
               </div>
             )}
 
@@ -511,7 +544,7 @@ export default function AddressCard({
                               </p>
                               {attempt.comment && <p className="text-xs truncate" style={{ color: '#8a7f87' }}>{attempt.comment}</p>}
                             </div>
-                            <QualifierBadges badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
+                            <QualifierBadge badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
                           </div>
                         ))}
                       </div>
@@ -524,10 +557,11 @@ export default function AddressCard({
           </>
         )}
 
+        {/* Attempt detail tab */}
         {attemptCount > 0 && !isServed && activeTab > 0 && selectedAttempt && address.serve_type !== 'posting' && (
           <div className="px-4 pb-3 border-t border-[#363436]">
             <div className="pt-3">
-              <QualifierBadges badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} size="default" />
+              <QualifierBadge badges={selectedAttempt.qualifier_badges || [selectedAttempt.qualifier?.toUpperCase()]} size="default" />
               <p className="text-xs mt-2" style={{ color: '#8a7f87' }}>
                 {new Date(selectedAttempt.attempt_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
               </p>
@@ -537,8 +571,13 @@ export default function AddressCard({
               {selectedAttempt.photo_urls?.length > 0 && (
                 <div className="flex gap-2 flex-wrap mt-2">
                   {selectedAttempt.photo_urls.map((url, i) => (
-                    <img key={i} src={url} alt="Evidence" className="w-16 h-16 rounded-lg object-cover cursor-pointer"
-                      onClick={() => { setPhotoViewerIndex(i); setShowPhotoViewer(true); }} />
+                    <img
+                      key={i}
+                      src={url}
+                      alt="Evidence"
+                      className="w-16 h-16 rounded-lg object-cover cursor-pointer"
+                      onClick={() => { setPhotoViewerIndex(i); setShowPhotoViewer(true); }}
+                    />
                   ))}
                 </div>
               )}
@@ -546,6 +585,7 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Notes section when expanded */}
         {isExpanded && showActions && !editMode && (
           <div className="px-4 pb-3 border-t border-[#363436]">
             <div className="pt-3">
@@ -569,8 +609,10 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Bottom action bar */}
         {!isServed && showActions && !editMode && (
           <div className="px-3 py-2 border-t border-[#363436] flex items-center gap-2">
+            {/* RTO button */}
             <Button
               variant="outline"
               size="sm"
@@ -582,6 +624,7 @@ export default function AddressCard({
               <span>RTO</span>
             </Button>
 
+            {/* Serve type + status badges */}
             <div className="flex items-center gap-1 flex-wrap flex-1 px-1">
               <Badge variant="outline" className="text-[10px] font-bold px-2.5 py-1" style={
                 address.serve_type === 'garnishment' ? { background: 'rgba(168,85,247,0.15)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,0.35)' } :
@@ -597,11 +640,14 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Served state */}
         {isServed && (
           <div className={`px-4 py-3 border-t ${isRTO ? 'border-red-900/40 bg-red-950/20' : 'border-[#363436] bg-green-950/20'}`}>
             <div className="flex items-center gap-2 flex-wrap">
               {isRTO ? (
-                <Badge className="bg-red-900/30 text-red-300 border border-red-800/40 text-[10px] font-bold px-2.5 py-1">RTO</Badge>
+                <Badge className="bg-red-900/30 text-red-300 border border-red-800/40 text-[10px] font-bold px-2.5 py-1">
+                  RTO
+                </Badge>
               ) : address.receipt_status === 'approved' ? (
                 <Badge className="bg-green-900/30 text-green-300 border border-green-800/40 text-[10px] font-bold px-2.5 py-1"><FileCheck className="w-3 h-3 mr-1" />RECEIPT APPROVED</Badge>
               ) : address.receipt_status === 'pending_review' ? (
@@ -618,58 +664,104 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Action buttons row — Take Photo, Add Photo, Details, Navigate */}
         {!isServed && showActions && !editMode && (
           <div className="px-3 pb-3 space-y-2">
-            <Button onClick={handleCameraOpen} className="w-full font-bold text-sm h-11" style={{ background: 'rgba(59,130,246,0.85)', color: 'white' }}>
-              <Camera className="w-4 h-4 mr-2" />TAKE PHOTO
+            {/* Take Photo button */}
+            <Button
+              onClick={handleCameraOpen}
+              className="w-full font-bold text-sm h-11"
+              style={{ background: 'rgba(59,130,246,0.85)', color: 'white' }}
+            >
+              <Camera className="w-4 h-4 mr-2" />
+              TAKE PHOTO
             </Button>
 
             <div className="flex gap-2">
-              <Button onClick={(e) => { e.stopPropagation(); setShowCommentModal(true); }} className="flex-1 font-bold text-sm h-11" style={{ background: 'rgba(59,130,246,0.85)', color: 'white' }}>
-                <span className="text-lg mr-1">+</span>ADD PHOTO
+              {/* Add Photo from library */}
+              <Button
+                onClick={(e) => { e.stopPropagation(); setShowCommentModal(true); }}
+                className="flex-1 font-bold text-sm h-11"
+                style={{ background: 'rgba(59,130,246,0.85)', color: 'white' }}
+              >
+                <span className="text-lg mr-1">+</span>
+                ADD PHOTO
               </Button>
-              <Button variant="outline" onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }} className="flex-1 font-bold text-sm h-11" style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#d0c3cb' }}>
-                <FileText className="w-4 h-4 mr-1" />DETAILS
+
+              {/* Details */}
+              <Button
+                variant="outline"
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(!isExpanded); }}
+                className="flex-1 font-bold text-sm h-11"
+                style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', color: '#d0c3cb' }}
+              >
+                <FileText className="w-4 h-4 mr-1" />
+                DETAILS
               </Button>
             </div>
 
+            {/* Navigate row */}
             <div className="flex items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-11 px-3" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#9ca3af' }} onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-11 px-3"
+                    style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#9ca3af' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <MoreVertical className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" style={{ background: '#1c1b1d', border: '1px solid #363436' }}>
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }} style={{ color: '#f87171' }}>
-                    <RotateCcw className="w-4 h-4 mr-2" />Log RTO
+                  <DropdownMenuItem
+                    onClick={(e) => { e.stopPropagation(); setShowRTOModal(true); }}
+                    style={{ color: '#f87171' }}
+                  >
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Log RTO
                   </DropdownMenuItem>
                   {onMessageBoss && (
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }} style={{ color: '#d0c3cb' }}>
-                      <MessageSquare className="w-4 h-4 mr-2" />Message Boss
+                    <DropdownMenuItem
+                      onClick={(e) => { e.stopPropagation(); onMessageBoss(address); }}
+                      style={{ color: '#d0c3cb' }}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Message Boss
                     </DropdownMenuItem>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <Button onClick={handleNavigate} className="flex-1 font-bold text-sm h-11"
+              <Button
+                onClick={handleNavigate}
+                className="flex-1 font-bold text-sm h-11"
                 style={hasInProgressAttempt
                   ? { background: 'rgba(34,197,94,0.20)', border: '1px solid rgba(34,197,94,0.40)', color: '#86efac' }
-                  : { background: 'rgba(229,185,225,0.12)', border: '1px solid rgba(229,185,225,0.30)', color: '#e5b9e1' }}>
-                <Navigation className="w-4 h-4 mr-2" />NAVIGATE
+                  : { background: 'rgba(229,185,225,0.12)', border: '1px solid rgba(229,185,225,0.30)', color: '#e5b9e1' }}
+              >
+                <Navigation className="w-4 h-4 mr-2" />
+                NAVIGATE
               </Button>
             </div>
 
+            {/* Finalize Posting button */}
             {address.serve_type === 'posting' && hasInProgressAttempt && (
-              <Button onClick={(e) => { e.stopPropagation(); handleFinalizePosting(); }} disabled={isSavingPostingComplete}
+              <Button
+                onClick={(e) => { e.stopPropagation(); handleFinalizePosting(); }}
+                disabled={isSavingPostingComplete}
                 className="w-full font-bold text-sm h-11 mt-1"
-                style={{ background: 'rgba(34,197,94,0.20)', border: '1px solid rgba(34,197,94,0.40)', color: '#86efac' }}>
-                <CheckCircle className="w-4 h-4 mr-2" />FINALIZE POSTING
+                style={{ background: 'rgba(34,197,94,0.20)', border: '1px solid rgba(34,197,94,0.40)', color: '#86efac' }}
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                FINALIZE POSTING
               </Button>
             )}
           </div>
         )}
 
+        {/* Boss-only address detail view when showActions=false */}
         {!showActions && (
           <div className="px-4 pb-4">
             {attemptCount > 0 && (
@@ -683,7 +775,7 @@ export default function AddressCard({
                         {new Date(attempt.attempt_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}
                       </span>
                     </div>
-                    <QualifierBadges badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
+                    <QualifierBadge badges={attempt.qualifier_badges || [attempt.qualifier?.toUpperCase()]} size="small" />
                     {attempt.comment && <p className="text-xs mt-1" style={{ color: '#8a7f87' }}>{attempt.comment}</p>}
                     {attempt.photo_urls?.length > 0 && (
                       <div className="flex gap-2 flex-wrap mt-2">
@@ -714,27 +806,44 @@ export default function AddressCard({
           </div>
         )}
 
+        {/* Edit mode address form */}
         {isEditingAddress && editMode && (
           <div className="px-4 pb-4 border-t border-[#363436] pt-3 space-y-3">
             <div>
               <label className="text-xs font-bold" style={{ color: '#8a7f87' }}>Street Address</label>
-              <input className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
-                value={editFields.legal_address ?? address.legal_address ?? ''} onChange={e => setEditFields(f => ({ ...f, legal_address: e.target.value }))} />
+              <input
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
+                value={editFields.legal_address ?? address.legal_address ?? ''}
+                onChange={e => setEditFields(f => ({ ...f, legal_address: e.target.value }))}
+              />
             </div>
             <div>
               <label className="text-xs font-bold" style={{ color: '#8a7f87' }}>Normalized Address</label>
-              <input className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
-                value={editFields.normalized_address ?? address.normalized_address ?? ''} onChange={e => setEditFields(f => ({ ...f, normalized_address: e.target.value }))} />
+              <input
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
+                value={editFields.normalized_address ?? address.normalized_address ?? ''}
+                onChange={e => setEditFields(f => ({ ...f, normalized_address: e.target.value }))}
+              />
             </div>
             <div>
               <label className="text-xs font-bold" style={{ color: '#8a7f87' }}>Defendant Name</label>
-              <input className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
-                value={editFields.defendant_name ?? address.defendant_name ?? ''} onChange={e => setEditFields(f => ({ ...f, defendant_name: e.target.value }))} />
+              <input
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
+                value={editFields.defendant_name ?? address.defendant_name ?? ''}
+                onChange={e => setEditFields(f => ({ ...f, defendant_name: e.target.value }))}
+              />
             </div>
             <div>
               <label className="text-xs font-bold" style={{ color: '#8a7f87' }}>Serve Type</label>
-              <select className="w-full mt-1 px-3 py-2 rounded-lg text-sm" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
-                value={editFields.serve_type ?? address.serve_type ?? 'serve'} onChange={e => setEditFields(f => ({ ...f, serve_type: e.target.value }))}>
+              <select
+                className="w-full mt-1 px-3 py-2 rounded-lg text-sm"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}
+                value={editFields.serve_type ?? address.serve_type ?? 'serve'}
+                onChange={e => setEditFields(f => ({ ...f, serve_type: e.target.value }))}
+              >
                 <option value="serve">Serve</option>
                 <option value="posting">Posting</option>
                 <option value="garnishment">Garnishment</option>
@@ -750,8 +859,13 @@ export default function AddressCard({
         )}
       </div>
 
+      {/* Modals */}
       {showCamera && (
-        <EvidenceCamera address={address} onClose={() => setShowCamera(false)} onPhotoSaved={handlePhotoSaved} />
+        <EvidenceCamera
+          address={address}
+          onClose={() => setShowCamera(false)}
+          onPhotoSaved={handlePhotoSaved}
+        />
       )}
 
       {showCommentModal && (
