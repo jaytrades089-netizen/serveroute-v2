@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import { formatAddress } from '@/components/utils/addressFormatter';
+import { formatAddress } from '@/components/address/AddressCard';
 import BossBottomNav from '@/components/boss/BossBottomNav';
 
 const CATEGORY_INFO = {
