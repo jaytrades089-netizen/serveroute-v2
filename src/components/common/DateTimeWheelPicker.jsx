@@ -90,14 +90,20 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
     <div className="flex flex-col items-center flex-1">
       {/* Fixed-height label area so all columns align */}
       <div className="h-5 flex items-center justify-center">
-        {label ? <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">{label}</p> : null}
+        {label ? <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">{label}</p> : null}
       </div>
 
       <div className="relative" style={{ height: ITEM_H * 3 }}>
-        {/* Selection highlight */}
+        {/* Selection highlight — gold bracket at center row */}
         <div
-          className="absolute inset-x-0 pointer-events-none z-10 border-t-2 border-b-2 border-blue-500 bg-blue-50/60 rounded"
-          style={{ top: ITEM_H, height: ITEM_H }}
+          className="absolute inset-x-0 pointer-events-none z-10 rounded"
+          style={{
+            top: ITEM_H,
+            height: ITEM_H,
+            borderTop: '2px solid rgba(233,195,73,0.8)',
+            borderBottom: '2px solid rgba(233,195,73,0.8)',
+            background: 'rgba(233,195,73,0.10)'
+          }}
         />
         <div
           ref={ref}
@@ -117,17 +123,12 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
           {!circular && <div style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }} />}
           {listItems.map((item, i) => {
             const logicalIdx = circular ? i % count : i;
-            const isSelected = logicalIdx === selectedIndex && (
-              circular
-                ? i >= startBlock * count && i < (startBlock + 1) * count
-                : true
-            );
             return (
               <div
                 key={i}
                 style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }}
                 className={`flex items-center justify-center text-base font-semibold transition-all cursor-pointer select-none
-                  ${logicalIdx === selectedIndex ? 'text-blue-600 scale-110' : 'text-gray-400 scale-95'}`}
+                  ${logicalIdx === selectedIndex ? 'text-white font-bold' : 'text-white/40'}`}
                 onClick={() => handleItemClick(logicalIdx)}
               >
                 {item}
@@ -176,28 +177,28 @@ export default function DateTimeWheelPicker({
             month: "w-full",
             table: "w-full border-collapse",
             head_row: "flex w-full justify-between",
-            head_cell: "flex-1 text-center text-xs font-medium text-gray-500 py-1",
+            head_cell: "flex-1 text-center text-xs font-medium text-white/60 py-1",
             row: "flex w-full justify-between mt-0.5",
             cell: "flex-1 flex items-center justify-center p-0",
-            day: "h-9 w-9 rounded-full text-sm flex items-center justify-center mx-auto hover:bg-gray-100 transition-colors",
-            day_selected: "!ring-2 !ring-black !ring-offset-1 !font-bold",
-            day_today: "bg-gray-100 font-bold",
+            day: "h-9 w-9 rounded-full text-sm flex items-center justify-center mx-auto hover:bg-white/20 transition-colors text-white",
+            day_selected: "!ring-2 !ring-white !ring-offset-1 !font-bold !text-white",
+            day_today: "bg-white/20 font-bold text-white",
             nav: "flex items-center justify-between px-2 pb-1",
-            nav_button: "h-8 w-8 rounded-full hover:bg-gray-100 flex items-center justify-center",
-            caption: "text-sm font-semibold text-center py-1"
+            nav_button: "h-8 w-8 rounded-full hover:bg-white/20 flex items-center justify-center",
+            caption: "text-sm font-semibold text-center py-1 text-white"
           }}
         />
         {date && (
-          <p className="text-center text-sm font-semibold text-blue-600 mt-1">
+          <p className="text-center text-sm font-semibold mt-1" style={{ color: '#e9c349' }}>
             {format(date, 'EEEE, MMMM d, yyyy')}
           </p>
         )}
       </div>
 
-      <div className="border-t border-gray-100 mb-3" />
+      <div className="border-t border-white/10 mb-3" />
 
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-1">FROM</p>
-      <div className="flex items-start gap-1 bg-gray-50 rounded-2xl px-3 py-1">
+      <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider mb-1">FROM</p>
+      <div className="flex items-start gap-1 rounded-2xl px-3 py-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
         <WheelColumn
           items={HOURS}
           selectedIndex={startHourIndex}
@@ -207,7 +208,7 @@ export default function DateTimeWheelPicker({
         />
         {/* Colon — offset by label height (h-5 = 20px) + center of picker */}
         <div
-          className="flex items-center text-gray-300 text-xl font-light flex-shrink-0"
+          className="flex items-center text-white/20 text-xl font-light flex-shrink-0"
           style={{ paddingTop: `${20 + 44}px`, height: `${20 + 44 * 3}px` }}
         >
           :
@@ -230,10 +231,10 @@ export default function DateTimeWheelPicker({
 
       {showEnd && (
         <>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-3 mb-1">
-            TO <span className="font-normal text-gray-300">(optional)</span>
+          <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider mt-3 mb-1">
+            TO <span className="font-normal text-white/25">(optional)</span>
           </p>
-          <div className="flex items-start gap-1 bg-gray-50 rounded-2xl px-3 py-1">
+          <div className="flex items-start gap-1 rounded-2xl px-3 py-1" style={{ background: 'rgba(255,255,255,0.06)' }}>
             <WheelColumn
               items={HOURS}
               selectedIndex={endHourIndex}
@@ -242,7 +243,7 @@ export default function DateTimeWheelPicker({
               circular
             />
             <div
-              className="flex items-center text-gray-300 text-xl font-light flex-shrink-0"
+              className="flex items-center text-white/20 text-xl font-light flex-shrink-0"
               style={{ paddingTop: `${20 + 44}px`, height: `${20 + 44 * 3}px` }}
             >
               :

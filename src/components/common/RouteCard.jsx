@@ -208,8 +208,8 @@ export default function RouteCard({
     setShowQueueCalendar(false);
     try {
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
     } catch (err) {
       console.error('Failed to save queue entry:', err);
     } finally {
@@ -223,8 +223,8 @@ export default function RouteCard({
     setScheduledRuns(newQueue);
     try {
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
     } catch (err) {
       console.error('Failed to remove queue entry:', err);
     } finally {
@@ -838,7 +838,9 @@ export default function RouteCard({
           const originalQualifiers = route.run_qualifiers || [];
           const dateChanged = pendingDate?.toDateString() !== originalDate?.toDateString();
           const qualifiersChanged = JSON.stringify([...pendingQualifiers].sort()) !== JSON.stringify([...originalQualifiers].sort());
-          const hasChanges = dateChanged || qualifiersChanged;
+          // Also treat clearing the date as a valid change (delete-all case)
+          const dateClear = !pendingDate && !!originalDate;
+          const hasChanges = dateChanged || qualifiersChanged || dateClear;
           return (
             <div
               className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4"
