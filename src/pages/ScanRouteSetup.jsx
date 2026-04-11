@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { getCompanyId } from '@/components/utils/companyUtils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -40,6 +40,7 @@ const SPREAD_OPTIONS = [10, 14, 21];
 
 export default function ScanRouteSetup() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [session, setSession] = useState(null);
   const [routeName, setRouteName] = useState('');
   const [dueDate, setDueDate] = useState(null);
@@ -269,8 +270,18 @@ export default function ScanRouteSetup() {
       });
 
       clearScanSession(session.id);
+
+      // Invalidate all relevant queries so the new route + addresses are fresh when the list loads
+      await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      await queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', route.id] });
+      await queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+
+      // Wait for DB writes to settle before navigating — prevents blank route cards on load
+      await new Promise(resolve => setTimeout(resolve, 800));
+
       toast.success('Route created successfully!');
-      
+
       if (isBoss) {
         navigate(createPageUrl('BossRoutes'));
       } else {
