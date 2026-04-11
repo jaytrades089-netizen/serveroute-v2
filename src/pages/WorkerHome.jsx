@@ -266,11 +266,12 @@ export default function WorkerHome() {
               Combo{activeComboRoutes.length > 0 ? ` (${activeComboRoutes.length})` : ''}
             </Button>
           </Link>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <AddressSearch
               routes={routes}
               addresses={addresses}
               isBossView={false}
+              className=""
             />
           </div>
         </div>

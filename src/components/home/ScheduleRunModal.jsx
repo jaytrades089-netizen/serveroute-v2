@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format, parseISO } from 'date-fns';
 import { DayPicker } from 'react-day-picker';
@@ -113,6 +114,7 @@ function RunRow({ run, index, onChange, onRemove, onOpenCalendar }) {
 }
 
 export default function ScheduleRunModal({ route, onClose, onSaved }) {
+  const queryClient = useQueryClient();
   const requiredAttempts = route.required_attempts || 3;
 
   const dueDate = route.due_date ? new Date(route.due_date + 'T12:00:00') : null;
@@ -157,6 +159,9 @@ export default function ScheduleRunModal({ route, onClose, onSaved }) {
         status: route.status,
       });
       toast.success('Runs scheduled!');
+      // Immediately refetch so the route card updates without requiring a manual refresh
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
       onSaved?.();
       onClose();
     } catch (e) {
