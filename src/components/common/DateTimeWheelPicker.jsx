@@ -115,12 +115,13 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'none',
             msOverflowStyle: 'none',
+            paddingTop: ITEM_H,
+            paddingBottom: ITEM_H,
+            boxSizing: 'content-box',
           }}
           className="wheel-col"
         >
           <style>{`.wheel-col::-webkit-scrollbar { display: none; }`}</style>
-          {/* Top padding slot */}
-          {!circular && <div style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }} />}
           {listItems.map((item, i) => {
             const logicalIdx = circular ? i % count : i;
             return (
@@ -135,8 +136,6 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
               </div>
             );
           })}
-          {/* Bottom padding slot */}
-          {!circular && <div style={{ height: ITEM_H, scrollSnapAlign: 'center', flexShrink: 0 }} />}
         </div>
       </div>
     </div>
