@@ -93,7 +93,8 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
         {label ? <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">{label}</p> : null}
       </div>
 
-      <div className="relative" style={{ height: ITEM_H * 3 }}>
+      {/* overflow:hidden clips items that scroll past the visible window edges */}
+      <div className="relative" style={{ height: ITEM_H * 3, overflow: 'hidden' }}>
         {/* Selection highlight — gold bracket at center row */}
         <div
           className="absolute inset-x-0 pointer-events-none z-10 rounded"
