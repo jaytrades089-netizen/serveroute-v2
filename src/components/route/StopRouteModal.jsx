@@ -21,7 +21,18 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
   const [saving, setSaving] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
 
-  const scheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+  const allScheduledRuns = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
+
+  // Filter out any queue entries that are today or in the past — only future dates are valid next runs
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const scheduledRuns = allScheduledRuns.filter(r => {
+    if (!r?.date) return false;
+    const d = parseISO(r.date);
+    d.setHours(0, 0, 0, 0);
+    return d > today;
+  });
+
   const hasQueuedRun = scheduledRuns.length > 0;
   const nextQueued = hasQueuedRun ? scheduledRuns[0] : null;
 
@@ -56,8 +67,13 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
   const handleConfirmStop = async () => {
     setSaving(true);
     try {
-      const currentQueue = Array.isArray(route.scheduled_runs) ? route.scheduled_runs : [];
-      const updatedQueue = autoFilledFromQueue ? currentQueue.slice(1) : currentQueue;
+      // Remove the consumed next-run entry from the queue (use allScheduledRuns to preserve past entries slice correctly)
+      const updatedQueue = autoFilledFromQueue ? allScheduledRuns.filter(r => {
+        if (!r?.date) return true;
+        const d = parseISO(r.date);
+        d.setHours(0, 0, 0, 0);
+        return d > today;
+      }).slice(1) : allScheduledRuns;
 
       await base44.entities.Route.update(route.id, {
         run_date: nextRunDate ? format(nextRunDate, 'yyyy-MM-dd') : null,
@@ -67,8 +83,9 @@ export default function StopRouteModal({ route, addresses, onClose, attempts = [
         started_at: null
       });
 
-      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      // Use refetchQueries so the card updates immediately with the new run_date
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       toast.success('Route stopped');
       navigate(createPageUrl('WorkerRoutes'));
     } catch (error) {

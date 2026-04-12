@@ -37,8 +37,9 @@ export default function EditRouteModal({ route, onClose }) {
         updates.first_attempt_deadline = due.toISOString().split('T')[0];
       }
       await base44.entities.Route.update(route.id, updates);
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
+      // Use refetchQueries so RouteCard re-renders immediately with the new due date
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
       toast.success('Route updated');
       onClose();
     } catch (e) {

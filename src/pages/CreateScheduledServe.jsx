@@ -55,10 +55,12 @@ export default function CreateScheduledServe() {
 
   const [startHourIdx, setStartHourIdx] = useState(11);
   const [startMinIdx, setStartMinIdx] = useState(0);
-  const [startAmPmIdx, setStartAmPmIdx] = useState(1);
+  // Default to AM (index 0) — AM/PM array is ['AM', 'PM'], so 0 = AM
+  const [startAmPmIdx, setStartAmPmIdx] = useState(0);
   const [endHourIdx, setEndHourIdx] = useState(11);
   const [endMinIdx, setEndMinIdx] = useState(0);
-  const [endAmPmIdx, setEndAmPmIdx] = useState(1);
+  // Default to AM (index 0) for end time as well
+  const [endAmPmIdx, setEndAmPmIdx] = useState(0);
 
   const HOURS = ['1','2','3','4','5','6','7','8','9','10','11','12'];
   const MINUTES = ['00','15','30','45'];
