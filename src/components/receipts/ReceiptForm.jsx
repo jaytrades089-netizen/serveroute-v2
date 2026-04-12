@@ -664,8 +664,8 @@ export default function ReceiptForm({
         </div>
       </div>
 
-      {/* GPS Location Data */}
-      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
+      {/* GPS Location Data — fixed min-height prevents layout jump when location resolves */}
+      <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)', minHeight: '140px' }}>
         <p className="text-sm font-medium mb-3" style={{ color: '#9CA3AF' }}>Service Location Data</p>
           {serveCoordinates ? (
             <div className="rounded-lg p-3" style={serveCoordinates.fallback
@@ -751,7 +751,18 @@ export default function ReceiptForm({
       {/* Notes */}
       <div className="rounded-xl p-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', border: '1px solid rgba(255,255,255,0.10)' }}>
         <p className="text-sm font-medium flex items-center gap-2 mb-3" style={{ color: '#9CA3AF' }}><FileText className="w-4 h-4" />Notes</p>
-          <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Add any additional notes about the service..." rows={3} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }} />
+          <Textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            onFocus={(e) => {
+              // Move cursor to end of existing text when field is focused
+              const len = e.target.value.length;
+              e.target.setSelectionRange(len, len);
+            }}
+            placeholder="Add any additional notes about the service..."
+            rows={3}
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', color: '#E6E1E4' }}
+          />
       </div>
 
       {/* Actions */}
@@ -774,12 +785,13 @@ export default function ReceiptForm({
         <p className="text-center text-sm mt-2" style={{ color: '#22c55e' }}>✓ This receipt has been sent to your boss for review</p>
       )}
 
-      {/* Camera Modal - Matches EvidenceCamera exactly */}
+      {/* Camera Modal */}
       {showCamera && (
         <div className="fixed inset-x-0 top-0 bottom-0 z-50 flex items-center justify-center bg-black/50">
           <div className="relative w-full max-w-lg overflow-hidden">
             {/* Close X button - top right */}
-            <button 
+            <button
+              type="button"
               onClick={stopCamera}
               className="absolute top-3 right-3 z-20 text-white/80 hover:text-white"
             >
@@ -818,8 +830,9 @@ export default function ReceiptForm({
                   Cancel
                 </button>
                 
-                {/* Capture Button - red circle */}
+                {/* Capture Button - type="button" prevents form submission */}
                 <button
+                  type="button"
                   onClick={capturePhoto}
                   disabled={!cameraReady}
                   className="w-16 h-16 rounded-full bg-white border-4 border-gray-300 flex items-center justify-center hover:bg-gray-100 disabled:opacity-50 transition-all active:scale-95"
