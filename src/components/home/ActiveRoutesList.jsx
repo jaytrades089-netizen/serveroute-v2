@@ -45,8 +45,8 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
     .sort((a, b) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (b.status === 'active' && a.status !== 'active') return 1;
-      const aRun = a.run_date ? new Date(a.run_date) : null;
-      const bRun = b.run_date ? new Date(b.run_date) : null;
+      const aRun = a.run_date ? new Date(a.run_date + 'T12:00:00') : null;
+      const bRun = b.run_date ? new Date(b.run_date + 'T12:00:00') : null;
       if (aRun && !bRun) return -1;
       if (!aRun && bRun) return 1;
       if (aRun && bRun && aRun.getTime() !== bRun.getTime()) return aRun - bRun;
@@ -465,7 +465,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
           ) : (
             <div>
               {groupKeys.map(dateKey => {
-                const dt = parseISO(dateKey);
+                const dt = new Date(dateKey + 'T12:00:00');
                 let dayLabel;
                 if (isToday(dt)) {
                   dayLabel = `Today — ${format(dt, 'EEE, MMM d')}`;
