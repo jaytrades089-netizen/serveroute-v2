@@ -6,7 +6,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import { 
   Loader2, ChevronLeft, DollarSign, CheckCircle, Clock, RotateCcw, 
-  ChevronRight, Edit2, Check, X, Search, Trash2
+  ChevronRight, Edit2, Check, X, Trash2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -41,7 +41,6 @@ export default function PayrollRecordDetail() {
     staleTime: 2 * 60 * 1000
   });
 
-  // Initialize edit fields when record loads
   React.useEffect(() => {
     if (record) {
       setEditNotes(record.notes || '');
@@ -58,12 +57,16 @@ export default function PayrollRecordDetail() {
     }
   }, [record]);
 
-  // Bug 5 fix: served items live in bucket 'served' (new) or 'pending' (legacy).
-  // The old 'instant' filter never matched anything, so this section was always empty.
+  // Accept 'served' (new), 'pending' (legacy), and 'instant' (older legacy) as served items
   const instantItems = snapshotAddresses.filter(a => a.bucket === 'served' || a.bucket === 'pending' || a.bucket === 'instant');
-  // pendingItems kept for back-compat display but will typically be empty going forward.
-  const pendingItems = [];
   const rtoItems = snapshotAddresses.filter(a => a.bucket === 'rto');
+
+  // Recompute totals from the snapshot — truth comes from snapshot_data, not stored fields.
+  // This way, when the recovery tool adds addresses to a snapshot, the detail view
+  // automatically reflects the updated amount.
+  const computedInstantTotal = instantItems.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const computedRtoTotal = rtoItems.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const computedTotal = computedInstantTotal + computedRtoTotal;
 
   const handleSaveEdit = async () => {
     if (!record?.id) return;
@@ -167,28 +170,28 @@ export default function PayrollRecordDetail() {
       </div>
 
       <main className="px-4 py-5 max-w-lg mx-auto">
-        {/* Summary totals */}
+        {/* Summary totals — computed from snapshot */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           <div className="border border-green-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
             <p className="text-xs text-green-600 font-medium flex items-center gap-1">
-              <CheckCircle className="w-3 h-3" /> Instant
+              <CheckCircle className="w-3 h-3" /> Served
             </p>
-            <p className="text-lg font-bold text-green-700">${record.instant_total?.toFixed(2)}</p>
+            <p className="text-lg font-bold text-green-700">${computedInstantTotal.toFixed(2)}</p>
             <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{instantItems.length} items</p>
           </div>
-          <div className="border border-orange-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
-            <p className="text-xs text-orange-600 font-medium flex items-center gap-1">
-              <Clock className="w-3 h-3" /> Next
+          <div className="border border-red-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
+            <p className="text-xs text-red-600 font-medium flex items-center gap-1">
+              <RotateCcw className="w-3 h-3" /> RTO
             </p>
-            <p className="text-lg font-bold text-orange-700">${record.pending_total?.toFixed(2)}</p>
-            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{pendingItems.length} items</p>
+            <p className="text-lg font-bold text-red-700">${computedRtoTotal.toFixed(2)}</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{rtoItems.length} items</p>
           </div>
           <div className="border border-purple-200 rounded-xl p-3" style={{ background: '#1c1b1d' }}>
             <p className="text-xs text-purple-600 font-medium flex items-center gap-1">
               <DollarSign className="w-3 h-3" /> Total
             </p>
-            <p className="text-lg font-bold text-purple-700">${record.total_amount?.toFixed(2)}</p>
-            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{record.address_count} items</p>
+            <p className="text-lg font-bold text-purple-700">${computedTotal.toFixed(2)}</p>
+            <p className="text-xs font-medium" style={{ color: '#8a7f87' }}>{snapshotAddresses.length} items</p>
           </div>
         </div>
 
@@ -209,7 +212,6 @@ export default function PayrollRecordDetail() {
             </div>
           </div>
 
-          {/* Edit mode: status + notes */}
           {editMode && (
             <div className="mt-4 space-y-3" style={{ borderTop: '1px solid #363436', paddingTop: 16 }}>
               <div>
@@ -252,11 +254,11 @@ export default function PayrollRecordDetail() {
           )}
         </div>
 
-        {/* Instant Payouts */}
+        {/* Served */}
         {instantItems.length > 0 && (
           <div className="mb-5">
             <h3 className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
-              <CheckCircle className="w-4 h-4" /> Instant Payouts
+              <CheckCircle className="w-4 h-4" /> Served / Posted / Garnished
             </h3>
             <div className="space-y-2">
               {instantItems.map((item, i) => (
@@ -280,37 +282,6 @@ export default function PayrollRecordDetail() {
                   </div>
                   <div className="flex items-center gap-2 ml-3">
                     <p className="font-bold text-green-600">${item.amount?.toFixed(2)}</p>
-                    <ChevronRight className="w-4 h-4" style={{ color: '#363436' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Pending / Next Check */}
-        {pendingItems.length > 0 && (
-          <div className="mb-5">
-            <h3 className="text-sm font-semibold text-orange-700 mb-2 flex items-center gap-2">
-              <Clock className="w-4 h-4" /> Next Check Items
-            </h3>
-            <div className="space-y-2">
-              {pendingItems.map((item, i) => (
-                <div
-                  key={i}
-                  onClick={() => handleAddressPress(item.id)}
-                  className="border border-orange-200 rounded-xl p-3 flex items-center justify-between cursor-pointer"
-                  style={{ background: '#1c1b1d' }}
-                >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium" style={{ color: '#e6e1e4' }}>{item.address}</p>
-                    {item.defendant && <p className="text-xs" style={{ color: '#8a7f87' }}>{item.defendant}</p>}
-                    <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full mt-1 inline-block">
-                      {item.rto_at ? 'RTO' : 'Attempt'}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 ml-3">
-                    <p className="font-bold text-orange-600">${item.amount?.toFixed(2)}</p>
                     <ChevronRight className="w-4 h-4" style={{ color: '#363436' }} />
                   </div>
                 </div>
