@@ -214,6 +214,8 @@ export default function AddressCard({
 
   const handleCaptureEvidence = (e) => {
     e.stopPropagation();
+    // Guard against double-tap opening two camera instances
+    if (showCamera || savingEvidence) return;
     setShowCamera(true);
   };
 
@@ -354,13 +356,16 @@ export default function AddressCard({
 
   const handleLogAttempt = async (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please log in first'); return; }
-    if (!hasInProgressAttempt) { toast.error('Take a photo first! Tap Evidence to start.'); return; }
-    if (!inProgressAttempt.photo_urls || inProgressAttempt.photo_urls.length === 0) {
-      toast.error('You must take at least one photo before logging'); return;
-    }
+    // Disabled state guard MUST be first line — a fast double-tap can otherwise
+    // bypass the guard while the validation checks are running.
+    if (finalizingAttempt) return;
     setFinalizingAttempt(true);
     try {
+      if (!user) { toast.error('Please log in first'); return; }
+      if (!hasInProgressAttempt) { toast.error('Take a photo first! Tap Evidence to start.'); return; }
+      if (!inProgressAttempt.photo_urls || inProgressAttempt.photo_urls.length === 0) {
+        toast.error('You must take at least one photo before logging'); return;
+      }
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
       const updatedAttempts = localAttempts.map(a => 
@@ -400,9 +405,11 @@ export default function AddressCard({
 
   const handleFinalizePosting = async (e) => {
     e.stopPropagation();
-    if (!user) { toast.error('Please log in first'); return; }
+    // Disabled state guard MUST be first line to prevent double-tap races.
+    if (finalizingAttempt) return;
     setFinalizingAttempt(true);
     try {
+      if (!user) { toast.error('Please log in first'); return; }
       const now = new Date();
       const companyId = getCompanyId(user) || address.company_id;
       await base44.entities.Address.update(address.id, { served: true, served_at: now.toISOString(), status: 'served' });
@@ -1081,12 +1088,12 @@ export default function AddressCard({
                         FINALIZE POSTING
                       </Button>
                     ) : (
-                      <Button onClick={handleCaptureEvidence} className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl">
+                      <Button onClick={handleCaptureEvidence} disabled={showCamera || savingEvidence} className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm rounded-xl">
                         <Camera className="w-4 h-4 mr-2" />TAKE PHOTO
                       </Button>
                     )}
                     <div className="grid grid-cols-2 gap-2">
-                      <Button onClick={handleCaptureEvidence} className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1">
+                      <Button onClick={handleCaptureEvidence} disabled={showCamera || savingEvidence} className="h-14 bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs rounded-xl flex flex-col items-center justify-center gap-1">
                         <Plus className="w-5 h-5" /><span>ADD PHOTO</span>
                       </Button>
                       <Button onClick={(e) => { e.stopPropagation(); navigate(createPageUrl(`AddressDetail?addressId=${address.id}&routeId=${actualRouteId}`)); }}
@@ -1104,7 +1111,7 @@ export default function AddressCard({
                         LOG ATTEMPT {inProgressAttempt.attempt_number}
                       </Button>
                     ) : (
-                      <Button onClick={handleCaptureEvidence} className="w-full h-12 font-bold text-sm rounded-xl"
+                      <Button onClick={handleCaptureEvidence} disabled={showCamera || savingEvidence} className="w-full h-12 font-bold text-sm rounded-xl"
                         style={{ background: 'rgba(233,195,73,0.15)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}>
                         <Camera className="w-4 h-4 mr-2" />TAKE EVIDENCE
                       </Button>

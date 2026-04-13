@@ -49,6 +49,7 @@ export default function WorkerRouteDetail() {
   const [isCompletingRoute, setIsCompletingRoute] = useState(false);
   const [dismissedOptWarning, setDismissedOptWarning] = useState(false);
   const [isRetryingGeocode, setIsRetryingGeocode] = useState(false);
+  const [isResettingRoute, setIsResettingRoute] = useState(false);
 
   const handleRetryGeocode = async () => {
     const unlocated = addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng));
@@ -349,12 +350,17 @@ export default function WorkerRouteDetail() {
   };
 
   const handleResetAllAttempts = async () => {
+    // Disabled state guard MUST be first line — this is a destructive operation,
+    // a double-tap mid-reset would leave the route in an inconsistent state.
+    if (isResettingRoute) return;
+
     const confirmed = window.confirm(
       'Are you sure you want to delete ALL attempts for this route? This will reset all addresses to pending. This cannot be undone.'
     );
     
     if (!confirmed) return;
-    
+
+    setIsResettingRoute(true);
     try {
       toast.info('Resetting route...');
       
@@ -394,6 +400,8 @@ export default function WorkerRouteDetail() {
     } catch (error) {
       console.error('Reset failed:', error);
       toast.error('Failed to reset: ' + error.message);
+    } finally {
+      setIsResettingRoute(false);
     }
   };
 

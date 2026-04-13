@@ -10,15 +10,19 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     if (open) {
       document.body.classList.add('camera-active');
       checkCameraAndStart();
     } else {
       document.body.classList.remove('camera-active');
+      stopCamera();
     }
     return () => {
+      mountedRef.current = false;
       document.body.classList.remove('camera-active');
       stopCamera();
     };
@@ -27,6 +31,13 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
   const checkCameraAndStart = async () => {
     setError(null);
     try {
+      // Fully release any prior stream before asking for a new one.
+      // Android Chromium will hang getUserMedia if a prior stream from the same
+      // video element hasn't been torn down. Explicit stop + microdelay fixes it.
+      stopCamera();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      if (!mountedRef.current || !open) return;
+
       // Check if any camera devices exist
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
@@ -97,8 +108,21 @@ export default function EvidenceCamera({ open, onClose, onPhotoTaken }) {
   };
 
   const stopCamera = () => {
+    // Detach stream from the video element FIRST, then stop tracks.
+    // Stopping tracks while srcObject is still attached can leave Android in a
+    // state where the next getUserMedia() hangs silently.
+    if (videoRef.current && videoRef.current.srcObject) {
+      try {
+        videoRef.current.pause();
+      } catch {}
+      videoRef.current.srcObject = null;
+    }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      try {
+        streamRef.current.getTracks().forEach(track => {
+          try { track.stop(); } catch {}
+        });
+      } catch {}
       streamRef.current = null;
     }
   };
