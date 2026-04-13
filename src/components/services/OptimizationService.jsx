@@ -285,8 +285,6 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
   }
 
   // Step 2: Nearest-neighbor pre-sort from GPS
-  // Anchors the list so chunk 1 starts near the worker.
-  // MapQuest then resequences within each chunk using real road network.
   console.log('Step 2: Nearest-neighbor pre-sort from GPS...');
   const preSorted = nearestNeighborSort(validAddresses, startLat, startLng);
 
@@ -307,7 +305,6 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     chunks.push(preSorted.slice(i, i + CHUNK_SIZE));
   }
 
-  // DEBUG: Log pre-sort order so we can compare with MapQuest result
   console.log('  Pre-sort order (nearest-neighbor from GPS):');
   preSorted.forEach((addr, idx) => {
     const addrLabel = (addr.normalized_address || addr.legal_address || '').substring(0, 30);
@@ -348,14 +345,12 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     }
   }
 
-  // DEBUG: Log final order
   console.log(`  Final sequence (${mapquestUsed ? 'MapQuest' : 'nearest-neighbor ONLY'}):`);
   sequencedAddresses.forEach((addr, idx) => {
     const addrLabel = (addr.normalized_address || addr.legal_address || '').substring(0, 30);
     console.log(`    ${idx + 1}. ${addrLabel}`);
   });
 
-  // Step 4: Log first/last stop distances for debugging
   if (sequencedAddresses.length > 0) {
     const firstAddr = sequencedAddresses[0];
     const lastAddr = sequencedAddresses[sequencedAddresses.length - 1];
@@ -365,15 +360,15 @@ export async function optimizeWithHybrid(addresses, startLat, startLng, endLat, 
     console.log(`  Last stop: ${(distToLast / 5280).toFixed(1)} mi from your GPS`);
   }
 
-  // Step 5: Assign order_index and zone labels to final sequence
-  console.log('Step 4: Assigning order indices...');
+  // Step 5: Assign zone labels only — order_index is never written to Address records.
+  // Array position is the order. RouteOptimizeModal saves IDs as route.optimized_order.
+  console.log('Step 4: Building final order...');
   const finalOrder = [];
-  let orderIndex = 1;
   for (const addr of sequencedAddresses) {
-    finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: zoneLabelMap[addr.id] || null });
+    finalOrder.push({ ...addr, zone_label: zoneLabelMap[addr.id] || null });
   }
   for (const addr of invalidAddresses) {
-    finalOrder.push({ ...addr, order_index: orderIndex++, zone_label: 'No Location' });
+    finalOrder.push({ ...addr, zone_label: 'No Location' });
   }
 
   if (invalidAddresses.length > 0) console.warn(`${invalidAddresses.length} addresses had no coordinates — appended to end`);

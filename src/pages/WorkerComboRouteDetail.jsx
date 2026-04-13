@@ -59,11 +59,8 @@ export default function WorkerComboRouteDetail() {
       const results = await Promise.all(
         combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null }))
       );
-      // Sort ALL addresses globally by order_index (the combo optimization
-      // already assigned a flat 1,2,3... sequence across all folders)
-      const allAddrs = results.flat();
-      allAddrs.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
-      return allAddrs;
+      // Return flat unsorted — display order is derived via sortedAddresses useMemo below.
+      return results.flat();
     },
     enabled: !!combo?.route_ids,
     refetchInterval: 30000,
@@ -114,6 +111,22 @@ export default function WorkerComboRouteDetail() {
     });
     return map;
   }, [attempts]);
+
+  // Derive display order from combo.optimized_order — same pattern as WorkerRouteDetail.
+  // Never sorts by order_index. Falls back to creation date if not yet optimized.
+  const sortedAddresses = useMemo(() => {
+    if (!addresses.length) return addresses;
+    if (combo?.optimized_order?.length > 0) {
+      const orderMap = {};
+      combo.optimized_order.forEach((id, idx) => { orderMap[id] = idx; });
+      return [...addresses].sort((a, b) => {
+        const aIdx = orderMap[a.id] ?? Infinity;
+        const bIdx = orderMap[b.id] ?? Infinity;
+        return aIdx - bIdx;
+      });
+    }
+    return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
+  }, [addresses, combo?.optimized_order]);
 
   // Progress
   const progress = useMemo(() => {
@@ -238,7 +251,7 @@ export default function WorkerComboRouteDetail() {
   };
 
   // Attach folder name to each address so it shows inline on the card
-  const enhancedAddresses = addresses.map(addr => ({
+  const enhancedAddresses = sortedAddresses.map(addr => ({
     ...addr,
     _folderName: routeNameMap[addr.route_id] || ''
   }));
