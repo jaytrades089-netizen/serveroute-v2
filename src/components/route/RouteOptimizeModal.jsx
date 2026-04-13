@@ -198,8 +198,10 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
     setRouteMetrics(null);
 
     try {
-      // Clear stale optimized_order before re-optimizing to prevent old order from sticking
-      await base44.entities.Route.update(routeId, { optimized_order: [] });
+      // NOTE: We deliberately do NOT clear optimized_order before optimizing.
+      // The final update overwrites it atomically, and an early clear creates a
+      // race window where the worker's cache can see an empty array during the
+      // 10-30s optimization run.
 
       let startLat, startLng;
 
@@ -420,24 +422,40 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
       // Save optimized order + metrics to Route in a single write
       // order_index is never stored on individual addresses — derived at render time from route.optimized_order
-      console.log('Saving optimized order...');
       const optimizedOrder = optimizedAddresses.map(a => a.id);
+      console.log('Saving optimized order to Route...', { routeId, count: optimizedOrder.length, firstId: optimizedOrder[0], lastId: optimizedOrder[optimizedOrder.length - 1] });
+
+      let saveSucceeded = false;
       try {
-        await base44.entities.Route.update(routeId, {
+        const updateResult = await base44.entities.Route.update(routeId, {
           optimized_order: optimizedOrder,
           total_miles: metrics.totalMiles,
           total_drive_time_minutes: metrics.totalTimeMinutes,
           time_at_address_minutes: timeAtAddress
         });
-        await queryClient.refetchQueries({ queryKey: ['route', routeId] });
-        await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+        console.log('Route.update response:', updateResult);
+        console.log('  optimized_order returned:', updateResult?.optimized_order?.length ?? 'undefined', 'ids');
+        saveSucceeded = true;
       } catch (saveErr) {
-        console.warn('Could not save optimized order or route metrics:', saveErr);
+        console.error('Route.update FAILED while saving optimized order:', saveErr);
+        toast.error('Failed to save optimized order: ' + (saveErr?.message || 'unknown error'));
       }
 
-      // Force immediate refetch so the address list updates right away with new order
-      await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
-      await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      if (!saveSucceeded) {
+        // Surface failure to the worker instead of pretending it worked
+        setIsOptimizing(false);
+        return;
+      }
+
+      // Single coordinated refetch — refetch route + addresses in parallel so the
+      // useMemo in WorkerRouteDetail re-runs with the fresh optimized_order.
+      // workerRoutes is invalidated (not refetched) since it's not currently rendered.
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['route', routeId] }),
+        queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] })
+      ]);
+      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+
       toast.success('Route optimized! Review metrics below.');
 
     } catch (error) {

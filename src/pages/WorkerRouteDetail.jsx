@@ -808,9 +808,8 @@ export default function WorkerRouteDetail() {
           onClose={() => setShowOptimizeModal(false)}
           onOptimized={async () => {
             setShowOptimizeModal(false);
-            // Refetch route (picks up new optimized_order) and addresses
-            await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
-            await queryClient.refetchQueries({ queryKey: ['route', routeId] });
+            // Modal owns the refetch chain after save — no duplicate refetches here.
+            // Closing the modal is enough; route + addresses are already fresh.
           }}
         />
       )}
