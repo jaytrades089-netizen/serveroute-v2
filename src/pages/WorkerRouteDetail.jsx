@@ -114,7 +114,7 @@ export default function WorkerRouteDetail() {
       return routes[0] || null;
     },
     enabled: !!routeId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     gcTime: 10 * 60 * 1000
   });
 
