@@ -58,12 +58,16 @@ export default function PayrollRecordDetail() {
     }
   }, [record]);
 
-  const instantItems = snapshotAddresses.filter(a => a.bucket === 'instant');
-  const pendingItems = snapshotAddresses.filter(a => a.bucket === 'pending');
+  // Bug 5 fix: served items live in bucket 'served' (new) or 'pending' (legacy).
+  // The old 'instant' filter never matched anything, so this section was always empty.
+  const instantItems = snapshotAddresses.filter(a => a.bucket === 'served' || a.bucket === 'pending' || a.bucket === 'instant');
+  // pendingItems kept for back-compat display but will typically be empty going forward.
+  const pendingItems = [];
   const rtoItems = snapshotAddresses.filter(a => a.bucket === 'rto');
 
   const handleSaveEdit = async () => {
     if (!record?.id) return;
+    if (saving) return;
     setSaving(true);
     try {
       await base44.entities.PayrollRecord.update(record.id, {

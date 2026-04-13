@@ -47,6 +47,11 @@ function calcPay(serveType) {
   return 0;
 }
 
+// Helper: does this address belong to an unstamped (current) period?
+function isUnstamped(a) {
+  return !a.payroll_record_id || a.payroll_record_id === '';
+}
+
 // ─── Address card ─────────────────────────────────────────────────────────────
 function AddressCard({ address, accentColor, badge, onUndo, showUndo, number }) {
   return (
@@ -216,6 +221,8 @@ export default function WorkerPayout() {
   const [previousTurnInDate, setPreviousTurnInDate] = useState(null);
   const [priorTurnInDate, setPriorTurnInDate] = useState(null);
   const [activeTab, setActiveTab] = useState('served');
+  const [isTurningIn, setIsTurningIn] = useState(false);
+  const [isSavingRecord, setIsSavingRecord] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -323,7 +330,7 @@ export default function WorkerPayout() {
     staleTime: 5 * 60 * 1000
   });
 
-  // Current period boundaries
+  // Current period boundaries — used only for the display label + duplicate-record check
   const currentPeriod = useMemo(() => {
     const now = new Date();
     const currentDayOfWeek = now.getDay();
@@ -346,28 +353,40 @@ export default function WorkerPayout() {
     return map;
   }, [attempts]);
 
-  // instantPayouts — served after last turn-in, not yet in a payroll record
+  // ─── SERVED TAB ─────────────────────────────────────────────────────────────
+  // Everything served in the app, not yet stamped with a payroll_record_id.
+  // Includes serves, postings, and garnishments (Bug 1 fix: posting filter removed).
+  // Stamp-based (Bug 6 fix): no date-window filter. A safety floor against
+  // previousTurnInDate filters out legacy unstamped pre-stamp-era records only
+  // if the stamp migration hasn't run — safe to remove once all records are stamped.
   const instantPayouts = useMemo(() => {
     return addresses.filter(a => {
       if (!a.served || !a.served_at) return false;
       if (a.status === 'returned') return false;
       if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      if (a.payroll_record_id && a.payroll_record_id !== '') return false;
+      if (!isUnstamped(a)) return false;
+      // Legacy safety floor — remove once all historical addresses are stamped
       if (previousTurnInDate && new Date(a.served_at) <= previousTurnInDate) return false;
       return true;
     }).sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
   }, [addresses, previousTurnInDate]);
 
+  // ─── CURRENT RTOs ───────────────────────────────────────────────────────────
+  // Bug 3 root cause fix: widen the RTO filter. Anything returned + unstamped
+  // counts, regardless of serve_type. This is what the Sophie Joyce hardcode
+  // was working around — an RTO with a missing or non-standard serve_type.
   const currentRTOs = useMemo(() => {
     return addresses.filter(a => {
       if (a.status !== 'returned') return false;
-      if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
-      if (a.payroll_record_id && a.payroll_record_id !== '') return false;
+      if (!isUnstamped(a)) return false;
       return true;
-    }).sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
+    }).sort((a, b) => new Date(b.rto_at || 0) - new Date(a.rto_at || 0));
   }, [addresses]);
 
-
+  // ─── MAILED TAB ─────────────────────────────────────────────────────────────
+  // Bug 2 fix: read the most recent PayrollRecord's snapshot_data and display it.
+  // Nothing more. No live queries, no date windows, no name hardcodes.
+  // Supports both 'served' (new) and 'pending' (legacy) buckets for back-compat.
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
@@ -376,19 +395,71 @@ export default function WorkerPayout() {
     if (lastRecord?.snapshot_data) {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
-    const snapshotPending = snapshot.filter(a => a.bucket === 'pending' && a.serve_type !== 'posting').sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
-    const snapshotRTO = snapshot.filter(a => a.bucket === 'rto').sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
-    // If snapshot has any data, return it (including empty lists to show current state)
-    if (snapshot.length > 0) {
-      return { pendingPayouts: snapshotPending, pendingRTOs: snapshotRTO, lastTurnInDate: turnInDate };
-    }
 
-    const cutoff = turnInDate || previousTurnInDate;
-    if (!cutoff) {
-      // No previous turn-in, so use live RTOs including Sophie Joyce by name
-      const liveRTOs = addresses
-        .filter(a => a.status === 'returned' && ['serve', 'posting', 'garnishment'].includes(a.serve_type) && (!a.payroll_record_id || a.payroll_record_id === ''))
-        .map(a => ({
+    const mailed = snapshot
+      .filter(a => a.bucket === 'served' || a.bucket === 'pending')
+      .sort((a, b) => new Date(b.served_at || 0) - new Date(a.served_at || 0));
+
+    const rtos = snapshot
+      .filter(a => a.bucket === 'rto')
+      .sort((a, b) => new Date(b.rto_at || 0) - new Date(a.rto_at || 0));
+
+    return { pendingPayouts: mailed, pendingRTOs: rtos, lastTurnInDate: turnInDate };
+  }, [payrollHistory]);
+
+  const mailedItems = pendingPayouts;
+
+  // ─── TOTALS ─────────────────────────────────────────────────────────────────
+  const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+  const currentRTOsTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
+  const nextCheckTotal = pendingTotal + pendingRTOTotal; // prior-period snapshot total (display only)
+
+  // Bug 4 fix: Turn In button shows ONLY what's being turned in right now.
+  const turnInAmount = instantTotal + currentRTOsTotal;
+
+  const isLoading = addressesLoading;
+
+  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
+    if (!user?.id) return;
+    if (isSavingRecord) return;
+    setIsSavingRecord(true);
+    try {
+      if (!skipDuplicateCheck) {
+        const existingRecord = payrollHistory.find(r => {
+          if (!r.period_start || !r.period_end) return false;
+          return (
+            new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
+            new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
+          );
+        });
+        if (existingRecord) {
+          const confirmed = window.confirm(
+            `You already have a saved pay stub for this period.\n\nOverride with updated data?`
+          );
+          if (!confirmed) return;
+          await base44.entities.PayrollRecord.delete(existingRecord.id);
+        }
+      }
+
+      const now = new Date();
+      const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+
+      // Bug 5 fix: served addresses get bucket: 'served' (not 'pending').
+      // Bug 3 fix: no Sophie Joyce hardcode — currentRTOs is now correct on its own.
+      const snapshotAddresses = [
+        ...instantPayouts.map(a => ({
+          id: a.id,
+          address: a.normalized_address || a.legal_address,
+          defendant: a.defendant_name || '',
+          serve_type: a.serve_type,
+          amount: calcPay(a.serve_type),
+          served_at: a.served_at,
+          rto_at: null,
+          bucket: 'served'
+        })),
+        ...currentRTOs.map(a => ({
           id: a.id,
           address: a.normalized_address || a.legal_address,
           defendant: a.defendant_name || '',
@@ -398,76 +469,57 @@ export default function WorkerPayout() {
           rto_reason: a.rto_reason || '',
           bucket: 'rto'
         }))
-        .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
-      
-      // Always manually include Sophie Joyce if she has RTO data, regardless of status
-      const sophieJoyce = addresses.find(a => a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE') && a.rto_at && (!a.payroll_record_id || a.payroll_record_id === ''));
-      if (sophieJoyce && !liveRTOs.some(r => r.id === sophieJoyce.id)) {
-        liveRTOs.push({
-          id: sophieJoyce.id,
-          address: sophieJoyce.normalized_address || sophieJoyce.legal_address,
-          defendant: sophieJoyce.defendant_name || '',
-          serve_type: sophieJoyce.serve_type,
-          amount: calcPay(sophieJoyce.serve_type),
-          rto_at: sophieJoyce.rto_at,
-          rto_reason: sophieJoyce.rto_reason || '',
-          bucket: 'rto'
-        });
+      ];
+
+      const newRecord = await base44.entities.PayrollRecord.create({
+        user_id: user.id,
+        company_id: user.company_id || '',
+        period_start: currentPeriod.start.toISOString(),
+        period_end: currentPeriod.end.toISOString(),
+        turn_in_date: (turnInDate || now).toISOString(),
+        instant_total: instantTotal,
+        pending_total: 0,
+        rto_total: rtoTotal,
+        total_amount: instantTotal + rtoTotal,
+        address_count: snapshotAddresses.length,
+        snapshot_data: JSON.stringify(snapshotAddresses),
+        status: 'saved',
+        notes: '',
+        created_at: now.toISOString()
+      });
+
+      // Stamp every included address with the new payroll_record_id.
+      // This is what makes them disappear from Served/RTO tabs on next render.
+      if (newRecord?.id) {
+        const addressesToStamp = [
+          ...instantPayouts.map(a => a.id),
+          ...currentRTOs.map(a => a.id)
+        ];
+        const BATCH_SIZE = 10;
+        for (let i = 0; i < addressesToStamp.length; i += BATCH_SIZE) {
+          const batch = addressesToStamp.slice(i, i + BATCH_SIZE);
+          await Promise.all(
+            batch.map(addressId =>
+              base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id })
+                .catch(err => console.error('Failed to stamp address', addressId, err))
+            )
+          );
+        }
       }
-      return { pendingPayouts: [], pendingRTOs: liveRTOs, lastTurnInDate: null };
+
+      queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses', user?.id] });
+      queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+      refetchHistory();
+      toast.success('Turned in successfully');
+    } finally {
+      setIsSavingRecord(false);
     }
+  };
 
-    const stamped = lastRecord?.id ? addresses.filter(a => a.payroll_record_id === lastRecord.id) : [];
-    const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : new Date(cutoff.getTime() - 7 * 24 * 60 * 60 * 1000);
-
-    const candidates = stamped.length > 0 ? stamped : addresses.filter(a => {
-      const date = new Date(a.served_at || a.rto_at || 0);
-      return date >= periodStart && date <= cutoff;
-    });
-
-    const liveMailed = candidates
-      .filter(a => a.served && a.status !== 'returned' && a.serve_type !== 'posting')
-      .map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        served_at: a.served_at,
-        bucket: 'pending'
-      }))
-      .sort((a, b) => new Date(b.served_at) - new Date(a.served_at));
-
-    const liveRTO = candidates
-      .filter(a => a.status === 'returned')
-      .map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        rto_at: a.rto_at,
-        rto_reason: a.rto_reason || '',
-        bucket: 'rto'
-      }))
-      .sort((a, b) => new Date(b.rto_at) - new Date(a.rto_at));
-
-    return { pendingPayouts: liveMailed, pendingRTOs: liveRTO, lastTurnInDate: cutoff };
-  }, [payrollHistory, addresses, previousTurnInDate]);
-
-  const mailedItems = pendingPayouts;
-
-  const instantTotal = instantPayouts.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
-  const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.amount || 0), 0);
-  const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
-  const nextCheckTotal = pendingTotal + pendingRTOTotal;
-
-  const isLoading = addressesLoading;
-
-  const savePayrollRecord = async (turnInDate = null, skipDuplicateCheck = false) => {
-    if (!user?.id) return;
-
-    if (!skipDuplicateCheck) {
+  const handleTurnIn = async () => {
+    if (isTurningIn) return;
+    setIsTurningIn(true);
+    try {
       const existingRecord = payrollHistory.find(r => {
         if (!r.period_start || !r.period_end) return false;
         return (
@@ -475,137 +527,38 @@ export default function WorkerPayout() {
           new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
         );
       });
+
       if (existingRecord) {
         const confirmed = window.confirm(
-          `You already have a saved pay stub for this period.\n\nOverride with updated data?`
+          `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
         );
         if (!confirmed) return;
         await base44.entities.PayrollRecord.delete(existingRecord.id);
       }
-    }
 
-    const now = new Date();
-    const rtoTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
+      const now = new Date();
+      const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
+      setPriorTurnInDate(previousTurnInDate);
+      setPreviousTurnInDate(now);
 
-    const mailedPayouts = instantPayouts.filter(a => a.serve_type !== 'posting');
-
-    // Manually find Sophie Joyce if she's an RTO but not in currentRTOs filter
-    const sophieJoyce = addresses.find(a => 
-      a.defendant_name && a.defendant_name.toUpperCase().includes('SOPHIE JOYCE') && 
-      a.status === 'returned' && 
-      !currentRTOs.some(rto => rto.id === a.id)
-    );
-
-    const snapshotAddresses = [
-      ...mailedPayouts.map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        served_at: a.served_at,
-        rto_at: null,
-        bucket: 'pending'
-      })),
-      ...currentRTOs.map(a => ({
-        id: a.id,
-        address: a.normalized_address || a.legal_address,
-        defendant: a.defendant_name || '',
-        serve_type: a.serve_type,
-        amount: calcPay(a.serve_type),
-        rto_at: a.rto_at,
-        rto_reason: a.rto_reason || '',
-        bucket: 'rto'
-      })),
-      ...(sophieJoyce ? [{
-        id: sophieJoyce.id,
-        address: sophieJoyce.normalized_address || sophieJoyce.legal_address,
-        defendant: sophieJoyce.defendant_name || '',
-        serve_type: sophieJoyce.serve_type,
-        amount: calcPay(sophieJoyce.serve_type),
-        rto_at: sophieJoyce.rto_at,
-        rto_reason: sophieJoyce.rto_reason || '',
-        bucket: 'rto'
-      }] : [])
-    ];
-
-    const newRecord = await base44.entities.PayrollRecord.create({
-      user_id: user.id,
-      company_id: user.company_id || '',
-      period_start: currentPeriod.start.toISOString(),
-      period_end: currentPeriod.end.toISOString(),
-      turn_in_date: (turnInDate || now).toISOString(),
-      instant_total: instantTotal,
-      pending_total: 0,
-      rto_total: rtoTotal,
-      total_amount: instantTotal + rtoTotal,
-      address_count: snapshotAddresses.length,
-      snapshot_data: JSON.stringify(snapshotAddresses),
-      status: 'saved',
-      notes: '',
-      created_at: now.toISOString()
-    });
-
-    if (newRecord?.id) {
-      const addressesToStamp = [
-        ...instantPayouts.map(a => a.id),
-        ...currentRTOs.map(a => a.id)
-      ];
-      const BATCH_SIZE = 10;
-      for (let i = 0; i < addressesToStamp.length; i += BATCH_SIZE) {
-        const batch = addressesToStamp.slice(i, i + BATCH_SIZE);
-        await Promise.all(
-          batch.map(addressId =>
-            base44.entities.Address.update(addressId, { payroll_record_id: newRecord.id })
-              .catch(err => console.error('Failed to stamp address', addressId, err))
-          )
-        );
+      if (userSettings?.id) {
+        await base44.entities.UserSettings.update(userSettings.id, {
+          previous_turn_in_date: now.toISOString(),
+          prior_turn_in_date: oldPrevious
+        });
+      } else if (user?.id) {
+        await base44.entities.UserSettings.create({
+          user_id: user.id,
+          payroll_turn_in_day: selectedDay,
+          previous_turn_in_date: now.toISOString(),
+          prior_turn_in_date: oldPrevious
+        });
       }
+      queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
+      await savePayrollRecord(now, true);
+    } finally {
+      setIsTurningIn(false);
     }
-
-    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses', user?.id] });
-    queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
-    refetchHistory();
-    toast.success('Turned in successfully');
-  };
-
-  const handleTurnIn = async () => {
-    const existingRecord = payrollHistory.find(r => {
-      if (!r.period_start || !r.period_end) return false;
-      return (
-        new Date(r.period_start).toDateString() === currentPeriod.start.toDateString() &&
-        new Date(r.period_end).toDateString() === currentPeriod.end.toDateString()
-      );
-    });
-
-    if (existingRecord) {
-      const confirmed = window.confirm(
-        `You already have a saved pay stub for this period (${format(currentPeriod.start, 'MMM d')} – ${format(currentPeriod.end, 'MMM d')}).\n\nWould you like to override it with updated data?`
-      );
-      if (!confirmed) return;
-      await base44.entities.PayrollRecord.delete(existingRecord.id);
-    }
-
-    const now = new Date();
-    const oldPrevious = previousTurnInDate ? previousTurnInDate.toISOString() : null;
-    setPriorTurnInDate(previousTurnInDate);
-    setPreviousTurnInDate(now);
-
-    if (userSettings?.id) {
-      await base44.entities.UserSettings.update(userSettings.id, {
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    } else if (user?.id) {
-      await base44.entities.UserSettings.create({
-        user_id: user.id,
-        payroll_turn_in_day: selectedDay,
-        previous_turn_in_date: now.toISOString(),
-        prior_turn_in_date: oldPrevious
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] });
-    await savePayrollRecord(now, true);
   };
 
   const handleUndoRTO = async (address) => {
@@ -663,11 +616,13 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = pendingRTOs.length;
+  // RTO tab now shows the CURRENT period's RTOs (unstamped, live) — what will
+  // be turned in next. The prior-period RTOs live inside the Mailed snapshot.
+  const rtoTabCount = currentRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
-    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
+    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length + pendingRTOs.length },
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
@@ -679,7 +634,8 @@ export default function WorkerPayout() {
         actionButton={
           <button
             onClick={() => savePayrollRecord()}
-            style={{ padding: 8, background: 'rgba(255,255,255,0.15)', borderRadius: 8, border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+            disabled={isSavingRecord}
+            style={{ padding: 8, background: 'rgba(255,255,255,0.15)', borderRadius: 8, border: 'none', cursor: isSavingRecord ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', opacity: isSavingRecord ? 0.5 : 1 }}
             title="Save payroll record"
           >
             <Save size={18} color="#fff" />
@@ -719,6 +675,7 @@ export default function WorkerPayout() {
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
               <button
                 onClick={handleTurnIn}
+                disabled={isTurningIn}
                 style={{
                   width: '100%',
                   background: C.accentGold,
@@ -728,7 +685,8 @@ export default function WorkerPayout() {
                   padding: '10px 12px',
                   borderRadius: 10,
                   border: 'none',
-                  cursor: 'pointer',
+                  cursor: isTurningIn ? 'not-allowed' : 'pointer',
+                  opacity: isTurningIn ? 0.6 : 1,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -736,7 +694,7 @@ export default function WorkerPayout() {
                 }}
               >
                 <ArrowRight size={16} />
-                Turn In: ${(instantTotal + nextCheckTotal).toFixed(2)}
+                Turn In: ${turnInAmount.toFixed(2)}
               </button>
             </div>
           </div>
@@ -848,7 +806,7 @@ export default function WorkerPayout() {
               {activeTab === 'served' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    These were completed in the app and are included on this check.
+                    These were completed in the app and will be included on your next Turn In.
                   </p>
                   {instantPayouts.length === 0 ? (
                     <div style={{
@@ -888,9 +846,14 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                   mailedItems.map((item, i) => (
-                     <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
-                   ))
+                    <>
+                      {mailedItems.map((item, i) => (
+                        <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
+                      ))}
+                      {pendingRTOs.map((item, i) => (
+                        <SnapshotCard key={`mailed-rto-${i}`} item={item} number={mailedItems.length + i + 1} />
+                      ))}
+                    </>
                   )}
                 </>
               )}
@@ -912,8 +875,16 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    pendingRTOs.map((item, i) => (
-                      <SnapshotCard key={`rto-${i}`} item={item} number={i + 1} />
+                    currentRTOs.map((a, i) => (
+                      <AddressCard
+                        key={a.id}
+                        address={a}
+                        accentColor={C.rto}
+                        badge="RTO"
+                        number={i + 1}
+                        showUndo={true}
+                        onUndo={handleUndoRTO}
+                      />
                     ))
                   )}
                 </>
