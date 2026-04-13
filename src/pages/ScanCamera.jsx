@@ -67,7 +67,11 @@ export default function ScanCamera() {
   const urlParams = new URLSearchParams(window.location.search);
   const initialType = urlParams.get('type');
   const sessionId = urlParams.get('sessionId');
-  const isBulkScan = urlParams.get('bulk') === 'true';
+  // isBulkScan is TRUE if either the URL has ?bulk=true OR the resumed session
+  // was created in bulk mode. Without the session fallback, resuming a bulk
+  // session loses the flag and Save Route jumps to the wrong screen.
+  const urlBulkFlag = urlParams.get('bulk') === 'true';
+  const isBulkScan = urlBulkFlag || (session?.isBulk === true);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -100,6 +104,8 @@ export default function ScanCamera() {
     if (['serve', 'garnishment', 'posting'].includes(type)) {
       setDocumentType(type);
       const newSession = createNewSession(user.id, getCompanyId(user), type);
+      // Stamp bulk flag on the session so recovery/resume preserves the mode.
+      if (urlBulkFlag) newSession.isBulk = true;
       updateSession(newSession);
       
       base44.entities.ScanSession.create({

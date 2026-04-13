@@ -24,7 +24,6 @@ export default function ScanDocumentType() {
   const navigate = useNavigate();
   const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
   const [recoverableSession, setRecoverableSession] = useState(null);
-  const [showTestDialog, setShowTestDialog] = useState(false);
 
   const { data: user, isLoading } = useQuery({
     queryKey: ['currentUser'],
@@ -40,7 +39,7 @@ export default function ScanDocumentType() {
   }, []);
 
   const handleBulkScanTap = () => {
-    setShowTestDialog(true);
+    navigate(createPageUrl('ScanCamera?type=serve&bulk=true'));
   };
 
   const handleSelectType = (documentType) => {
@@ -49,12 +48,20 @@ export default function ScanDocumentType() {
 
   const handleResumeSession = () => {
     if (recoverableSession) {
+      // Preserve bulk mode on resume — without this flag, Save Route jumps to
+      // the standard ScanPreview screen instead of BulkScanOptimize.
+      const bulkParam = recoverableSession.isBulk ? '&bulk=true' : '';
       if (recoverableSession.currentStep === 'scanning') {
-        navigate(createPageUrl(`ScanCamera?sessionId=${recoverableSession.id}`));
+        navigate(createPageUrl(`ScanCamera?sessionId=${recoverableSession.id}${bulkParam}`));
       } else if (recoverableSession.currentStep === 'preview') {
         navigate(createPageUrl(`ScanPreview?sessionId=${recoverableSession.id}`));
       } else if (recoverableSession.currentStep === 'route_setup') {
-        navigate(createPageUrl(`ScanRouteSetup?sessionId=${recoverableSession.id}`));
+        // Bulk sessions route_setup step belongs to BulkScanOptimize, not ScanRouteSetup
+        if (recoverableSession.isBulk) {
+          navigate(createPageUrl(`BulkScanOptimize?sessionId=${recoverableSession.id}`));
+        } else {
+          navigate(createPageUrl(`ScanRouteSetup?sessionId=${recoverableSession.id}`));
+        }
       }
     }
     setShowRecoveryDialog(false);
@@ -189,31 +196,6 @@ export default function ScanDocumentType() {
           </button>
         </Link>
       </div>
-
-      {/* TEST DIALOG */}
-      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(233,195,73,0.5)', color: '#e6e1e4' }}>
-          <DialogHeader>
-            <DialogTitle style={{ color: '#e9c349' }}>TEST TEST</DialogTitle>
-            <DialogDescription style={{ color: '#8a7f87' }}>
-              Bulk Scan button is working. This file is the NEW version.
-              Click OK to proceed to the camera with bulk=true flag.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <button
-              onClick={() => {
-                setShowTestDialog(false);
-                navigate(createPageUrl('ScanCamera?type=serve&bulk=true'));
-              }}
-              className="w-full py-3 rounded-xl font-bold"
-              style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
-            >
-              OK — Go to Bulk Scan
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Session Recovery Dialog */}
       <Dialog open={showRecoveryDialog} onOpenChange={setShowRecoveryDialog}>
