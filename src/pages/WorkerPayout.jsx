@@ -667,7 +667,7 @@ export default function WorkerPayout() {
               <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in</span>
             </div>
             <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
-              ${mailedTotal.toFixed(2)}
+              ${(mailedTotal + pendingRTOTotal).toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
               {mailedItems.length} mailed{rtoSummaryTotal > 0 ? ` · ${pendingRTOs.length + currentRTOs.length} RTO` : ''}

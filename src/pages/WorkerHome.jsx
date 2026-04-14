@@ -150,6 +150,34 @@ export default function WorkerHome() {
     staleTime: 60 * 1000
   });
 
+  // Pull all addresses across ALL routes (including archived/completed) for the
+  // current-period served count — once a route gets archived after Turn In, its
+  // addresses still need to count toward this period's served total until the
+  // next Turn In stamps them.
+  const allRouteIds = routes.map(r => r.id).sort().join(',');
+  const { data: allWorkerAddresses = [] } = useQuery({
+    queryKey: ['allWorkerAddressesHome', user?.id, allRouteIds],
+    queryFn: async () => {
+      if (!user?.id || routes.length === 0) return [];
+      const routeIdList = routes.map(r => r.id);
+      const all = await base44.entities.Address.filter({ deleted_at: null });
+      return all.filter(a => routeIdList.includes(a.route_id));
+    },
+    enabled: !!user?.id && routes.length > 0,
+    staleTime: 2 * 60 * 1000
+  });
+
+  const { data: payrollHistoryHome = [] } = useQuery({
+    queryKey: ['payrollHistory', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const records = await base44.entities.PayrollRecord.filter({ user_id: user.id });
+      return records.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000
+  });
+
   const { data: userSettings } = useUserSettings(user?.id);
 
   useEffect(() => {
@@ -217,11 +245,22 @@ export default function WorkerHome() {
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
 
-  const servedAddresses = activeAddresses.filter(a => {
+  // Current-period served count — mirrors the Served tab in WorkerPayout.
+  // An address counts as "this period" if it is unstamped (or ghost-stamped) AND
+  // its served_at is after the most recent Turn In press. If no Turn In has ever
+  // happened, every unstamped served item counts.
+  const lastRecordHome = payrollHistoryHome[0];
+  const lastTurnInAtHome = lastRecordHome?.turn_in_date ? new Date(lastRecordHome.turn_in_date) : null;
+  const validRecordIdsHome = new Set(payrollHistoryHome.map(r => r.id));
+
+  const servedAddresses = allWorkerAddresses.filter(a => {
     if (!a.served || !a.served_at) return false;
     if (a.status === 'returned') return false;
-    if (a.payroll_record_id && a.payroll_record_id !== '') return false;
-    return true;
+    if (!['serve', 'posting', 'garnishment'].includes(a.serve_type)) return false;
+    const stamped = a.payroll_record_id && a.payroll_record_id !== '' && validRecordIdsHome.has(a.payroll_record_id);
+    if (stamped) return false;
+    if (!lastTurnInAtHome) return true;
+    return new Date(a.served_at) > lastTurnInAtHome;
   });
 
   const selectedDay = userSettings?.payroll_turn_in_day ?? 3;
