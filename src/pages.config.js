@@ -75,6 +75,7 @@ import EditAddress from './pages/EditAddress';
 import EditRoute from './pages/EditRoute';
 import Notifications from './pages/Notifications';
 import PayrollRecordDetail from './pages/PayrollRecordDetail';
+import PayrollRecover from './pages/PayrollRecover';
 import ReassignRoute from './pages/ReassignRoute';
 import ReceiptDetail from './pages/ReceiptDetail';
 import ReceiptQueue from './pages/ReceiptQueue';
@@ -135,6 +136,7 @@ export const PAGES = {
     "EditRoute": EditRoute,
     "Notifications": Notifications,
     "PayrollRecordDetail": PayrollRecordDetail,
+    "PayrollRecover": PayrollRecover,
     "ReassignRoute": ReassignRoute,
     "ReceiptDetail": ReceiptDetail,
     "ReceiptQueue": ReceiptQueue,

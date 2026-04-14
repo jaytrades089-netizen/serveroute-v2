@@ -313,13 +313,25 @@ export default function WorkerPayout() {
     return new Set(payrollHistory.map(r => r.id));
   }, [payrollHistory]);
 
-  // An address is "current" if: not stamped OR stamped to a record that no longer exists.
-  // This is the self-healing part — orphans automatically flow back into the tabs
-  // so they can be turned in again.
+  // Timestamp of the most recent Turn In press — the boundary between
+  // "current period" (Served tab + current RTOs) and "last period" (Mailed + RTO snapshots).
+  const lastTurnInAt = useMemo(() => {
+    const lastRecord = payrollHistory[0];
+    if (!lastRecord?.turn_in_date) return null;
+    const d = new Date(lastRecord.turn_in_date);
+    return isNaN(d) ? null : d;
+  }, [payrollHistory]);
+
+  // An address belongs to the CURRENT period if it is unstamped (or ghost-stamped)
+  // AND its completion timestamp is after the last Turn In press.
+  // If there's never been a Turn In, everything unstamped is current.
   const isCurrent = (a) => {
-    if (!a.payroll_record_id || a.payroll_record_id === '') return true;
-    if (!validRecordIds.has(a.payroll_record_id)) return true;
-    return false;
+    const stamped = a.payroll_record_id && a.payroll_record_id !== '' && validRecordIds.has(a.payroll_record_id);
+    if (stamped) return false;
+    if (!lastTurnInAt) return true;
+    const ts = a.status === 'returned' ? a.rto_at : a.served_at;
+    if (!ts) return false;
+    return new Date(ts) > lastTurnInAt;
   };
 
   // Current period boundaries — used only for the display label
@@ -368,7 +380,7 @@ export default function WorkerPayout() {
   }, [addresses, validRecordIds]);
 
   // ─── MAILED TAB ─────────────────────────────────────────────────────────────
-  // Reads the most recent PayrollRecord's snapshot and displays it.
+  // Reads the most recent PayrollRecord's snapshot. Only the non-RTO items show here.
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
@@ -396,7 +408,8 @@ export default function WorkerPayout() {
   const currentRTOsTotal = currentRTOs.reduce((sum, a) => sum + calcPay(a.serve_type), 0);
   const pendingTotal = pendingPayouts.reduce((sum, a) => sum + (a.amount || 0), 0);
   const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
-  const nextCheckTotal = pendingTotal + pendingRTOTotal;
+  const mailedTotal = pendingTotal; // last period's mailed paperwork (non-RTO)
+  const rtoSummaryTotal = pendingRTOTotal + currentRTOsTotal; // RTO summary combines last-period + current
   const turnInAmount = instantTotal + currentRTOsTotal;
 
   const isLoading = addressesLoading;
@@ -549,11 +562,11 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = currentRTOs.length;
+  const rtoTabCount = currentRTOs.length + pendingRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
-    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length + pendingRTOs.length },
+    { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
@@ -676,13 +689,13 @@ export default function WorkerPayout() {
           <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
               <Clock size={13} color={C.accentPlum} />
-              <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in + RTO</span>
+              <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in</span>
             </div>
             <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
-              ${nextCheckTotal.toFixed(2)}
+              ${mailedTotal.toFixed(2)}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {mailedItems.length} mailed{mailedItems.length !== 1 ? 's' : ''}{pendingRTOs.length > 0 ? ` · ${pendingRTOs.length} RTO` : ''}
+              {mailedItems.length} mailed{rtoSummaryTotal > 0 ? ` · ${pendingRTOs.length + currentRTOs.length} RTO` : ''}
             </p>
           </div>
         </div>
@@ -780,7 +793,7 @@ export default function WorkerPayout() {
                       ? `Turned in ${format(lastTurnInDate, 'MMM d, h:mm a')}. These arrive on your next check.`
                       : 'Documents you mail in will appear here after your first Turn In.'}
                   </p>
-                  {mailedItems.length === 0 && pendingRTOs.length === 0 ? (
+                  {mailedItems.length === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -792,14 +805,9 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>Tap Turn In when you mail your documents</p>
                     </div>
                   ) : (
-                    <>
-                      {mailedItems.map((item, i) => (
-                        <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
-                      ))}
-                      {pendingRTOs.map((item, i) => (
-                        <SnapshotCard key={`mailed-rto-${i}`} item={item} number={mailedItems.length + i + 1} />
-                      ))}
-                    </>
+                    mailedItems.map((item, i) => (
+                      <SnapshotCard key={`mailed-${i}`} item={item} number={i + 1} />
+                    ))
                   )}
                 </>
               )}
@@ -807,7 +815,9 @@ export default function WorkerPayout() {
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    These will be included when you tap Turn In.
+                    {lastTurnInDate
+                      ? `Includes RTOs from your ${format(lastTurnInDate, 'MMM d')} turn-in plus any new RTOs this period.`
+                      : 'RTOs mailed back with your paperwork.'}
                   </p>
                   {rtoTabCount === 0 ? (
                     <div style={{
@@ -821,17 +831,22 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    currentRTOs.map((a, i) => (
-                      <AddressCard
-                        key={a.id}
-                        address={a}
-                        accentColor={C.rto}
-                        badge="RTO"
-                        number={i + 1}
-                        showUndo={true}
-                        onUndo={handleUndoRTO}
-                      />
-                    ))
+                    <>
+                      {pendingRTOs.map((item, i) => (
+                        <SnapshotCard key={`rto-last-${i}`} item={item} number={i + 1} />
+                      ))}
+                      {currentRTOs.map((a, i) => (
+                        <AddressCard
+                          key={a.id}
+                          address={a}
+                          accentColor={C.rto}
+                          badge="RTO"
+                          number={pendingRTOs.length + i + 1}
+                          showUndo={true}
+                          onUndo={handleUndoRTO}
+                        />
+                      ))}
+                    </>
                   )}
                 </>
               )}
