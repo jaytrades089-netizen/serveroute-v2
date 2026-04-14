@@ -6,6 +6,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
+import PayrollRecover from './PayrollRecover';
 import { Loader2, DollarSign, Clock, Calendar, RotateCcw, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -203,6 +204,7 @@ export default function WorkerPayout() {
   const [selectedDay, setSelectedDay] = useState(3);
   const [activeTab, setActiveTab] = useState('served');
   const [isTurningIn, setIsTurningIn] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -562,13 +564,17 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = currentRTOs.length;
+  const rtoTabCount = pendingRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
     { id: 'mailed', label: 'Mailed', count: pendingPayouts.length },
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
+
+  if (showRecovery) {
+    return <PayrollRecover onBack={() => setShowRecovery(false)} />;
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 80 }}>
@@ -579,7 +585,7 @@ export default function WorkerPayout() {
 
         {orphanCount > 0 && (
           <div
-            onClick={() => navigate(createPageUrl('PayrollRecover'))}
+            onClick={() => setShowRecovery(true)}
             style={{
               background: C.rto + '22',
               border: `1px solid ${C.rto}`,
@@ -815,9 +821,11 @@ export default function WorkerPayout() {
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    These will be mailed back with your paperwork on your next Turn In.
+                    {lastTurnInDate
+                      ? `RTOs mailed in with your ${format(lastTurnInDate, 'MMM d')} turn-in.`
+                      : 'RTOs mailed in with your paperwork.'}
                   </p>
-                  {currentRTOs.length === 0 ? (
+                  {pendingRTOs.length === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -829,16 +837,8 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    currentRTOs.map((a, i) => (
-                      <AddressCard
-                        key={a.id}
-                        address={a}
-                        accentColor={C.rto}
-                        badge="RTO"
-                        number={i + 1}
-                        showUndo={true}
-                        onUndo={handleUndoRTO}
-                      />
+                    pendingRTOs.map((item, i) => (
+                      <SnapshotCard key={`rto-last-${i}`} item={item} number={i + 1} />
                     ))
                   )}
                 </>
