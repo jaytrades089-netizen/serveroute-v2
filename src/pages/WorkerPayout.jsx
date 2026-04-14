@@ -562,7 +562,7 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = currentRTOs.length + pendingRTOs.length;
+  const rtoTabCount = pendingRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
@@ -816,10 +816,10 @@ export default function WorkerPayout() {
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
                     {lastTurnInDate
-                      ? `Includes RTOs from your ${format(lastTurnInDate, 'MMM d')} turn-in plus any new RTOs this period.`
+                      ? `RTOs from your ${format(lastTurnInDate, 'MMM d')} turn-in. Mailed back with your paperwork.`
                       : 'RTOs mailed back with your paperwork.'}
                   </p>
-                  {rtoTabCount === 0 ? (
+                  {pendingRTOs.length === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -831,22 +831,9 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    <>
-                      {pendingRTOs.map((item, i) => (
-                        <SnapshotCard key={`rto-last-${i}`} item={item} number={i + 1} />
-                      ))}
-                      {currentRTOs.map((a, i) => (
-                        <AddressCard
-                          key={a.id}
-                          address={a}
-                          accentColor={C.rto}
-                          badge="RTO"
-                          number={pendingRTOs.length + i + 1}
-                          showUndo={true}
-                          onUndo={handleUndoRTO}
-                        />
-                      ))}
-                    </>
+                    pendingRTOs.map((item, i) => (
+                      <SnapshotCard key={`rto-last-${i}`} item={item} number={i + 1} />
+                    ))
                   )}
                 </>
               )}
