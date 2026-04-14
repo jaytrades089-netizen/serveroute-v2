@@ -423,7 +423,7 @@ export default function WorkerPayout() {
   const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
   const mailedTotal = pendingTotal; // last period's mailed paperwork (non-RTO)
   const rtoSummaryTotal = pendingRTOTotal + currentRTOsTotal; // RTO summary combines last-period + current
-  const turnInAmount = instantTotal + currentRTOsTotal;
+  const turnInAmount = instantTotal + mailedTotal + pendingRTOTotal;
 
   const isLoading = addressesLoading;
 
