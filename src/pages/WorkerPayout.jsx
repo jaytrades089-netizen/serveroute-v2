@@ -6,8 +6,7 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
-import PayrollRecover from './PayrollRecover';
-import { Loader2, DollarSign, Clock, Calendar, RotateCcw, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2, Wrench } from 'lucide-react';
+import { Loader2, DollarSign, Clock, Calendar, RotateCcw, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -204,7 +203,6 @@ export default function WorkerPayout() {
   const [selectedDay, setSelectedDay] = useState(3);
   const [activeTab, setActiveTab] = useState('served');
   const [isTurningIn, setIsTurningIn] = useState(false);
-  const [showRecovery, setShowRecovery] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -382,7 +380,9 @@ export default function WorkerPayout() {
   }, [addresses, validRecordIds]);
 
   // ─── MAILED TAB ─────────────────────────────────────────────────────────────
-  // Reads the most recent PayrollRecord's snapshot. Only the non-RTO items show here.
+  // Reads the most recent PayrollRecord's snapshot. Only items whose completion
+  // timestamp falls inside that record's period_start → period_end window are shown.
+  // This filters out polluted snapshots that may contain out-of-period items.
   const { pendingPayouts, pendingRTOs, lastTurnInDate } = useMemo(() => {
     const lastRecord = payrollHistory[0];
     const turnInDate = lastRecord?.turn_in_date ? new Date(lastRecord.turn_in_date) : null;
@@ -392,12 +392,23 @@ export default function WorkerPayout() {
       try { snapshot = JSON.parse(lastRecord.snapshot_data); } catch { snapshot = []; }
     }
 
+    const periodStart = lastRecord?.period_start ? new Date(lastRecord.period_start) : null;
+    const periodEnd = lastRecord?.period_end ? new Date(lastRecord.period_end) : null;
+
+    const inPeriod = (dateStr) => {
+      if (!periodStart || !periodEnd) return true;
+      if (!dateStr) return false;
+      const d = new Date(dateStr);
+      if (isNaN(d)) return false;
+      return d >= periodStart && d <= periodEnd;
+    };
+
     const mailed = snapshot
-      .filter(a => a.bucket === 'served' || a.bucket === 'pending')
+      .filter(a => (a.bucket === 'served' || a.bucket === 'pending') && inPeriod(a.served_at))
       .sort((a, b) => new Date(b.served_at || 0) - new Date(a.served_at || 0));
 
     const rtos = snapshot
-      .filter(a => a.bucket === 'rto')
+      .filter(a => a.bucket === 'rto' && inPeriod(a.rto_at))
       .sort((a, b) => new Date(b.rto_at || 0) - new Date(a.rto_at || 0));
 
     return { pendingPayouts: mailed, pendingRTOs: rtos, lastTurnInDate: turnInDate };
@@ -415,16 +426,6 @@ export default function WorkerPayout() {
   const turnInAmount = instantTotal + currentRTOsTotal;
 
   const isLoading = addressesLoading;
-
-  // Detect orphans to show the recovery banner
-  const orphanCount = useMemo(() => {
-    return addresses.filter(a =>
-      a.payroll_record_id &&
-      a.payroll_record_id !== '' &&
-      !validRecordIds.has(a.payroll_record_id) &&
-      (a.served || a.status === 'returned')
-    ).length;
-  }, [addresses, validRecordIds]);
 
   const handleTurnIn = async () => {
     if (isTurningIn) return;
@@ -572,44 +573,12 @@ export default function WorkerPayout() {
     { id: 'rto',    label: 'RTO',    count: rtoTabCount },
   ];
 
-  if (showRecovery) {
-    return <PayrollRecover onBack={() => setShowRecovery(false)} />;
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
 
       <main style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}>
         <h1 style={{ color: C.textPrimary, fontSize: 22, fontWeight: 700, marginBottom: 16 }}>Earnings &amp; Turn-in</h1>
-
-        {orphanCount > 0 && (
-          <div
-            onClick={() => setShowRecovery(true)}
-            style={{
-              background: C.rto + '22',
-              border: `1px solid ${C.rto}`,
-              borderRadius: 12,
-              padding: '12px 14px',
-              marginBottom: 16,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              cursor: 'pointer',
-            }}
-          >
-            <Wrench size={18} color={C.rto} />
-            <div style={{ flex: 1 }}>
-              <p style={{ color: C.rto, fontSize: 13, fontWeight: 700, margin: 0 }}>
-                {orphanCount} orphan{orphanCount !== 1 ? 's' : ''} detected
-              </p>
-              <p style={{ color: C.textSecondary, fontSize: 11, margin: '2px 0 0' }}>
-                Tap to recover missing payroll items
-              </p>
-            </div>
-            <ChevronRight size={16} color={C.rto} />
-          </div>
-        )}
 
         <div style={{
           background: C.cardElevated,
