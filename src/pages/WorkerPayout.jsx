@@ -562,7 +562,7 @@ export default function WorkerPayout() {
     toast.success('RTO undone — address returned to route');
   };
 
-  const rtoTabCount = pendingRTOs.length;
+  const rtoTabCount = currentRTOs.length;
 
   const tabs = [
     { id: 'served', label: 'Served', count: instantPayouts.length },
@@ -815,11 +815,9 @@ export default function WorkerPayout() {
               {activeTab === 'rto' && (
                 <>
                   <p style={{ color: C.textMuted, fontSize: 11, marginBottom: 12 }}>
-                    {lastTurnInDate
-                      ? `RTOs from your ${format(lastTurnInDate, 'MMM d')} turn-in. Mailed back with your paperwork.`
-                      : 'RTOs mailed back with your paperwork.'}
+                    These will be mailed back with your paperwork on your next Turn In.
                   </p>
-                  {pendingRTOs.length === 0 ? (
+                  {currentRTOs.length === 0 ? (
                     <div style={{
                       background: C.card,
                       border: `1px dashed ${C.border}`,
@@ -831,8 +829,16 @@ export default function WorkerPayout() {
                       <p style={{ color: C.textMuted, fontSize: 13 }}>No returns this period</p>
                     </div>
                   ) : (
-                    pendingRTOs.map((item, i) => (
-                      <SnapshotCard key={`rto-last-${i}`} item={item} number={i + 1} />
+                    currentRTOs.map((a, i) => (
+                      <AddressCard
+                        key={a.id}
+                        address={a}
+                        accentColor={C.rto}
+                        badge="RTO"
+                        number={i + 1}
+                        showUndo={true}
+                        onUndo={handleUndoRTO}
+                      />
                     ))
                   )}
                 </>
