@@ -187,6 +187,11 @@ export default function ComboRouteSelection() {
         }
       }
 
+      // Build the optimized address ID order — this is what WorkerComboRouteDetail
+      // uses to sort addresses. Without this the detail screen falls back to
+      // creation date order and ignores the organization screen entirely.
+      const optimizedOrder = optimizedAddresses.map(a => a.id);
+
       // Calculate route metrics via MapQuest Directions
       let totalMiles = 0;
       let totalDriveTimeMinutes = 0;
@@ -229,13 +234,15 @@ export default function ComboRouteSelection() {
 
       const startedAtNow = new Date().toISOString();
 
-      // Create ComboRoute record with metrics
+      // Create ComboRoute record with metrics + optimized_order so the detail
+      // screen sorts addresses correctly instead of falling back to creation date.
       const combo = await base44.entities.ComboRoute.create({
         user_id: user.id,
         company_id: user.company_id,
         name: `Combo - ${format(new Date(), 'MMM d')}`,
         route_ids: selectedRoutes,
         route_order: routeOrder,
+        optimized_order: optimizedOrder,
         end_location_id: selectedEndLocation,
         status: 'active',
         total_addresses: allAddresses.length,
