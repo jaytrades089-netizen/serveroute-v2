@@ -122,16 +122,17 @@ export default function AnimatedAddressList({
       const bSpreadDue = bFirstAttempt ? bFirstAttempt + (spreadDays * 24 * 60 * 60 * 1000) : Infinity;
       
       // Sort by spread due date (earliest first)
-      // If no attempts, fall back to order_index
+      // If no attempts yet, preserve incoming array order (already sorted by optimized_order)
       if (aSpreadDue === Infinity && bSpreadDue === Infinity) {
-        return (a.order_index || 999) - (b.order_index || 999);
+        return 0;
       }
       
       return aSpreadDue - bSpreadDue;
     };
     
-    // Sort by order_index for optimized driving order
-    const sortByOrder = (a, b) => (a.order_index || 999) - (b.order_index || 999);
+    // Sort by order_index for optimized driving order — DEPRECATED, kept as no-op
+    // Completed addresses preserve incoming array order (already sorted by optimized_order upstream)
+    const sortByOrder = () => 0;
     
     // When preserveOrder is true (combo routes), keep original array order
     // which matches the optimized driving sequence

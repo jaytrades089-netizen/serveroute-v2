@@ -51,8 +51,9 @@ function weekLabel(key) {
   return `${format(start, 'MMM d')} – ${format(end, 'MMM d, yyyy')}`;
 }
 
-export default function PayrollRecover() {
+export default function PayrollRecover({ onBack }) {
   const navigate = useNavigate();
+  const handleBack = onBack || (() => navigate(-1));
   const queryClient = useQueryClient();
   const [selectedTargets, setSelectedTargets] = useState({}); // { weekKey: recordId | 'new' }
   const [isRecovering, setIsRecovering] = useState(false);
@@ -302,7 +303,7 @@ export default function PayrollRecover() {
   return (
     <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 40 }}>
       <div style={{ background: C.nav, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: `1px solid ${C.border}` }}>
-        <button onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+        <button onClick={handleBack} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
           <ChevronLeft size={24} color={C.textPrimary} />
         </button>
         <Wrench size={18} color={C.accentGold} />

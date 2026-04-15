@@ -58,6 +58,14 @@
       "type": "boolean",
       "default": false
     },
+    "optimized_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Ordered array of Address IDs — the single source of truth for display order. Never derive order from order_index on Address records."
+    },
     "total_distance_miles": {
       "type": "number"
     },
@@ -273,7 +281,7 @@
         }
       },
       "default": [],
-      "description": "Queue of future planned runs \u2014 each item: { date: yyyy-MM-dd, qualifiers: [] }"
+      "description": "Queue of future planned runs — each item: { date: yyyy-MM-dd, qualifiers: [] }"
     },
     "combo_route_ids": {
       "type": "array",
