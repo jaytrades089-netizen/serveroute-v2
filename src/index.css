@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 0 0% 6%;
+    --background: 222 47% 4%;
     --foreground: 0 0% 90%;
     --card: 0 0% 11%;
     --card-foreground: 0 0% 90%;
@@ -29,7 +29,7 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 6%;
+    --sidebar-background: 222 47% 4%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -40,7 +40,7 @@
   }
 
   .dark {
-    --background: 0 0% 6%;
+    --background: 222 47% 4%;
     --foreground: 0 0% 90%;
     --card: 0 0% 11%;
     --card-foreground: 0 0% 90%;
@@ -64,7 +64,7 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 0 0% 6%;
+    --sidebar-background: 222 47% 4%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -80,8 +80,15 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
+  body,
+  #root {
+    background-color: #060914;
+    min-height: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
-    background-color: #0F0B10;
+    @apply text-foreground;
+    background-color: #060914;
   }
 }
