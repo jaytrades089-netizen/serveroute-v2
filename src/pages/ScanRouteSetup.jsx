@@ -9,9 +9,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
-import { 
-  ArrowLeft, 
-  Check, 
+import {
+  ArrowLeft,
+  Check,
   Loader2,
   Info,
   Plus,
@@ -38,6 +38,18 @@ import {
 const ATTEMPT_OPTIONS = [3, 5, 7];
 const SPREAD_OPTIONS = [10, 14, 21];
 
+const C = {
+  card: '#1c1b1d',
+  cardElevated: '#201f21',
+  border: '#363436',
+  textPrimary: '#e6e1e4',
+  textSecondary: '#d0c3cb',
+  textMuted: '#8a7f87',
+  accentGold: '#e9c349',
+  accentPlum: '#e5b9e1',
+  green: '#22c55e',
+};
+
 export default function ScanRouteSetup() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -61,7 +73,6 @@ export default function ScanRouteSetup() {
     queryFn: () => base44.auth.me()
   });
 
-  // Get user settings for MapQuest API key
   const { data: userSettings } = useQuery({
     queryKey: ['userSettings', user?.id],
     queryFn: async () => {
@@ -72,7 +83,6 @@ export default function ScanRouteSetup() {
     enabled: !!user?.id
   });
 
-  // Geocode an address using MapQuest API
   const geocodeAddress = async (fullAddress, apiKey) => {
     if (!apiKey) return null;
     try {
@@ -96,7 +106,6 @@ export default function ScanRouteSetup() {
       const existingSession = loadScanSession(sessionId);
       if (existingSession) {
         setSession(existingSession);
-        // Generate auto-suggested route name
         const today = format(new Date(), 'MMM d');
         const cities = [...new Set(existingSession.addresses
           .filter(a => a.extractedData?.city)
@@ -112,38 +121,22 @@ export default function ScanRouteSetup() {
     }
   }, [sessionId, navigate]);
 
-  // Calculate first attempt deadline
   const firstAttemptDeadline = useMemo(() => {
     if (!dueDate) return null;
     return subDays(dueDate, minimumDaysSpread);
   }, [dueDate, minimumDaysSpread]);
 
-  // Calculate qualifier vs flexible attempts
-  const qualifierAttempts = 3; // Always 3 (AM, PM, Weekend)
+  const qualifierAttempts = 3;
   const flexibleAttempts = Math.max(0, requiredAttempts - qualifierAttempts);
 
   const handleCreateRoute = async () => {
     console.log('Create Route clicked', { hasSession: !!session, userId: user?.id, routeName, dueDate, isCreating });
     if (!session || !user) return;
+    if (!routeName.trim()) { toast.error('Please enter a route name'); return; }
+    if (!dueDate) { toast.error('Please select a due date'); return; }
 
-    if (!routeName.trim()) {
-      toast.error('Please enter a route name');
-      return;
-    }
-
-    if (!dueDate) {
-      toast.error('Please select a due date');
-      return;
-    }
-
-    const validAddresses = session.addresses.filter(
-      a => a.status === 'extracted' && a.extractedData?.street
-    );
-
-    if (validAddresses.length === 0) {
-      toast.error('No valid addresses to create route');
-      return;
-    }
+    const validAddresses = session.addresses.filter(a => a.status === 'extracted' && a.extractedData?.street);
+    if (validAddresses.length === 0) { toast.error('No valid addresses to create route'); return; }
 
     setIsCreating(true);
 
@@ -179,33 +172,19 @@ export default function ScanRouteSetup() {
       const route = await base44.entities.Route.create(routeData);
       console.log('Route created', route);
 
-      // Create addresses with geocoding
       const mapquestApiKey = userSettings?.mapquest_api_key;
       let geocodedCount = 0;
 
       for (let i = 0; i < validAddresses.length; i++) {
         const addr = validAddresses[i];
         setCreationProgress(`Creating address ${i + 1}/${validAddresses.length}...`);
-        
         const normalizedKey = generateNormalizedKey(addr.extractedData);
-        
-        // Attempt geocoding
-        let lat = null;
-        let lng = null;
-        let geocodeStatus = 'pending';
-        
+        let lat = null, lng = null, geocodeStatus = 'pending';
         if (mapquestApiKey) {
           const geoResult = await geocodeAddress(addr.extractedData.fullAddress, mapquestApiKey);
-          if (geoResult) {
-            lat = geoResult.lat;
-            lng = geoResult.lng;
-            geocodeStatus = geoResult.status;
-            geocodedCount++;
-          } else {
-            geocodeStatus = 'failed';
-          }
+          if (geoResult) { lat = geoResult.lat; lng = geoResult.lng; geocodeStatus = geoResult.status; geocodedCount++; }
+          else { geocodeStatus = 'failed'; }
         }
-        
         await base44.entities.Address.create({
           company_id: getCompanyId(user),
           route_id: route.id,
@@ -214,8 +193,7 @@ export default function ScanRouteSetup() {
           city: addr.extractedData.city,
           state: addr.extractedData.state,
           zip: addr.extractedData.zip,
-          lat,
-          lng,
+          lat, lng,
           serve_type: addr.extractedData?.documentType || session.documentType,
           pay_rate: PAY_RATES[session.documentType],
           status: 'pending',
@@ -234,23 +212,11 @@ export default function ScanRouteSetup() {
           geocode_status: geocodeStatus
         });
       }
-      
+
       setCreationProgress('Finalizing...');
-      
-      if (mapquestApiKey && geocodedCount < validAddresses.length) {
-        console.log(`Geocoded ${geocodedCount}/${validAddresses.length} addresses`);
-      }
-
-      // Update scan session
       if (session.dbSessionId) {
-        await base44.entities.ScanSession.update(session.dbSessionId, {
-          status: 'completed',
-          route_id: route.id,
-          completed_at: new Date().toISOString()
-        });
+        await base44.entities.ScanSession.update(session.dbSessionId, { status: 'completed', route_id: route.id, completed_at: new Date().toISOString() });
       }
-
-      // Audit log
       await base44.entities.AuditLog.create({
         company_id: getCompanyId(user),
         action_type: 'route_created_from_scan',
@@ -258,37 +224,19 @@ export default function ScanRouteSetup() {
         actor_role: user.role,
         target_type: 'route',
         target_id: route.id,
-        details: {
-          route_name: routeName,
-          address_count: validAddresses.length,
-          document_type: session.documentType,
-          total_earnings: validAddresses.length * PAY_RATES[session.documentType],
-          required_attempts: requiredAttempts,
-          minimum_days_spread: minimumDaysSpread
-        },
+        details: { route_name: routeName, address_count: validAddresses.length, document_type: session.documentType, total_earnings: validAddresses.length * PAY_RATES[session.documentType], required_attempts: requiredAttempts, minimum_days_spread: minimumDaysSpread },
         timestamp: new Date().toISOString()
       });
 
       clearScanSession(session.id);
-
-      // Invalidate all relevant queries so the new route + addresses are fresh when the list loads
       await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
       await queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
       await queryClient.invalidateQueries({ queryKey: ['routeAddresses', route.id] });
       await queryClient.invalidateQueries({ queryKey: ['route', route.id] });
-
-      // Wait for DB writes to settle before navigating — prevents blank route cards on load
       await new Promise(resolve => setTimeout(resolve, 800));
-
       toast.success('Route created successfully!');
-
-      if (isBoss) {
-        navigate(createPageUrl('BossRoutes'));
-      } else {
-        navigate(createPageUrl('WorkerRoutes'));
-      }
+      if (isBoss) { navigate(createPageUrl('BossRoutes')); } else { navigate(createPageUrl('WorkerRoutes')); }
       return;
-
     } catch (error) {
       console.error('Error creating route:', error);
       toast.error('Failed to create route: ' + error.message);
@@ -298,297 +246,173 @@ export default function ScanRouteSetup() {
     }
   };
 
-  const handleConfirmCustomAttempts = () => {
-    setRequiredAttempts(customAttempts);
-    setShowCustomAttempts(false);
-  };
-
-  const handleConfirmCustomSpread = () => {
-    setMinimumDaysSpread(customSpread);
-    setShowCustomSpread(false);
-  };
+  const handleConfirmCustomAttempts = () => { setRequiredAttempts(customAttempts); setShowCustomAttempts(false); };
+  const handleConfirmCustomSpread = () => { setMinimumDaysSpread(customSpread); setShowCustomSpread(false); };
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: '#060914', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: C.accentGold }} />
       </div>
     );
   }
 
   const docInfo = DOCUMENT_INFO[session.documentType];
-  const validAddresses = session.addresses.filter(
-    a => a.status === 'extracted' && a.extractedData?.street
-  );
+  const validAddresses = session.addresses.filter(a => a.status === 'extracted' && a.extractedData?.street);
   const estimatedEarnings = validAddresses.length * PAY_RATES[session.documentType];
   const isBoss = user?.role === 'boss' || user?.role === 'admin';
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 88 }}>
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
+      <div style={{ background: 'rgba(6,9,20,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
         <Link to={createPageUrl(`ScanCamera?sessionId=${session.id}`)}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <button style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <ArrowLeft style={{ width: 20, height: 20, color: C.textPrimary }} />
+          </button>
         </Link>
-        <h1 className="text-lg font-semibold">Save Route</h1>
+        <h1 style={{ fontSize: 17, fontWeight: 700, color: C.textPrimary }}>Save Route</h1>
       </div>
 
-      <div className="p-4 max-w-lg mx-auto space-y-6">
+      <div style={{ padding: '16px', maxWidth: 480, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+
         {/* Route Name */}
         <div>
-          <Label className="text-sm font-medium">ROUTE NAME *</Label>
-          <Input
-            value={routeName}
-            onChange={(e) => setRouteName(e.target.value)}
-            placeholder="Detroit East - Feb 2"
-            className="mt-1"
-          />
-          <p className="text-xs text-gray-500 mt-1">Auto-suggested based on addresses + date</p>
+          <Label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>ROUTE NAME *</Label>
+          <Input value={routeName} onChange={(e) => setRouteName(e.target.value)} placeholder="Detroit East - Feb 2" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 6 }} />
+          <p style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Auto-suggested based on addresses + date</p>
         </div>
 
-        {/* Due Date Calendar */}
+        {/* Due Date */}
         <div>
-          <Label className="text-sm font-medium">DUE DATE *</Label>
-          <Card className="mt-2">
-            <CardContent className="p-3">
-              <Calendar
-                mode="single"
-                selected={dueDate}
-                onSelect={setDueDate}
-                disabled={(date) => date < new Date()}
-                className="mx-auto"
-              />
-              {dueDate && (
-                <p className="text-center text-sm text-gray-600 mt-2">
-                  Selected: {format(dueDate, 'MMMM d, yyyy')}
-                </p>
-              )}
-            </CardContent>
-          </Card>
+          <Label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>DUE DATE *</Label>
+          <div style={{ marginTop: 8, borderRadius: 12, border: `1px solid ${C.border}`, background: C.card, padding: 12 }}>
+            <Calendar mode="single" selected={dueDate} onSelect={setDueDate} disabled={(date) => date < new Date()} className="mx-auto" />
+            {dueDate && <p style={{ textAlign: 'center', fontSize: 13, color: C.textMuted, marginTop: 8 }}>Selected: {format(dueDate, 'MMMM d, yyyy')}</p>}
+          </div>
         </div>
 
         {/* Required Attempts */}
         <div>
-          <Label className="text-sm font-medium">REQUIRED ATTEMPTS *</Label>
-          <p className="text-xs text-gray-500 mb-2">How many attempts before marking unable to serve?</p>
-          <div className="grid grid-cols-4 gap-2">
+          <Label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>REQUIRED ATTEMPTS *</Label>
+          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, marginTop: 2 }}>How many attempts before marking unable to serve?</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {ATTEMPT_OPTIONS.map((num) => (
-              <Button
-                key={num}
-                variant={requiredAttempts === num ? 'default' : 'outline'}
-                className={`h-16 flex flex-col ${requiredAttempts === num ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                onClick={() => setRequiredAttempts(num)}
-              >
-                <span className="text-xl font-bold">{num}</span>
-                <span className="text-xs opacity-80">
-                  {num === 3 ? 'Standard' : num === 5 ? 'Standard' : 'Custom'}
-                </span>
-              </Button>
+              <button key={num} onClick={() => setRequiredAttempts(num)} style={{ height: 60, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', background: requiredAttempts === num ? 'rgba(233,195,73,0.20)' : 'rgba(255,255,255,0.04)', border: requiredAttempts === num ? '1px solid rgba(233,195,73,0.60)' : `1px solid ${C.border}`, color: requiredAttempts === num ? C.accentGold : C.textMuted }}>
+                <span style={{ fontSize: 20, fontWeight: 700 }}>{num}</span>
+                <span style={{ fontSize: 10 }}>{num === 3 ? 'Standard' : num === 5 ? 'Common' : 'Extended'}</span>
+              </button>
             ))}
-            <Button
-              variant={!ATTEMPT_OPTIONS.includes(requiredAttempts) ? 'default' : 'outline'}
-              className={`h-16 flex flex-col ${!ATTEMPT_OPTIONS.includes(requiredAttempts) ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-              onClick={() => {
-                setCustomAttempts(requiredAttempts > 7 ? requiredAttempts : 4);
-                setShowCustomAttempts(true);
-              }}
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs">Custom</span>
-            </Button>
+            <button onClick={() => { setCustomAttempts(requiredAttempts > 7 ? requiredAttempts : 4); setShowCustomAttempts(true); }} style={{ height: 60, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', background: !ATTEMPT_OPTIONS.includes(requiredAttempts) ? 'rgba(233,195,73,0.20)' : 'rgba(255,255,255,0.04)', border: !ATTEMPT_OPTIONS.includes(requiredAttempts) ? '1px solid rgba(233,195,73,0.60)' : `1px solid ${C.border}`, color: !ATTEMPT_OPTIONS.includes(requiredAttempts) ? C.accentGold : C.textMuted }}>
+              <Plus style={{ width: 18, height: 18 }} />
+              <span style={{ fontSize: 10 }}>Custom</span>
+            </button>
           </div>
-          <p className="text-xs text-gray-600 mt-2">Selected: {requiredAttempts} attempts</p>
+          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Selected: {requiredAttempts} attempts</p>
         </div>
 
         {/* Minimum Days Spread */}
         <div>
-          <Label className="text-sm font-medium">MINIMUM DAYS SPREAD *</Label>
-          <p className="text-xs text-gray-500 mb-2">Days required between first and last attempt</p>
-          <div className="grid grid-cols-4 gap-2">
+          <Label style={{ color: C.textMuted, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em' }}>MINIMUM DAYS SPREAD *</Label>
+          <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 8, marginTop: 2 }}>Days required between first and last attempt</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {SPREAD_OPTIONS.map((num) => (
-              <Button
-                key={num}
-                variant={minimumDaysSpread === num ? 'default' : 'outline'}
-                className={`h-16 flex flex-col ${minimumDaysSpread === num ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-                onClick={() => setMinimumDaysSpread(num)}
-              >
-                <span className="text-xl font-bold">{num}</span>
-                <span className="text-xs opacity-80">
-                  {num === 10 ? 'Default' : num === 14 ? 'Common' : 'Extended'}
-                </span>
-              </Button>
+              <button key={num} onClick={() => setMinimumDaysSpread(num)} style={{ height: 60, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', background: minimumDaysSpread === num ? 'rgba(233,195,73,0.20)' : 'rgba(255,255,255,0.04)', border: minimumDaysSpread === num ? '1px solid rgba(233,195,73,0.60)' : `1px solid ${C.border}`, color: minimumDaysSpread === num ? C.accentGold : C.textMuted }}>
+                <span style={{ fontSize: 20, fontWeight: 700 }}>{num}</span>
+                <span style={{ fontSize: 10 }}>{num === 10 ? 'Default' : num === 14 ? 'Common' : 'Extended'}</span>
+              </button>
             ))}
-            <Button
-              variant={!SPREAD_OPTIONS.includes(minimumDaysSpread) ? 'default' : 'outline'}
-              className={`h-16 flex flex-col ${!SPREAD_OPTIONS.includes(minimumDaysSpread) ? 'bg-orange-500 hover:bg-orange-600' : ''}`}
-              onClick={() => {
-                setCustomSpread(minimumDaysSpread);
-                setShowCustomSpread(true);
-              }}
-            >
-              <Plus className="w-5 h-5" />
-              <span className="text-xs">Custom</span>
-            </Button>
+            <button onClick={() => { setCustomSpread(minimumDaysSpread); setShowCustomSpread(true); }} style={{ height: 60, borderRadius: 10, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2, cursor: 'pointer', background: !SPREAD_OPTIONS.includes(minimumDaysSpread) ? 'rgba(233,195,73,0.20)' : 'rgba(255,255,255,0.04)', border: !SPREAD_OPTIONS.includes(minimumDaysSpread) ? '1px solid rgba(233,195,73,0.60)' : `1px solid ${C.border}`, color: !SPREAD_OPTIONS.includes(minimumDaysSpread) ? C.accentGold : C.textMuted }}>
+              <Plus style={{ width: 18, height: 18 }} />
+              <span style={{ fontSize: 10 }}>Custom</span>
+            </button>
           </div>
-          <p className="text-xs text-gray-600 mt-2">Selected: {minimumDaysSpread} days</p>
+          <p style={{ fontSize: 12, color: C.textMuted, marginTop: 6 }}>Selected: {minimumDaysSpread} days</p>
         </div>
 
         {/* Info Box */}
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-2">
-              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-blue-900 mb-2">Service Requirements:</p>
-                <ul className="space-y-1 text-blue-800">
-                  <li>• {requiredAttempts} attempts required{requiredAttempts > 3 ? '' : ' (AM, PM, Weekend)'}</li>
-                  {requiredAttempts > 3 && (
-                    <>
-                      <li>• First 3 must be qualifiers (AM, PM, Weekend)</li>
-                      <li>• Remaining {flexibleAttempts} can be any time (8am-9pm)</li>
-                    </>
-                  )}
-                  <li>• Minimum {minimumDaysSpread} days between first and last attempt</li>
-                  {dueDate && (
-                    <>
-                      <li>• Due date: {format(dueDate, 'MMM d, yyyy')}</li>
-                      <li>• First attempt must be by: <strong>{format(firstAttemptDeadline, 'MMM d, yyyy')}</strong></li>
-                    </>
-                  )}
-                </ul>
-                {requiredAttempts === 3 && (
-                  <p className="mt-2 text-blue-700">All qualifiers must be completed.</p>
-                )}
-              </div>
+        <div style={{ borderRadius: 12, border: '1px solid rgba(229,185,225,0.25)', background: 'rgba(229,185,225,0.08)', padding: '14px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <Info style={{ width: 18, height: 18, color: C.accentPlum, flexShrink: 0, marginTop: 2 }} />
+            <div style={{ fontSize: 13 }}>
+              <p style={{ fontWeight: 600, color: C.accentPlum, marginBottom: 8 }}>Service Requirements:</p>
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: 4, color: C.textSecondary }}>
+                <li>• {requiredAttempts} attempts required{requiredAttempts > 3 ? '' : ' (AM, PM, Weekend)'}</li>
+                {requiredAttempts > 3 && (<><li>• First 3 must be qualifiers (AM, PM, Weekend)</li><li>• Remaining {flexibleAttempts} can be any time (8am-9pm)</li></>)}
+                <li>• Minimum {minimumDaysSpread} days between first and last attempt</li>
+                {dueDate && (<><li>• Due date: {format(dueDate, 'MMM d, yyyy')}</li><li>• First attempt must be by: <strong style={{ color: C.accentGold }}>{format(firstAttemptDeadline, 'MMM d, yyyy')}</strong></li></>)}
+              </ul>
+              {requiredAttempts === 3 && <p style={{ marginTop: 8, color: C.textMuted, fontSize: 12 }}>All qualifiers must be completed.</p>}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Route Summary */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">ROUTE SUMMARY</h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Addresses:</span>
-                <span className="font-medium">{validAddresses.length}</span>
+        <div style={{ borderRadius: 12, border: `1px solid ${C.border}`, background: C.card, padding: '14px 16px' }}>
+          <p style={{ fontWeight: 700, fontSize: 12, color: C.textMuted, letterSpacing: '0.06em', marginBottom: 12 }}>ROUTE SUMMARY</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            {[
+              ['Addresses', validAddresses.length],
+              ['Document Type', `${docInfo?.icon} ${docInfo?.name}`],
+              ['Created by', `${user?.full_name} (${isBoss ? 'Boss' : 'Worker'})`],
+              ['Assignment', isBoss ? 'Unassigned (Ready)' : 'Auto-assigned to me'],
+            ].map(([label, value]) => (
+              <div key={label} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: C.textMuted }}>{label}:</span>
+                <span style={{ fontWeight: 600, color: C.textPrimary }}>{value}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Document Type:</span>
-                <span className="font-medium">{docInfo?.icon} {docInfo?.name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Created by:</span>
-                <span className="font-medium">{user?.full_name} ({isBoss ? 'Boss' : 'Worker'})</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Assignment:</span>
-                <span className="font-medium">{isBoss ? 'Unassigned (Ready)' : 'Auto-assigned to me'}</span>
-              </div>
-              <div className="flex justify-between border-t pt-2 mt-2">
-                <span className="text-gray-600">Estimated Earnings:</span>
-                <span className="font-semibold text-green-600">${estimatedEarnings.toFixed(2)}</span>
-              </div>
+            ))}
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: `1px solid ${C.border}`, paddingTop: 8, marginTop: 4 }}>
+              <span style={{ color: C.textMuted }}>Estimated Earnings:</span>
+              <span style={{ fontWeight: 700, color: C.green }}>${estimatedEarnings.toFixed(2)}</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
-        <Button
-          className="w-full bg-green-600 hover:bg-green-700 h-12 text-base"
-          onClick={handleCreateRoute}
-          disabled={isCreating || !routeName.trim() || !dueDate}
-        >
-          {isCreating ? (
-            <>
-              <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-              {creationProgress || 'Creating...'}
-            </>
-          ) : (
-            <>
-              <Check className="w-5 h-5 mr-2" />
-              Create Route
-            </>
-          )}
-        </Button>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,9,20,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px' }}>
+        <button onClick={handleCreateRoute} disabled={isCreating || !routeName.trim() || !dueDate} style={{ width: '100%', height: 52, borderRadius: 12, background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: C.green, fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: (isCreating || !routeName.trim() || !dueDate) ? 'not-allowed' : 'pointer', opacity: (isCreating || !routeName.trim() || !dueDate) ? 0.4 : 1 }}>
+          {isCreating ? (<><Loader2 style={{ width: 18, height: 18 }} className="animate-spin" />{creationProgress || 'Creating...'}</>) : (<><Check style={{ width: 18, height: 18 }} />Create Route</>)}
+        </button>
       </div>
 
       {/* Custom Attempts Dialog */}
       <Dialog open={showCustomAttempts} onOpenChange={setShowCustomAttempts}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Custom Attempt Count</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-gray-600 mb-4">Number of attempts required:</p>
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCustomAttempts(Math.max(3, customAttempts - 1))}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <span className="text-3xl font-bold w-12 text-center">{customAttempts}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCustomAttempts(Math.min(10, customAttempts + 1))}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: C.textPrimary, maxWidth: 300 }}>
+          <DialogHeader><DialogTitle style={{ color: C.textPrimary }}>Custom Attempt Count</DialogTitle></DialogHeader>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>Number of attempts required:</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+              <button onClick={() => setCustomAttempts(Math.max(3, customAttempts - 1))} style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus style={{ width: 16, height: 16 }} /></button>
+              <span style={{ fontSize: 32, fontWeight: 700, color: C.textPrimary, minWidth: 48, textAlign: 'center' }}>{customAttempts}</span>
+              <button onClick={() => setCustomAttempts(Math.min(10, customAttempts + 1))} style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus style={{ width: 16, height: 16 }} /></button>
             </div>
-            <p className="text-xs text-gray-500 text-center mt-2">Min: 3 &nbsp; Max: 10</p>
+            <p style={{ fontSize: 11, color: C.textMuted, textAlign: 'center', marginTop: 8 }}>Min: 3 &nbsp; Max: 10</p>
           </div>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowCustomAttempts(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmCustomAttempts} className="flex-1">
-              Confirm
-            </Button>
+          <DialogFooter style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setShowCustomAttempts(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'transparent', border: `1px solid ${C.border}`, color: C.textMuted, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={handleConfirmCustomAttempts} style={{ flex: 1, height: 42, borderRadius: 10, background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: C.accentGold, fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Custom Spread Dialog */}
       <Dialog open={showCustomSpread} onOpenChange={setShowCustomSpread}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Custom Days Spread</DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            <p className="text-sm text-gray-600 mb-4">Minimum days between first and last attempt:</p>
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCustomSpread(Math.max(7, customSpread - 1))}
-              >
-                <Minus className="w-4 h-4" />
-              </Button>
-              <span className="text-3xl font-bold w-12 text-center">{customSpread}</span>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setCustomSpread(Math.min(30, customSpread + 1))}
-              >
-                <Plus className="w-4 h-4" />
-              </Button>
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: C.textPrimary, maxWidth: 300 }}>
+          <DialogHeader><DialogTitle style={{ color: C.textPrimary }}>Custom Days Spread</DialogTitle></DialogHeader>
+          <div style={{ padding: '16px 0' }}>
+            <p style={{ fontSize: 13, color: C.textMuted, marginBottom: 16 }}>Minimum days between first and last attempt:</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+              <button onClick={() => setCustomSpread(Math.max(7, customSpread - 1))} style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus style={{ width: 16, height: 16 }} /></button>
+              <span style={{ fontSize: 32, fontWeight: 700, color: C.textPrimary, minWidth: 48, textAlign: 'center' }}>{customSpread}</span>
+              <button onClick={() => setCustomSpread(Math.min(30, customSpread + 1))} style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus style={{ width: 16, height: 16 }} /></button>
             </div>
-            <p className="text-xs text-gray-500 text-center mt-2">Min: 7 &nbsp; Max: 30</p>
+            <p style={{ fontSize: 11, color: C.textMuted, textAlign: 'center', marginTop: 8 }}>Min: 7 &nbsp; Max: 30</p>
           </div>
-          <DialogFooter className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowCustomSpread(false)} className="flex-1">
-              Cancel
-            </Button>
-            <Button onClick={handleConfirmCustomSpread} className="flex-1">
-              Confirm
-            </Button>
+          <DialogFooter style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setShowCustomSpread(false)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'transparent', border: `1px solid ${C.border}`, color: C.textMuted, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={handleConfirmCustomSpread} style={{ flex: 1, height: 42, borderRadius: 10, background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: C.accentGold, fontWeight: 700, cursor: 'pointer' }}>Confirm</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

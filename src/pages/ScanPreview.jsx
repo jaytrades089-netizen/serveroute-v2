@@ -4,8 +4,6 @@ import { createPageUrl } from '@/utils';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -15,18 +13,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  ArrowLeft, 
+import {
+  ArrowLeft,
   ArrowRight,
   Camera,
-  Check, 
-  Edit2, 
-  Loader2, 
-  RefreshCw,
+  Edit2,
+  Loader2,
   Trash2,
   X,
-  FileText,
-  AlertCircle
+  AlertCircle,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -45,27 +42,32 @@ import {
   categorizeConfidence
 } from '@/components/scanning/ScanningService';
 
+const C = {
+  bg: '#060914',
+  card: '#1c1b1d',
+  cardElevated: '#201f21',
+  border: '#363436',
+  textPrimary: '#e6e1e4',
+  textSecondary: '#d0c3cb',
+  textMuted: '#8a7f87',
+  accentGold: '#e9c349',
+  accentPlum: '#e5b9e1',
+  containerPlum: '#502f50',
+  green: '#22c55e',
+  red: '#ef4444',
+};
+
 export default function ScanPreview() {
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
   const [editingAddress, setEditingAddress] = useState(null);
-  const [editForm, setEditForm] = useState({
-    street: '',
-    city: '',
-    state: 'MI',
-    zip: '',
-    defendantName: ''
-  });
+  const [editForm, setEditForm] = useState({ street: '', city: '', state: 'MI', zip: '', defendantName: '' });
 
   const urlParams = new URLSearchParams(window.location.search);
   const sessionId = urlParams.get('sessionId');
 
-  const { data: user } = useQuery({
-    queryKey: ['currentUser'],
-    queryFn: () => base44.auth.me()
-  });
+  const { data: user } = useQuery({ queryKey: ['currentUser'], queryFn: () => base44.auth.me() });
 
-  // Fetch related addresses for duplicate detection
   const { data: companyAddresses = [] } = useQuery({
     queryKey: ['companyAddresses', user?.company_id],
     queryFn: () => base44.entities.Address.filter({ company_id: user?.company_id, deleted_at: null }),
@@ -75,17 +77,11 @@ export default function ScanPreview() {
   useEffect(() => {
     if (sessionId) {
       const existingSession = loadScanSession(sessionId);
-      if (existingSession) {
-        setSession(existingSession);
-      } else {
-        navigate(createPageUrl('ScanDocumentType'));
-      }
-    } else {
-      navigate(createPageUrl('ScanDocumentType'));
-    }
+      if (existingSession) { setSession(existingSession); }
+      else { navigate(createPageUrl('ScanDocumentType')); }
+    } else { navigate(createPageUrl('ScanDocumentType')); }
   }, [sessionId, navigate]);
 
-  // Check for related addresses
   const getRelatedAddresses = (normalizedKey) => {
     if (!normalizedKey || !companyAddresses.length) return [];
     return companyAddresses.filter(a => a.normalized_key === normalizedKey);
@@ -104,32 +100,12 @@ export default function ScanPreview() {
 
   const handleSaveEdit = () => {
     if (!session || !editingAddress) return;
-
-    const updatedAddresses = session.addresses.map(addr => {
-      if (addr.tempId === editingAddress.tempId) {
-        return {
-          ...addr,
-          extractedData: {
-            street: editForm.street,
-            city: editForm.city,
-            state: editForm.state,
-            zip: editForm.zip,
-            fullAddress: `${editForm.street}, ${editForm.city}, ${editForm.state} ${editForm.zip}`
-          },
-          defendantName: editForm.defendantName,
-          manuallyEdited: true,
-          status: 'extracted'
-        };
-      }
-      return addr;
-    });
-
-    const updatedSession = {
-      ...session,
-      addresses: updatedAddresses,
-      lastUpdated: new Date().toISOString()
-    };
-
+    const updatedAddresses = session.addresses.map(addr =>
+      addr.tempId === editingAddress.tempId
+        ? { ...addr, extractedData: { street: editForm.street, city: editForm.city, state: editForm.state, zip: editForm.zip, fullAddress: `${editForm.street}, ${editForm.city}, ${editForm.state} ${editForm.zip}` }, defendantName: editForm.defendantName, manuallyEdited: true, status: 'extracted' }
+        : addr
+    );
+    const updatedSession = { ...session, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
     setSession(updatedSession);
     saveScanSession(updatedSession);
     setEditingAddress(null);
@@ -138,49 +114,26 @@ export default function ScanPreview() {
 
   const handleRemove = (tempId) => {
     if (!session) return;
-
     const updatedAddresses = session.addresses.filter(a => a.tempId !== tempId);
-    const updatedSession = {
-      ...session,
-      addresses: updatedAddresses,
-      lastUpdated: new Date().toISOString()
-    };
-
+    const updatedSession = { ...session, addresses: updatedAddresses, lastUpdated: new Date().toISOString() };
     setSession(updatedSession);
     saveScanSession(updatedSession);
     toast.success('Address removed');
   };
 
-  const handleScanMore = () => {
-    if (!session) return;
-    navigate(createPageUrl(`ScanCamera?sessionId=${session.id}`));
-  };
-
   const handleContinue = () => {
     if (!session) return;
-
-    const validAddresses = session.addresses.filter(
-      a => a.status === 'extracted' && a.extractedData?.street
-    );
-
-    if (validAddresses.length === 0) {
-      toast.error('Please have at least one valid address before continuing');
-      return;
-    }
-
-    const updatedSession = {
-      ...session,
-      currentStep: 'route_setup',
-      lastUpdated: new Date().toISOString()
-    };
+    const validAddresses = session.addresses.filter(a => a.status === 'extracted' && a.extractedData?.street);
+    if (validAddresses.length === 0) { toast.error('Please have at least one valid address before continuing'); return; }
+    const updatedSession = { ...session, currentStep: 'route_setup', lastUpdated: new Date().toISOString() };
     saveScanSession(updatedSession);
     navigate(createPageUrl(`ScanRouteSetup?sessionId=${session.id}`));
   };
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: '#060914', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: C.accentGold }} />
       </div>
     );
   }
@@ -191,230 +144,111 @@ export default function ScanPreview() {
   const estimatedEarnings = validCount * PAY_RATES[session.documentType];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 88 }}>
       {/* Header */}
-      <div className="bg-white border-b px-4 py-3 flex items-center gap-3">
+      <div style={{ background: 'rgba(6,9,20,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
         <Link to={createPageUrl(`ScanCamera?sessionId=${session.id}`)}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <button style={{ width: 40, height: 40, borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <ArrowLeft style={{ width: 20, height: 20, color: C.textPrimary }} />
+          </button>
         </Link>
-        <h1 className="text-lg font-semibold">Review Addresses</h1>
+        <h1 style={{ fontSize: 17, fontWeight: 700, color: C.textPrimary }}>Review Addresses</h1>
       </div>
 
       {/* Summary */}
-      <div className="bg-white border-b px-4 py-4">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-2xl">{docInfo?.icon}</span>
-          <span className="font-semibold">{validCount} {docInfo?.name} Addresses</span>
+      <div style={{ background: 'rgba(14,20,44,0.55)', borderBottom: '1px solid rgba(255,255,255,0.08)', padding: '14px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <span style={{ fontSize: 22 }}>{docInfo?.icon}</span>
+          <span style={{ fontWeight: 600, color: C.textPrimary }}>{validCount} {docInfo?.name} Addresses</span>
         </div>
-        <p className="text-green-600 font-semibold">
-          Estimated Earnings: ${estimatedEarnings.toFixed(2)}
-        </p>
-        {failedCount > 0 && (
-          <p className="text-orange-600 text-sm mt-1">
-            {failedCount} address{failedCount !== 1 ? 'es' : ''} need{failedCount === 1 ? 's' : ''} attention
-          </p>
-        )}
+        <p style={{ color: C.green, fontWeight: 600 }}>Estimated Earnings: ${estimatedEarnings.toFixed(2)}</p>
+        {failedCount > 0 && <p style={{ color: '#f97316', fontSize: 13, marginTop: 4 }}>{failedCount} address{failedCount !== 1 ? 'es' : ''} need attention</p>}
       </div>
 
       {/* Address List */}
-      <div className="p-4 space-y-3">
+      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {session.addresses.map((addr) => {
           const conf = categorizeConfidence(addr.confidence);
           const relatedAddresses = getRelatedAddresses(addr.normalizedKey);
-          const hasRelated = relatedAddresses.length > 0;
           const isFailed = addr.status === 'failed' || !addr.extractedData?.street;
+          const confColor = conf.level === 'high' ? C.green : conf.level === 'medium' ? '#eab308' : C.red;
 
           return (
-            <Card key={addr.tempId} className={isFailed ? 'border-red-300' : ''}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    {isFailed ? (
-                      <div className="flex items-center gap-2 text-red-600">
-                        <X className="w-5 h-5" />
-                        <span className="font-medium">Could not extract address</span>
+            <div key={addr.tempId} style={{ background: isFailed ? 'rgba(239,68,68,0.10)' : C.card, border: `1px solid ${isFailed ? 'rgba(239,68,68,0.40)' : C.border}`, borderRadius: 12, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {isFailed ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: C.red }}>
+                      <X style={{ width: 18, height: 18 }} />
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>Could not extract address</span>
+                    </div>
+                  ) : (
+                    <>
+                      <p style={{ fontWeight: 600, fontSize: 13, color: C.textPrimary, marginBottom: 2 }}>{addr.extractedData?.fullAddress}</p>
+                      {addr.defendantName && <p style={{ fontSize: 12, color: C.textMuted, marginBottom: 4 }}>{addr.defendantName}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, background: confColor + '22', color: confColor, border: `1px solid ${confColor}`, borderRadius: 4, padding: '2px 6px' }}>
+                          {Math.round(addr.confidence * 100)}% confidence
+                        </span>
+                        {addr.manuallyEdited && <span style={{ fontSize: 10, fontWeight: 600, color: C.textMuted, border: `1px solid ${C.border}`, borderRadius: 4, padding: '2px 6px' }}>Edited</span>}
+                        {relatedAddresses.length > 0 && <span style={{ fontSize: 10, fontWeight: 600, color: C.accentPlum, background: 'rgba(229,185,225,0.12)', border: `1px solid rgba(229,185,225,0.35)`, borderRadius: 4, padding: '2px 6px' }}>📋 +{relatedAddresses.length} other doc(s)</span>}
                       </div>
-                    ) : (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <span className={conf.color}>{conf.icon}</span>
-                          <span className="font-medium truncate">
-                            {addr.extractedData?.fullAddress}
-                          </span>
-                        </div>
-                        {addr.defendantName && (
-                          <p className="text-gray-600 text-sm mt-1">
-                            {addr.defendantName}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-2 mt-2">
-                          <Badge className={conf.bgColor + ' ' + conf.color}>
-                            {Math.round(addr.confidence * 100)}% confidence
-                          </Badge>
-                          {addr.manuallyEdited && (
-                            <Badge variant="outline">Edited</Badge>
-                          )}
-                          {hasRelated && (
-                            <Badge className="bg-purple-100 text-purple-700">
-                              📋 +{relatedAddresses.length} other doc(s) here
-                            </Badge>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleEditClick(addr)}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => handleRemove(addr.tempId)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                    </>
+                  )}
+                  {isFailed && addr.ocrRawText && (
+                    <div style={{ marginTop: 8, padding: '6px 8px', background: 'rgba(255,255,255,0.05)', borderRadius: 6, fontSize: 11, color: C.textMuted, maxHeight: 60, overflowY: 'auto' }}>
+                      {addr.ocrRawText.substring(0, 200)}...
+                    </div>
+                  )}
                 </div>
-
-                {/* Low confidence warning */}
-                {!isFailed && conf.level !== 'high' && (
-                  <div className={`mt-3 p-2 rounded-lg ${conf.bgColor} flex items-center gap-2`}>
-                    <AlertCircle className={`w-4 h-4 ${conf.color}`} />
-                    <span className={`text-sm ${conf.color}`}>{conf.message}</span>
-                  </div>
-                )}
-
-                {/* Failed - show raw text */}
-                {isFailed && addr.ocrRawText && (
-                  <div className="mt-3 p-2 bg-gray-100 rounded text-xs text-gray-600 max-h-20 overflow-y-auto">
-                    <p className="font-medium mb-1">OCR Text:</p>
-                    {addr.ocrRawText.substring(0, 200)}...
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  <button onClick={() => handleEditClick(addr)} style={{ width: 32, height: 32, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Edit2 style={{ width: 15, height: 15, color: C.textMuted }} />
+                  </button>
+                  <button onClick={() => handleRemove(addr.tempId)} style={{ width: 32, height: 32, borderRadius: 6, background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Trash2 style={{ width: 15, height: 15, color: C.red }} />
+                  </button>
+                </div>
+              </div>
+            </div>
           );
         })}
       </div>
 
       {/* Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1"
-          onClick={handleScanMore}
-        >
-          <Camera className="w-4 h-4 mr-2" />
-          Scan More
-        </Button>
-        <Button
-          className="flex-1 bg-blue-600 hover:bg-blue-700"
-          onClick={handleContinue}
-          disabled={validCount === 0}
-        >
-          Continue
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </Button>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(6,9,20,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid rgba(255,255,255,0.08)', padding: '12px 16px', display: 'flex', gap: 10 }}>
+        <button onClick={() => navigate(createPageUrl(`ScanCamera?sessionId=${session.id}`))} style={{ flex: 1, height: 48, borderRadius: 12, background: 'transparent', border: `1px solid ${C.border}`, color: C.textSecondary, fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer' }}>
+          <Camera style={{ width: 16, height: 16 }} /> Scan More
+        </button>
+        <button onClick={handleContinue} disabled={validCount === 0} style={{ flex: 1, height: 48, borderRadius: 12, background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: C.accentGold, fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: validCount === 0 ? 'not-allowed' : 'pointer', opacity: validCount === 0 ? 0.4 : 1 }}>
+          Continue <ArrowRight style={{ width: 16, height: 16 }} />
+        </button>
       </div>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingAddress} onOpenChange={() => setEditingAddress(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()} style={{ background: 'rgba(11,15,30,0.97)', border: '1px solid rgba(255,255,255,0.12)', color: C.textPrimary }}>
           <DialogHeader>
-            <DialogTitle>
-              {editingAddress?.extractedData?.street ? 'Edit Address' : 'Enter Address Manually'}
-            </DialogTitle>
-            <DialogDescription>
-              {editingAddress?.extractedData?.street 
-                ? 'Make corrections to the extracted address.'
-                : 'OCR could not extract this address. Please enter manually.'}
-            </DialogDescription>
+            <DialogTitle style={{ color: C.textPrimary }}>{editingAddress?.extractedData?.street ? 'Edit Address' : 'Enter Address Manually'}</DialogTitle>
+            <DialogDescription style={{ color: C.textMuted }}>{editingAddress?.extractedData?.street ? 'Make corrections to the extracted address.' : 'OCR could not extract this address. Please enter manually.'}</DialogDescription>
           </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div>
-              <Label>Street Address *</Label>
-              <Input
-                value={editForm.street}
-                onChange={(e) => setEditForm({ ...editForm, street: e.target.value })}
-                placeholder="123 Main St"
-              />
-            </div>
-
-            <div>
-              <Label>City *</Label>
-              <Input
-                value={editForm.city}
-                onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
-                placeholder="Detroit"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>State *</Label>
-                <Select 
-                  value={editForm.state} 
-                  onValueChange={(value) => setEditForm({ ...editForm, state: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MI">MI</SelectItem>
-                    <SelectItem value="OH">OH</SelectItem>
-                    <SelectItem value="IN">IN</SelectItem>
-                  </SelectContent>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '8px 0' }}>
+            <div><Label style={{ color: C.textMuted, fontSize: 11 }}>STREET ADDRESS *</Label><Input value={editForm.street} onChange={(e) => setEditForm({ ...editForm, street: e.target.value })} placeholder="123 Main St" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 4 }} /></div>
+            <div><Label style={{ color: C.textMuted, fontSize: 11 }}>CITY *</Label><Input value={editForm.city} onChange={(e) => setEditForm({ ...editForm, city: e.target.value })} placeholder="Detroit" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 4 }} /></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><Label style={{ color: C.textMuted, fontSize: 11 }}>STATE *</Label>
+                <Select value={editForm.state} onValueChange={(v) => setEditForm({ ...editForm, state: v })}>
+                  <SelectTrigger style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 4 }}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="MI">MI</SelectItem><SelectItem value="OH">OH</SelectItem><SelectItem value="IN">IN</SelectItem></SelectContent>
                 </Select>
               </div>
-              <div>
-                <Label>ZIP *</Label>
-                <Input
-                  value={editForm.zip}
-                  onChange={(e) => setEditForm({ ...editForm, zip: e.target.value })}
-                  placeholder="48201"
-                />
-              </div>
+              <div><Label style={{ color: C.textMuted, fontSize: 11 }}>ZIP *</Label><Input value={editForm.zip} onChange={(e) => setEditForm({ ...editForm, zip: e.target.value })} placeholder="48201" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 4 }} /></div>
             </div>
-
-            <div>
-              <Label>Defendant Name (optional)</Label>
-              <Input
-                value={editForm.defendantName}
-                onChange={(e) => setEditForm({ ...editForm, defendantName: e.target.value })}
-                placeholder="John Smith"
-              />
-            </div>
-
-            {editingAddress?.ocrRawText && (
-              <div className="border-t pt-4">
-                <Label className="text-gray-500">Original OCR Text:</Label>
-                <div className="mt-1 p-2 bg-gray-100 rounded text-xs text-gray-600 max-h-24 overflow-y-auto">
-                  {editingAddress.ocrRawText}
-                </div>
-              </div>
-            )}
+            <div><Label style={{ color: C.textMuted, fontSize: 11 }}>DEFENDANT NAME (optional)</Label><Input value={editForm.defendantName} onChange={(e) => setEditForm({ ...editForm, defendantName: e.target.value })} placeholder="John Smith" style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${C.border}`, color: C.textPrimary, marginTop: 4 }} /></div>
           </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingAddress(null)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveEdit}
-              disabled={!editForm.street || !editForm.city || !editForm.zip}
-            >
-              Save Changes
-            </Button>
+          <DialogFooter style={{ gap: 8 }}>
+            <button onClick={() => setEditingAddress(null)} style={{ flex: 1, height: 42, borderRadius: 10, background: 'transparent', border: `1px solid ${C.border}`, color: C.textMuted, fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={handleSaveEdit} disabled={!editForm.street || !editForm.city || !editForm.zip} style={{ flex: 1, height: 42, borderRadius: 10, background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: C.accentGold, fontWeight: 700, cursor: 'pointer', opacity: (!editForm.street || !editForm.city || !editForm.zip) ? 0.4 : 1 }}>Save Changes</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
