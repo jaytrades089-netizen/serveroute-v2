@@ -165,21 +165,14 @@ export default function Layout({ children, currentPageName }) {
     if (redirectTo) navigate(redirectTo, { replace: true });
   }, [isLoading, user, currentPageName, isBoss, isWorker, isOnBossPage, isOnWorkerPage, navigate]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  const darkSpinner = (
+    <div style={{ minHeight: '100vh', background: '#060914', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
+    </div>
+  );
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  if (isLoading) return darkSpinner;
+  if (!user) return darkSpinner;
 
   const needsRedirect = 
     (!currentPageName || currentPageName === '' || currentPageName === 'Home' || currentPageName === 'Index' ||
@@ -187,13 +180,7 @@ export default function Layout({ children, currentPageName }) {
     (isWorker && isOnBossPage) ||
     (isBoss && isOnWorkerPage && !sharedPages.includes(currentPageName));
 
-  if (needsRedirect) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
+  if (needsRedirect) return darkSpinner;
 
   return (
     <>
