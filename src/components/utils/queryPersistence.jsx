@@ -1,14 +1,19 @@
 /**
  * localStorage persistence for React Query.
  * Saves query cache to device storage so data loads instantly on app open.
- * Background sync keeps data fresh from the cloud.
+ *
+ * OFFLINE-FIRST MODEL: With staleTime: Infinity in query-client.js, restored
+ * cache is treated as fresh and served instantly. Refetches only happen when
+ * a write invalidates a query key — never automatically on app open or focus.
  */
 
 const CACHE_KEY = 'sr_query_cache';
 const CACHE_VERSION = 1;
 const MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours max age
 
-// Keys we persist to device (routes, addresses, attempts, user, settings)
+// Keys we persist to device. Every query key prefix that the worker app
+// reads during normal use must be listed here, or it will refetch from cloud
+// on every app open instead of loading instantly from local storage.
 const PERSIST_PREFIXES = [
   'workerRoutes',
   'workerAddresses',
@@ -20,6 +25,22 @@ const PERSIST_PREFIXES = [
   'routeAttempts',
   'workerScheduledServes',
   'route',
+  // Combo route reads
+  'activeComboRoutes',
+  'comboRoute',
+  'comboRoutes',
+  'comboAddresses',
+  'comboDetailAddresses',
+  'comboDetailAttempts',
+  'comboDetailRoutes',
+  // Scheduled serves
+  'scheduledServes',
+  'scheduledServesCount',
+  'scheduledServeAddresses',
+  // Saved locations + worker home screen reads
+  'savedLocations',
+  'workerAttemptsHome',
+  'allWorkerAddressesHome',
 ];
 
 function shouldPersist(queryKey) {
@@ -63,7 +84,12 @@ export function saveToDevice(queryClient) {
 }
 
 /**
- * Restore query cache from localStorage into React Query
+ * Restore query cache from localStorage into React Query.
+ *
+ * Restored entries keep their original dataUpdatedAt. Combined with
+ * staleTime: Infinity, this means cached data is treated as fresh —
+ * no automatic refetches on app open. Writes invalidate keys explicitly
+ * when the cloud needs to be re-read.
  */
 export function restoreFromDevice(queryClient) {
   try {
@@ -83,25 +109,12 @@ export function restoreFromDevice(queryClient) {
       return false;
     }
 
-    const HIGH_CHURN_PREFIXES = [
-      'workerRoutes',
-      'routeAddresses',
-      'routeAttempts',
-      'workerAttempts',
-      'route',
-    ];
-
-    const isHighChurn = (queryKey) => {
-      const keyStr = Array.isArray(queryKey) ? queryKey[0] : queryKey;
-      return HIGH_CHURN_PREFIXES.some(prefix => keyStr === prefix || keyStr?.startsWith?.(prefix));
-    };
-
     let restored = 0;
     for (const [, entry] of Object.entries(payload.queries)) {
       if (!entry.data || !entry.queryKey) continue;
 
       queryClient.setQueryData(entry.queryKey, entry.data, {
-        updatedAt: isHighChurn(entry.queryKey) ? 0 : entry.dataUpdatedAt,
+        updatedAt: entry.dataUpdatedAt,
       });
       restored++;
     }

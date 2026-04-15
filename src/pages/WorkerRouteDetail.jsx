@@ -115,7 +115,6 @@ export default function WorkerRouteDetail() {
       return routes[0] || null;
     },
     enabled: !!routeId,
-    staleTime: 0,
     gcTime: 10 * 60 * 1000
   });
 
@@ -139,8 +138,7 @@ export default function WorkerRouteDetail() {
       const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
       return serves.length;
     },
-    enabled: !!routeId,
-    staleTime: 0
+    enabled: !!routeId
   });
 
   // Fetch attempts for all addresses in the route
