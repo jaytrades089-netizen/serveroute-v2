@@ -5,18 +5,34 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  MapPin, 
-  Calendar, 
-  Info, 
-  CheckCircle, 
-  Camera, 
-  Navigation, 
+import {
+  MapPin,
+  Calendar,
+  Info,
+  CheckCircle,
+  Camera,
+  Navigation,
   Zap,
   Home,
   MoreVertical
 } from 'lucide-react';
+
+// Brand colors
+const C = {
+  bg: '#060914',
+  card: '#1c1b1d',
+  cardElevated: '#201f21',
+  cardHighest: '#363436',
+  textPrimary: '#e6e1e4',
+  textSecondary: '#d0c3cb',
+  textMuted: '#8a7f87',
+  accentGold: '#e9c349',
+  accentPlum: '#e5b9e1',
+  containerPlum: '#502f50',
+  border: '#363436',
+  green: '#22c55e',
+  orange: '#f97316',
+};
 
 // Format address in required 2-line ALL CAPS format
 function formatAddress(address) {
@@ -24,7 +40,7 @@ function formatAddress(address) {
   const city = address.city || '';
   const state = address.state || '';
   const zip = address.zip || '';
-  
+
   return {
     line1: street.toUpperCase().trim(),
     line2: city && state ? `${city.toUpperCase()}, ${state.toUpperCase()} ${zip}` : ''
@@ -40,32 +56,48 @@ function formatDateTime(isoString) {
 
 // Tab button component
 function TabButton({ label, isActive, isCompleted, isHome, onClick }) {
-  let bgColor = 'bg-gray-100';
-  let textColor = 'text-gray-600';
-  
+  let bg = 'transparent';
+  let color = C.textMuted;
+  let border = `1px solid ${C.border}`;
+
   if (isHome) {
-    bgColor = 'bg-emerald-500';
-    textColor = 'text-white';
+    bg = C.green;
+    color = '#0F0B10';
+    border = 'none';
   } else if (isActive) {
-    bgColor = 'bg-gray-900';
-    textColor = 'text-white';
+    bg = C.containerPlum;
+    color = C.accentPlum;
+    border = `1px solid ${C.accentPlum}`;
   } else if (isCompleted) {
-    bgColor = 'bg-emerald-500';
-    textColor = 'text-white';
+    bg = 'rgba(34,197,94,0.15)';
+    color = C.green;
+    border = `1px solid rgba(34,197,94,0.4)`;
   }
-  
+
   return (
     <button
       onClick={onClick}
-      className={`px-5 py-3 rounded-lg font-semibold text-sm min-w-[48px] transition-all ${bgColor} ${textColor}`}
+      style={{
+        padding: '8px 16px',
+        borderRadius: 8,
+        fontWeight: 600,
+        fontSize: 13,
+        minWidth: 44,
+        background: bg,
+        color,
+        border,
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap',
+      }}
     >
       {isCompleted && !isActive && !isHome ? '✓ ' : ''}{label}
     </button>
   );
 }
 
-export default function AddressDetailView({ 
-  address, 
+export default function AddressDetailView({
+  address,
   routeId,
   onBack,
   onLogAttempt,
@@ -74,7 +106,7 @@ export default function AddressDetailView({
 }) {
   const navigate = useNavigate();
   const [currentTab, setCurrentTab] = useState('home');
-  
+
   // Fetch attempts for this address
   const { data: attempts = [] } = useQuery({
     queryKey: ['addressAttempts', address?.id],
@@ -90,8 +122,7 @@ export default function AddressDetailView({
   const formatted = formatAddress(address);
   const isPriority = address.priority || false;
   const isVerified = address.verification_status === 'verified';
-  
-  // Get current attempt data based on selected tab
+
   const currentAttemptNum = currentTab === 'home' ? null : parseInt(currentTab);
   const currentAttempt = currentAttemptNum ? attempts[currentAttemptNum - 1] : null;
   const nextAttemptNum = attempts.length + 1;
@@ -127,9 +158,10 @@ export default function AddressDetailView({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden mx-4 my-4">
+    <div style={{ margin: '16px', borderRadius: 16, overflow: 'hidden', border: `1px solid ${C.border}`, background: C.card }}>
+
       {/* Tab Navigation */}
-      <div className="flex gap-1 p-3 overflow-x-auto bg-gray-50">
+      <div style={{ display: 'flex', gap: 6, padding: '10px 12px', overflowX: 'auto', background: 'rgba(255,255,255,0.03)', borderBottom: `1px solid ${C.border}` }}>
         <TabButton
           label="H"
           isHome={true}
@@ -152,147 +184,128 @@ export default function AddressDetailView({
       </div>
 
       {/* Address Header */}
-      <div className="flex items-start gap-4 p-4 border-b border-gray-200">
-        <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center flex-shrink-0">
-          <MapPin className="w-6 h-6 text-indigo-600" />
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(233,195,73,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <MapPin style={{ width: 22, height: 22, color: C.accentGold }} />
         </div>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-gray-900 leading-tight">
+        <div style={{ flex: 1 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: C.textPrimary, lineHeight: 1.3, marginBottom: 2 }}>
             {formatted.line1}
           </h2>
-          <p className="text-sm text-gray-600">
+          <p style={{ fontSize: 13, color: C.textMuted }}>
             {formatted.line2}
           </p>
+          {isPriority && (
+            <span style={{ display: 'inline-block', marginTop: 6, fontSize: 10, fontWeight: 700, background: 'rgba(229,185,225,0.15)', color: C.accentPlum, border: `1px solid ${C.accentPlum}`, borderRadius: 4, padding: '2px 8px' }}>
+              PRIORITY
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Attempt Details Section */}
+      {/* Attempt Details or Home Summary */}
       {currentTab !== 'home' && currentAttempt ? (
-        <div className="p-4 border-b border-gray-200">
-          {/* Header with Priority Badge */}
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-500 tracking-wide">
-              ATTEMPT {currentAttemptNum} DETAILS
-            </h3>
-            {isPriority && (
-              <Badge className="bg-purple-500 text-white px-3 py-1">
-                PRIORITY
-              </Badge>
-            )}
-          </div>
+        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.08em', marginBottom: 14 }}>
+            ATTEMPT {currentAttemptNum} DETAILS
+          </p>
 
-          {/* Date & Time */}
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-amber-600" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(233,195,73,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Calendar style={{ width: 18, height: 18, color: C.accentGold }} />
             </div>
             <div>
-              <p className="text-xs text-gray-500 font-medium">DATE & TIME</p>
-              <p className="text-base font-semibold text-gray-900">
+              <p style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>DATE & TIME</p>
+              <p style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary }}>
                 {formatDateTime(currentAttempt.attempt_time)}
               </p>
             </div>
           </div>
 
-          {/* Status Note */}
           {currentAttempt.notes && (
-            <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Info className="w-5 h-5 text-blue-600" />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(229,185,225,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Info style={{ width: 18, height: 18, color: C.accentPlum }} />
               </div>
               <div>
-                <p className="text-xs text-gray-500 font-medium">STATUS NOTE</p>
-                <p className="text-base font-medium text-gray-900">
+                <p style={{ fontSize: 10, color: C.textMuted, fontWeight: 600 }}>STATUS NOTE</p>
+                <p style={{ fontSize: 14, fontWeight: 500, color: C.textPrimary }}>
                   {currentAttempt.notes}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Verified Badge */}
           {isVerified && (
-            <Badge className="bg-emerald-100 text-emerald-700 border border-emerald-500 px-4 py-1.5">
+            <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: C.green, border: '1px solid rgba(34,197,94,0.4)', borderRadius: 6, padding: '4px 12px' }}>
               VERIFIED
-            </Badge>
+            </span>
           )}
         </div>
       ) : (
-        /* Home Tab Content - Summary */
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-semibold text-gray-500 tracking-wide">
-              ADDRESS SUMMARY
-            </h3>
-            {isPriority && (
-              <Badge className="bg-purple-500 text-white px-3 py-1">
-                PRIORITY
-              </Badge>
-            )}
-          </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-2xl font-bold text-gray-900">{attempts.length}</p>
-              <p className="text-xs text-gray-500">Attempts Made</p>
+        <div style={{ padding: '14px 16px', borderBottom: `1px solid ${C.border}` }}>
+          <p style={{ fontSize: 11, fontWeight: 700, color: C.textMuted, letterSpacing: '0.08em', marginBottom: 14 }}>
+            ADDRESS SUMMARY
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ background: C.cardElevated, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: 24, fontWeight: 700, color: C.textPrimary }}>{attempts.length}</p>
+              <p style={{ fontSize: 11, color: C.textMuted }}>Attempts Made</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-2xl font-bold text-gray-900">
+            <div style={{ background: C.cardElevated, borderRadius: 10, padding: '12px 14px', border: `1px solid ${C.border}` }}>
+              <p style={{ fontSize: 24, fontWeight: 700, color: address.served ? C.green : C.textPrimary }}>
                 {address.served ? 'Yes' : 'No'}
               </p>
-              <p className="text-xs text-gray-500">Served</p>
+              <p style={{ fontSize: 11, color: C.textMuted }}>Served</p>
             </div>
           </div>
 
           {isVerified && (
-            <Badge className="mt-4 bg-emerald-100 text-emerald-700 border border-emerald-500 px-4 py-1.5">
+            <span style={{ display: 'inline-block', marginTop: 12, fontSize: 11, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: C.green, border: '1px solid rgba(34,197,94,0.4)', borderRadius: 6, padding: '4px 12px' }}>
               VERIFIED
-            </Badge>
+            </span>
           )}
         </div>
       )}
 
       {/* Action Buttons */}
-      <div className="p-4">
-        {/* Log Attempt - Primary */}
+      <div style={{ padding: '14px 16px' }}>
         {!address.served && (
-          <Button
+          <button
             onClick={handleLogAttempt}
-            className="w-full h-14 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-base font-bold mb-3 flex items-center justify-center gap-2"
+            style={{ width: '100%', height: 52, borderRadius: 12, background: 'rgba(249,115,22,0.20)', border: '1px solid rgba(249,115,22,0.50)', color: '#f97316', fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer', marginBottom: 10 }}
           >
-            <Zap className="w-5 h-5" />
+            <Zap style={{ width: 18, height: 18 }} />
             LOG ATTEMPT {nextAttemptNum}
-          </Button>
+          </button>
         )}
 
-        {/* Capture Evidence & Finalize Row */}
-        <div className="flex gap-3 mb-3">
-          <Button
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+          <button
             onClick={handleCaptureEvidence}
-            className="flex-1 h-14 rounded-xl bg-blue-500 hover:bg-blue-600 text-white flex flex-col items-center justify-center gap-1"
+            style={{ flex: 1, height: 52, borderRadius: 12, background: 'rgba(229,185,225,0.12)', border: `1px solid rgba(229,185,225,0.35)`, color: C.accentPlum, fontWeight: 700, fontSize: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}
           >
-            <Camera className="w-5 h-5" />
-            <span className="text-xs font-semibold">CAPTURE EVIDENCE</span>
-          </Button>
-          
-          <Button
+            <Camera style={{ width: 18, height: 18 }} />
+            CAPTURE EVIDENCE
+          </button>
+
+          <button
             onClick={handleFinalizeService}
-            className="flex-1 h-14 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white flex flex-col items-center justify-center gap-1"
+            style={{ flex: 1, height: 52, borderRadius: 12, background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.40)', color: C.green, fontWeight: 700, fontSize: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: 'pointer' }}
           >
-            <CheckCircle className="w-5 h-5" />
-            <span className="text-xs font-semibold">FINALIZE SERVICE</span>
-          </Button>
+            <CheckCircle style={{ width: 18, height: 18 }} />
+            FINALIZE SERVICE
+          </button>
         </div>
 
-        {/* Navigate Button */}
-        <Button
+        <button
           onClick={handleNavigate}
-          variant="outline"
-          className="w-full h-12 rounded-xl border-2 border-gray-200 text-orange-500 font-semibold flex items-center justify-center gap-2"
+          style={{ width: '100%', height: 48, borderRadius: 12, background: 'transparent', border: `1px solid ${C.border}`, color: C.accentGold, fontWeight: 600, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, cursor: 'pointer' }}
         >
-          <MoreVertical className="w-4 h-4 text-gray-400 absolute left-4" />
-          <Navigation className="w-5 h-5" />
+          <Navigation style={{ width: 18, height: 18 }} />
           NAVIGATE
-        </Button>
+        </button>
       </div>
     </div>
   );

@@ -50,19 +50,22 @@ export default function AddressDetail() {
 
   if (addressLoading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+      <div style={{ minHeight: '100vh', background: '#060914', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   if (!address) {
     return (
-      <div className="min-h-screen bg-gray-100 p-4">
-        <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
-          <ChevronLeft className="w-5 h-5 mr-1" /> Back
-        </Button>
-        <p className="text-center text-gray-500">Address not found</p>
+      <div style={{ minHeight: '100vh', background: '#060914', padding: 16 }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#e6e1e4', background: 'none', border: 'none', cursor: 'pointer', marginBottom: 16 }}
+        >
+          <ChevronLeft className="w-5 h-5" /> Back
+        </button>
+        <p style={{ textAlign: 'center', color: '#8a7f87' }}>Address not found</p>
       </div>
     );
   }
@@ -70,28 +73,32 @@ export default function AddressDetail() {
   // Ownership check for workers
   if (user?.role === 'server' && route && route.worker_id !== user.id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <p className="text-gray-600 mb-4">You don't have access to this address</p>
+      <div style={{ minHeight: '100vh', background: '#060914', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <p style={{ color: '#8a7f87', marginBottom: 16 }}>You don't have access to this address</p>
         <Button onClick={() => navigate(-1)}>Go Back</Button>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 pb-20">
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       {/* Header */}
-      <header className="bg-blue-500 text-white px-4 py-3 flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={handleBack} className="text-white hover:bg-blue-600">
-          <ChevronLeft className="w-6 h-6" />
-        </Button>
+      <header style={{ background: 'rgba(6,9,20,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderBottom: '1px solid rgba(255,255,255,0.08)', color: '#e6e1e4', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 50 }}>
+        <button
+          onClick={handleBack}
+          className="flex items-center justify-center w-10 h-10 rounded-lg hover:bg-white/10 active:bg-white/20 transition-colors"
+          style={{ border: '1px solid #363436', background: 'transparent', cursor: 'pointer' }}
+        >
+          <ChevronLeft className="w-6 h-6" style={{ color: '#e6e1e4' }} />
+        </button>
         <div>
-          <h1 className="font-bold text-lg">{route?.folder_name || 'Address'}</h1>
-          <p className="text-sm text-blue-100">Address Details</p>
+          <h1 className="font-bold text-lg" style={{ color: '#e6e1e4' }}>{route?.folder_name || 'Address'}</h1>
+          <p className="text-sm" style={{ color: '#8a7f87' }}>Address Details</p>
         </div>
       </header>
 
       {/* Address Detail View */}
-      <AddressDetailView 
+      <AddressDetailView
         address={address}
         routeId={routeId || address?.route_id}
         onBack={handleBack}
