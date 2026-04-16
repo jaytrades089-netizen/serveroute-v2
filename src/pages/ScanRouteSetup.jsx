@@ -172,8 +172,13 @@ export default function ScanRouteSetup() {
       const route = await base44.entities.Route.create(routeData);
       console.log('Route created', route);
 
+      // Seed route into local cache immediately so WorkerRouteDetail
+      // never shows "route not found" — cloud write already succeeded.
+      queryClient.setQueryData(['route', route.id], route);
+
       const mapquestApiKey = userSettings?.mapquest_api_key;
       let geocodedCount = 0;
+      const createdAddresses = [];
 
       for (let i = 0; i < validAddresses.length; i++) {
         const addr = validAddresses[i];
@@ -185,7 +190,7 @@ export default function ScanRouteSetup() {
           if (geoResult) { lat = geoResult.lat; lng = geoResult.lng; geocodeStatus = geoResult.status; geocodedCount++; }
           else { geocodeStatus = 'failed'; }
         }
-        await base44.entities.Address.create({
+        const createdAddr = await base44.entities.Address.create({
           company_id: getCompanyId(user),
           route_id: route.id,
           legal_address: addr.ocrRawText || addr.extractedData.fullAddress,
@@ -211,7 +216,15 @@ export default function ScanRouteSetup() {
           related_address_count: 0,
           geocode_status: geocodeStatus
         });
+        createdAddresses.push(createdAddr);
       }
+
+      // Seed addresses into local cache so tapping into the route
+      // shows the full address list instantly without a cloud fetch.
+      queryClient.setQueryData(
+        ['routeAddresses', route.id],
+        createdAddresses.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0))
+      );
 
       setCreationProgress('Finalizing...');
       if (session.dbSessionId) {
@@ -229,11 +242,10 @@ export default function ScanRouteSetup() {
       });
 
       clearScanSession(session.id);
-      await queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      await queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
-      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', route.id] });
-      await queryClient.invalidateQueries({ queryKey: ['route', route.id] });
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // refetchQueries forces an actual cloud fetch even with staleTime: Infinity.
+      // invalidateQueries alone won't refetch unless a component is subscribed.
+      await queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      await queryClient.refetchQueries({ queryKey: ['allRoutes'] });
       toast.success('Route created successfully!');
       if (isBoss) { navigate(createPageUrl('BossRoutes')); } else { navigate(createPageUrl('WorkerRoutes')); }
       return;
