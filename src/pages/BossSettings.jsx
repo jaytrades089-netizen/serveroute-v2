@@ -49,7 +49,7 @@ export default function BossSettings() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['userSettings'] });
+      queryClient.refetchQueries({ queryKey: ['userSettings'] });
       toast.success('Settings saved');
     },
     onError: (error) => {

@@ -224,8 +224,8 @@ export default function EditScheduledServe() {
         folder_name: route?.folder_name || serve?.folder_name || ''
       });
       toast.success('Scheduled serve updated');
-      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(-1);
     } catch (error) {
       console.error('Failed to update scheduled serve:', error);
@@ -242,8 +242,8 @@ export default function EditScheduledServe() {
     try {
       await base44.entities.ScheduledServe.delete(serveId);
       toast.success('Scheduled serve deleted');
-      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(-1);
     } catch (error) {
       console.error('Failed to delete:', error);

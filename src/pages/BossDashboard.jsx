@@ -145,11 +145,11 @@ export default function BossDashboard() {
       : POLLING_CONFIG.background;
 
     const pollTimer = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['allRoutes', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['allAddresses', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['pendingReceipts', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity', companyId] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers', companyId] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes', companyId] });
+      queryClient.refetchQueries({ queryKey: ['allAddresses', companyId] });
+      queryClient.refetchQueries({ queryKey: ['pendingReceipts', companyId] });
+      queryClient.refetchQueries({ queryKey: ['recentActivity', companyId] });
       setLastUpdate(new Date());
     }, interval);
 
@@ -208,8 +208,8 @@ export default function BossDashboard() {
     },
     onSuccess: (_, { action }) => {
       toast.success(action === 'pause' ? 'Worker paused' : 'Worker resumed');
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity', companyId] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers', companyId] });
+      queryClient.refetchQueries({ queryKey: ['recentActivity', companyId] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update worker status');
@@ -267,9 +267,9 @@ export default function BossDashboard() {
     },
     onSuccess: () => {
       toast.success('Route assigned');
-      queryClient.invalidateQueries({ queryKey: ['allRoutes', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['recentActivity', companyId] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes', companyId] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers', companyId] });
+      queryClient.refetchQueries({ queryKey: ['recentActivity', companyId] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to assign route');
@@ -278,7 +278,7 @@ export default function BossDashboard() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries();
+    await queryClient.refetchQueries();
     setLastUpdate(new Date());
     setTimeout(() => setRefreshing(false), 500);
   };
@@ -308,8 +308,8 @@ export default function BossDashboard() {
         toast.error(`${failCount} routes could not be assigned`);
       }
 
-      queryClient.invalidateQueries({ queryKey: ['allRoutes', companyId] });
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers', companyId] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes', companyId] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers', companyId] });
     } catch (error) {
       toast.error('Auto-assign failed');
     } finally {

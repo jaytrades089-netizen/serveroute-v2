@@ -77,8 +77,8 @@ export default function PayrollRecordDetail() {
         notes: editNotes,
         status: editStatus
       });
-      queryClient.invalidateQueries({ queryKey: ['payrollRecord', recordId] });
-      queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['payrollRecord', recordId] });
+      queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
       setEditMode(false);
       toast.success('Record updated');
     } catch (err) {
@@ -92,7 +92,7 @@ export default function PayrollRecordDetail() {
     if (!record?.id) return;
     try {
       await base44.entities.PayrollRecord.delete(record.id);
-      queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
       toast.success('Record deleted');
       navigate(-1);
     } catch (err) {

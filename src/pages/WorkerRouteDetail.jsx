@@ -73,7 +73,7 @@ export default function WorkerRouteDetail() {
     setIsRetryingGeocode(false);
     if (successCount > 0) {
       toast.success(`Geocoded ${successCount} of ${unlocated.length} addresses!`);
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       if (successCount === unlocated.length) setDismissedOptWarning(true);
     } else {
       toast.error('Could not geocode any addresses. Check the addresses are valid.');
@@ -93,7 +93,7 @@ export default function WorkerRouteDetail() {
           worker_status: 'active',
           last_active_at: new Date().toISOString()
         });
-        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        queryClient.refetchQueries({ queryKey: ['currentUser'] });
       }
     };
 
@@ -338,8 +338,8 @@ export default function WorkerRouteDetail() {
       await base44.entities.Route.update(routeId, {
         folder_name: editedFolderName.trim()
       });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       toast.success('Route renamed');
       setIsEditingName(false);
     } catch (error) {
@@ -391,9 +391,9 @@ export default function WorkerRouteDetail() {
       setLastMilestoneChecked(0);
       toast.success('Route reset successfully!');
       
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
       
     } catch (error) {
       console.error('Reset failed:', error);

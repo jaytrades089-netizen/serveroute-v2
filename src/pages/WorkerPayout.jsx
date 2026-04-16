@@ -237,7 +237,7 @@ export default function WorkerPayout() {
         await base44.entities.UserSettings.create({ user_id: user.id, payroll_turn_in_day: day });
       }
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['userSettings', user?.id] }); }
+    onSuccess: () => { queryClient.refetchQueries({ queryKey: ['userSettings', user?.id] }); }
   });
 
   const handleDayChange = (value) => {
@@ -501,8 +501,8 @@ export default function WorkerPayout() {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['allWorkerAddresses', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
       refetchHistory();
       toast.success(`Turned in ${snapshotAddresses.length} item${snapshotAddresses.length !== 1 ? 's' : ''}`);
     } finally {
@@ -557,11 +557,11 @@ export default function WorkerPayout() {
       timestamp: new Date().toISOString()
     });
 
-    queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['workerAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', address.route_id] });
-    queryClient.invalidateQueries({ queryKey: ['route', address.route_id] });
+    queryClient.refetchQueries({ queryKey: ['allWorkerAddresses'] });
+    queryClient.refetchQueries({ queryKey: ['workerAddresses'] });
+    queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+    queryClient.refetchQueries({ queryKey: ['routeAddresses', address.route_id] });
+    queryClient.refetchQueries({ queryKey: ['route', address.route_id] });
     toast.success('RTO undone — address returned to route');
   };
 

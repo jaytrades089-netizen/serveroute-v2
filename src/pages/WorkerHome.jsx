@@ -60,7 +60,7 @@ export default function WorkerHome() {
           worker_status: 'active',
           last_active_at: new Date().toISOString()
         });
-        queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+        queryClient.refetchQueries({ queryKey: ['currentUser'] });
       }
     };
 
@@ -196,7 +196,7 @@ export default function WorkerHome() {
         status: 'archived',
         archived_at: new Date().toISOString()
       });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes', user?.id] });
       toast.success(`"${route.folder_name}" archived`);
     } catch (e) {
       toast.error('Failed to archive route');
@@ -212,7 +212,7 @@ export default function WorkerHome() {
       for (const addr of routeAddresses) {
         await base44.entities.Address.update(addr.id, { deleted_at: new Date().toISOString() });
       }
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes', user?.id] });
       toast.success(`"${route.folder_name}" deleted`);
     } catch (e) {
       toast.error('Failed to delete route');

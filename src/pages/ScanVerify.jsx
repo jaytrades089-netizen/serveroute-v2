@@ -153,7 +153,7 @@ export default function ScanVerify() {
       for (const addr of verificationResults.missing) {
         await base44.entities.Address.update(addr.id, { verification_status: 'missing' });
       }
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       toast.success('Verification complete');
       navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
     } catch (error) {

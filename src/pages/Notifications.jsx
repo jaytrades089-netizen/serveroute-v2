@@ -36,8 +36,8 @@ export default function Notifications() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.refetchQueries({ queryKey: ['allNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['notifications'] });
     }
   });
 
@@ -52,8 +52,8 @@ export default function Notifications() {
       ));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.refetchQueries({ queryKey: ['allNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['notifications'] });
     }
   });
 
@@ -100,9 +100,9 @@ export default function Notifications() {
       });
 
       toast.success(`You've joined ${boss.full_name}'s team!`);
-      queryClient.invalidateQueries({ queryKey: ['allNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      queryClient.invalidateQueries({ queryKey: ['currentUser'] });
+      queryClient.refetchQueries({ queryKey: ['allNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['notifications'] });
+      queryClient.refetchQueries({ queryKey: ['currentUser'] });
     } catch (error) {
       toast.error(error.message || 'Failed to accept invitation');
     }
@@ -119,8 +119,8 @@ export default function Notifications() {
       });
 
       toast.success('Invitation declined');
-      queryClient.invalidateQueries({ queryKey: ['allNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.refetchQueries({ queryKey: ['allNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['notifications'] });
     } catch (error) {
       toast.error(error.message || 'Failed to decline invitation');
     }

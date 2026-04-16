@@ -159,7 +159,10 @@ export default function RouteHandoff() {
     },
     onSuccess: () => {
       toast.success('Route reassigned successfully');
-      queryClient.invalidateQueries();
+      // Bare refetchQueries() forces all cached queries to re-fetch from cloud.
+      // This is the nuclear option but correct here — a handoff changes route
+      // ownership which affects every list view.
+      queryClient.refetchQueries();
       navigate(createPageUrl('BossDashboard'));
     },
     onError: (error) => {

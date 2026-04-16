@@ -90,7 +90,7 @@ export default function UnassignRoute() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
       toast.success('Route unassigned');
       navigate(createPageUrl('BossRoutes'));
     }

@@ -55,7 +55,7 @@ export default function WorkerRoutes() {
       }
       
       toast.success(`"${route.folder_name}" deleted`);
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
     } catch (error) {
       console.error('Failed to delete route:', error);
       toast.error('Failed to delete route');
@@ -94,7 +94,7 @@ export default function WorkerRoutes() {
         });
         toast.success(`"${route.folder_name}" archived`);
       }
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
     } catch (error) {
       console.error('Failed to archive route:', error);
       toast.error('Failed to archive route');

@@ -128,8 +128,8 @@ export default function BossRoutes() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
       toast.success('Route deleted');
     }
   });

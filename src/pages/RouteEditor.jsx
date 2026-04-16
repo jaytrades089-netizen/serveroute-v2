@@ -220,8 +220,8 @@ export default function RouteEditor() {
     },
     onSuccess: () => {
       toast.success('Route finalized and ready for assignment');
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       navigate(createPageUrl('BossRoutes'));
     },
     onError: (error) => {
