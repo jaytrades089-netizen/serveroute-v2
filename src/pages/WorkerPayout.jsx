@@ -6,7 +6,8 @@ import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
 import Header from '../components/layout/Header';
 import BottomNav from '../components/layout/BottomNav';
-import { Loader2, DollarSign, Clock, Calendar, RotateCcw, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2 } from 'lucide-react';
+import { Loader2, DollarSign, Clock, Calendar, RotateCcw, ArrowRight, ChevronRight, FileText as FileTextIcon, Undo2, Pencil, X } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -197,12 +198,73 @@ function SnapshotCard({ item, number }) {
   );
 }
 
+// ─── Adjust Amount Modal ──────────────────────────────────────────────────────
+function AdjustAmountModal({ open, onClose, label, currentAmount, onSave }) {
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setAmount(currentAmount.toFixed(2));
+      setNote('');
+    }
+  }, [open, currentAmount]);
+
+  const handleSave = () => {
+    const parsed = parseFloat(amount);
+    if (isNaN(parsed) || parsed < 0) { return; }
+    onSave(parsed, note.trim());
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent
+        style={{ background: '#201f21', border: '1px solid #363436', color: '#e6e1e4', maxWidth: 340 }}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <div style={{ padding: '4px 0' }}>
+          <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Adjust {label}</h3>
+          <label style={{ fontSize: 10, fontWeight: 600, color: '#8a7f87', display: 'block', marginBottom: 4 }}>AMOUNT</label>
+          <div style={{ position: 'relative', marginBottom: 12 }}>
+            <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#8a7f87', fontSize: 16 }}>$</span>
+            <input
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              style={{ width: '100%', background: '#1c1b1d', border: '1px solid #363436', borderRadius: 8, padding: '10px 12px 10px 28px', color: '#e6e1e4', fontSize: 18, fontWeight: 700, outline: 'none' }}
+            />
+          </div>
+          <label style={{ fontSize: 10, fontWeight: 600, color: '#8a7f87', display: 'block', marginBottom: 4 }}>REASON (optional)</label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Why is the amount different?"
+            rows={2}
+            style={{ width: '100%', background: '#1c1b1d', border: '1px solid #363436', borderRadius: 8, padding: '8px 12px', color: '#e6e1e4', fontSize: 13, resize: 'none', outline: 'none' }}
+          />
+          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+            <button onClick={onClose} style={{ flex: 1, padding: '10px', borderRadius: 8, background: 'transparent', border: '1px solid #363436', color: '#8a7f87', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={handleSave} style={{ flex: 1, padding: '10px', borderRadius: 8, background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Save</button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function WorkerPayout() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState(3);
   const [activeTab, setActiveTab] = useState('served');
   const [isTurningIn, setIsTurningIn] = useState(false);
+  const [servedAdjustment, setServedAdjustment] = useState(null); // { amount, note } or null
+  const [mailedAdjustment, setMailedAdjustment] = useState(null);
+  const [editingBox, setEditingBox] = useState(null); // 'served' | 'mailed' | null
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery({
@@ -423,7 +485,11 @@ export default function WorkerPayout() {
   const pendingRTOTotal = pendingRTOs.reduce((sum, a) => sum + (a.amount || 0), 0);
   const mailedTotal = pendingTotal; // last period's mailed paperwork (non-RTO)
   const rtoSummaryTotal = pendingRTOTotal + currentRTOsTotal; // RTO summary combines last-period + current
-  const turnInAmount = instantTotal + mailedTotal + pendingRTOTotal;
+
+  // Display totals — use adjusted amounts if set, otherwise computed
+  const displayServedTotal = servedAdjustment !== null ? servedAdjustment.amount : instantTotal;
+  const displayMailedTotal = mailedAdjustment !== null ? mailedAdjustment.amount : (mailedTotal + pendingRTOTotal);
+  const turnInAmount = displayServedTotal + (mailedAdjustment !== null ? mailedAdjustment.amount : (mailedTotal + pendingRTOTotal));
 
   const isLoading = addressesLoading;
 
@@ -463,9 +529,9 @@ export default function WorkerPayout() {
         }))
       ];
 
-      // Period is the 7 days ENDING at the moment of Turn In.
+      // Period starts at last turn-in (or 30 days back if first ever turn-in)
       const periodEnd = now;
-      const periodStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const periodStart = lastTurnInAt || new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
       const newRecord = await base44.entities.PayrollRecord.create({
         user_id: user.id,
@@ -473,10 +539,16 @@ export default function WorkerPayout() {
         period_start: periodStart.toISOString(),
         period_end: periodEnd.toISOString(),
         turn_in_date: now.toISOString(),
-        instant_total: instantTotal,
-        pending_total: 0,
+        instant_total: displayServedTotal,
+        pending_total: mailedTotal,
+        mailed_total: mailedTotal,
+        prev_rto_total: pendingRTOTotal,
         rto_total: rtoTotal,
-        total_amount: instantTotal + rtoTotal,
+        total_amount: turnInAmount,
+        served_adjustment: servedAdjustment ? servedAdjustment.amount : null,
+        served_adjustment_note: servedAdjustment ? servedAdjustment.note : null,
+        mailed_adjustment: mailedAdjustment ? mailedAdjustment.amount : null,
+        mailed_adjustment_note: mailedAdjustment ? mailedAdjustment.note : null,
         address_count: snapshotAddresses.length,
         snapshot_data: JSON.stringify(snapshotAddresses),
         status: 'saved',
@@ -500,6 +572,10 @@ export default function WorkerPayout() {
           );
         }
       }
+
+      // Reset adjustments after turn-in
+      setServedAdjustment(null);
+      setMailedAdjustment(null);
 
       queryClient.refetchQueries({ queryKey: ['allWorkerAddresses', user?.id] });
       queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
@@ -648,29 +724,37 @@ export default function WorkerPayout() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
-          <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+          <div
+            onClick={() => setEditingBox('served')}
+            style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', position: 'relative' }}
+          >
+            <Pencil size={10} style={{ position: 'absolute', top: 8, right: 8, color: C.textMuted }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
               <DollarSign size={13} color={C.accentGold} />
               <span style={{ color: C.accentGold, fontSize: 11, fontWeight: 600 }}>Served/Posted</span>
             </div>
             <p style={{ color: C.accentGold, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
-              ${instantTotal.toFixed(2)}
+              ${displayServedTotal.toFixed(2)}{servedAdjustment !== null ? ' *' : ''}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {instantPayouts.length} item{instantPayouts.length !== 1 ? 's' : ''} served/posted
+              {instantPayouts.length} item{instantPayouts.length !== 1 ? 's' : ''}{servedAdjustment !== null ? ' · Adjusted' : ''}
             </p>
           </div>
 
-          <div style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px' }}>
+          <div
+            onClick={() => setEditingBox('mailed')}
+            style={{ background: C.cardElevated, border: `1px solid ${C.border}`, borderRadius: 14, padding: '12px 14px', cursor: 'pointer', position: 'relative' }}
+          >
+            <Pencil size={10} style={{ position: 'absolute', top: 8, right: 8, color: C.textMuted }} />
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
               <Clock size={13} color={C.accentPlum} />
               <span style={{ color: C.accentPlum, fontSize: 11, fontWeight: 600 }}>Mailed in</span>
             </div>
             <p style={{ color: C.accentPlum, fontSize: 20, fontWeight: 700, marginBottom: 2 }}>
-              ${(mailedTotal + pendingRTOTotal).toFixed(2)}
+              ${displayMailedTotal.toFixed(2)}{mailedAdjustment !== null ? ' *' : ''}
             </p>
             <p style={{ color: C.textMuted, fontSize: 11 }}>
-              {mailedItems.length} mailed{rtoSummaryTotal > 0 ? ` · ${pendingRTOs.length + currentRTOs.length} RTO` : ''}
+              {mailedItems.length} mailed{rtoSummaryTotal > 0 ? ` · ${pendingRTOs.length + currentRTOs.length} RTO` : ''}{mailedAdjustment !== null ? ' · Adjusted' : ''}
             </p>
           </div>
         </div>
@@ -868,6 +952,32 @@ export default function WorkerPayout() {
           </div>
         )}
       </main>
+
+      {/* Adjust Amount Modals */}
+      <AdjustAmountModal
+        open={editingBox === 'served'}
+        onClose={() => setEditingBox(null)}
+        label="Served/Posted"
+        currentAmount={servedAdjustment !== null ? servedAdjustment.amount : instantTotal}
+        onSave={(amount, note) => {
+          if (amount === instantTotal && !note) { setServedAdjustment(null); }
+          else { setServedAdjustment({ amount, note }); }
+          setEditingBox(null);
+          toast.success('Amount updated');
+        }}
+      />
+      <AdjustAmountModal
+        open={editingBox === 'mailed'}
+        onClose={() => setEditingBox(null)}
+        label="Mailed In"
+        currentAmount={mailedAdjustment !== null ? mailedAdjustment.amount : (mailedTotal + pendingRTOTotal)}
+        onSave={(amount, note) => {
+          if (amount === (mailedTotal + pendingRTOTotal) && !note) { setMailedAdjustment(null); }
+          else { setMailedAdjustment({ amount, note }); }
+          setEditingBox(null);
+          toast.success('Amount updated');
+        }}
+      />
 
       <BottomNav currentPage="WorkerRoutes" />
     </div>
