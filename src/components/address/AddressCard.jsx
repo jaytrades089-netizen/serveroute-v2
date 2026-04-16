@@ -125,14 +125,14 @@ export default function AddressCard({
 
   const invalidateAttemptQueries = () => {
     if (comboRouteIds) {
-      queryClient.invalidateQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] });
-      queryClient.invalidateQueries({ queryKey: ['comboDetailAddresses', comboRouteIds] });
+      queryClient.refetchQueries({ queryKey: ['comboDetailAttempts', comboRouteIds] });
+      queryClient.refetchQueries({ queryKey: ['comboDetailAddresses', comboRouteIds] });
     }
-    queryClient.invalidateQueries({ queryKey: ['routeAttempts', actualRouteId] });
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', actualRouteId] });
+    queryClient.refetchQueries({ queryKey: ['routeAttempts', actualRouteId] });
+    queryClient.refetchQueries({ queryKey: ['routeAddresses', actualRouteId] });
     if (routeId !== actualRouteId) {
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
     }
   };
 
@@ -394,7 +394,7 @@ export default function AddressCard({
         timestamp: now.toISOString()
       });
       invalidateAttemptQueries();
-      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
+      queryClient.refetchQueries({ queryKey: ['address', address.id] });
     } catch (error) {
       console.error('Failed to log attempt:', error);
       toast.error('Failed to log attempt');
@@ -435,9 +435,9 @@ export default function AddressCard({
       if (onServed) onServed();
       toast.success('Posting completed! ✓');
       invalidateAttemptQueries();
-      queryClient.invalidateQueries({ queryKey: ['address', address.id] });
-      queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+      queryClient.refetchQueries({ queryKey: ['address', address.id] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
     } catch (error) {
       console.error('Failed to finalize posting:', error);
       toast.error('Failed to complete posting');
@@ -529,8 +529,8 @@ export default function AddressCard({
       }
       toast.success('Address deleted');
       invalidateAttemptQueries();
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['route', actualRouteId] });
     } catch (error) {
       console.error('Failed to delete address:', error);
       toast.error('Failed to delete address');
@@ -550,7 +550,7 @@ export default function AddressCard({
       });
       setIsEditing(false);
       toast.success('Address updated');
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
     } catch (error) {
       console.error('Failed to update address:', error);
       toast.error('Failed to save changes');
@@ -621,7 +621,7 @@ export default function AddressCard({
       });
       toast.success('Reply sent');
       setWorkerReplyText('');
-      queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
+      queryClient.refetchQueries({ queryKey: ['attemptRequest', address.id] });
     } catch (error) {
       toast.error('Failed to send reply');
     }
@@ -1034,8 +1034,8 @@ export default function AddressCard({
                   }
                   toast.success('Address marked as not served');
                   invalidateAttemptQueries();
-                  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-                  queryClient.invalidateQueries({ queryKey: ['route', actualRouteId] });
+                  queryClient.refetchQueries({ queryKey: ['route', routeId] });
+                  queryClient.refetchQueries({ queryKey: ['route', actualRouteId] });
                 } catch (error) {
                   console.error('Failed to unserve:', error);
                   toast.error('Failed to update address');

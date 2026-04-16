@@ -80,8 +80,8 @@ export default function BossAddAttemptPanel({
       });
 
       toast.success(`Attempt ${attemptNumber} added`);
-      queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       onClose();
     } catch (error) {
       console.error('Failed to create attempt:', error);

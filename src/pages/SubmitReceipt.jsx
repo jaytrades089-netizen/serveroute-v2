@@ -111,15 +111,15 @@ export default function SubmitReceipt() {
   const queryClient = useQueryClient();
   
   const handleSuccess = (receipt) => {
-    // Invalidate address and route caches so the card moves to completed section immediately
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['routeAttempts', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['scheduledServesCountBadge', routeId] });
-    queryClient.invalidateQueries({ queryKey: ['comboDetailAddresses'] });
-    queryClient.invalidateQueries({ queryKey: ['comboDetailAttempts'] });
+    // Refetch address and route caches so the card moves to completed section immediately
+    queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+    queryClient.refetchQueries({ queryKey: ['route', routeId] });
+    queryClient.refetchQueries({ queryKey: ['routeAttempts', routeId] });
+    queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+    queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
+    queryClient.refetchQueries({ queryKey: ['scheduledServesCountBadge', routeId] });
+    queryClient.refetchQueries({ queryKey: ['comboDetailAddresses'] });
+    queryClient.refetchQueries({ queryKey: ['comboDetailAttempts'] });
     
     // If coming from combo route, return there — never navigate to sub-folder
     if (returnTo) {

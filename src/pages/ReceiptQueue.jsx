@@ -77,7 +77,7 @@ export default function ReceiptQueue() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+    await queryClient.refetchQueries({ queryKey: ['receiptQueue'] });
     setTimeout(() => setRefreshing(false), 500);
   };
 

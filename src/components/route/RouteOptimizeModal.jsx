@@ -162,7 +162,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       const shuffledOrder = shuffled.map(a => a.id);
       await base44.entities.Route.update(routeId, { optimized_order: shuffledOrder });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
-      await queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+      await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
       setIsOptimized(false);
       setRouteMetrics(null);
       toast.success('Addresses shuffled!');
@@ -454,7 +454,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         queryClient.refetchQueries({ queryKey: ['route', routeId] }),
         queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] })
       ]);
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
 
       toast.success('Route optimized! Review metrics below.');
 
@@ -491,7 +491,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       });
       await queryClient.refetchQueries({ queryKey: ['route', routeId] });
       await queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
       toast.success('Route started!');
       if (onOptimized) onOptimized();
     } catch (error) {

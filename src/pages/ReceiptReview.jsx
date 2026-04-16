@@ -147,8 +147,8 @@ export default function ReceiptReview() {
     },
     onSuccess: () => {
       toast.success('Receipt approved');
-      queryClient.invalidateQueries({ queryKey: ['receipt'] });
-      queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+      queryClient.refetchQueries({ queryKey: ['receipt'] });
+      queryClient.refetchQueries({ queryKey: ['receiptQueue'] });
       navigate(createPageUrl('ReceiptQueue'));
     },
     onError: (error) => {
@@ -198,8 +198,8 @@ export default function ReceiptReview() {
     onSuccess: () => {
       toast.success('Receipt rejected');
       setRejectDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['receipt'] });
-      queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+      queryClient.refetchQueries({ queryKey: ['receipt'] });
+      queryClient.refetchQueries({ queryKey: ['receiptQueue'] });
       navigate(createPageUrl('ReceiptQueue'));
     },
     onError: (error) => {
@@ -249,8 +249,8 @@ export default function ReceiptReview() {
     onSuccess: () => {
       toast.success('Revision requested');
       setRevisionDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['receipt'] });
-      queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+      queryClient.refetchQueries({ queryKey: ['receipt'] });
+      queryClient.refetchQueries({ queryKey: ['receiptQueue'] });
       navigate(createPageUrl('ReceiptQueue'));
     },
     onError: (error) => {
@@ -288,8 +288,8 @@ export default function ReceiptReview() {
     onSuccess: () => {
       toast.success('Receipt deleted');
       setDeleteDialogOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['receipt'] });
-      queryClient.invalidateQueries({ queryKey: ['receiptQueue'] });
+      queryClient.refetchQueries({ queryKey: ['receipt'] });
+      queryClient.refetchQueries({ queryKey: ['receiptQueue'] });
       navigate(createPageUrl('ReceiptQueue'));
     },
     onError: (error) => {

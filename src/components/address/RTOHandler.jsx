@@ -107,11 +107,11 @@ export async function handleRTO({
     });
   }
   
-  // Invalidate queries
-  queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-  queryClient.invalidateQueries({ queryKey: ['route', routeId] });
-  queryClient.invalidateQueries({ queryKey: ['scheduledServes', routeId] });
-  queryClient.invalidateQueries({ queryKey: ['scheduledServesCount', routeId] });
+  // Refetch queries
+  queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+  queryClient.refetchQueries({ queryKey: ['route', routeId] });
+  queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+  queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
   
   toast.success('Address marked as RTO');
 }

@@ -74,8 +74,8 @@ export default function BossRequestAttemptPanel({
       });
 
       toast.success(`Request sent: ${qualifiers.join(' + ')}`);
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['attemptRequest', address.id] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['attemptRequest', address.id] });
       onClose();
     } catch (error) {
       console.error('Failed to create request:', error);
