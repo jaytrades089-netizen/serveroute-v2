@@ -6,7 +6,7 @@ import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search, RefreshCw } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import { geocodeAddress } from '@/components/services/OptimizationService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ import RouteOptimizeModal from '@/components/route/RouteOptimizeModal';
 import DesktopWarningBanner from '@/components/common/DesktopWarningBanner';
 import ScheduledServesTab from '@/components/scheduled/ScheduledServesTab';
 import StopRouteModal from '@/components/route/StopRouteModal';
+import MoveAddressesModal from '@/components/route/MoveAddressesModal';
 import { Input } from '@/components/ui/input';
 
 export default function WorkerRouteDetail() {
@@ -50,6 +51,9 @@ export default function WorkerRouteDetail() {
   const [dismissedOptWarning, setDismissedOptWarning] = useState(false);
   const [isRetryingGeocode, setIsRetryingGeocode] = useState(false);
   const [isResettingRoute, setIsResettingRoute] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showMoveModal, setShowMoveModal] = useState(false);
 
   const handleRetryGeocode = async () => {
     const unlocated = addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng));
@@ -458,6 +462,33 @@ export default function WorkerRouteDetail() {
           )}
         </div>
 
+        <div className="flex items-center gap-2">
+          {selectMode && (
+            <button
+              onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold"
+              style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.35)', color: '#ef4444' }}
+            >Cancel</button>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 rounded-lg hover:bg-white/10" style={{ color: '#9CA3AF' }}>
+                <MoreVertical className="w-5 h-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setSelectMode(true); setSelectedIds(new Set()); }}>
+                <ArrowRightLeft className="w-4 h-4 mr-2" />Select &amp; Move
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}&edit=true`))}>
+                <Pencil className="w-4 h-4 mr-2" />Edit Mode
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleResetAllAttempts} className="text-red-600 focus:text-red-600">
+                <RotateCcw className="w-4 h-4 mr-2" />Reset All Attempts
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
@@ -772,6 +803,63 @@ export default function WorkerRouteDetail() {
           <div className="flex justify-center py-8">
             <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#e9c349' }} />
           </div>
+        ) : selectMode ? (
+          /* SELECT MODE — show checkboxes instead of full address cards */
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-bold" style={{ color: '#e9c349' }}>Tap addresses to select</p>
+              <button
+                onClick={() => {
+                  if (selectedIds.size === addresses.length) setSelectedIds(new Set());
+                  else setSelectedIds(new Set(addresses.filter(a => !a.served).map(a => a.id)));
+                }}
+                className="text-xs font-semibold px-2 py-1 rounded"
+                style={{ color: '#e9c349', background: 'rgba(233,195,73,0.12)' }}
+              >
+                {selectedIds.size === addresses.filter(a => !a.served).length ? 'Deselect All' : 'Select All Pending'}
+              </button>
+            </div>
+            {sortedAddresses.map(addr => {
+              const isSelected = selectedIds.has(addr.id);
+              return (
+                <div
+                  key={addr.id}
+                  onClick={() => {
+                    setSelectedIds(prev => {
+                      const next = new Set(prev);
+                      if (next.has(addr.id)) next.delete(addr.id);
+                      else next.add(addr.id);
+                      return next;
+                    });
+                  }}
+                  className="flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                  style={{
+                    background: isSelected ? 'rgba(233,195,73,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: isSelected ? '2px solid rgba(233,195,73,0.50)' : '1px solid rgba(255,255,255,0.10)'
+                  }}
+                >
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: isSelected ? '#e9c349' : 'rgba(255,255,255,0.08)',
+                      border: isSelected ? 'none' : '1px solid rgba(255,255,255,0.20)'
+                    }}
+                  >
+                    {isSelected && <Check className="w-4 h-4" style={{ color: '#0F0B10' }} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold truncate" style={{ color: addr.served ? '#6B7280' : '#e6e1e4' }}>
+                      {addr.normalized_address || addr.legal_address}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs" style={{ color: '#6B7280' }}>
+                      {addr.defendant_name && <span className="truncate">{addr.defendant_name}</span>}
+                      {addr.served && <span style={{ color: '#22c55e' }}>Served</span>}
+                      {addr.status === 'returned' && <span style={{ color: '#c97070' }}>RTO</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <AnimatedAddressList
             addresses={searchFilter ? sortedAddresses.filter(a => a.id === searchFilter) : sortedAddresses}
@@ -797,6 +885,31 @@ export default function WorkerRouteDetail() {
           user={user}
         />
       </main>
+
+      {/* Select Mode Bottom Bar */}
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3" style={{ background: 'rgba(6,9,20,0.95)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', borderTop: '1px solid rgba(233,195,73,0.30)' }}>
+          <button
+            onClick={() => setShowMoveModal(true)}
+            className="w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"
+            style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+          >
+            <ArrowRightLeft className="w-4 h-4" />
+            Move {selectedIds.size} Address{selectedIds.size !== 1 ? 'es' : ''}
+          </button>
+        </div>
+      )}
+
+      {showMoveModal && (
+        <MoveAddressesModal
+          open={showMoveModal}
+          onClose={() => { setShowMoveModal(false); setSelectMode(false); setSelectedIds(new Set()); }}
+          selectedAddresses={addresses.filter(a => selectedIds.has(a.id))}
+          sourceRouteId={routeId}
+          sourceRoute={route}
+          user={user}
+        />
+      )}
 
       {showStopModal && (
         <StopRouteModal
