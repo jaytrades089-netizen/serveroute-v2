@@ -108,8 +108,9 @@ export default function EditRoute() {
       });
 
       toast.success('Route updated successfully!');
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
       
       // Navigate back
       const isBoss = user.role === 'boss' || user.role === 'admin';

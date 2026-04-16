@@ -145,8 +145,9 @@ export default function EditAddress() {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['address'] });
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['address'] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses'] });
       toast.success('Address updated');
       navigate(-1);
     },

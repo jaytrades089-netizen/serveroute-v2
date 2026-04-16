@@ -140,7 +140,7 @@ export default function AssignRoute() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
       toast.success('Route assigned successfully');
       navigate(createPageUrl('BossRoutes'));
     }

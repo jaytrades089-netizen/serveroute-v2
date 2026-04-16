@@ -198,8 +198,8 @@ export default function WorkerComboRouteDetail() {
       // Mark combo as completed instead of deleting — preserves history
       await base44.entities.ComboRoute.update(comboId, { status: 'completed' });
 
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['activeComboRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['activeComboRoutes'] });
       toast.success('Combo route stopped. Routes returned to folders.');
       navigate(createPageUrl('WorkerRoutes'));
     } catch (error) {

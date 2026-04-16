@@ -65,8 +65,10 @@ export default function CreateRoute() {
     },
     onSuccess: (newRoute) => {
       toast.success('Route created');
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
+      // refetchQueries forces actual cloud fetch even with staleTime: Infinity.
+      // invalidateQueries alone won't refetch since WorkerRoutes isn't mounted.
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
       navigate(createPageUrl(`RouteEditor?id=${newRoute.id}`));
     },
     onError: (error) => {
