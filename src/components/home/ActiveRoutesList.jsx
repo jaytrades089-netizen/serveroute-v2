@@ -56,17 +56,31 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
       return dateA - dateB;
     });
 
-  const qualifierSortScore = (qualifiers = []) => {
-    const qs = qualifiers.map(q => q.toLowerCase());
+  // Start-minute-of-day for a route based on its qualifiers. Used to merge
+  // routes + scheduled serves into a single per-day timeline sorted by real
+  // start time (AM route @ 8:00 → scheduled serve @ 3:00 PM → PM route @ 5:00 PM).
+  // Windows are hardcoded for now; TODO: make configurable per jurisdiction when
+  // the settings module lands (some courts use different AM/PM windows).
+  const getRouteStartMinutes = (qualifiers = []) => {
+    const qs = (qualifiers || []).map(q => String(q).toLowerCase());
     const hasAM = qs.includes('am');
     const hasPM = qs.includes('pm');
     const hasWKND = qs.includes('weekend');
-    if (hasAM && hasWKND) return 0;
-    if (hasAM) return 1;
-    if (hasWKND && !hasPM) return 2;
-    if (hasPM && hasWKND) return 3;
-    if (hasPM) return 4;
-    return 5;
+    // Anything with AM starts at 8:00 (AM + WKND is still an 8am start).
+    if (hasAM) return 8 * 60;              // 480
+    // Weekend-only (no AM, no PM) is one continuous 8am–9pm block — sort by start.
+    if (hasWKND && !hasPM) return 8 * 60;  // 480
+    // PM (with or without weekend) starts at 5:00 PM.
+    if (hasPM) return 17 * 60;             // 1020
+    return 24 * 60 - 1;                    // 1439 — sinks to end of day
+  };
+
+  // Start-minute-of-day for a scheduled serve, in the user's local timezone.
+  const getServeStartMinutes = (scheduledDatetime) => {
+    if (!scheduledDatetime) return 24 * 60 - 1;
+    const dt = new Date(scheduledDatetime);
+    if (isNaN(dt.getTime())) return 24 * 60 - 1;
+    return dt.getHours() * 60 + dt.getMinutes();
   };
 
   // Build route groups by run_date
@@ -487,10 +501,34 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
                       <Calendar className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
                       <span className="text-sm font-bold truncate" style={{ color: '#e9c349' }}>{dayLabel}</span>
                     </div>
-                    {[...routesInGroup].sort((a, b) => qualifierSortScore(a.run_qualifiers) - qualifierSortScore(b.run_qualifiers)).map(route => renderRouteCard(route))}
-                    {servesInGroup.map(s => (
-                      <ScheduledServeCard key={s.id} serve={s} />
-                    ))}
+                    {/* Unified per-day timeline: routes + scheduled serves, sorted by
+                        start-minute of the day. Tie-break: routes before serves at the
+                        same minute, then creation order. */}
+                    {(() => {
+                      const timeline = [
+                        ...routesInGroup.map(r => ({
+                          kind: 'route',
+                          item: r,
+                          sortMinutes: getRouteStartMinutes(r.run_qualifiers),
+                          createdAt: r.created_date ? new Date(r.created_date).getTime() : 0
+                        })),
+                        ...servesInGroup.map(s => ({
+                          kind: 'serve',
+                          item: s,
+                          sortMinutes: getServeStartMinutes(s.scheduled_datetime),
+                          createdAt: s.created_date ? new Date(s.created_date).getTime() : 0
+                        }))
+                      ].sort((a, b) => {
+                        if (a.sortMinutes !== b.sortMinutes) return a.sortMinutes - b.sortMinutes;
+                        if (a.kind !== b.kind) return a.kind === 'route' ? -1 : 1;
+                        return a.createdAt - b.createdAt;
+                      });
+                      return timeline.map(entry =>
+                        entry.kind === 'route'
+                          ? renderRouteCard(entry.item)
+                          : <ScheduledServeCard key={entry.item.id} serve={entry.item} />
+                      );
+                    })()}
                   </div>
                 );
               })}
