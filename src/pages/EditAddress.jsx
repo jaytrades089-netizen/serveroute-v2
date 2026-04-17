@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
 import BossBottomNav from '../components/boss/BossBottomNav';
+import { splitFullAddress } from '@/components/utils/addressUtils';
 
 const US_STATES = [
   'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
@@ -69,17 +70,15 @@ export default function EditAddress() {
 
   useEffect(() => {
     if (address) {
-      // Parse the address if it's a full string
-      const parts = address.normalized_address?.split(',') || [];
-      const streetAddress = parts[0]?.trim() || '';
-      const cityStateZip = parts[1]?.trim() || '';
-      const stateZip = parts[2]?.trim() || '';
-      
+      // AUTO-CLEAN ON LOAD: parse out any city/state/zip that ended up stuck in
+      // normalized_address on legacy records. Entity fields win when present.
+      const parsed = splitFullAddress(address.normalized_address || address.legal_address || '');
+
       setForm({
-        address: streetAddress || address.legal_address,
-        city: address.city || cityStateZip,
-        state: address.state || (stateZip.split(' ')[0] || 'MI'),
-        zip: address.zip || (stateZip.split(' ')[1] || ''),
+        address: parsed.street || address.legal_address || '',
+        city: address.city || parsed.city || '',
+        state: address.state || parsed.state || 'MI',
+        zip: address.zip || parsed.zip || '',
         serve_type: address.serve_type || 'serve'
       });
       setOriginalAddress(address.normalized_address || address.legal_address);
@@ -88,11 +87,14 @@ export default function EditAddress() {
 
   const updateAddressMutation = useMutation({
     mutationFn: async (addressData) => {
+      // CLEAN WRITE: normalized_address holds street-only. City/state/zip live in
+      // their own columns. Build a display-only fullAddress for re-geocode
+      // comparison and the audit-log, but do NOT save that back to the street field.
       const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.state} ${addressData.zip}`;
       const addressChanged = fullAddress !== originalAddress;
-      
+
       const updateData = {
-        normalized_address: fullAddress,
+        normalized_address: addressData.address,
         city: addressData.city,
         state: addressData.state,
         zip: addressData.zip,

@@ -57,7 +57,7 @@ import EvidenceCommentModal from './EvidenceCommentModal';
 import PhotoViewer from './PhotoViewer';
 import RTOModal from './RTOModal';
 import { getCompanyId } from '@/components/utils/companyUtils';
-import { formatAddress as formatAddressUtil } from '@/components/utils/addressUtils';
+import { formatAddress as formatAddressUtil, splitFullAddress } from '@/components/utils/addressUtils';
 import { handleRTO as executeRTO } from './RTOHandler';
 import BossAddAttemptPanel from './BossAddAttemptPanel';
 import BossRequestAttemptPanel from './BossRequestAttemptPanel';
@@ -114,12 +114,20 @@ export default function AddressCard({
   const [isEditing, setIsEditing] = useState(false);
   const [showRTOModal, setShowRTOModal] = useState(false);
   const [savingRTO, setSavingRTO] = useState(false);
+  // AUTO-CLEAN ON EDIT: if the stored normalized_address contains city/state/zip
+  // junk (legacy dirty data), parse it out so the form shows clean values.
+  // Entity fields (address.city, address.state, address.zip) win when present;
+  // we only fall back to parsed values if the entity fields are empty.
+  const parsedStored = React.useMemo(
+    () => splitFullAddress(address.normalized_address || address.legal_address || ''),
+    [address.normalized_address, address.legal_address]
+  );
   const [editFields, setEditFields] = useState({
     defendant_name: address.defendant_name || '',
-    normalized_address: address.normalized_address || address.legal_address || '',
-    city: address.city || '',
-    state: address.state || '',
-    zip: address.zip || '',
+    normalized_address: parsedStored.street || address.normalized_address || address.legal_address || '',
+    city: address.city || parsedStored.city || '',
+    state: address.state || parsedStored.state || '',
+    zip: address.zip || parsedStored.zip || '',
     serve_type: address.serve_type || 'serve'
   });
 

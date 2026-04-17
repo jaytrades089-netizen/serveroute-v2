@@ -34,6 +34,7 @@ import {
   clearScanSession,
   generateNormalizedKey
 } from '@/components/scanning/ScanningService';
+import { parseStreetOnly } from '@/components/utils/addressUtils';
 
 const ATTEMPT_OPTIONS = [3, 5, 7];
 const SPREAD_OPTIONS = [10, 14, 21];
@@ -194,7 +195,9 @@ export default function ScanRouteSetup() {
           company_id: getCompanyId(user),
           route_id: route.id,
           legal_address: addr.ocrRawText || addr.extractedData.fullAddress,
-          normalized_address: addr.extractedData.fullAddress,
+          // ROOT CAUSE FIX: strip city/state/zip out of the street field so it
+          // stays clean. City/state/zip are saved to their own columns below.
+          normalized_address: parseStreetOnly(addr.extractedData.fullAddress),
           city: addr.extractedData.city,
           state: addr.extractedData.state,
           zip: addr.extractedData.zip,

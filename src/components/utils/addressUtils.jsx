@@ -77,6 +77,97 @@ export function generateNormalizedKey(address) {
 }
 
 /**
+ * Parse a full address string and return ONLY the street portion.
+ * Handles the common dirty-data case where the whole address ended up in the
+ * street field: "782 ABBEY LN, Milford, MI 48381" → "782 ABBEY LN".
+ *
+ * Strategy:
+ *  1. If there's a comma, take everything before the first comma.
+ *  2. Otherwise, if there's a state+zip pattern (e.g. "MI 48381"), take
+ *     everything before that pattern.
+ *  3. Otherwise, return the input unchanged (already clean, or nothing to parse).
+ *
+ * Apartment/unit suffixes attached to the street (e.g. "LN #407", "LN APT 4")
+ * stay with the street because they live before the first comma.
+ *
+ * @param {string} str - raw address string
+ * @returns {string} street-only portion, trimmed
+ */
+export function parseStreetOnly(str) {
+  if (!str || typeof str !== 'string') return '';
+  const trimmed = str.trim();
+  if (!trimmed) return '';
+
+  // Preferred: split on the first comma.
+  const commaIdx = trimmed.indexOf(',');
+  if (commaIdx !== -1) {
+    return trimmed.slice(0, commaIdx).trim();
+  }
+
+  // Fallback: look for a " [STATE] [ZIP]" tail, strip it off.
+  // Matches "MI 48381", "Mi 48381-1234", etc.
+  const stateZipMatch = trimmed.match(/\s+[A-Za-z]{2}\s+\d{5}(-\d{4})?\s*$/);
+  if (stateZipMatch) {
+    return trimmed.slice(0, stateZipMatch.index).trim();
+  }
+
+  // No dirt detected — return as-is.
+  return trimmed;
+}
+
+/**
+ * Split a full address string into its components.
+ * Used by Edit forms to auto-clean dirty records when opened.
+ *
+ * "782 ABBEY LN, Milford, MI 48381" → { street: "782 ABBEY LN", city: "Milford", state: "MI", zip: "48381" }
+ *
+ * When parts cannot be extracted, they return as empty strings — the caller
+ * should fall back to entity fields (address.city, address.state, etc.) rather
+ * than overwriting known-good values with empty ones.
+ *
+ * @param {string} str - raw address string
+ * @returns {{street: string, city: string, state: string, zip: string}}
+ */
+export function splitFullAddress(str) {
+  const empty = { street: '', city: '', state: '', zip: '' };
+  if (!str || typeof str !== 'string') return empty;
+
+  const trimmed = str.trim();
+  if (!trimmed) return empty;
+
+  const parts = trimmed.split(',').map(p => p.trim()).filter(Boolean);
+
+  const street = parts[0] || '';
+  let city = '';
+  let state = '';
+  let zip = '';
+
+  if (parts.length >= 2) {
+    // Last part usually contains "STATE ZIP" — possibly "City STATE ZIP" if no
+    // comma between city and state.
+    const lastPart = parts[parts.length - 1];
+    const stateZipMatch = lastPart.match(/([A-Za-z]{2})\s+(\d{5}(?:-\d{4})?)/);
+    if (stateZipMatch) {
+      state = stateZipMatch[1].toUpperCase();
+      zip = stateZipMatch[2];
+      // Anything before the state+zip inside the last part is the city (only
+      // happens when city/state weren't comma-separated in the source).
+      const beforeStateZip = lastPart.slice(0, stateZipMatch.index).trim();
+      if (beforeStateZip && parts.length === 2) {
+        city = beforeStateZip;
+      } else if (parts.length >= 3) {
+        city = parts[parts.length - 2];
+      }
+    } else {
+      // No state+zip pattern in last part — assume parts[1] is city.
+      city = parts[1];
+    }
+  }
+
+  return { street, city, state, zip };
+}
+
+/**
  * Format address in required 2-line ALL CAPS format
  * @param {Object} address - Address entity
  * @returns {Object} { line1, line2 }
