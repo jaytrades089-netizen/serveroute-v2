@@ -134,15 +134,17 @@ export default function WorkerRouteDetail() {
     gcTime: 10 * 60 * 1000
   });
 
-  // Badge count for scheduled serves tab
+  // Badge count for scheduled serves tab — shows the worker's total open serves
+  // across all routes, matching what ScheduledServesTab now renders.
   const { data: scheduledServesCount = 0 } = useQuery({
-    queryKey: ['scheduledServesCount', routeId],
+    queryKey: ['workerScheduledServes', user?.id],
     queryFn: async () => {
-      if (!routeId) return 0;
-      const serves = await base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
+      if (!user?.id) return 0;
+      const serves = await base44.entities.ScheduledServe.filter({ worker_id: user.id, status: 'open' });
       return serves.length;
     },
-    enabled: !!routeId
+    enabled: !!user?.id,
+    select: (data) => Array.isArray(data) ? data.length : data
   });
 
   // Fetch attempts for all addresses in the route

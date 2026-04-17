@@ -9,19 +9,25 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatAddress } from '@/components/utils/addressUtils';
+import { useCurrentUser } from '@/components/hooks/useCurrentUser';
 import { toast } from 'sonner';
 
 export default function ScheduledServesTab({ routeId, onViewAddress }) {
   const navigate = useNavigate();
+  const { data: user } = useCurrentUser();
 
+  // Show ALL open scheduled serves for the worker, not just ones tied to the
+  // currently-viewed route. Lets the worker tap Scheduled from inside any route
+  // and see everything they have on deck — no need to back out to the dashboard.
+  // Shared cache key with ActiveRoutesList so both views stay in sync.
   const { data: activeServes = [], isLoading } = useQuery({
-    queryKey: ['scheduledServes', routeId],
+    queryKey: ['workerScheduledServes', user?.id],
     queryFn: async () => {
-      if (!routeId) return [];
-      return base44.entities.ScheduledServe.filter({ route_id: routeId, status: 'open' });
+      if (!user?.id) return [];
+      return base44.entities.ScheduledServe.filter({ worker_id: user.id, status: 'open' });
     },
-    enabled: !!routeId,
-    staleTime: 0
+    enabled: !!user?.id,
+    staleTime: 60 * 1000
   });
 
   // Fetch addresses for all scheduled serves so we can navigate to posting addresses
@@ -147,6 +153,15 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   size="sm"
                   variant="outline"
                   onClick={() => {
+                    // If this serve belongs to the currently-viewed route, filter
+                    // this route's address list to show it. If it belongs to a
+                    // different route, navigate to that route's detail page with
+                    // the address pre-filtered — otherwise we'd be asking the current
+                    // route to show an address it doesn't own, which returns nothing.
+                    if (serve.route_id && serve.route_id !== routeId) {
+                      navigate(createPageUrl(`WorkerRouteDetail?id=${serve.route_id}&addressId=${serve.address_id}&tab=addresses`));
+                      return;
+                    }
                     if (onViewAddress) {
                       onViewAddress(serve.address_id);
                     }
@@ -159,7 +174,11 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   size="sm"
                   variant="outline"
                   onClick={() => {
-                    navigate(createPageUrl(`EditScheduledServe?serveId=${serve.id}&routeId=${routeId}`));
+                    // Pass the serve's OWN route_id, not the currently-viewed one —
+                    // otherwise editing a cross-route serve could write the wrong
+                    // route_id back on save.
+                    const serveRouteId = serve.route_id || routeId;
+                    navigate(createPageUrl(`EditScheduledServe?serveId=${serve.id}&routeId=${serveRouteId}`));
                   }}
                   className="flex-1"
                 >
