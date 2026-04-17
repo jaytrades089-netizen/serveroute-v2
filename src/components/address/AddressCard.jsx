@@ -225,6 +225,11 @@ export default function AddressCard({
     setShowCommentModal(true);
   };
 
+  // OFFLINE-FIRST EVIDENCE SAVE
+  // UI commits IMMEDIATELY (modal closes, toast fires, temp attempt shows in list).
+  // Network writes (upload + create/update + route/address updates) run in background.
+  // If a background write fails, the temp attempt stays visible so the user never
+  // has to re-capture the photo — they only retry the sync.
   const handleSaveEvidence = async (comment) => {
     if (!capturedPhoto) return;
     if (!hasInProgressAttempt && !comment.trim() && address.serve_type !== 'posting') {
@@ -232,67 +237,107 @@ export default function AddressCard({
       return;
     }
     const photoToUpload = capturedPhoto;
-    setSavingEvidence(true);
-    try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file: photoToUpload.file });
+
+    // ============ BRANCH 1: Adding a photo to an existing in-progress attempt ============
+    if (hasInProgressAttempt) {
+      const existingPhotos = inProgressAttempt.photo_urls || [];
+      const existingNotes = inProgressAttempt.notes || '';
+      const newNotes = comment.trim() ? (existingNotes ? `${existingNotes}\n\n${comment}` : comment) : existingNotes;
+
+      // INSTANT UI: show the new photo locally using the dataUrl preview, close modal, toast.
+      const optimisticPhotos = [...existingPhotos, photoToUpload.dataUrl];
+      setLocalAttempts(prev => prev.map(a =>
+        a.id === inProgressAttempt.id ? { ...a, photo_urls: optimisticPhotos, notes: newNotes, _syncPending: true } : a
+      ));
       setCapturedPhoto(null);
       setShowCommentModal(false);
-      if (hasInProgressAttempt) {
-        const existingPhotos = inProgressAttempt.photo_urls || [];
-        const existingNotes = inProgressAttempt.notes || '';
-        const newNotes = comment.trim() ? (existingNotes ? `${existingNotes}\n\n${comment}` : comment) : existingNotes;
-        await base44.entities.Attempt.update(inProgressAttempt.id, {
-          photo_urls: [...existingPhotos, file_url],
-          notes: newNotes
-        });
-        const updatedAttempts = localAttempts.map(a => 
-          a.id === inProgressAttempt.id ? { ...a, photo_urls: [...existingPhotos, file_url], notes: newNotes } : a
-        );
-        setLocalAttempts(updatedAttempts);
-        toast.success('Photo added!');
-      } else {
-        if (user?.role === 'server') {
-          try {
-            const routes = await base44.entities.Route.filter({ id: actualRouteId });
-            const route = routes[0];
-            if (route && route.worker_id !== user.id) {
-              toast.error('You are not assigned to this route');
-              return;
-            }
-          } catch (e) {
-            console.warn('Could not verify route ownership:', e);
-          }
+      toast.success('Photo added!');
+
+      // BACKGROUND: upload the real file, then swap the dataUrl for the real file_url.
+      (async () => {
+        try {
+          const { file_url } = await base44.integrations.Core.UploadFile({ file: photoToUpload.file });
+          const finalPhotos = [...existingPhotos, file_url];
+          await base44.entities.Attempt.update(inProgressAttempt.id, {
+            photo_urls: finalPhotos,
+            notes: newNotes
+          });
+          setLocalAttempts(prev => prev.map(a =>
+            a.id === inProgressAttempt.id ? { ...a, photo_urls: finalPhotos, notes: newNotes, _syncPending: false } : a
+          ));
+          invalidateAttemptQueries();
+        } catch (error) {
+          console.error('Background add-photo sync failed:', error);
+          setLocalAttempts(prev => prev.map(a =>
+            a.id === inProgressAttempt.id ? { ...a, _syncPending: false, _syncFailed: true } : a
+          ));
+          toast.error('Photo saved locally — sync failed. It will retry next action.');
         }
-        const now = new Date();
-        const qualifierData = getQualifiers(now);
-        if (qualifierData.isOutsideHours) {
-          const proceed = window.confirm(
-            'This attempt is outside service hours (8 AM - 9 PM Michigan time). ' +
-            'It will NOT earn any qualifier credit (AM/PM/WEEKEND). Continue?'
-          );
-          if (!proceed) return;
+      })();
+      return;
+    }
+
+    // ============ BRANCH 2: First photo — starting a new attempt ============
+    // Ownership check is cheap and catches wrong-route taps early. Keep it synchronous
+    // so a wrong user never generates a temp attempt.
+    if (user?.role === 'server') {
+      try {
+        const routes = await base44.entities.Route.filter({ id: actualRouteId });
+        const route = routes[0];
+        if (route && route.worker_id !== user.id) {
+          toast.error('You are not assigned to this route');
+          return;
         }
-        const qualifierFields = getQualifierStorageFields(qualifierData);
-        const attemptNumber = attemptCount + 1;
-        const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
-        const isPosting = address.serve_type === 'posting';
-        const tempAttempt = {
-          id: 'temp_' + Date.now(),
-          address_id: address.id,
-          route_id: actualRouteId,
-          server_id: user.id,
-          company_id: companyId,
-          attempt_number: attemptNumber,
-          status: isPosting ? 'completed' : 'in_progress',
-          outcome: isPosting ? 'posted' : undefined,
-          attempt_time: now.toISOString(),
-          attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          ...qualifierFields,
-          notes: comment,
-          photo_urls: [photoToUpload.dataUrl],
-        };
-        setLocalAttempts(prev => [...prev, tempAttempt]);
-        setTimeout(() => setActiveTab(attemptNumber), 50);
+      } catch (e) {
+        console.warn('Could not verify route ownership:', e);
+      }
+    }
+
+    const now = new Date();
+    const qualifierData = getQualifiers(now);
+    if (qualifierData.isOutsideHours) {
+      const proceed = window.confirm(
+        'This attempt is outside service hours (8 AM - 9 PM Michigan time). ' +
+        'It will NOT earn any qualifier credit (AM/PM/WEEKEND). Continue?'
+      );
+      if (!proceed) return;
+    }
+    const qualifierFields = getQualifierStorageFields(qualifierData);
+    const attemptNumber = attemptCount + 1;
+    const companyId = user.company_id || user.data?.company_id || address.company_id || 'default';
+    const isPosting = address.serve_type === 'posting';
+
+    // INSTANT UI COMMIT — this all happens in the same render frame as the Save tap.
+    const tempId = 'temp_' + Date.now();
+    const tempAttempt = {
+      id: tempId,
+      address_id: address.id,
+      route_id: actualRouteId,
+      server_id: user.id,
+      company_id: companyId,
+      attempt_number: attemptNumber,
+      status: isPosting ? 'completed' : 'in_progress',
+      outcome: isPosting ? 'posted' : undefined,
+      attempt_time: now.toISOString(),
+      attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ...qualifierFields,
+      notes: comment,
+      photo_urls: [photoToUpload.dataUrl],
+      _syncPending: true,
+    };
+    setLocalAttempts(prev => [...prev, tempAttempt]);
+    setTimeout(() => setActiveTab(attemptNumber), 50);
+    setCapturedPhoto(null);
+    setShowCommentModal(false);
+
+    // For postings, we also need to navigate to the receipt page. The new-attempt record
+    // must exist on the server before we can hand its ID to SubmitReceipt. So for the
+    // posting branch only, we await the create before navigating. Regular serves get
+    // the full fire-and-forget treatment.
+    if (isPosting) {
+      toast.success('Photo saved! Review and submit the receipt.');
+      try {
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: photoToUpload.file });
         let userLat = null, userLon = null, distanceFeet = null;
         try {
           const position = await getCurrentPosition();
@@ -310,8 +355,8 @@ export default function AddressCard({
           server_id: user.id,
           company_id: companyId,
           attempt_number: attemptNumber,
-          status: isPosting ? 'completed' : 'in_progress',
-          outcome: isPosting ? 'posted' : undefined,
+          status: 'completed',
+          outcome: 'posted',
           attempt_time: now.toISOString(),
           attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           ...qualifierFields,
@@ -322,36 +367,89 @@ export default function AddressCard({
           photo_urls: [file_url],
           synced_at: new Date().toISOString()
         });
-        setLocalAttempts(prev => prev.map(a => a.id === tempAttempt.id ? newAttempt : a));
-        if (attemptNumber === 1 && actualRouteId) {
-          try {
-            const currentRoute = await base44.entities.Route.filter({ id: actualRouteId });
-            if (currentRoute[0] && !currentRoute[0].first_attempt_date) {
-              await base44.entities.Route.update(actualRouteId, { first_attempt_date: now.toISOString() });
-            }
-          } catch (e) {
-            console.warn('Failed to set first_attempt_date:', e);
-          }
-        }
-        await base44.entities.Address.update(address.id, {
+        setLocalAttempts(prev => prev.map(a => a.id === tempId ? newAttempt : a));
+        base44.entities.Address.update(address.id, {
           attempts_count: attemptNumber,
           status: address.status === 'pending' ? 'attempted' : address.status
-        });
-        if (isPosting) {
-          toast.success('Photo saved! Review and submit the receipt.');
-          const returnParam = comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : '';
-          navigate(createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true${returnParam}`));
-          return;
-        }
-        toast.success(`Evidence saved - ${qualifierData.display}`);
+        }).catch(e => console.warn('Background address update failed:', e));
+        invalidateAttemptQueries();
+        const returnParam = comboRouteIds ? `&returnTo=WorkerComboRouteDetail?id=${routeId}` : '';
+        navigate(createPageUrl(`SubmitReceipt?addressId=${address.id}&routeId=${actualRouteId}&attemptId=${newAttempt.id}&finalize=true${returnParam}`));
+      } catch (error) {
+        console.error('Posting save failed:', error);
+        setLocalAttempts(prev => prev.map(a =>
+          a.id === tempId ? { ...a, _syncPending: false, _syncFailed: true } : a
+        ));
+        toast.error('Failed to save posting — photo kept locally. Please retry.');
       }
-      invalidateAttemptQueries();
-    } catch (error) {
-      console.error('Failed to save evidence:', error);
-      toast.error('Failed to save - please try again');
-    } finally {
-      setSavingEvidence(false);
+      return;
     }
+
+    // Regular serve/garnishment — close modal, toast, run everything in background.
+    toast.success(`Evidence saved - ${qualifierData.display}`);
+
+    (async () => {
+      try {
+        // Geolocation in background — can't block the user at the door for 30s.
+        let userLat = null, userLon = null, distanceFeet = null;
+        try {
+          const position = await getCurrentPosition();
+          userLat = position.latitude;
+          userLon = position.longitude;
+          if (address.lat && address.lng) {
+            distanceFeet = calculateDistanceFeet(userLat, userLon, address.lat, address.lng);
+          }
+        } catch (geoError) {
+          console.warn('Geolocation failed:', geoError.message);
+        }
+
+        const { file_url } = await base44.integrations.Core.UploadFile({ file: photoToUpload.file });
+
+        const newAttempt = await base44.entities.Attempt.create({
+          address_id: address.id,
+          route_id: actualRouteId,
+          server_id: user.id,
+          company_id: companyId,
+          attempt_number: attemptNumber,
+          status: 'in_progress',
+          attempt_time: now.toISOString(),
+          attempt_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          ...qualifierFields,
+          user_latitude: userLat,
+          user_longitude: userLon,
+          distance_feet: distanceFeet,
+          notes: comment,
+          photo_urls: [file_url],
+          synced_at: new Date().toISOString()
+        });
+        // Swap the temp record for the real one. Preserve the dataUrl locally so the
+        // photo stays visible instantly even if the CDN URL hasn't fully propagated.
+        setLocalAttempts(prev => prev.map(a => a.id === tempId ? { ...newAttempt, _syncPending: false } : a));
+
+        // These two updates are non-critical for the field experience — run them
+        // without awaiting, log failures for debugging.
+        if (attemptNumber === 1 && actualRouteId) {
+          base44.entities.Route.filter({ id: actualRouteId }).then(routes => {
+            if (routes[0] && !routes[0].first_attempt_date) {
+              base44.entities.Route.update(actualRouteId, { first_attempt_date: now.toISOString() })
+                .catch(e => console.warn('Failed to set first_attempt_date:', e));
+            }
+          }).catch(e => console.warn('Failed to check first_attempt_date:', e));
+        }
+        base44.entities.Address.update(address.id, {
+          attempts_count: attemptNumber,
+          status: address.status === 'pending' ? 'attempted' : address.status
+        }).catch(e => console.warn('Background address update failed:', e));
+
+        invalidateAttemptQueries();
+      } catch (error) {
+        console.error('Background evidence sync failed:', error);
+        setLocalAttempts(prev => prev.map(a =>
+          a.id === tempId ? { ...a, _syncPending: false, _syncFailed: true } : a
+        ));
+        toast.error('Evidence saved locally — sync failed. Photo is safe, will retry.');
+      }
+    })();
   };
 
   const handleLogAttempt = async (e) => {
