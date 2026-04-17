@@ -77,6 +77,31 @@ export function generateNormalizedKey(address) {
 }
 
 /**
+ * Convert a stored ISO timestamp (UTC) into a "YYYY-MM-DD" key representing the
+ * calendar day in the user's LOCAL timezone.
+ *
+ * Why: ScheduledServe rows store scheduled_datetime as a UTC ISO string. A serve
+ * set for 8:30 PM ET on April 16 is stored as "2026-04-17T00:30:00Z" — its UTC
+ * date is April 17. Grouping by str.split('T')[0] reads the UTC date and puts
+ * evening serves under the wrong day (tomorrow instead of today).
+ *
+ * This helper extracts the local calendar date (year-month-day) so day-group
+ * keys match what the user actually sees on their phone.
+ *
+ * @param {string|Date|null} isoOrDate - UTC ISO string or Date, or null
+ * @returns {string|null} "YYYY-MM-DD" in local time, or null if input is invalid
+ */
+export function getLocalDateKey(isoOrDate) {
+  if (!isoOrDate) return null;
+  const d = isoOrDate instanceof Date ? isoOrDate : new Date(isoOrDate);
+  if (isNaN(d.getTime())) return null;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/**
  * Parse a full address string and return ONLY the street portion.
  * Handles the common dirty-data case where the whole address ended up in the
  * street field: "782 ABBEY LN, Milford, MI 48381" → "782 ABBEY LN".

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import ScheduledServeCard from '../scheduled/ScheduledServeCard';
+import { getLocalDateKey } from '@/components/utils/addressUtils';
 
 export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId, onArchive, onDelete }) {
   const [activeTab, setActiveTab] = useState('routes');
@@ -81,9 +82,13 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
   });
 
   // Map scheduled serves to their run dates
+  // FIX: use the LOCAL calendar day, not the UTC date portion of the ISO string.
+  // Evening serves stored as UTC roll into the next UTC day (e.g. 8:30 PM ET
+  // April 16 serializes to "2026-04-17T00:30:00Z"), which used to land them in
+  // Tomorrow's group. getLocalDateKey extracts the user's local day.
   const servesByDate = {};
   scheduledServes.forEach(s => {
-    const dateKey = s.scheduled_datetime ? s.scheduled_datetime.split('T')[0] : null;
+    const dateKey = getLocalDateKey(s.scheduled_datetime);
     if (dateKey) {
       if (!servesByDate[dateKey]) servesByDate[dateKey] = [];
       servesByDate[dateKey].push(s);
@@ -99,7 +104,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
 
   // Serves with no date (ungrouped)
   const ungroupedServes = scheduledServes.filter(s => {
-    const dateKey = s.scheduled_datetime?.split('T')[0];
+    const dateKey = getLocalDateKey(s.scheduled_datetime);
     return !dateKey || !allDateKeys.has(dateKey);
   });
 
