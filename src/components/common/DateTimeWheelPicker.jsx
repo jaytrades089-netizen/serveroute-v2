@@ -225,7 +225,7 @@ export default function DateTimeWheelPicker({
           selectedIndex={startAmPmIndex}
           onChange={(i) => handleStartChange(startHourIndex, startMinuteIndex, i)}
           label=""
-          circular={false}
+          circular
         />
       </div>
 
@@ -260,7 +260,7 @@ export default function DateTimeWheelPicker({
               selectedIndex={endAmPmIndex}
               onChange={(i) => onEndChange(endHourIndex, endMinuteIndex, i)}
               label=""
-              circular={false}
+              circular
             />
           </div>
         </>

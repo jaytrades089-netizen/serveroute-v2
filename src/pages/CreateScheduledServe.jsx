@@ -399,6 +399,22 @@ export default function CreateScheduledServe() {
         if (hIdx >= 0) setStartHourIdx(hIdx);
         if (mIdx >= 0) setStartMinIdx(mIdx);
         if (apIdx >= 0) setStartAmPmIdx(apIdx);
+
+        // Also auto-advance the TO (end) time by +1h, mirroring what the wheel
+        // picker's handleStartChange does when the user picks FROM manually.
+        if (hIdx >= 0 && mIdx >= 0 && apIdx >= 0) {
+          let h24 = parseInt(parsed.hour, 10);
+          if (parsed.ampm === 'PM' && h24 !== 12) h24 += 12;
+          if (parsed.ampm === 'AM' && h24 === 12) h24 = 0;
+          const endH24 = (h24 + 1) % 24;
+          const endApIdx = endH24 >= 12 ? 1 : 0;
+          let endH12 = endH24 % 12;
+          if (endH12 === 0) endH12 = 12;
+          const endHIdx = HOURS.indexOf(String(endH12));
+          if (endHIdx >= 0) setEndHourIdx(endHIdx);
+          setEndMinIdx(mIdx);
+          setEndAmPmIdx(endApIdx);
+        }
       }
       if (parsed.date || (parsed.hour && parsed.minute && parsed.ampm)) {
         filled.dateTime = true;
