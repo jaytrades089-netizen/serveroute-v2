@@ -59,6 +59,15 @@ export default function ScanCamera() {
 
   const processingLockRef = useRef(false);
 
+  // Reset the processing lock if the component unmounts mid-capture.
+  // Without this, a stale `true` can survive across a navigate-away / navigate-back
+  // and block all future captures on the next mount until force-close.
+  useEffect(() => {
+    return () => {
+      processingLockRef.current = false;
+    };
+  }, []);
+
   const updateSession = (newSession) => {
     sessionRef.current = newSession;
     setSession(newSession);
@@ -128,11 +137,37 @@ export default function ScanCamera() {
 
     let mounted = true;
 
+    // Teardown helper ported from EvidenceCamera.jsx.
+    // Detach srcObject FIRST, then stop tracks. Stopping tracks while srcObject
+    // is still attached leaves Android Chrome in a state where the next
+    // getUserMedia() hangs silently — which is the force-close symptom.
+    const stopCamera = () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        try { videoRef.current.pause(); } catch {}
+        videoRef.current.srcObject = null;
+      }
+      if (streamRef.current) {
+        try {
+          streamRef.current.getTracks().forEach(track => {
+            try { track.stop(); } catch {}
+          });
+        } catch {}
+        streamRef.current = null;
+      }
+    };
+
     async function startCamera() {
       if (!navigator.mediaDevices) {
         setCameraStatus('error');
         return;
       }
+
+      // Fully release any prior stream before asking for a new one.
+      // Android Chromium will hang getUserMedia if a prior stream hasn't been
+      // torn down from this video element. Explicit stop + microdelay fixes it.
+      stopCamera();
+      await new Promise(resolve => setTimeout(resolve, 150));
+      if (!mounted) return;
 
       await new Promise(resolve => setTimeout(resolve, 100));
       if (!mounted) return;
@@ -195,24 +230,29 @@ export default function ScanCamera() {
 
     return () => {
       mounted = false;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
-      }
+      stopCamera();
     };
   }, [session?.id]);
 
+  // Session-save interval: depend only on session?.id, and read from sessionRef
+  // inside the callbacks. Previously this effect depended on the whole `session`
+  // object, so the interval tore down and restarted after every single scan.
   useEffect(() => {
-    if (!session) return;
-    const interval = setInterval(() => saveScanSession(session), 5000);
+    if (!session?.id) return;
+    const interval = setInterval(() => {
+      if (sessionRef.current) saveScanSession(sessionRef.current);
+    }, 5000);
     const handleVisibility = () => {
-      if (document.visibilityState === 'hidden') saveScanSession(session);
+      if (document.visibilityState === 'hidden' && sessionRef.current) {
+        saveScanSession(sessionRef.current);
+      }
     };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [session]);
+  }, [session?.id]);
 
   const processImage = async (imageBase64) => {
     const currentSession = sessionRef.current;
@@ -240,14 +280,31 @@ export default function ScanCamera() {
 
       let response;
       try {
-        response = await base44.functions.invoke('processOCR', {
-          imageBase64,
-          documentType: currentSession.documentType,
-          sessionId: currentSession.dbSessionId
-        });
+        // 30-second client-side timeout around the OCR function call.
+        // Without this, a hung Base44 function (cold start, Vision API lag,
+        // serverless congestion) would leave the user staring at
+        // "Extracting address..." forever — which reads as a freeze and
+        // triggers force-close.
+        const OCR_TIMEOUT_MS = 30000;
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('OCR_TIMEOUT')), OCR_TIMEOUT_MS)
+        );
+        response = await Promise.race([
+          base44.functions.invoke('processOCR', {
+            imageBase64,
+            documentType: currentSession.documentType,
+            sessionId: currentSession.dbSessionId
+          }),
+          timeoutPromise
+        ]);
       } catch (invokeError) {
-        toast.error('Network error — check your connection and try again');
+        if (invokeError?.message === 'OCR_TIMEOUT') {
+          toast.error('OCR taking too long — check signal and try again');
+        } else {
+          toast.error('Network error — check your connection and try again');
+        }
         setIsProcessing(false);
+        setProcessingText('');
         return;
       }
 

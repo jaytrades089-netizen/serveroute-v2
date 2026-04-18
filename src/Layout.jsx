@@ -184,7 +184,12 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <>
-      {/* Fixed global background: navy base + gold diagonal beam */}
+      {/* Fixed global background — navy base + ambient gold warmth.
+          Layer stack:
+            1. Navy gradient base (bottom)
+            2. Two soft gold streaks from top-left (identity, softened ~35% from prior)
+            3. One subtle counter-streak from top-right (mid-screen warmth)
+            4. Large soft radial glow bottom-right (ambient scroll warmth) */}
       <div
         style={{
           position: 'fixed',
@@ -194,16 +199,16 @@ export default function Layout({ children, currentPageName }) {
           bottom: 0,
           zIndex: -1,
           background: 'linear-gradient(to bottom, #060914 0%, #0B1428 40%, #0D1E3A 100%)',
-          overflow: 'visible'
+          overflow: 'hidden'
         }}
       >
-        {/* Gold accents — top-left down toward bottom-right */}
+        {/* Top-left streaks — softened from original. Two instead of three.
+            Opacities dropped ~35% so frosted cards read cleanly on top. */}
         {[
-          { top: '-4%', left: '-8%', glowOpacity: 0.22, lineOpacity: 0.48, glowWidth: 84 },
-          { top: '8%', left: '4%', glowOpacity: 0.16, lineOpacity: 0.38, glowWidth: 62 },
-          { top: '20%', left: '16%', glowOpacity: 0.10, lineOpacity: 0.28, glowWidth: 48 },
+          { top: '-4%', left: '-8%', glowOpacity: 0.14, lineOpacity: 0.30, glowWidth: 84 },
+          { top: '8%', left: '4%', glowOpacity: 0.10, lineOpacity: 0.24, glowWidth: 62 },
         ].map((beam, i) => (
-          <React.Fragment key={i}>
+          <React.Fragment key={`tl-${i}`}>
             <div style={{
               position: 'absolute',
               top: beam.top,
@@ -229,6 +234,59 @@ export default function Layout({ children, currentPageName }) {
             }} />
           </React.Fragment>
         ))}
+
+        {/* Counter-streak from top-right — angled the other way so the middle
+            of the viewport catches a hint of gold while scrolling. Very subtle. */}
+        <div style={{
+          position: 'absolute',
+          top: '-6%',
+          right: '-10%',
+          width: '70px',
+          height: '140%',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(214,166,28,0.04) 30%, rgba(247,206,78,0.09) 50%, rgba(214,166,28,0.04) 70%, transparent 100%)',
+          transform: 'rotate(32deg)',
+          transformOrigin: 'top right',
+          filter: 'blur(2px)',
+          pointerEvents: 'none'
+        }} />
+        <div style={{
+          position: 'absolute',
+          top: '-6%',
+          right: '-10%',
+          width: '70px',
+          height: '140%',
+          background: 'linear-gradient(90deg, transparent 46%, rgba(255,224,92,0.18) 50%, transparent 54%)',
+          transform: 'rotate(32deg)',
+          transformOrigin: 'top right',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Ambient radial glow — bottom-right. Large, soft, low-opacity.
+            This is what catches through frosted cards as the user scrolls
+            past the fold where the top-left beams no longer reach. */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-20%',
+          right: '-15%',
+          width: '720px',
+          height: '720px',
+          background: 'radial-gradient(circle, rgba(233,195,73,0.10) 0%, rgba(233,195,73,0.05) 35%, transparent 70%)',
+          pointerEvents: 'none',
+          filter: 'blur(8px)'
+        }} />
+
+        {/* Secondary ambient glow — mid-left, lower on screen. Fills the
+            dead zone between the top-left beams and the bottom-right glow. */}
+        <div style={{
+          position: 'absolute',
+          top: '55%',
+          left: '-10%',
+          width: '500px',
+          height: '500px',
+          background: 'radial-gradient(circle, rgba(233,195,73,0.06) 0%, rgba(233,195,73,0.03) 40%, transparent 70%)',
+          pointerEvents: 'none',
+          filter: 'blur(10px)'
+        }} />
       </div>
       {children}
     </>
