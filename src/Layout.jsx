@@ -202,11 +202,11 @@ export default function Layout({ children, currentPageName }) {
           overflow: 'hidden'
         }}
       >
-        {/* Top-left streaks — softened from original. Two instead of three.
-            Opacities dropped ~35% so frosted cards read cleanly on top. */}
+        {/* Top-left streaks — two beams, clearly visible gold identity.
+            Each beam has a wider glow halo + a bright line core for structure. */}
         {[
-          { top: '-4%', left: '-8%', glowOpacity: 0.14, lineOpacity: 0.30, glowWidth: 84 },
-          { top: '8%', left: '4%', glowOpacity: 0.10, lineOpacity: 0.24, glowWidth: 62 },
+          { top: '-4%', left: '-8%', glowOpacity: 0.28, lineOpacity: 0.55, glowWidth: 120 },
+          { top: '10%', left: '6%', glowOpacity: 0.20, lineOpacity: 0.42, glowWidth: 90 },
         ].map((beam, i) => (
           <React.Fragment key={`tl-${i}`}>
             <div style={{
@@ -218,7 +218,7 @@ export default function Layout({ children, currentPageName }) {
               background: `linear-gradient(90deg, transparent 0%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 20%, rgba(247,206,78,${beam.glowOpacity}) 50%, rgba(214,166,28,${beam.glowOpacity * 0.45}) 80%, transparent 100%)`,
               transform: 'rotate(-38deg)',
               transformOrigin: 'top left',
-              filter: 'blur(1px)',
+              filter: 'blur(2px)',
               pointerEvents: 'none'
             }} />
             <div style={{
@@ -227,7 +227,7 @@ export default function Layout({ children, currentPageName }) {
               left: beam.left,
               width: `${beam.glowWidth}px`,
               height: '185%',
-              background: `linear-gradient(90deg, transparent 45%, rgba(255,224,92,${beam.lineOpacity}) 50%, transparent 55%)`,
+              background: `linear-gradient(90deg, transparent 47%, rgba(255,224,92,${beam.lineOpacity}) 50%, transparent 53%)`,
               transform: 'rotate(-38deg)',
               transformOrigin: 'top left',
               pointerEvents: 'none'
@@ -236,56 +236,55 @@ export default function Layout({ children, currentPageName }) {
         ))}
 
         {/* Counter-streak from top-right — angled the other way so the middle
-            of the viewport catches a hint of gold while scrolling. Very subtle. */}
+            of the viewport catches gold while scrolling. */}
         <div style={{
           position: 'absolute',
           top: '-6%',
           right: '-10%',
-          width: '70px',
+          width: '110px',
           height: '140%',
-          background: 'linear-gradient(90deg, transparent 0%, rgba(214,166,28,0.04) 30%, rgba(247,206,78,0.09) 50%, rgba(214,166,28,0.04) 70%, transparent 100%)',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(214,166,28,0.10) 30%, rgba(247,206,78,0.20) 50%, rgba(214,166,28,0.10) 70%, transparent 100%)',
           transform: 'rotate(32deg)',
           transformOrigin: 'top right',
-          filter: 'blur(2px)',
+          filter: 'blur(3px)',
           pointerEvents: 'none'
         }} />
         <div style={{
           position: 'absolute',
           top: '-6%',
           right: '-10%',
-          width: '70px',
+          width: '110px',
           height: '140%',
-          background: 'linear-gradient(90deg, transparent 46%, rgba(255,224,92,0.18) 50%, transparent 54%)',
+          background: 'linear-gradient(90deg, transparent 46%, rgba(255,224,92,0.32) 50%, transparent 54%)',
           transform: 'rotate(32deg)',
           transformOrigin: 'top right',
           pointerEvents: 'none'
         }} />
 
-        {/* Ambient radial glow — bottom-right. Large, soft, low-opacity.
-            This is what catches through frosted cards as the user scrolls
-            past the fold where the top-left beams no longer reach. */}
+        {/* Ambient radial glow — bottom-right. Catches through frosted cards
+            in the scroll zone where beams don't reach. */}
         <div style={{
           position: 'absolute',
-          bottom: '-20%',
-          right: '-15%',
+          bottom: '-15%',
+          right: '-10%',
           width: '720px',
           height: '720px',
-          background: 'radial-gradient(circle, rgba(233,195,73,0.10) 0%, rgba(233,195,73,0.05) 35%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(233,195,73,0.22) 0%, rgba(233,195,73,0.12) 30%, rgba(233,195,73,0.05) 55%, transparent 75%)',
           pointerEvents: 'none',
-          filter: 'blur(8px)'
+          filter: 'blur(6px)'
         }} />
 
-        {/* Secondary ambient glow — mid-left, lower on screen. Fills the
-            dead zone between the top-left beams and the bottom-right glow. */}
+        {/* Secondary ambient glow — mid-left, fills the dead zone between
+            top-left beams and the bottom-right glow. */}
         <div style={{
           position: 'absolute',
-          top: '55%',
-          left: '-10%',
-          width: '500px',
-          height: '500px',
-          background: 'radial-gradient(circle, rgba(233,195,73,0.06) 0%, rgba(233,195,73,0.03) 40%, transparent 70%)',
+          top: '45%',
+          left: '-12%',
+          width: '560px',
+          height: '560px',
+          background: 'radial-gradient(circle, rgba(233,195,73,0.14) 0%, rgba(233,195,73,0.07) 35%, transparent 70%)',
           pointerEvents: 'none',
-          filter: 'blur(10px)'
+          filter: 'blur(8px)'
         }} />
       </div>
       {children}
