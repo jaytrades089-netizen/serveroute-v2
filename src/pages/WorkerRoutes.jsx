@@ -13,6 +13,16 @@ import { Button } from '@/components/ui/button';
 import { RouteSkeleton } from '@/components/ui/skeletons';
 import EmptyState from '@/components/ui/empty-state';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import ScheduledServeCard from '../components/scheduled/ScheduledServeCard';
 import ComboRouteCard from '../components/common/ComboRouteCard';
 import AddressSearch from '../components/common/AddressSearch';
@@ -26,55 +36,53 @@ export default function WorkerRoutes() {
   const [filter, setFilter] = useState(initialFilter);
   const [deletingRouteId, setDeletingRouteId] = useState(null);
   const [archivingRouteId, setArchivingRouteId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ open: false, title: '', description: '', onConfirm: null, confirmLabel: 'Confirm', destructive: false });
+  const [confirmBusy, setConfirmBusy] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useCurrentUser();
 
   // DELETE — soft delete route and all its addresses
-  const handleDeleteRoute = async (route) => {
-    const confirmed = window.confirm(
-      `Delete "${route.folder_name}"?\n\nThis will remove the route and all its addresses. This cannot be undone.`
-    );
-    if (!confirmed) return;
-    
-    setDeletingRouteId(route.id);
-    try {
-      await base44.entities.Route.update(route.id, {
-        deleted_at: new Date().toISOString(),
-        status: 'deleted'
-      });
-      
-      const routeAddresses = await base44.entities.Address.filter({ 
-        route_id: route.id, 
-        deleted_at: null 
-      });
-      for (const addr of routeAddresses) {
-        await base44.entities.Address.update(addr.id, {
-          deleted_at: new Date().toISOString()
-        });
+  const handleDeleteRoute = (route) => {
+    setConfirmDialog({
+      open: true,
+      title: `Delete "${route.folder_name}"?`,
+      description: 'This will remove the route and all its addresses. This cannot be undone.',
+      confirmLabel: 'Delete',
+      destructive: true,
+      onConfirm: async () => {
+        setDeletingRouteId(route.id);
+        try {
+          await base44.entities.Route.update(route.id, {
+            deleted_at: new Date().toISOString(),
+            status: 'deleted'
+          });
+          
+          const routeAddresses = await base44.entities.Address.filter({ 
+            route_id: route.id, 
+            deleted_at: null 
+          });
+          for (const addr of routeAddresses) {
+            await base44.entities.Address.update(addr.id, {
+              deleted_at: new Date().toISOString()
+            });
+          }
+          
+          toast.success(`"${route.folder_name}" deleted`);
+          queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+        } catch (error) {
+          console.error('Failed to delete route:', error);
+          toast.error('Failed to delete route');
+        } finally {
+          setDeletingRouteId(null);
+        }
       }
-      
-      toast.success(`"${route.folder_name}" deleted`);
-      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
-    } catch (error) {
-      console.error('Failed to delete route:', error);
-      toast.error('Failed to delete route');
-    } finally {
-      setDeletingRouteId(null);
-    }
+    });
   };
 
   // ARCHIVE — moves route to archived status (reversible)
-  const handleArchiveRoute = async (route) => {
+  const runArchiveRoute = async (route) => {
     const isArchived = route.status === 'archived';
-    
-    if (!isArchived) {
-      const confirmed = window.confirm(
-        `Archive "${route.folder_name}"?\n\nThis will move it to your Archived tab. You can unarchive it anytime.`
-      );
-      if (!confirmed) return;
-    }
-    
     setArchivingRouteId(route.id);
     try {
       if (isArchived) {
@@ -101,6 +109,24 @@ export default function WorkerRoutes() {
     } finally {
       setArchivingRouteId(null);
     }
+  };
+
+  const handleArchiveRoute = (route) => {
+    const isArchived = route.status === 'archived';
+    // Unarchive — no confirmation needed, run immediately (matches prior behavior)
+    if (isArchived) {
+      runArchiveRoute(route);
+      return;
+    }
+    // Archive — ask to confirm
+    setConfirmDialog({
+      open: true,
+      title: `Archive "${route.folder_name}"?`,
+      description: 'This will move it to your Archived tab. You can unarchive it anytime.',
+      confirmLabel: 'Archive',
+      destructive: false,
+      onConfirm: () => runArchiveRoute(route)
+    });
   };
 
   // EDIT — navigate to EditRoute page
@@ -466,6 +492,60 @@ export default function WorkerRoutes() {
       </main>
 
       <BottomNav currentPage="WorkerRoutes" />
+
+      <AlertDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => {
+          if (confirmBusy) return;
+          if (!open) setConfirmDialog(prev => ({ ...prev, open: false }));
+        }}
+      >
+        <AlertDialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          style={{
+            background: 'rgba(14, 20, 44, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            border: '1.5px solid rgba(229,179,225,0.35)',
+            color: '#e6e1e4'
+          }}
+        >
+          <AlertDialogHeader>
+            <AlertDialogTitle style={{ color: '#e6e1e4' }}>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription style={{ color: '#d0c3cb' }}>
+              {confirmDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              disabled={confirmBusy}
+              onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={confirmBusy}
+              onClick={async (e) => {
+                e.preventDefault();
+                if (confirmBusy) return;
+                setConfirmBusy(true);
+                try {
+                  if (confirmDialog.onConfirm) await confirmDialog.onConfirm();
+                } finally {
+                  setConfirmBusy(false);
+                  setConfirmDialog(prev => ({ ...prev, open: false }));
+                }
+              }}
+              style={confirmDialog.destructive
+                ? { background: '#b91c1c', color: '#fff' }
+                : { background: '#e9c349', color: '#0F0B10' }}
+            >
+              {confirmBusy ? 'Working...' : confirmDialog.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
