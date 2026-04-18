@@ -319,7 +319,7 @@ export default function BossDashboard() {
 
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'transparent' }}>
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
       </div>
     );
@@ -327,7 +327,7 @@ export default function BossDashboard() {
 
   if (userError || !user) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center flex-col gap-4">
+      <div className="min-h-screen flex items-center justify-center flex-col gap-4" style={{ background: 'transparent' }}>
         <p className="text-gray-600">Unable to load user data</p>
         <Button onClick={() => window.location.reload()}>Refresh</Button>
       </div>
@@ -409,7 +409,7 @@ export default function BossDashboard() {
   const todayDate = format(new Date(), 'EEEE, MMMM d');
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen pb-20" style={{ background: 'transparent' }}>
       {/* Header */}
       <header className="bg-blue-500 text-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">

@@ -650,7 +650,7 @@ export default function WorkerPayout() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: C.bg, paddingBottom: 80 }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
       <Header user={user} unreadCount={notifications.length} />
 
       <main style={{ padding: '16px 16px 0', maxWidth: 480, margin: '0 auto' }}>
