@@ -252,9 +252,13 @@ Deno.serve(async (req) => {
       return Response.json({ error: 'No image provided' }, { status: 400 });
     }
     
-    if (!documentType || !['serve', 'garnishment', 'posting'].includes(documentType)) {
+    if (!documentType || !['serve', 'garnishment', 'posting', 'screenshot'].includes(documentType)) {
       return Response.json({ error: 'Invalid document type' }, { status: 400 });
     }
+
+    // Screenshot mode: skip address parsing entirely. Return raw Vision text
+    // so the client can parse its own template (e.g. scheduled-serve draft line).
+    const isScreenshotMode = documentType === 'screenshot';
 
     const apiKey = Deno.env.get('GOOGLE_VISION_API_KEY');
     if (!apiKey) {
@@ -299,6 +303,17 @@ Deno.serve(async (req) => {
     console.log('=== RAW OCR TEXT ===');
     console.log(fullText);
     console.log('=== END OCR TEXT ===');
+
+    // Screenshot mode: short-circuit. Client does its own parsing against
+    // the scheduled-serve draft template; we only need to hand back rawText.
+    if (isScreenshotMode) {
+      return Response.json({
+        success: !!fullText,
+        confidence,
+        processingTimeMs: Date.now() - startTime,
+        rawText: fullText
+      });
+    }
     
     // Parse address from OCR text
     const parsedAddress = parseAddress(fullText, documentType);
