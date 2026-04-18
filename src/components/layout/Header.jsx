@@ -17,7 +17,9 @@ export default function Header({ user, unreadCount = 0, actionButton = null }) {
   return (
     <div style={{ position: 'sticky', top: 0, zIndex: 40 }}>
     <header style={{
-      background: '#0F0B10',
+      background: 'rgba(15,11,16,0.55)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
       color: '#e6e1e4',
       borderBottom: 'none',
       padding: '12px 16px',
