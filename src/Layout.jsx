@@ -185,11 +185,8 @@ export default function Layout({ children, currentPageName }) {
   return (
     <>
       {/* Fixed global background — navy base + ambient gold warmth.
-          Layer stack:
-            1. Navy gradient base (bottom)
-            2. Two soft gold streaks from top-left (identity, softened ~35% from prior)
-            3. One subtle counter-streak from top-right (mid-screen warmth)
-            4. Large soft radial glow bottom-right (ambient scroll warmth) */}
+          z-index:0 (not -1) so it paints ABOVE html's #060914 fallback.
+          Children get explicit z-index:1 below so content stacks on top. */}
       <div
         style={{
           position: 'fixed',
@@ -197,7 +194,8 @@ export default function Layout({ children, currentPageName }) {
           left: 0,
           right: 0,
           bottom: 0,
-          zIndex: -1,
+          zIndex: 0,
+          pointerEvents: 'none',
           background: 'linear-gradient(to bottom, #060914 0%, #0B1428 40%, #0D1E3A 100%)',
           overflow: 'hidden'
         }}
@@ -287,7 +285,9 @@ export default function Layout({ children, currentPageName }) {
           filter: 'blur(8px)'
         }} />
       </div>
-      {children}
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {children}
+      </div>
     </>
   );
 }
