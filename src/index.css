@@ -80,15 +80,20 @@
     @apply border-border outline-ring/50;
   }
 
-  html,
+  html {
+    background-color: #060914;
+    min-height: 100%;
+  }
+
   body,
   #root {
-    background-color: #060914;
+    /* Background intentionally not set — owned by src/Layout.jsx
+       (fixed div at z-index:-1 with navy gradient + gold warmth).
+       html keeps #060914 as the ultimate fallback if JS fails to load. */
     min-height: 100%;
   }
 
   body {
     @apply text-foreground;
-    background-color: #060914;
   }
 }

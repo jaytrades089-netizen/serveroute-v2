@@ -113,10 +113,12 @@ body.camera-active .bottom-nav-bar {
 
 /* ============================================================
    SERVEROUTE V2 — GLOBAL THEME
-   ============================================================ */
+   ============================================================
+   Background is owned by src/Layout.jsx (fixed div at z-index:-1
+   with navy gradient + gold warmth). Do NOT add a body background
+   here — it will paint on top of the Layout's gold and hide it. */
 
 body {
-  background: linear-gradient(to bottom, #060914 0%, #0B1428 40%, #0D1E3A 100%);
   min-height: 100vh;
 }
 
