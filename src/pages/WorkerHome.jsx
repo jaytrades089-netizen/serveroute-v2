@@ -47,6 +47,7 @@ export default function WorkerHome() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [currentPhase, setCurrentPhase] = useState('ntc');
+  const [showArchivedOnly, setShowArchivedOnly] = useState(false);
 
   const { data: user, isLoading: userLoading } = useCurrentUser();
 
@@ -311,6 +312,9 @@ export default function WorkerHome() {
               addresses={addresses}
               isBossView={false}
               className=""
+              showArchivedToggle={true}
+              archivedOnly={showArchivedOnly}
+              onToggleArchived={() => setShowArchivedOnly(v => !v)}
             />
           </div>
         </div>
