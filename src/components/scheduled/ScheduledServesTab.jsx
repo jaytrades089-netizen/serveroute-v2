@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Clock, MapPin, Phone, Navigation, Loader2, Copy, Eye, Pencil } from 'lucide-react';
+import { Clock, MapPin, Phone, Loader2, Copy, Eye, Pencil } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -237,11 +237,17 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                 </button>
                 <button
                   onClick={() => {
+                    // Copy the serve address to clipboard so the worker can paste it
+                    // into their existing work app. The scheduled serve card is already
+                    // the source of truth for navigation — we don't want to auto-open
+                    // Maps and interrupt that flow.
                     const addr = getNavigationAddress(serve);
                     if (addr) {
-                      window.open(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(addr)}`, '_blank');
+                      navigator.clipboard.writeText(addr)
+                        .then(() => toast.success('Address copied', { duration: 1500 }))
+                        .catch(() => toast.error('Failed to copy'));
                     } else {
-                      toast.error('No address available for navigation');
+                      toast.error('No address available to copy');
                     }
                   }}
                   className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
@@ -251,7 +257,7 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                     color: '#22c55e'
                   }}
                 >
-                  <Navigation className="w-4 h-4" /> Nav
+                  <Copy className="w-4 h-4" /> Copy
                 </button>
               </div>
             </div>
