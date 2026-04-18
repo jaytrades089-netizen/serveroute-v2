@@ -48,6 +48,71 @@ function calcPay(serveType) {
   return 0;
 }
 
+// ─── Adjustment persistence (localStorage) ────────────────────────────────
+// Adjustments are scratch-pad math — not a legal record — so they live in
+// localStorage keyed to the user + current period. Key auto-rotates on Turn
+// In because lastTurnInAt changes, so new periods start clean.
+//
+// Key format:  workerPayout:adj:{bucket}:{userId}:{lastTurnInAtMs or 'initial'}
+// Value (JSON): { amount: number, note: string, savedAt: ISO string }
+const ADJ_KEY_PREFIX = 'workerPayout:adj';
+const adjKey = (bucket, userId, lastTurnInAt) => {
+  const periodTag = lastTurnInAt ? new Date(lastTurnInAt).getTime() : 'initial';
+  return `${ADJ_KEY_PREFIX}:${bucket}:${userId}:${periodTag}`;
+};
+const readAdjustment = (bucket, userId, lastTurnInAt) => {
+  if (!userId) return null;
+  try {
+    const raw = localStorage.getItem(adjKey(bucket, userId, lastTurnInAt));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.amount !== 'number') return null;
+    return { amount: parsed.amount, note: parsed.note || '' };
+  } catch {
+    return null;
+  }
+};
+const writeAdjustment = (bucket, userId, lastTurnInAt, adjustment) => {
+  if (!userId) return false;
+  try {
+    if (adjustment === null) {
+      localStorage.removeItem(adjKey(bucket, userId, lastTurnInAt));
+    } else {
+      localStorage.setItem(adjKey(bucket, userId, lastTurnInAt), JSON.stringify({
+        amount: adjustment.amount,
+        note: adjustment.note || '',
+        savedAt: new Date().toISOString()
+      }));
+    }
+    return true;
+  } catch (err) {
+    console.warn('Adjustment localStorage write failed:', err);
+    return false;
+  }
+};
+// Sweep: delete adjustment keys for this user that don't match the current
+// period tag. Keeps localStorage tidy after period rollovers. Safe on any
+// storage error — silently bails.
+const sweepStaleAdjustments = (userId, lastTurnInAt) => {
+  if (!userId) return;
+  try {
+    const currentTag = lastTurnInAt ? new Date(lastTurnInAt).getTime() : 'initial';
+    const prefixForUser = `${ADJ_KEY_PREFIX}:`;
+    const suffixForUser = `:${userId}:`;
+    const toRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !k.startsWith(prefixForUser) || !k.includes(suffixForUser)) continue;
+      // Key shape: workerPayout:adj:{bucket}:{userId}:{tag}
+      const tag = k.split(':').pop();
+      if (String(tag) !== String(currentTag)) toRemove.push(k);
+    }
+    toRemove.forEach(k => localStorage.removeItem(k));
+  } catch (err) {
+    console.warn('Adjustment localStorage sweep failed:', err);
+  }
+};
+
 // ─── Address card ─────────────────────────────────────────────────────────────
 function AddressCard({ address, accentColor, badge, onUndo, showUndo, number }) {
   return (
@@ -290,6 +355,11 @@ export default function WorkerPayout() {
     }
   }, [userSettings]);
 
+  // Hydrate adjustments from localStorage once we know the user + period tag.
+  // Re-runs when lastTurnInAt changes (period rollover) so new periods load
+  // their own saved values (usually none). Also sweeps stale keys on load.
+  const [adjustmentsHydrated, setAdjustmentsHydrated] = useState(false);
+
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ day }) => {
       if (!user?.id) return;
@@ -486,6 +556,20 @@ export default function WorkerPayout() {
   const mailedTotal = pendingTotal; // last period's mailed paperwork (non-RTO)
   const rtoSummaryTotal = pendingRTOTotal + currentRTOsTotal; // RTO summary combines last-period + current
 
+  // Load saved adjustments from localStorage once user + lastTurnInAt are known.
+  // Gated by the payrollHistory query having resolved so lastTurnInAt is stable;
+  // otherwise we'd load under 'initial' then have to reload under the real tag.
+  useEffect(() => {
+    if (!user?.id) return;
+    if (adjustmentsHydrated) return;
+    sweepStaleAdjustments(user.id, lastTurnInAt);
+    const savedServed = readAdjustment('served', user.id, lastTurnInAt);
+    const savedMailed = readAdjustment('mailed', user.id, lastTurnInAt);
+    if (savedServed) setServedAdjustment(savedServed);
+    if (savedMailed) setMailedAdjustment(savedMailed);
+    setAdjustmentsHydrated(true);
+  }, [user?.id, lastTurnInAt, adjustmentsHydrated]);
+
   // Display totals — use adjusted amounts if set, otherwise computed
   const displayServedTotal = servedAdjustment !== null ? servedAdjustment.amount : instantTotal;
   const displayMailedTotal = mailedAdjustment !== null ? mailedAdjustment.amount : (mailedTotal + pendingRTOTotal);
@@ -573,9 +657,13 @@ export default function WorkerPayout() {
         }
       }
 
-      // Reset adjustments after turn-in
+      // Reset adjustments after turn-in — both in state AND in localStorage.
+      // Key will rotate next render when lastTurnInAt updates, but explicit
+      // clear keeps storage tidy in the meantime.
       setServedAdjustment(null);
       setMailedAdjustment(null);
+      writeAdjustment('served', user.id, lastTurnInAt, null);
+      writeAdjustment('mailed', user.id, lastTurnInAt, null);
 
       queryClient.refetchQueries({ queryKey: ['allWorkerAddresses', user?.id] });
       queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
@@ -953,17 +1041,22 @@ export default function WorkerPayout() {
         )}
       </main>
 
-      {/* Adjust Amount Modals */}
+      {/* Adjust Amount Modals — save path writes to localStorage so the
+          value survives navigation + app close. Write is keyed to user +
+          current period and auto-rotates after Turn In. */}
       <AdjustAmountModal
         open={editingBox === 'served'}
         onClose={() => setEditingBox(null)}
         label="Served/Posted"
         currentAmount={servedAdjustment !== null ? servedAdjustment.amount : instantTotal}
         onSave={(amount, note) => {
-          if (amount === instantTotal && !note) { setServedAdjustment(null); }
-          else { setServedAdjustment({ amount, note }); }
+          // Match-computed-with-no-note = clear the adjustment, back to default.
+          const nextAdj = (amount === instantTotal && !note) ? null : { amount, note };
+          setServedAdjustment(nextAdj);
+          const persisted = writeAdjustment('served', user?.id, lastTurnInAt, nextAdj);
           setEditingBox(null);
-          toast.success('Amount updated');
+          if (persisted) toast.success('Amount saved');
+          else toast.error('Amount updated but not saved — storage unavailable');
         }}
       />
       <AdjustAmountModal
@@ -972,10 +1065,13 @@ export default function WorkerPayout() {
         label="Mailed In"
         currentAmount={mailedAdjustment !== null ? mailedAdjustment.amount : (mailedTotal + pendingRTOTotal)}
         onSave={(amount, note) => {
-          if (amount === (mailedTotal + pendingRTOTotal) && !note) { setMailedAdjustment(null); }
-          else { setMailedAdjustment({ amount, note }); }
+          const computedMailed = mailedTotal + pendingRTOTotal;
+          const nextAdj = (amount === computedMailed && !note) ? null : { amount, note };
+          setMailedAdjustment(nextAdj);
+          const persisted = writeAdjustment('mailed', user?.id, lastTurnInAt, nextAdj);
           setEditingBox(null);
-          toast.success('Amount updated');
+          if (persisted) toast.success('Amount saved');
+          else toast.error('Amount updated but not saved — storage unavailable');
         }}
       />
 
