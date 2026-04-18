@@ -103,7 +103,7 @@ export default function ScanDocumentType() {
         </p>
 
         <div className="space-y-4">
-          {/* Serve card */}
+          {/* Regular Scan card (Serve type under the hood) */}
           {(() => { const info = DOCUMENT_INFO['serve']; return (
             <div
               key="serve"
@@ -115,7 +115,7 @@ export default function ScanDocumentType() {
                 <div className="text-3xl">{info.icon}</div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>{info.name}</h3>
+                    <h3 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>Regular Scan</h3>
                     <p className="text-lg font-bold" style={{ color: '#22c55e' }}>${info.rate}</p>
                   </div>
                   <p className="text-xs" style={{ color: '#8a7f87' }}>{info.schedule} • {info.description}</p>
@@ -141,8 +141,9 @@ export default function ScanDocumentType() {
             </div>
           </div>
 
-          {/* Garnishment and Posting cards */}
-          {Object.entries(DOCUMENT_INFO).filter(([type]) => type !== 'serve').map(([type, info]) => (
+          {/* Garnishment and Posting cards — HIDDEN FOR NOW. Logic in ScanningService
+              and ScanCamera remains intact; uncomment to restore entry points. */}
+          {false && Object.entries(DOCUMENT_INFO).filter(([type]) => type !== 'serve').map(([type, info]) => (
             <div
               key={type}
               className="cursor-pointer rounded-2xl p-4 transition-opacity hover:opacity-90"
