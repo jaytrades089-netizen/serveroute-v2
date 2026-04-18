@@ -224,6 +224,9 @@ export default function EditScheduledServe() {
         folder_name: route?.folder_name || serve?.folder_name || ''
       });
       toast.success('Scheduled serve updated');
+      // Include workerScheduledServes — it's the dashboard list key, and without it
+      // the updated serve keeps showing its old data until the cache expires.
+      queryClient.refetchQueries({ queryKey: ['workerScheduledServes', user?.id] });
       queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
       queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(-1);
@@ -242,6 +245,10 @@ export default function EditScheduledServe() {
     try {
       await base44.entities.ScheduledServe.delete(serveId);
       toast.success('Scheduled serve deleted');
+      // Include workerScheduledServes — without it, the deleted card lingers on
+      // the dashboard until the cache expires, and tapping it navigates to a
+      // record that no longer exists.
+      queryClient.refetchQueries({ queryKey: ['workerScheduledServes', user?.id] });
       queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
       queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(-1);

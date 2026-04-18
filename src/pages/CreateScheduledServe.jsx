@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronLeft, Phone, CalendarIcon, MapPin, FileText, Loader2, Copy, Clock, Image as ImageIcon, X, Sparkles } from 'lucide-react';
@@ -186,6 +186,7 @@ function AutoFilledChip({ show }) {
 
 export default function CreateScheduledServe() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const urlParams = new URLSearchParams(window.location.search);
   const addressId = urlParams.get('addressId');
   const routeId = urlParams.get('routeId');
@@ -493,6 +494,12 @@ export default function CreateScheduledServe() {
         folder_name: route?.folder_name || ''
       });
       toast.success('Scheduled serve created');
+      // Invalidate every list key that shows scheduled serves, or the new one
+      // stays invisible until the cache naturally expires. The dashboard list
+      // uses workerScheduledServes; route-level lists/badges use the routeId keys.
+      queryClient.refetchQueries({ queryKey: ['workerScheduledServes', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServes', routeId] });
+      queryClient.refetchQueries({ queryKey: ['scheduledServesCount', routeId] });
       navigate(createPageUrl(`WorkerRouteDetail?id=${routeId}`));
     } catch (error) {
       console.error('Failed to create scheduled serve:', error);
