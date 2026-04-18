@@ -93,16 +93,16 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
       ? serve.meeting_place_address
       : (addr ? `${formatAddress(addr).line1}, ${formatAddress(addr).line2}` : '(unknown)');
     
-    const dt = new Date(serve.scheduled_datetime);
-    const dateTimeStr = format(dt, "EEE, MMM d, yyyy 'at' h:mm a");
+    const dt = serve.scheduled_datetime ? new Date(serve.scheduled_datetime) : null;
+    const dateTimeStr = dt && !isNaN(dt.getTime()) ? format(dt, "EEE, MMM d, yyyy 'at' h:mm a") : '(no date set)';
 
     return `Scheduled Serve Defendant:\n${defendantName}\nPhone: ${serve.phone_number || '(none)'}\n\nLocation: ${locationLabel} Address:\n${locationAddress}\n\nDate/Time:\n${dateTimeStr}`;
   };
 
   return (
     <div className="space-y-3">
-      {activeServes.sort((a, b) => new Date(a.scheduled_datetime) - new Date(b.scheduled_datetime)).map((serve) => {
-        const dt = new Date(serve.scheduled_datetime);
+      {[...activeServes].sort((a, b) => new Date(a.scheduled_datetime || 0) - new Date(b.scheduled_datetime || 0)).map((serve) => {
+        const dt = serve.scheduled_datetime ? new Date(serve.scheduled_datetime) : null;
         const addr = addressMap[serve.address_id];
         const locationAddress = serve.location_type === 'meeting' && serve.meeting_place_address
           ? serve.meeting_place_address
@@ -156,7 +156,7 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e9c349' }} />
                 <span className="text-sm font-semibold" style={{ color: '#e9c349' }}>
-                  {format(dt, "EEE, MMM d 'at' h:mm a")}
+                  {dt && !isNaN(dt.getTime()) ? format(dt, "EEE, MMM d 'at' h:mm a") : '(no date set)'}
                 </span>
               </div>
 
