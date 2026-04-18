@@ -70,16 +70,16 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
   if (isLoading) {
     return (
       <div className="flex justify-center py-8">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+        <Loader2 className="w-6 h-6 animate-spin" style={{ color: '#e9c349' }} />
       </div>
     );
   }
 
   if (activeServes.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        <Clock className="w-10 h-10 mx-auto text-gray-300 mb-2" />
-        <p className="text-sm">No scheduled serves</p>
+      <div className="text-center py-8">
+        <Clock className="w-10 h-10 mx-auto mb-2" style={{ color: '#363436' }} />
+        <p className="text-sm" style={{ color: '#8a7f87' }}>No scheduled serves</p>
       </div>
     );
   }
@@ -109,49 +109,92 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
           : (addr ? `${formatAddress(addr).line1}, ${formatAddress(addr).line2}` : '');
 
         return (
-          <Card key={serve.id} className="border-blue-200 bg-blue-50/50">
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  {serve.defendant_name && (
-                    <p className="font-bold text-gray-900">{serve.defendant_name}</p>
-                  )}
-                  <div className="flex items-center gap-2 text-sm text-blue-700 font-semibold mt-1">
-                    <Clock className="w-4 h-4" />
-                    {format(dt, "EEE, MMM d 'at' h:mm a")}
-                  </div>
-                </div>
-                <Badge className={serve.location_type === 'meeting' 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-blue-100 text-blue-700'
-                }>
-                  {serve.location_type === 'meeting' ? 'Meeting Place' : 'Place of Posting'}
-                </Badge>
+          <div
+            key={serve.id}
+            className="rounded-2xl overflow-hidden"
+            style={{
+              background: 'rgba(14, 20, 44, 0.55)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '2px solid #e9c349',
+              boxShadow: '0 0 12px rgba(233,195,73,0.35), inset 0 0 0 1px rgba(233,195,73,0.15)'
+            }}
+          >
+            {/* Gold banner header — matches ScheduledServeCard.jsx on Dash */}
+            <div
+              className="px-4 py-2 flex items-center gap-2"
+              style={{
+                background: 'rgba(233,195,73,0.18)',
+                borderBottom: '1px solid rgba(233,195,73,0.40)'
+              }}
+            >
+              <Clock className="w-4 h-4 flex-shrink-0" style={{ color: '#e9c349' }} />
+              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e9c349' }}>
+                Scheduled Serve
+              </span>
+              <span
+                className="ml-auto text-[10px] font-semibold rounded px-1.5 py-0.5 uppercase"
+                style={
+                  serve.location_type === 'meeting'
+                    ? { background: 'rgba(229,179,225,0.20)', color: '#e5b9e1', border: '1px solid rgba(229,179,225,0.35)' }
+                    : { background: 'rgba(147,197,253,0.15)', color: '#93c5fd', border: '1px solid rgba(147,197,253,0.35)' }
+                }
+              >
+                {serve.location_type === 'meeting' ? 'Meeting Place' : 'Place of Posting'}
+              </span>
+            </div>
+
+            <div className="px-4 py-3">
+              {/* Defendant Name */}
+              {serve.defendant_name && (
+                <h3 className="text-base font-bold leading-tight mb-1" style={{ color: '#E6E1E4' }}>
+                  {serve.defendant_name}
+                </h3>
+              )}
+
+              {/* Date/Time */}
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e9c349' }} />
+                <span className="text-sm font-semibold" style={{ color: '#e9c349' }}>
+                  {format(dt, "EEE, MMM d 'at' h:mm a")}
+                </span>
               </div>
 
+              {/* Phone number */}
               {serve.phone_number && (
-                <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                  <Phone className="w-3.5 h-3.5" /> {serve.phone_number}
+                <div className="flex items-center gap-2 mb-3">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#8a7f87' }} />
+                  <span className="text-xs" style={{ color: '#d0c3cb' }}>{serve.phone_number}</span>
                 </div>
               )}
 
-              {/* Structured note display built from entity fields */}
-              <div className="relative mt-2">
-                <div className="text-xs text-gray-600 bg-white rounded-lg p-2 pr-8 border border-gray-100 whitespace-pre-line">
+              {/* Structured note display — dark frosted inner block */}
+              <div className="relative">
+                <div
+                  className="text-xs rounded-lg p-3 pr-9 whitespace-pre-line"
+                  style={{
+                    background: 'rgba(255,255,255,0.04)',
+                    border: '1px solid rgba(255,255,255,0.10)',
+                    color: '#d0c3cb',
+                    lineHeight: 1.6
+                  }}
+                >
                   {buildFormattedNote(serve)}
                 </div>
                 <button
                   onClick={() => handleCopyNotes(buildFormattedNote(serve))}
-                  className="absolute top-2 right-2 p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-blue-600 transition-colors"
+                  className="absolute top-2 right-2 p-1.5 rounded transition-colors"
+                  style={{ color: '#8a7f87' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(233,195,73,0.15)'; e.currentTarget.style.color = '#e9c349'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#8a7f87'; }}
                 >
                   <Copy className="w-3.5 h-3.5" />
                 </button>
               </div>
 
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  variant="outline"
+              {/* Action buttons — View / Edit / Nav */}
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                <button
                   onClick={() => {
                     // If this serve belongs to the currently-viewed route, filter
                     // this route's address list to show it. If it belongs to a
@@ -166,13 +209,16 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                       onViewAddress(serve.address_id);
                     }
                   }}
-                  className="flex-1"
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
+                  style={{
+                    background: 'rgba(229,179,225,0.12)',
+                    border: '1px solid rgba(229,179,225,0.35)',
+                    color: '#e5b9e1'
+                  }}
                 >
-                  <Eye className="w-4 h-4 mr-1" /> View
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
+                  <Eye className="w-4 h-4" /> View
+                </button>
+                <button
                   onClick={() => {
                     // Pass the serve's OWN route_id, not the currently-viewed one —
                     // otherwise editing a cross-route serve could write the wrong
@@ -180,12 +226,16 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                     const serveRouteId = serve.route_id || routeId;
                     navigate(createPageUrl(`EditScheduledServe?serveId=${serve.id}&routeId=${serveRouteId}`));
                   }}
-                  className="flex-1"
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
+                  style={{
+                    background: 'rgba(233,195,73,0.12)',
+                    border: '1px solid rgba(233,195,73,0.35)',
+                    color: '#e9c349'
+                  }}
                 >
-                  <Pencil className="w-4 h-4 mr-1" /> Edit
-                </Button>
-                <Button
-                  size="sm"
+                  <Pencil className="w-4 h-4" /> Edit
+                </button>
+                <button
                   onClick={() => {
                     const addr = getNavigationAddress(serve);
                     if (addr) {
@@ -194,13 +244,18 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                       toast.error('No address available for navigation');
                     }
                   }}
-                  className="flex-1 bg-green-500 hover:bg-green-600"
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
+                  style={{
+                    background: 'rgba(34,197,94,0.18)',
+                    border: '1px solid rgba(34,197,94,0.45)',
+                    color: '#22c55e'
+                  }}
                 >
-                  <Navigation className="w-4 h-4 mr-1" /> Nav
-                </Button>
+                  <Navigation className="w-4 h-4" /> Nav
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         );
       })}
     </div>
