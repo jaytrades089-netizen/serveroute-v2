@@ -6,10 +6,10 @@ import { Clock, MapPin } from 'lucide-react';
 
 export default function ScheduledServeCard({ serve }) {
   const navigate = useNavigate();
-  const dt = new Date(serve.scheduled_datetime);
+  const dt = serve.scheduled_datetime ? new Date(serve.scheduled_datetime) : null;
 
   const handleClick = () => {
-    navigate(createPageUrl(`WorkerRouteDetail?id=${serve.route_id}&addressId=${serve.address_id}`));
+    navigate(createPageUrl(`WorkerRouteDetail?id=${serve.route_id}&tab=scheduled`));
   };
 
   return (
@@ -58,7 +58,7 @@ export default function ScheduledServeCard({ serve }) {
         <div className="flex items-center gap-2 mb-2">
           <Clock className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e9c349' }} />
           <span className="text-sm font-semibold" style={{ color: '#e9c349' }}>
-            {format(dt, "EEE, MMM d 'at' h:mm a")}
+            {dt && !isNaN(dt.getTime()) ? format(dt, "EEE, MMM d 'at' h:mm a") : '(no date set)'}
           </span>
         </div>
 
