@@ -72,9 +72,14 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
       toast.error('No address available to navigate to');
       return;
     }
-    // Open in Apple Maps (falls back to Google Maps on Android)
-    const url = `https://maps.apple.com/?daddr=${encodeURIComponent(address)}`;
-    window.open(url, '_blank');
+    // Use native app deep links rather than window.open (which opens the browser).
+    // window.location.href lets the OS intercept the scheme and launch Maps natively.
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      window.location.href = `maps://?daddr=${encodeURIComponent(address)}`;
+    } else {
+      window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+    }
   };
 
   const handleCopyAddress = (address) => {
