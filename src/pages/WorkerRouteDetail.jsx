@@ -6,7 +6,7 @@ import { useUserSettings } from '@/components/hooks/useUserSettings';
 import { Link, useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search, RefreshCw, ArrowRightLeft } from 'lucide-react';
+import { Loader2, ChevronLeft, MapPin, Play, CheckCircle, Clock, Lock, FileCheck, AlertCircle, Tag, Camera, AlertTriangle, Pause, RotateCcw, MoreVertical, Pencil, Check, X, Search, RefreshCw, ArrowRightLeft, Copy } from 'lucide-react';
 import { geocodeAddress } from '@/components/services/OptimizationService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -783,22 +783,40 @@ export default function WorkerRouteDetail() {
               <Search className="w-4 h-4" style={{ color: '#e9c349' }} />
               <span className="text-sm font-medium" style={{ color: '#e6e1e4' }}>Showing search result</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setSearchFilter(null);
-                // Remove addressId from URL without reload
-                const newParams = new URLSearchParams(window.location.search);
-                newParams.delete('addressId');
-                const newUrl = `${window.location.pathname}?${newParams.toString()}`;
-                window.history.replaceState({}, '', newUrl);
-              }}
-              className="text-xs h-7"
-              style={{ color: '#e9c349', borderColor: '#363436' }}
-            >
-              Show All ({addresses.length})
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const filteredAddr = addresses.find(a => a.id === searchFilter);
+                  if (filteredAddr) {
+                    const addrText = filteredAddr.normalized_address || filteredAddr.legal_address;
+                    navigator.clipboard.writeText(addrText)
+                      .then(() => toast.success('Address copied', { duration: 1500 }))
+                      .catch(() => toast.error('Failed to copy'));
+                  }
+                }}
+                className="text-xs h-7 flex items-center gap-1"
+                style={{ color: '#e9c349', borderColor: '#363436' }}
+              >
+                <Copy className="w-3 h-3" /> Copy Address
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSearchFilter(null);
+                  const newParams = new URLSearchParams(window.location.search);
+                  newParams.delete('addressId');
+                  const newUrl = `${window.location.pathname}?${newParams.toString()}`;
+                  window.history.replaceState({}, '', newUrl);
+                }}
+                className="text-xs h-7"
+                style={{ color: '#e9c349', borderColor: '#363436' }}
+              >
+                Show All ({addresses.length})
+              </Button>
+            </div>
           </div>
         )}
 

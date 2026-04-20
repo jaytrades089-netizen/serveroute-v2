@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -355,10 +355,12 @@ export default function WorkerPayout() {
     }
   }, [userSettings]);
 
-  // Hydrate adjustments from localStorage once we know the user + period tag.
-  // Re-runs when lastTurnInAt changes (period rollover) so new periods load
-  // their own saved values (usually none). Also sweeps stale keys on load.
-  const [adjustmentsHydrated, setAdjustmentsHydrated] = useState(false);
+  // Hydrate adjustments from localStorage keyed to (userId + periodTag).
+  // Using a ref instead of state so re-reads happen any time lastTurnInAt changes
+  // (e.g. payrollHistory loads after first render). This fixes the race where
+  // the old boolean state would lock at 'true' while lastTurnInAt was still null,
+  // then refuse to re-read once the real timestamp loaded from payrollHistory.
+  const hydratedKeyRef = useRef(null);
 
   const saveSettingsMutation = useMutation({
     mutationFn: async ({ day }) => {
@@ -556,19 +558,20 @@ export default function WorkerPayout() {
   const mailedTotal = pendingTotal; // last period's mailed paperwork (non-RTO)
   const rtoSummaryTotal = pendingRTOTotal + currentRTOsTotal; // RTO summary combines last-period + current
 
-  // Load saved adjustments from localStorage once user + lastTurnInAt are known.
-  // Gated by the payrollHistory query having resolved so lastTurnInAt is stable;
-  // otherwise we'd load under 'initial' then have to reload under the real tag.
+  // Hydrate adjustments — runs any time (userId + periodTag) changes.
+  // Unconditionally sets both values so stale state doesn't linger between periods.
   useEffect(() => {
     if (!user?.id) return;
-    if (adjustmentsHydrated) return;
+    const periodTag = lastTurnInAt ? new Date(lastTurnInAt).getTime() : 'initial';
+    const key = `${user.id}:${periodTag}`;
+    if (hydratedKeyRef.current === key) return;
+    hydratedKeyRef.current = key;
     sweepStaleAdjustments(user.id, lastTurnInAt);
     const savedServed = readAdjustment('served', user.id, lastTurnInAt);
     const savedMailed = readAdjustment('mailed', user.id, lastTurnInAt);
-    if (savedServed) setServedAdjustment(savedServed);
-    if (savedMailed) setMailedAdjustment(savedMailed);
-    setAdjustmentsHydrated(true);
-  }, [user?.id, lastTurnInAt, adjustmentsHydrated]);
+    setServedAdjustment(savedServed);   // null if nothing saved — clears lingering state
+    setMailedAdjustment(savedMailed);
+  }, [user?.id, lastTurnInAt]);
 
   // Display totals — use adjusted amounts if set, otherwise computed
   const displayServedTotal = servedAdjustment !== null ? servedAdjustment.amount : instantTotal;

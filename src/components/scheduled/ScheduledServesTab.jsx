@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { format } from 'date-fns';
-import { Clock, MapPin, Phone, Loader2, Copy, Eye, Pencil } from 'lucide-react';
+import { Clock, MapPin, Phone, Loader2, Copy, Eye, Pencil, Navigation } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -65,6 +65,26 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
     }).catch(() => {
       toast.error('Failed to copy');
     });
+  };
+
+  const handleNavigateTo = (address) => {
+    if (!address) {
+      toast.error('No address available to navigate to');
+      return;
+    }
+    // Open in Apple Maps (falls back to Google Maps on Android)
+    const url = `https://maps.apple.com/?daddr=${encodeURIComponent(address)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCopyAddress = (address) => {
+    if (!address) {
+      toast.error('No address available to copy');
+      return;
+    }
+    navigator.clipboard.writeText(address)
+      .then(() => toast.success('Address copied', { duration: 1500 }))
+      .catch(() => toast.error('Failed to copy'));
   };
 
   if (isLoading) {
@@ -168,6 +188,27 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                 </div>
               )}
 
+              {/* Meeting place address with copy icon */}
+              {serve.location_type === 'meeting' && serve.meeting_place_address && (
+                <div
+                  className="flex items-center gap-2 mb-2 rounded-lg px-2 py-1.5 cursor-pointer active:opacity-70"
+                  style={{ background: 'rgba(229,179,225,0.10)', border: '1px solid rgba(229,179,225,0.25)' }}
+                  onDoubleClick={() => handleCopyAddress(serve.meeting_place_address)}
+                >
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#e5b9e1' }} />
+                  <span className="text-xs flex-1 font-medium" style={{ color: '#e5b9e1' }}>{serve.meeting_place_address}</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleCopyAddress(serve.meeting_place_address); }}
+                    className="p-1 rounded flex-shrink-0"
+                    style={{ color: '#8a7f87' }}
+                    onMouseEnter={e => { e.currentTarget.style.color = '#e5b9e1'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = '#8a7f87'; }}
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+
               {/* Structured note display — dark frosted inner block */}
               <div className="relative">
                 <div
@@ -196,11 +237,6 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <button
                   onClick={() => {
-                    // If this serve belongs to the currently-viewed route, filter
-                    // this route's address list to show it. If it belongs to a
-                    // different route, navigate to that route's detail page with
-                    // the address pre-filtered — otherwise we'd be asking the current
-                    // route to show an address it doesn't own, which returns nothing.
                     if (serve.route_id && serve.route_id !== routeId) {
                       navigate(createPageUrl(`WorkerRouteDetail?id=${serve.route_id}&addressId=${serve.address_id}&tab=addresses`));
                       return;
@@ -220,9 +256,6 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                 </button>
                 <button
                   onClick={() => {
-                    // Pass the serve's OWN route_id, not the currently-viewed one —
-                    // otherwise editing a cross-route serve could write the wrong
-                    // route_id back on save.
                     const serveRouteId = serve.route_id || routeId;
                     navigate(createPageUrl(`EditScheduledServe?serveId=${serve.id}&routeId=${serveRouteId}`));
                   }}
@@ -236,20 +269,7 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   <Pencil className="w-4 h-4" /> Edit
                 </button>
                 <button
-                  onClick={() => {
-                    // Copy the serve address to clipboard so the worker can paste it
-                    // into their existing work app. The scheduled serve card is already
-                    // the source of truth for navigation — we don't want to auto-open
-                    // Maps and interrupt that flow.
-                    const addr = getNavigationAddress(serve);
-                    if (addr) {
-                      navigator.clipboard.writeText(addr)
-                        .then(() => toast.success('Address copied', { duration: 1500 }))
-                        .catch(() => toast.error('Failed to copy'));
-                    } else {
-                      toast.error('No address available to copy');
-                    }
-                  }}
+                  onClick={() => handleNavigateTo(getNavigationAddress(serve))}
                   className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
                   style={{
                     background: 'rgba(34,197,94,0.18)',
@@ -257,7 +277,7 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                     color: '#22c55e'
                   }}
                 >
-                  <Copy className="w-4 h-4" /> Copy
+                  <Navigation className="w-4 h-4" /> Nav
                 </button>
               </div>
             </div>

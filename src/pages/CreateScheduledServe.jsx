@@ -111,21 +111,49 @@ function parseScheduledServeDraft(rawText) {
     }
   }
 
-  // Time: H:MM a.m./p.m. — accept many variants: "3:00 p.m.", "3:00pm", "3:00 PM", "3:00PM"
-  const timeMatch = draftBlock.match(/\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/);
-  if (timeMatch) {
-    const h = parseInt(timeMatch[1], 10);
-    const m = parseInt(timeMatch[2], 10);
-    const isPM = timeMatch[3].toLowerCase() === 'p';
-    if (h >= 1 && h <= 12 && m >= 0 && m <= 59) {
-      result.hour = String(h);
-      // Snap minute to nearest allowed wheel value: 00 / 15 / 30 / 45
-      const allowed = [0, 15, 30, 45];
-      const snapped = allowed.reduce((prev, curr) =>
-        Math.abs(curr - m) < Math.abs(prev - m) ? curr : prev
-      );
-      result.minute = snapped.toString().padStart(2, '0');
-      result.ampm = isPM ? 'PM' : 'AM';
+  // Time: detect a range first (e.g. "7:45 p.m. to 8:45 p.m.") then fall back
+  // to a single time. The range regex captures both halves so we can set FROM
+  // and TO correctly. Single-time match still auto-advances TO by +1h.
+  const timeRangeMatch = draftBlock.match(
+    /\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?\s*(?:to|[-–—])\s*(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/i
+  );
+  if (timeRangeMatch) {
+    const h1 = parseInt(timeRangeMatch[1], 10);
+    const m1 = parseInt(timeRangeMatch[2], 10);
+    const isPM1 = timeRangeMatch[3].toLowerCase() === 'p';
+    const h2 = parseInt(timeRangeMatch[5], 10);
+    const m2 = parseInt(timeRangeMatch[6], 10);
+    const isPM2 = timeRangeMatch[7].toLowerCase() === 'p';
+    const allowed = [0, 15, 30, 45];
+    const snap = (m) => allowed.reduce((prev, curr) => Math.abs(curr - m) < Math.abs(prev - m) ? curr : prev);
+    if (h1 >= 1 && h1 <= 12 && m1 >= 0 && m1 <= 59) {
+      result.hour   = String(h1);
+      result.minute = snap(m1).toString().padStart(2, '0');
+      result.ampm   = isPM1 ? 'PM' : 'AM';
+    }
+    // Store the end time in extra fields so the caller can set both wheels.
+    if (h2 >= 1 && h2 <= 12 && m2 >= 0 && m2 <= 59) {
+      result.endHour   = String(h2);
+      result.endMinute = snap(m2).toString().padStart(2, '0');
+      result.endAmPm   = isPM2 ? 'PM' : 'AM';
+    }
+  } else {
+    // Single-time fallback
+    const timeMatch = draftBlock.match(/\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/);
+    if (timeMatch) {
+      const h = parseInt(timeMatch[1], 10);
+      const m = parseInt(timeMatch[2], 10);
+      const isPM = timeMatch[3].toLowerCase() === 'p';
+      if (h >= 1 && h <= 12 && m >= 0 && m <= 59) {
+        result.hour = String(h);
+        // Snap minute to nearest allowed wheel value: 00 / 15 / 30 / 45
+        const allowed = [0, 15, 30, 45];
+        const snapped = allowed.reduce((prev, curr) =>
+          Math.abs(curr - m) < Math.abs(prev - m) ? curr : prev
+        );
+        result.minute = snapped.toString().padStart(2, '0');
+        result.ampm = isPM ? 'PM' : 'AM';
+      }
     }
   }
 
@@ -401,9 +429,16 @@ export default function CreateScheduledServe() {
         if (mIdx >= 0) setStartMinIdx(mIdx);
         if (apIdx >= 0) setStartAmPmIdx(apIdx);
 
-        // Also auto-advance the TO (end) time by +1h, mirroring what the wheel
-        // picker's handleStartChange does when the user picks FROM manually.
-        if (hIdx >= 0 && mIdx >= 0 && apIdx >= 0) {
+        if (parsed.endHour && parsed.endMinute && parsed.endAmPm) {
+          // Range was detected: set end time directly from parsed values
+          const eHIdx = HOURS.indexOf(parsed.endHour);
+          const eMIdx = MINUTES.indexOf(parsed.endMinute);
+          const eApIdx = AMPM.indexOf(parsed.endAmPm);
+          if (eHIdx >= 0) setEndHourIdx(eHIdx);
+          if (eMIdx >= 0) setEndMinIdx(eMIdx);
+          if (eApIdx >= 0) setEndAmPmIdx(eApIdx);
+        } else if (hIdx >= 0 && mIdx >= 0 && apIdx >= 0) {
+          // Single time: auto-advance end time by +1h
           let h24 = parseInt(parsed.hour, 10);
           if (parsed.ampm === 'PM' && h24 !== 12) h24 += 12;
           if (parsed.ampm === 'AM' && h24 === 12) h24 = 0;

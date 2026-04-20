@@ -155,6 +155,23 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
 
   const [isShuffling, setIsShuffling] = useState(false);
 
+  // If the route was already optimized (e.g. the night before), pre-populate
+  // the metrics and set isOptimized=true so Start Route is immediately available
+  // without requiring a re-optimization.
+  useEffect(() => {
+    if (route?.optimized_order?.length > 0) {
+      setIsOptimized(true);
+      setOptimizedCount(route.optimized_order.length);
+      setRouteMetrics({
+        totalMiles: route.total_miles || 0,
+        totalTimeMinutes: route.total_drive_time_minutes || 0
+      });
+      if (route.time_at_address_minutes) {
+        setTimeAtAddress(route.time_at_address_minutes);
+      }
+    }
+  }, []); // run once on mount — intentionally empty deps
+
   const handleShuffle = async () => {
     setIsShuffling(true);
     try {

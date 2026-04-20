@@ -116,7 +116,6 @@ export default function ScanDocumentType() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold" style={{ color: '#e6e1e4' }}>Regular Scan</h3>
-                    <p className="text-lg font-bold" style={{ color: '#22c55e' }}>${info.rate}</p>
                   </div>
                   <p className="text-xs" style={{ color: '#8a7f87' }}>{info.schedule} • {info.description}</p>
                 </div>

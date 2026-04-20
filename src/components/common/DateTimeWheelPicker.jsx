@@ -86,12 +86,49 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
     onChange(logicalIdx);
   };
 
+  const handleStep = (direction) => {
+    // direction: +1 = next item (scroll down), -1 = prev item (scroll up)
+    const next = circular
+      ? ((selectedIndex + direction) + count) % count
+      : Math.max(0, Math.min(selectedIndex + direction, count - 1));
+    handleItemClick(next);
+    onChange(next);
+  };
+
+  const stepBtnStyle = {
+    width: '100%',
+    height: 22,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'none',
+    border: 'none',
+    color: 'rgba(255,255,255,0.35)',
+    cursor: 'pointer',
+    fontSize: 14,
+    fontWeight: 700,
+    lineHeight: 1,
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
+    padding: 0,
+  };
+
   return (
     <div className="flex flex-col items-center flex-1">
       {/* Fixed-height label area so all columns align */}
       <div className="h-5 flex items-center justify-center">
         {label ? <p className="text-[9px] font-bold text-white/50 uppercase tracking-wider">{label}</p> : null}
       </div>
+
+      {/* + button above the bracket */}
+      <button
+        style={stepBtnStyle}
+        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(233,195,73,0.9)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+        onTouchStart={e => { e.currentTarget.style.color = 'rgba(233,195,73,0.9)'; }}
+        onTouchEnd={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+        onClick={() => handleStep(-1)}
+      >+</button>
 
       {/* overflow:hidden clips items that scroll past the visible window edges */}
       <div className="relative" style={{ height: ITEM_H * 3, overflow: 'hidden' }}>
@@ -139,6 +176,16 @@ function WheelColumn({ items, selectedIndex, onChange, label, circular = false }
           })}
         </div>
       </div>
+
+      {/* - button below the bracket */}
+      <button
+        style={stepBtnStyle}
+        onMouseEnter={e => { e.currentTarget.style.color = 'rgba(233,195,73,0.9)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+        onTouchStart={e => { e.currentTarget.style.color = 'rgba(233,195,73,0.9)'; }}
+        onTouchEnd={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+        onClick={() => handleStep(+1)}
+      >−</button>
     </div>
   );
 }
