@@ -42,7 +42,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
   });
 
   const doableRoutes = routes
-    .filter(r => r.status !== 'archived' && r.status !== 'completed')
+    .filter(r => showArchivedOnly ? r.status === 'archived' : (r.status !== 'archived' && r.status !== 'completed'))
     .sort((a, b) => {
       if (a.status === 'active' && b.status !== 'active') return -1;
       if (b.status === 'active' && a.status !== 'active') return 1;
