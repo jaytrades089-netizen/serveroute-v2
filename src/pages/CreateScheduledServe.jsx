@@ -114,6 +114,7 @@ function parseScheduledServeDraft(rawText) {
   // Time: detect a range first (e.g. "7:45 p.m. to 8:45 p.m.") then fall back
   // to a single time. The range regex captures both halves so we can set FROM
   // and TO correctly. Single-time match still auto-advances TO by +1h.
+  const timeMatch = draftBlock.match(/\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/);
   const timeRangeMatch = draftBlock.match(
     /\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?\s*(?:to|[-–—])\s*(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/i
   );
@@ -138,8 +139,7 @@ function parseScheduledServeDraft(rawText) {
       result.endAmPm   = isPM2 ? 'PM' : 'AM';
     }
   } else {
-    // Single-time fallback
-    const timeMatch = draftBlock.match(/\b(\d{1,2}):(\d{2})\s*([aApP])\.?\s*([mM])\.?/);
+    // Single-time fallback (timeMatch already declared above)
     if (timeMatch) {
       const h = parseInt(timeMatch[1], 10);
       const m = parseInt(timeMatch[2], 10);

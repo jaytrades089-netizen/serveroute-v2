@@ -317,6 +317,20 @@ export default function BossDashboard() {
     }
   };
 
+  // Get unassigned routes (ready but no worker) — must be before useEffect
+  const unassignedRoutes = routes.filter(r =>
+    r.status === 'ready' && !r.worker_id
+  );
+
+  // Load suggestions when unassigned routes change — must be before any early returns
+  useEffect(() => {
+    unassignedRoutes.forEach(route => {
+      if (!suggestions[route.id]) {
+        loadSuggestions(route.id);
+      }
+    });
+  }, [unassignedRoutes.length]);
+
   if (userLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'transparent' }}>
@@ -368,19 +382,7 @@ export default function BossDashboard() {
     onTimeRate
   };
 
-  // Get unassigned routes (ready but no worker)
-  const unassignedRoutes = routes.filter(r => 
-    r.status === 'ready' && !r.worker_id
-  );
 
-  // Load suggestions when unassigned routes change
-  useEffect(() => {
-    unassignedRoutes.forEach(route => {
-      if (!suggestions[route.id]) {
-        loadSuggestions(route.id);
-      }
-    });
-  }, [unassignedRoutes.length]);
 
   // Get worker progress data
   const getWorkerProgress = (worker) => {

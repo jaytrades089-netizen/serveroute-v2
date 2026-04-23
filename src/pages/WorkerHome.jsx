@@ -189,7 +189,23 @@ export default function WorkerHome() {
   }, [user]);
 
   const handleArchiveRoute = useCallback(async (route) => {
-    const confirmed = window.confirm(`Archive "${route.folder_name}"?\n\nYou can unarchive it anytime from the Routes page.`);
+    const isArchived = route.status === 'archived';
+    if (isArchived) {
+      // Unarchive immediately, no confirm needed
+      try {
+        await base44.entities.Route.update(route.id, {
+          status: route.pre_archive_status || 'ready',
+          archived_at: null,
+          pre_archive_status: null
+        });
+        queryClient.refetchQueries({ queryKey: ['workerRoutes', user?.id] });
+        toast.success(`"${route.folder_name}" restored`);
+      } catch (e) {
+        toast.error('Failed to restore route');
+      }
+      return;
+    }
+    const confirmed = window.confirm(`Archive "${route.folder_name}"?\n\nYou can unarchive it anytime.`);
     if (!confirmed) return;
     try {
       await base44.entities.Route.update(route.id, {
@@ -242,6 +258,8 @@ export default function WorkerHome() {
   }
 
   const activeRoutes = routes.filter(r => r.status === 'active' || r.status === 'assigned' || r.status === 'ready');
+  const archivedRoutes = routes.filter(r => r.status === 'archived');
+  const displayRoutes = showArchivedOnly ? archivedRoutes : activeRoutes;
   const activeRouteIds = activeRoutes.map(r => r.id);
   const activeAddresses = addresses.filter(a => activeRouteIds.includes(a.route_id));
   const pendingAddresses = activeAddresses.filter(a => !a.served);
@@ -335,12 +353,13 @@ export default function WorkerHome() {
         ))}
 
         <ActiveRoutesList
-          routes={activeRoutes}
+          routes={displayRoutes}
           attempts={allAttempts}
           addresses={addresses}
           userId={user?.id}
           onArchive={handleArchiveRoute}
           onDelete={handleDeleteRoute}
+          showArchivedOnly={showArchivedOnly}
         />
       </main>
 

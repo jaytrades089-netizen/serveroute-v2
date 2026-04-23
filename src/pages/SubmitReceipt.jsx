@@ -78,6 +78,7 @@ export default function SubmitReceipt() {
     enabled: !!user?.company_id
   });
 
+  const queryClient = useQueryClient();
   const isLoading = userLoading || addressLoading || routeLoading;
 
   if (isLoading) {
@@ -108,8 +109,6 @@ export default function SubmitReceipt() {
     );
   }
 
-  const queryClient = useQueryClient();
-  
   const handleSuccess = (receipt) => {
     // Refetch address and route caches so the card moves to completed section immediately
     queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });

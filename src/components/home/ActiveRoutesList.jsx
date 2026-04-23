@@ -16,7 +16,7 @@ import { format, parseISO, isToday, isTomorrow } from 'date-fns';
 import ScheduledServeCard from '../scheduled/ScheduledServeCard';
 import { getLocalDateKey } from '@/components/utils/addressUtils';
 
-export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId, onArchive, onDelete }) {
+export default function ActiveRoutesList({ routes = [], attempts = [], addresses = [], userId, onArchive, onDelete, showArchivedOnly = false }) {
   const [activeTab, setActiveTab] = useState('routes');
   const [schedulingRoute, setSchedulingRoute] = useState(null);
   const [editingRoute, setEditingRoute] = useState(null);
@@ -343,7 +343,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
               {onArchive && (
                 <DropdownMenuItem onClick={() => onArchive(route)}>
                   <Archive className="w-4 h-4 mr-2" />
-                  Archive Route
+                  {showArchivedOnly ? 'Unarchive Route' : 'Archive Route'}
                 </DropdownMenuItem>
               )}
               {onDelete && (
@@ -426,7 +426,7 @@ export default function ActiveRoutesList({ routes = [], attempts = [], addresses
             cursor: 'pointer'
           }}
         >
-          My Routes
+          {showArchivedOnly ? 'Archived Routes' : 'My Routes'}
         </button>
         <button
           onClick={() => setActiveTab('scheduled')}
