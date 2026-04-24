@@ -46,6 +46,10 @@ export default function WorkerRouteDetail() {
   const tabParam = urlParams.get('tab');
   const [searchFilter, setSearchFilter] = useState(searchAddressId || null);
   const [activeRouteTab, setActiveRouteTab] = useState(tabParam || 'addresses');
+  // copyMode: when a scheduled serve VIEW sets a searchFilter, default to copy mode
+  // so the Navigate button in address cards doesn't accidentally navigate to the
+  // physical address (which may not be the serve location). Resets when filter clears.
+  const [copyMode, setCopyMode] = useState(!!searchAddressId);
   const [showStopModal, setShowStopModal] = useState(false);
   const [isCompletingRoute, setIsCompletingRoute] = useState(false);
   const [dismissedOptWarning, setDismissedOptWarning] = useState(false);
@@ -784,28 +788,25 @@ export default function WorkerRouteDetail() {
               <span className="text-sm font-medium" style={{ color: '#e6e1e4' }}>Showing search result</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const filteredAddr = addresses.find(a => a.id === searchFilter);
-                  if (filteredAddr) {
-                    const addrText = filteredAddr.normalized_address || filteredAddr.legal_address;
-                    navigator.clipboard.writeText(addrText)
-                      .then(() => toast.success('Address copied', { duration: 1500 }))
-                      .catch(() => toast.error('Failed to copy'));
-                  }
+              {/* Copy mode toggle — active by default when coming from a scheduled serve VIEW */}
+              <button
+                onClick={() => setCopyMode(prev => !prev)}
+                className="text-xs h-7 px-2 rounded-lg font-bold flex items-center gap-1"
+                style={{
+                  background: copyMode ? 'rgba(233,195,73,0.20)' : 'rgba(255,255,255,0.06)',
+                  border: copyMode ? '1px solid rgba(233,195,73,0.50)' : '1px solid rgba(255,255,255,0.15)',
+                  color: copyMode ? '#e9c349' : '#8a7f87'
                 }}
-                className="text-xs h-7 flex items-center gap-1"
-                style={{ color: '#e9c349', borderColor: '#363436' }}
               >
-                <Copy className="w-3 h-3" /> Copy Address
-              </Button>
+                <Copy className="w-3 h-3" />
+                {copyMode ? 'Copy Mode ON' : 'Copy Mode'}
+              </button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   setSearchFilter(null);
+                  setCopyMode(false);
                   const newParams = new URLSearchParams(window.location.search);
                   newParams.delete('addressId');
                   const newUrl = `${window.location.pathname}?${newParams.toString()}`;
@@ -892,6 +893,7 @@ export default function WorkerRouteDetail() {
             editMode={editMode}
             route={route}
             showZoneLabels={userSettings?.show_zone_labels !== false}
+            copyMode={copyMode}
           />
         )}
         

@@ -46,7 +46,8 @@ export default function ComboRouteReview() {
       const results = await Promise.all(
         combo.route_ids.map(rid => base44.entities.Address.filter({ route_id: rid, deleted_at: null, served: false }))
       );
-      return results.flat().sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+      // Return flat unsorted — display order is derived via optimized_order useMemo below.
+      return results.flat();
     },
     enabled: !!combo?.route_ids,
     staleTime: 5 * 60 * 1000,
@@ -60,13 +61,29 @@ export default function ComboRouteReview() {
     return map;
   }, [routes]);
 
-  // Group addresses by folder for physical folder organization display
+  // Sort addresses using combo.optimized_order — same source as WorkerComboRouteDetail.
+  // This guarantees the review screen and the running route show identical order.
+  const sortedAddresses = useMemo(() => {
+    if (!addresses.length) return addresses;
+    if (combo?.optimized_order?.length > 0) {
+      const orderMap = {};
+      combo.optimized_order.forEach((id, idx) => { orderMap[id] = idx; });
+      return [...addresses].sort((a, b) => {
+        const aIdx = orderMap[a.id] ?? Infinity;
+        const bIdx = orderMap[b.id] ?? Infinity;
+        return aIdx - bIdx;
+      });
+    }
+    return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
+  }, [addresses, combo?.optimized_order]);
+
+  // Group addresses by folder for physical folder organization display.
+  // Uses sortedAddresses (optimized_order based) not raw addresses.
   const groupedBlocks = useMemo(() => {
-    if (addresses.length === 0) return [];
+    if (sortedAddresses.length === 0) return [];
     const byRoute = {};
-    const routeIdOrder = combo?.route_ids || [];
     
-    for (const addr of addresses) {
+    for (const addr of sortedAddresses) {
       if (!byRoute[addr.route_id]) {
         byRoute[addr.route_id] = {
           route_id: addr.route_id,
@@ -76,16 +93,19 @@ export default function ComboRouteReview() {
       }
       byRoute[addr.route_id].addresses.push(addr);
     }
-    
-    // Sort addresses within each folder by order_index
-    Object.values(byRoute).forEach(block => {
-      block.addresses.sort((a, b) => (a.order_index || 999) - (b.order_index || 999));
+
+    // Determine folder order by the position of each folder's first address in the optimized list
+    const folderFirstIndex = {};
+    sortedAddresses.forEach((addr, idx) => {
+      if (folderFirstIndex[addr.route_id] === undefined) {
+        folderFirstIndex[addr.route_id] = idx;
+      }
     });
     
-    return routeIdOrder
-      .filter(rid => byRoute[rid])
-      .map(rid => byRoute[rid]);
-  }, [addresses, routeNameMap, combo?.route_ids]);
+    return Object.values(byRoute).sort((a, b) => {
+      return (folderFirstIndex[a.route_id] ?? Infinity) - (folderFirstIndex[b.route_id] ?? Infinity);
+    });
+  }, [sortedAddresses, routeNameMap]);
 
   if (comboLoading || addressesLoading) {
     return (
@@ -173,7 +193,9 @@ export default function ComboRouteReview() {
                     style={{ background: 'rgba(14,20,44,0.55)', border: '1px solid rgba(255,255,255,0.10)' }}
                   >
                     <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'rgba(233,195,73,0.20)', color: '#e9c349' }}>
-                      {addr.order_index || '?'}
+                      {(combo?.optimized_order?.indexOf(addr.id) ?? -1) >= 0
+                        ? combo.optimized_order.indexOf(addr.id) + 1
+                        : '?'}
                     </div>
                     <div className="min-w-0 flex-1">
                       {addr.defendant_name && (

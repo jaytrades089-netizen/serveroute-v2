@@ -15,7 +15,8 @@ export default function AnimatedAddressList({
   route = null,
   showZoneLabels = true,
   preserveOrder = false,
-  comboRouteIds = null
+  comboRouteIds = null,
+  copyMode = false
 }) {
   const queryClient = useQueryClient();
 
