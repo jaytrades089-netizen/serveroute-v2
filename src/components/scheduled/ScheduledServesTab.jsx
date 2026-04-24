@@ -67,18 +67,41 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
     });
   };
 
-  const handleNavigateTo = (address) => {
-    if (!address) {
+  const getOriginalAddress = (serve) => {
+    const addr = addressMap[serve.address_id];
+    if (addr) {
+      const formatted = formatAddress(addr);
+      return `${formatted.line1}, ${formatted.line2}`;
+    }
+    return null;
+  };
+
+  const handleNav = (serve) => {
+    // Always copy the original (legal) address to clipboard first
+    const original = getOriginalAddress(serve);
+    if (original) {
+      navigator.clipboard.writeText(original).catch(() => {});
+    }
+
+    // Navigate to: meeting place if meeting type, otherwise original address
+    const navTarget = serve.location_type === 'meeting' && serve.meeting_place_address
+      ? serve.meeting_place_address
+      : original;
+
+    if (!navTarget) {
       toast.error('No address available to navigate to');
       return;
     }
-    // Use native app deep links rather than window.open (which opens the browser).
-    // window.location.href lets the OS intercept the scheme and launch Maps natively.
+
+    if (original) {
+      toast.success('Address copied to clipboard', { duration: 1800 });
+    }
+
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (isIOS) {
-      window.location.href = `maps://?daddr=${encodeURIComponent(address)}`;
+      window.location.href = `maps://?daddr=${encodeURIComponent(navTarget)}`;
     } else {
-      window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`;
+      window.location.href = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(navTarget)}`;
     }
   };
 
@@ -238,8 +261,19 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                 </button>
               </div>
 
-              {/* Action buttons — View / Edit / Nav */}
+              {/* Action buttons — Nav / View / Edit */}
               <div className="grid grid-cols-3 gap-2 mt-3">
+                <button
+                  onClick={() => handleNav(serve)}
+                  className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
+                  style={{
+                    background: 'rgba(34,197,94,0.18)',
+                    border: '1px solid rgba(34,197,94,0.45)',
+                    color: '#22c55e'
+                  }}
+                >
+                  <Navigation className="w-4 h-4" /> Nav
+                </button>
                 <button
                   onClick={() => {
                     if (serve.route_id && serve.route_id !== routeId) {
@@ -272,17 +306,6 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
                   }}
                 >
                   <Pencil className="w-4 h-4" /> Edit
-                </button>
-                <button
-                  onClick={() => handleNavigateTo(getNavigationAddress(serve))}
-                  className="flex items-center justify-center gap-1.5 py-2 rounded-lg font-bold text-xs transition-colors"
-                  style={{
-                    background: 'rgba(34,197,94,0.18)',
-                    border: '1px solid rgba(34,197,94,0.45)',
-                    color: '#22c55e'
-                  }}
-                >
-                  <Navigation className="w-4 h-4" /> Nav
                 </button>
               </div>
             </div>

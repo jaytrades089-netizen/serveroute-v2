@@ -4,7 +4,6 @@ import { createPageUrl } from '@/utils';
 import { Home, Settings, Camera, MessageCircle, CalendarDays } from 'lucide-react';
 
 const rightNavItems = [
-{ id: 'chat', label: 'Chat', icon: MessageCircle, page: 'Chat' },
 { id: 'settings', label: 'Settings', icon: Settings, page: 'WorkerSettings' }];
 
 const hiddenPages = [
@@ -13,7 +12,7 @@ const hiddenPages = [
 'ComboRouteReview'];
 
 export default function BottomNav({ currentPage }) {
-  const [showComingSoon, setShowComingSoon] = useState(false);
+  const [showComingSoon, setShowComingSoon] = useState(null); // 'calendar' | 'chat' | null
 
   const isScanActive = currentPage === 'ScanDocumentType' || currentPage === 'ScanCamera' ||
   currentPage === 'ScanPreview' || currentPage === 'ScanRouteSetup';
@@ -21,8 +20,13 @@ export default function BottomNav({ currentPage }) {
   if (hiddenPages.includes(currentPage)) return null;
 
   const handleCalendarTap = () => {
-    setShowComingSoon(true);
-    setTimeout(() => setShowComingSoon(false), 2500);
+    setShowComingSoon('calendar');
+    setTimeout(() => setShowComingSoon(null), 2500);
+  };
+
+  const handleChatTap = () => {
+    setShowComingSoon('chat');
+    setTimeout(() => setShowComingSoon(null), 2500);
   };
 
   return (
@@ -48,9 +52,11 @@ export default function BottomNav({ currentPage }) {
           whiteSpace: 'nowrap',
           boxShadow: '0 4px 20px rgba(0,0,0,0.4)'
         }}>
-          <CalendarDays style={{ color: '#e5b9e1', width: 16, height: 16 }} />
+          {showComingSoon === 'calendar'
+            ? <CalendarDays style={{ color: '#e5b9e1', width: 16, height: 16 }} />
+            : <MessageCircle style={{ color: '#e5b9e1', width: 16, height: 16 }} />}
           <span style={{ color: '#e5b9e1', fontSize: 14, fontWeight: 500 }}>
-            Calendar coming soon 😊
+            {showComingSoon === 'calendar' ? 'Calendar coming soon 😊' : 'Chat coming soon 😊'}
           </span>
         </div>
       )}
@@ -123,6 +129,21 @@ export default function BottomNav({ currentPage }) {
               Scan
             </span>
           </Link>
+
+          {/* Chat — Coming Soon */}
+          <button
+            onClick={handleChatTap}
+            style={{
+              color: '#8a7f87',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0
+            }}
+            className="flex-1 flex flex-col items-center justify-center py-2 rounded-lg transition-colors">
+            <MessageCircle className="w-6 h-6" />
+            <span className="text-xs mt-1 font-medium">Chat</span>
+          </button>
 
           {/* Right nav items */}
           {rightNavItems.map((item) => {
