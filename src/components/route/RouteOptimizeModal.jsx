@@ -154,6 +154,67 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   };
 
   const [isShuffling, setIsShuffling] = useState(false);
+  const [cachedGps, setCachedGps] = useState(null); // {lat, lng} pre-fetched when toggle is on
+  const [gpsLoading, setGpsLoading] = useState(false);
+
+  // Pre-fetch GPS as soon as "Use Current Location" is toggled on.
+  // By the time the user taps Optimize the coords are already ready.
+  useEffect(() => {
+    if (!useCurrentLocation) {
+      setCachedGps(null);
+      setCurrentLocationAddress(null);
+      setLocationError(null);
+      return;
+    }
+    let cancelled = false;
+    const prefetch = async () => {
+      setGpsLoading(true);
+      setLocationError(null);
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000 // accept a position up to 30s old — fast and accurate enough
+          });
+        });
+        if (cancelled) return;
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        // Attempt reverse geocode for readable label — non-blocking
+        let readable = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        try {
+          const apiKey = mapquestKey;
+          if (apiKey) {
+            const reverseUrl = `https://www.mapquestapi.com/geocoding/v1/reverse?key=${apiKey}&location=${lat},${lng}`;
+            const res = await fetch(reverseUrl);
+            const data = await res.json();
+            const loc = data?.results?.[0]?.locations?.[0];
+            if (loc) {
+              readable = [loc.street, loc.adminArea5, loc.adminArea3].filter(Boolean).join(', ') || readable;
+            }
+          }
+        } catch { /* reverse geocode is cosmetic — ignore errors */ }
+        if (cancelled) return;
+        setCachedGps({ lat, lng });
+        setCurrentLocationAddress(readable);
+      } catch (geoError) {
+        if (cancelled) return;
+        const msg = geoError.code === 1
+          ? 'Location permission denied. Enable location in your phone settings or choose a start location below.'
+          : geoError.code === 2
+          ? 'Could not detect your location. Check GPS signal and try again.'
+          : geoError.code === 3
+          ? 'Location request timed out. Try again or choose a start location.'
+          : 'Could not get your location. Please enable location services.';
+        setLocationError(msg);
+      } finally {
+        if (!cancelled) setGpsLoading(false);
+      }
+    };
+    prefetch();
+    return () => { cancelled = true; };
+  }, [useCurrentLocation, mapquestKey]); // re-run if toggle flips or key loads
 
   // If the route was already optimized (e.g. the night before), pre-populate
   // the metrics and set isOptimized=true so Start Route is immediately available
@@ -223,52 +284,21 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
       let startLat, startLng;
 
       if (useCurrentLocation) {
-        try {
-          toast.info('Getting your current location...');
-          const position = await new Promise((resolve, reject) => {
-            if (!navigator.geolocation) {
-              reject(new Error('Geolocation not supported by this device'));
-              return;
-            }
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 15000,
-              maximumAge: 0
-            });
-          });
-          startLat = position.coords.latitude;
-          startLng = position.coords.longitude;
-          console.log('GPS Location obtained:', startLat, startLng);
-
-          // Reverse geocode to show the worker exactly which address was used as start
-          try {
-            const reverseUrl = `https://www.mapquestapi.com/geocoding/v1/reverse?key=${apiKey}&location=${startLat},${startLng}`;
-            const reverseRes = await fetch(reverseUrl);
-            const reverseData = await reverseRes.json();
-            const loc = reverseData?.results?.[0]?.locations?.[0];
-            if (loc) {
-              const readable = [loc.street, loc.adminArea5, loc.adminArea3].filter(Boolean).join(', ');
-              setCurrentLocationAddress(readable || `${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
-            } else {
-              setCurrentLocationAddress(`${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
-            }
-          } catch {
-            setCurrentLocationAddress(`${startLat.toFixed(5)}, ${startLng.toFixed(5)}`);
+        // Use the GPS coords pre-fetched when the toggle was switched on.
+        // If for some reason they are not ready yet (e.g. GPS still resolving),
+        // block optimization and tell the worker to wait a moment.
+        if (!cachedGps) {
+          if (gpsLoading) {
+            toast.info('Getting your location — try again in a moment...');
+          } else {
+            toast.error(locationError || 'Could not get your location. Check GPS and try again.');
           }
-
-        } catch (geoError) {
-          console.error('Geolocation error:', geoError);
-          const msg = geoError.code === 1
-            ? 'Location permission denied. Enable location in your phone settings or choose a start location below.'
-            : geoError.code === 2
-            ? 'Could not detect your location. Check GPS signal and try again.'
-            : geoError.code === 3
-            ? 'Location request timed out. Try again or choose a start location.'
-            : 'Could not get your location. Please enable location services.';
-          setLocationError(msg);
           setIsOptimizing(false);
           return;
         }
+        startLat = cachedGps.lat;
+        startLng = cachedGps.lng;
+        console.log('GPS Location (pre-fetched):', startLat, startLng);
       } else {
         if (!selectedStartLocation) {
           toast.error('Please select a start location');
@@ -555,11 +585,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Start Location</label>
 
         <button
-          onClick={() => {
-            const val = !useCurrentLocation;
-            setUseCurrentLocation(val);
-            if (!val) { setCurrentLocationAddress(null); setLocationError(null); }
-          }}
+          onClick={() => setUseCurrentLocation(v => !v)}
           className="w-full mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
           style={useCurrentLocation
             ? { background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.40)', color: '#22c55e' }
@@ -567,6 +593,7 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         >
           <LocateFixed className="w-4 h-4" />
           Use Current Location
+          {useCurrentLocation && gpsLoading && <span style={{ fontSize: '11px', marginLeft: 4, opacity: 0.7 }}>locating...</span>}
         </button>
 
         {useCurrentLocation && currentLocationAddress && !locationError && (
