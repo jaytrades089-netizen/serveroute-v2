@@ -77,13 +77,22 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
   };
 
   const handleNav = (serve) => {
-    // Always copy the original (legal) address to clipboard first
-    const original = getOriginalAddress(serve);
-    if (original) {
-      navigator.clipboard.writeText(original).catch(() => {});
+    const addr = addressMap[serve.address_id];
+
+    // Copy abbreviated address — same format AddressCard uses for its Nav button.
+    // Work app search requires house number + first 1-2 letters only (e.g. "123 MA").
+    if (addr) {
+      const f = formatAddress(addr);
+      const match = (f.line1 || '').match(/^(\d+)\s+([A-Za-z]{1,2})/i);
+      if (match) {
+        const clip = `${match[1]} ${match[2].toUpperCase()}`;
+        navigator.clipboard.writeText(clip).catch(() => {});
+        toast.success(`Copied: ${clip}`, { duration: 1800 });
+      }
     }
 
     // Navigate to: meeting place if meeting type, otherwise original address
+    const original = getOriginalAddress(serve);
     const navTarget = serve.location_type === 'meeting' && serve.meeting_place_address
       ? serve.meeting_place_address
       : original;
@@ -91,10 +100,6 @@ export default function ScheduledServesTab({ routeId, onViewAddress }) {
     if (!navTarget) {
       toast.error('No address available to navigate to');
       return;
-    }
-
-    if (original) {
-      toast.success('Address copied to clipboard', { duration: 1800 });
     }
 
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
