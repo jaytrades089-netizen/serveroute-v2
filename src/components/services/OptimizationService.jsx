@@ -219,8 +219,13 @@ export function orderClusters(clusters, startLat, startLng, endLat, endLng) {
 }
 
 // Geocode using HERE Maps (free tier, geocoding only)
-export async function geocodeWithHere(addressString, hereApiKey) {
-  const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addressString)}&in=countryCode:USA&apiKey=${hereApiKey}`;
+// biasLat/biasLng: when provided, constrains results to a 300 km circle around that point
+// so an ambiguous street like "312 W Liberty St" matches the local state instead of a far-away one.
+export async function geocodeWithHere(addressString, hereApiKey, biasLat, biasLng) {
+  const inParam = (biasLat != null && biasLng != null)
+    ? `circle:${biasLat},${biasLng};r=300000`
+    : 'countryCode:USA';
+  const url = `https://geocode.search.hereapi.com/v1/geocode?q=${encodeURIComponent(addressString)}&in=${inParam}&apiKey=${hereApiKey}`;
   try {
     const response = await fetch(url);
     if (!response.ok) { console.warn(`HERE geocoding returned ${response.status}`); return null; }
@@ -231,8 +236,14 @@ export async function geocodeWithHere(addressString, hereApiKey) {
 }
 
 // Geocode using MapQuest (fallback)
-export async function geocodeWithMapQuest(addressString, mapquestApiKey) {
-  const url = `https://www.mapquestapi.com/geocoding/v1/address?key=${mapquestApiKey}&location=${encodeURIComponent(addressString)}`;
+// biasLat/biasLng: when provided, appends a bounding box to prefer local results
+export async function geocodeWithMapQuest(addressString, mapquestApiKey, biasLat, biasLng) {
+  let url = `https://www.mapquestapi.com/geocoding/v1/address?key=${mapquestApiKey}&location=${encodeURIComponent(addressString)}`;
+  // 3-degree box (~200 miles) around the bias point — keeps MapQuest from matching across the country
+  if (biasLat != null && biasLng != null) {
+    const delta = 3;
+    url += `&boundingBox=${biasLat + delta},${biasLng - delta},${biasLat - delta},${biasLng + delta}`;
+  }
   try {
     const response = await fetch(url);
     const data = await response.json();
@@ -245,14 +256,16 @@ export async function geocodeWithMapQuest(addressString, mapquestApiKey) {
 }
 
 // Try HERE first, fall back to MapQuest automatically
-export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey) {
+// biasLat/biasLng: GPS start position — pass these whenever available so ambiguous
+// street names resolve to the local area instead of a same-named street in another state.
+export async function geocodeAddress(addressString, hereApiKey, mapquestApiKey, biasLat, biasLng) {
   if (hereApiKey) {
-    const hereResult = await geocodeWithHere(addressString, hereApiKey);
+    const hereResult = await geocodeWithHere(addressString, hereApiKey, biasLat, biasLng);
     if (hereResult) return hereResult;
     console.log('HERE geocoding failed, falling back to MapQuest');
   }
   if (mapquestApiKey) {
-    const mqResult = await geocodeWithMapQuest(addressString, mapquestApiKey);
+    const mqResult = await geocodeWithMapQuest(addressString, mapquestApiKey, biasLat, biasLng);
     if (mqResult) return mqResult;
   }
   console.error('Both HERE and MapQuest geocoding failed');

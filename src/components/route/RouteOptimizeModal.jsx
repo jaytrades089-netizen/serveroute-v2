@@ -363,8 +363,8 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         for (const addr of needsGeocoding) {
           const fullAddress = addr.normalized_address || addr.legal_address;
           try {
-            // HERE first, MapQuest fallback — handled inside geocodeAddress()
-            const coords = await geocodeAddress(fullAddress, hereApiKey, apiKey);
+            // Pass GPS start as bias so ambiguous street names resolve locally, not across the country
+            const coords = await geocodeAddress(fullAddress, hereApiKey, apiKey, startLat, startLng);
             if (coords) {
               await base44.entities.Address.update(addr.id, {
                 lat: coords.lat,

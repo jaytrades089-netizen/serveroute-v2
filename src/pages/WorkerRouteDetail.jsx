@@ -70,10 +70,15 @@ export default function WorkerRouteDetail() {
       return;
     }
     setIsRetryingGeocode(true);
+    // Use the first already-geocoded address as a location bias so ambiguous addresses
+    // resolve to the local area rather than a same-named street in another state.
+    const located = addresses.find(a => a.lat && a.lng);
+    const biasLat = located?.lat ?? null;
+    const biasLng = located?.lng ?? null;
     let successCount = 0;
     for (const addr of unlocated) {
       const addressStr = addr.normalized_address || addr.legal_address;
-      const coords = await geocodeAddress(addressStr, hereKey, mapquestKey);
+      const coords = await geocodeAddress(addressStr, hereKey, mapquestKey, biasLat, biasLng);
       if (coords) {
         await base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' });
         successCount++;
