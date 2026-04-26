@@ -434,21 +434,20 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         toast.success(`First stop: ${firstLabel} (${distMiles} mi from GPS)`, { duration: 8000 });
       }
 
-      // Calculate route metrics
-      const lastAddr = optimizedAddresses[optimizedAddresses.length - 1];
-      const endLat = endLocation?.latitude || lastAddr?.lat;
-      const endLng = endLocation?.longitude || lastAddr?.lng;
-      const locations = [
-        `${startLat},${startLng}`,
-        ...optimizedAddresses.map(a => `${a.lat},${a.lng}`),
-        `${endLat},${endLng}`
+      // Calculate route metrics — use object format for locations (same as optimizeChunkWithMapQuest)
+      // String "lat,lng" format in a POST body can be misinterpreted as a geocodable address,
+      // producing wildly wrong distances. Object format is unambiguous.
+      const metricLocations = [
+        { latLng: { lat: startLat, lng: startLng } },
+        ...optimizedAddresses.map(a => ({ latLng: { lat: a.lat || a.latitude, lng: a.lng || a.longitude } })),
+        ...(endLocation ? [{ latLng: { lat: endLocation.latitude, lng: endLocation.longitude } }] : [])
       ];
 
       const directionsUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
       const directionsResponse = await fetch(directionsUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locations, options: { routeType: routeType || 'fastest', unit: 'm' } })
+        body: JSON.stringify({ locations: metricLocations, options: { routeType: routeType || 'fastest', unit: 'm' } })
       });
       const directionsData = await directionsResponse.json();
       console.log('Directions response:', directionsData);
