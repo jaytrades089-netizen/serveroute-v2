@@ -3,6 +3,7 @@ import { base44 } from '@/api/base44Client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import { geocodeAddress } from '@/components/services/OptimizationService';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,17 @@ export default function AddAddress() {
     queryFn: () => base44.auth.me()
   });
 
+  const { data: backendApiKeys } = useQuery({
+    queryKey: ['backendApiKeys'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getApiKeys', {});
+      return res.data;
+    },
+    staleTime: 10 * 60 * 1000
+  });
+  const mapquestKey = backendApiKeys?.mapquest_api_key || null;
+  const hereKey = backendApiKeys?.here_api_key || null;
+
   const createAddressMutation = useMutation({
     mutationFn: async (addressData) => {
       const fullAddress = `${addressData.address}, ${addressData.city}, ${addressData.state} ${addressData.zip}`;
@@ -62,7 +74,18 @@ export default function AddAddress() {
         geocode_status: 'pending',
         status: 'pending'
       });
-      
+
+      if (mapquestKey || hereKey) {
+        const coords = await geocodeAddress(fullAddress, hereKey, mapquestKey);
+        if (coords) {
+          await base44.entities.Address.update(newAddress.id, {
+            lat: coords.lat,
+            lng: coords.lng,
+            geocode_status: 'exact'
+          });
+        }
+      }
+
       await base44.entities.AuditLog.create({
         company_id: companyId,
         action_type: 'address_created',

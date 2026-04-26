@@ -62,8 +62,9 @@ export default function WorkerRouteDetail() {
   const handleRetryGeocode = async () => {
     const unlocated = addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng));
     if (!unlocated.length) return;
-    const mapquestKey = userSettings?.mapquest_api_key;
-    const hereKey = userSettings?.here_api_key || null;
+    const backendKeys = await base44.functions.invoke('getApiKeys', {}).then(r => r.data).catch(() => null);
+    const mapquestKey = backendKeys?.mapquest_api_key || userSettings?.mapquest_api_key;
+    const hereKey = backendKeys?.here_api_key || userSettings?.here_api_key || null;
     if (!mapquestKey && !hereKey) {
       toast.error('No API key configured. Add MapQuest key in Settings.');
       return;
