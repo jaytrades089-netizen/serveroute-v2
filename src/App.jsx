@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
+import { setupPersistence } from '@/components/utils/queryPersistence'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
@@ -10,6 +11,7 @@ import ScanSortReview from './pages/ScanSortReview';
 import BulkScanOptimize from './pages/BulkScanOptimize';
 import BulkRouteSetup from './pages/BulkRouteSetup';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
+import { useEffect } from 'react';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -71,6 +73,10 @@ const AuthenticatedApp = () => {
 
 
 function App() {
+  useEffect(() => {
+    const cleanup = setupPersistence(queryClientInstance);
+    return cleanup;
+  }, []);
 
   return (
     <AuthProvider>
