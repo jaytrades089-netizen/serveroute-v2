@@ -345,11 +345,18 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         console.log(`Excluded ${allFreshAddresses.length - validAddresses.length} completed address(es) from optimization`);
       }
 
-      const needsGeocoding = validAddresses.filter(a => !a.lat || !a.lng);
+      // On a re-optimize, always re-geocode every address — previous coordinates may have
+      // been cached from an incorrect geocoding run and would silently produce wrong routes.
+      // On a first optimize, only geocode addresses that have no coordinates yet.
+      const isReoptimize = (route?.optimized_order?.length ?? 0) > 0;
+      const needsGeocoding = isReoptimize ? validAddresses : validAddresses.filter(a => !a.lat || !a.lng);
 
       if (needsGeocoding.length > 0) {
-        console.log(`Geocoding ${needsGeocoding.length} addresses...`);
-        toast.info(`Geocoding ${needsGeocoding.length} addresses...`);
+        const geocodeMsg = isReoptimize
+          ? `Refreshing coordinates for ${needsGeocoding.length} addresses...`
+          : `Geocoding ${needsGeocoding.length} addresses...`;
+        console.log(geocodeMsg);
+        toast.info(geocodeMsg);
 
         const hereApiKey = hereKey;
 
@@ -379,6 +386,25 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         toast.error('No addresses could be geocoded');
         setIsOptimizing(false);
         return;
+      }
+
+      // Outlier detection: flag any address geocoded 100+ miles from the centroid of all stops.
+      // A legitimate process serving route won't have stops this far apart — it almost always
+      // means the geocoder matched the street name to the wrong city or state.
+      if (validAddresses.length >= 2) {
+        const centLat = validAddresses.reduce((s, a) => s + a.lat, 0) / validAddresses.length;
+        const centLng = validAddresses.reduce((s, a) => s + a.lng, 0) / validAddresses.length;
+        const OUTLIER_FEET = 100 * 5280;
+        const outliers = validAddresses.filter(a =>
+          calculateDistanceFeet(centLat, centLng, a.lat, a.lng) > OUTLIER_FEET
+        );
+        for (const a of outliers) {
+          const label = (a.normalized_address || a.legal_address || '').split('\n')[0].trim().substring(0, 50);
+          toast.warning(
+            `⚠️ "${label}" is geocoded 100+ miles from your other stops — verify the city & zip, then re-optimize.`,
+            { duration: 20000 }
+          );
+        }
       }
 
       console.log(`Optimizing ${validAddresses.length} addresses...`);
