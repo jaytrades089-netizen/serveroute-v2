@@ -95,7 +95,7 @@ export default function MessageBossDialog({
       }
 
       toast.success('Message sent to boss');
-      queryClient.invalidateQueries({ queryKey: ['addressQuestions'] });
+      queryClient.refetchQueries({ queryKey: ['addressQuestions'] });
       onOpenChange(false);
       
       // Reset form

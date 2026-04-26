@@ -297,7 +297,7 @@ export default function DCNUpload() {
 
       setUploadProgress(100);
       setUploadStats(stats);
-      queryClient.invalidateQueries({ queryKey: ['dcnBatches'] });
+      queryClient.refetchQueries({ queryKey: ['dcnBatches'] });
       toast.success(`Uploaded ${stats.valid} DCNs successfully`);
 
     } catch (error) {

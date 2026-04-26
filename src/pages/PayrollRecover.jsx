@@ -283,8 +283,8 @@ export default function PayrollRecover({ onBack }) {
         }
       }
 
-      queryClient.invalidateQueries({ queryKey: ['allWorkerAddresses', user?.id] });
-      queryClient.invalidateQueries({ queryKey: ['payrollHistory', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['allWorkerAddresses', user?.id] });
+      queryClient.refetchQueries({ queryKey: ['payrollHistory', user?.id] });
       toast.success('Recovery complete');
     } catch (err) {
       console.error('Recovery error:', err);

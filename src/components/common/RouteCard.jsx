@@ -259,10 +259,10 @@ export default function RouteCard({
     setEditQueueQualifiers([]);
     try {
       await base44.entities.Route.update(route.id, { scheduled_runs: newQueue });
-      queryClient.invalidateQueries({ queryKey: ['workerRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['route', route.id] });
-      queryClient.invalidateQueries({ queryKey: ['allRoutes'] });
-      queryClient.invalidateQueries({ queryKey: ['comboRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['workerRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['route', route.id] });
+      queryClient.refetchQueries({ queryKey: ['allRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['comboRoutes'] });
     } catch (err) {
       console.error('Failed to update queue entry:', err);
     } finally {

@@ -108,7 +108,7 @@ export default function WorkerVacationRequest() {
       setStartDate(null);
       setEndDate(null);
       setReason('');
-      queryClient.invalidateQueries({ queryKey: ['myVacationRequests'] });
+      queryClient.refetchQueries({ queryKey: ['myVacationRequests'] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to submit request');

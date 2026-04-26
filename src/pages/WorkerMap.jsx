@@ -50,7 +50,7 @@ export default function WorkerMap() {
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await queryClient.invalidateQueries({ queryKey: ['mapWorkers'] });
+    await queryClient.refetchQueries({ queryKey: ['mapWorkers'] });
     setIsRefreshing(false);
   };
 

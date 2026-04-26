@@ -114,8 +114,8 @@ export default function AddressQuestionDetail() {
       });
 
       toast.success('Reply sent');
-      queryClient.invalidateQueries({ queryKey: ['addressQuestions'] });
-      queryClient.invalidateQueries({ queryKey: ['addressQuestion', questionId] });
+      queryClient.refetchQueries({ queryKey: ['addressQuestions'] });
+      queryClient.refetchQueries({ queryKey: ['addressQuestion', questionId] });
     } catch (error) {
       console.error('Error sending reply:', error);
       toast.error('Failed to send reply');
@@ -134,7 +134,7 @@ export default function AddressQuestionDetail() {
       });
 
       toast.success('Marked as resolved');
-      queryClient.invalidateQueries({ queryKey: ['addressQuestions'] });
+      queryClient.refetchQueries({ queryKey: ['addressQuestions'] });
       navigate(-1);
     } catch (error) {
       toast.error('Failed to update');

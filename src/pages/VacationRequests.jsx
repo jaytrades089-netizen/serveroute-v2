@@ -110,7 +110,7 @@ export default function VacationRequests() {
     },
     onSuccess: (_, { approved }) => {
       toast.success(approved ? 'Request approved' : 'Request denied');
-      queryClient.invalidateQueries({ queryKey: ['vacationRequests'] });
+      queryClient.refetchQueries({ queryKey: ['vacationRequests'] });
       setDenyDialog(null);
       setDenyReason('');
     },

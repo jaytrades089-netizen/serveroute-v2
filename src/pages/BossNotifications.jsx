@@ -71,8 +71,8 @@ export default function BossNotifications() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allBossNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['allBossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 
@@ -83,8 +83,8 @@ export default function BossNotifications() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['allBossNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['allBossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 
@@ -100,8 +100,8 @@ export default function BossNotifications() {
     },
     onSuccess: () => {
       toast.success('All notifications marked as read');
-      queryClient.invalidateQueries({ queryKey: ['allBossNotifications'] });
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['allBossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 

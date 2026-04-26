@@ -281,7 +281,7 @@ export default function AddressImport() {
     
     setImportResults(results);
     setStep('complete');
-    queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
+    queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
   };
 
   const getSummary = () => {

@@ -103,7 +103,7 @@ export default function AddAddress() {
       return newAddress;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
       toast.success('Address added');
       
       if (addAnother) {

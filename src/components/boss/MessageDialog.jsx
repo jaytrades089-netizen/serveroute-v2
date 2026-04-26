@@ -52,7 +52,7 @@ export default function MessageDialog({ open, onOpenChange, recipient, sender, c
       toast.success('Message sent');
       setContent('');
       onOpenChange(false);
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
+      queryClient.refetchQueries({ queryKey: ['messages'] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to send message');

@@ -196,7 +196,7 @@ export default function WorkerDetail() {
     },
     onSuccess: (_, action) => {
       toast.success(action === 'pause' ? 'Worker paused' : 'Worker resumed');
-      queryClient.invalidateQueries({ queryKey: ['worker'] });
+      queryClient.refetchQueries({ queryKey: ['worker'] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update worker status');

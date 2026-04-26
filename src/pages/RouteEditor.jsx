@@ -109,7 +109,7 @@ export default function RouteEditor() {
       await base44.entities.Route.update(routeId, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
     },
     onError: (error) => {
       toast.error(error.message || 'Something went wrong');
@@ -146,9 +146,9 @@ export default function RouteEditor() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
       setShowAddModal(false);
       setSelectedPoolIds(new Set());
       toast.success('Addresses added');
@@ -184,9 +184,9 @@ export default function RouteEditor() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
-      queryClient.invalidateQueries({ queryKey: ['route', routeId] });
+      queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
       toast.success('Address removed');
     },
     onError: (error) => {
@@ -243,7 +243,7 @@ export default function RouteEditor() {
       }
     }
     
-    queryClient.invalidateQueries({ queryKey: ['routeAddresses', routeId] });
+    queryClient.refetchQueries({ queryKey: ['routeAddresses', routeId] });
   };
 
   const getTypeColor = (type) => {

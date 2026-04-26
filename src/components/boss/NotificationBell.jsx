@@ -41,7 +41,7 @@ export default function NotificationBell({ userId }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 
@@ -52,7 +52,7 @@ export default function NotificationBell({ userId }) {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 
@@ -67,7 +67,7 @@ export default function NotificationBell({ userId }) {
       ));
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['bossNotifications'] });
+      queryClient.refetchQueries({ queryKey: ['bossNotifications'] });
     }
   });
 

@@ -83,7 +83,7 @@ export default function AddressPool() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
       toast.success('Address deleted');
     },
     onError: (error) => {
@@ -118,8 +118,8 @@ export default function AddressPool() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['poolAddresses'] });
-      queryClient.invalidateQueries({ queryKey: ['draftRoutes'] });
+      queryClient.refetchQueries({ queryKey: ['poolAddresses'] });
+      queryClient.refetchQueries({ queryKey: ['draftRoutes'] });
       setSelectedIds(new Set());
       toast.success('Addresses added to route');
     },

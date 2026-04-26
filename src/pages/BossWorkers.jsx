@@ -131,7 +131,7 @@ export default function BossWorkers() {
     },
     onSuccess: (_, { action }) => {
       toast.success(action === 'pause' ? 'Worker paused' : 'Worker resumed');
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers'] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update worker status');
@@ -173,7 +173,7 @@ export default function BossWorkers() {
     onSuccess: (_, { worker }) => {
       const newState = !worker.editing_enabled;
       toast.success(newState ? `Editing enabled for ${worker.full_name}` : `Editing disabled for ${worker.full_name}`);
-      queryClient.invalidateQueries({ queryKey: ['companyWorkers'] });
+      queryClient.refetchQueries({ queryKey: ['companyWorkers'] });
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to update editing permission');
