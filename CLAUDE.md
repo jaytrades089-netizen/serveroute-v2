@@ -1,4 +1,4 @@
-# ServeRoute V2 — Workspace Map
+# RouteToServe V2 — Workspace Map
 **Product:** Process serving workflow app | **Stack:** React/Vite + TanStack Query + Shadcn/ui + Tailwind | **Platform:** Base44 (auto-syncs from GitHub)
 **Repo:** github.com/jaytrades089-netizen/serveroute-v2 | **Local:** ~/Desktop/Claude/serveroute-v2
 
@@ -87,12 +87,46 @@ Base44 auto-syncs. Build status: **"Live"** = deployed. **"Building"** = still s
 
 ## Workspace Audit
 
-This workspace uses `serveroute-gemma:latest` for small tasks via Cline.
+This workspace uses `routetoserve-gemma:latest` for small tasks via Cline.
 Audit results recorded in: `~/Desktop/Claude/Skills/GEMMA_WORKSPACE_AUDIT.md`
 
 Re-run the audit any time this CLAUDE.md changes significantly or new files are added.
-Audit prompt lives in the audit doc — paste into Cline with serveroute-gemma, record results.
+Audit prompt lives in the audit doc — paste into Cline with routetoserve-gemma, record results.
 
 ---
 
-*ServeRoute V2 — April 2026 | RouteToServe LLC*
+## Field Bug Reports
+
+Bugs logged from the field via Telegram bot are saved to Google Drive and synced locally.
+Haiku structures every report using the instructions in `rts-bot-instructions.md` (stored in Drive > Claude Workspaces > Bot).
+
+**Bug intake path (new reports land here first):**
+```
+~/Desktop/Claude/Claude Workspaces/RouteToServe/Bug Reports/Bug Intake/
+```
+
+**Bug lifecycle folders:**
+```
+Bug Reports/
+├── Bug Intake/     ← new reports land here (Open)
+├── Stability/      ← confirmed bugs being tracked
+├── Features/       ← feature requests from the field
+├── Horizon/        ← future ideas, not current sprint
+In Progress/        ← bugs actively being worked
+Archived/           ← resolved and closed
+```
+
+**File format:** All reports are `.md` files, not `.txt`.
+Naming convention: `BUG_YYYY-MM-DD_short-slug.md`
+
+**When Joshua says "let's fix the bugs", "load the bugs", or anything about field bugs:**
+1. Read all `.md` files in `Bug Reports/Bug Intake/`
+2. List them numbered with title, severity, and one-line summary
+3. Work through them one at a time — fix, verify, then move to the next
+4. When a bug is fixed and confirmed by Joshua, move the file to `Archived/` — do not delete it
+
+**Do not wait to be told where to look — always check Bug Intake first when bugs are mentioned.**
+
+---
+
+*RouteToServe V2 — April 2026 | RouteToServe LLC*
