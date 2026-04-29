@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
@@ -18,6 +18,7 @@ export default function ComboRouteSelection() {
   const preselectIds = preselect ? preselect.split(',').filter(Boolean) : [];
   const [selectedRoutes, setSelectedRoutes] = useState(preselectIds);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const optimizingRef = useRef(false); // ref guard — blocks re-entry before React re-renders disabled state
 
   // Optimize modal state
   const [showOptimizeModal, setShowOptimizeModal] = useState(false);
@@ -175,16 +176,21 @@ export default function ComboRouteSelection() {
     selectedRoutes.reduce((sum, routeId) => sum + (routeAddressCounts[routeId] || 0), 0);
 
   const handleOptimizeCombo = async () => {
+    if (optimizingRef.current) return;
+    optimizingRef.current = true;
     if (selectedRoutes.length < 2) {
+      optimizingRef.current = false;
       toast.error('Please select at least 2 routes');
       return;
     }
     if (!selectedEndLocation && !routeType) {
+      optimizingRef.current = false;
       toast.error('Please select an end location or optimization mode');
       return;
     }
 
     if (!mapquestKey) {
+      optimizingRef.current = false;
       toast.error('MapQuest API key not configured. Go to Settings to add it.');
       return;
     }
@@ -193,6 +199,7 @@ export default function ComboRouteSelection() {
     let startLat, startLng;
     if (useCurrentLocation) {
       if (!cachedGps) {
+        optimizingRef.current = false;
         if (gpsLoading) {
           toast.info('Getting your location — try again in a moment...');
         } else {
@@ -204,11 +211,13 @@ export default function ComboRouteSelection() {
       startLng = cachedGps.lng;
     } else {
       if (!selectedStartLocation) {
+        optimizingRef.current = false;
         toast.error('Please select a start location');
         return;
       }
       const startLoc = savedLocations.find(l => l.id === selectedStartLocation);
       if (!startLoc) {
+        optimizingRef.current = false;
         toast.error('Start location not found');
         return;
       }
@@ -362,6 +371,15 @@ export default function ComboRouteSelection() {
       }
 
       toast.success(`Combo route created with ${allAddresses.length} addresses!`);
+
+      // Wait for Base44 to make the new record readable before navigating.
+      // Without this the review screen lands on a 429 / empty result and loops.
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const check = await base44.entities.ComboRoute.filter({ id: combo.id });
+        if (check[0]) break;
+        await new Promise(r => setTimeout(r, 1500));
+      }
+
       navigate(createPageUrl(`ComboRouteReview?id=${combo.id}`));
 
     } catch (error) {
@@ -369,6 +387,7 @@ export default function ComboRouteSelection() {
       toast.error('Failed to optimize: ' + error.message);
     } finally {
       setIsOptimizing(false);
+      optimizingRef.current = false;
     }
   };
 

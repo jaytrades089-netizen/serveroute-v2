@@ -23,8 +23,6 @@ export default function ComboRouteReview() {
     enabled: !!comboId,
     staleTime: 0,
     gcTime: 10 * 60 * 1000,
-    // Retry every 3s until the record appears — handles Base44 propagation delay after create
-    refetchInterval: (query) => (!query.state.data ? 3000 : false),
   });
 
   const { data: routes = [] } = useQuery({
