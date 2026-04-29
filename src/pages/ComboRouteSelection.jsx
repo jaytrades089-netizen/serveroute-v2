@@ -11,6 +11,26 @@ import { optimizeWithHybrid, geocodeAddress, calculateDistanceFeet } from '@/com
 import LocationPicker from '@/components/route/LocationPicker';
 import BottomNav from '@/components/layout/BottomNav';
 
+// Retry a Base44 call up to maxAttempts times when rate-limited (429).
+// Each retry waits progressively longer: 3s, 6s, 9s.
+async function b44(fn, maxAttempts = 3) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const isRateLimit =
+        err?.message?.toLowerCase().includes('rate limit') ||
+        err?.status === 429 ||
+        String(err).includes('429');
+      if (isRateLimit && attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, 3000 * (attempt + 1)));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
 export default function ComboRouteSelection() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
@@ -229,22 +249,22 @@ export default function ComboRouteSelection() {
 
     try {
       // Mark any existing active combo routes as completed
-      const existingCombos = await base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' });
+      const existingCombos = await b44(() => base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' }));
       for (const old of existingCombos) {
-        await base44.entities.ComboRoute.update(old.id, { status: 'completed' });
+        await b44(() => base44.entities.ComboRoute.update(old.id, { status: 'completed' }));
         for (const oldRouteId of (old.route_ids || [])) {
-          await base44.entities.Route.update(oldRouteId, { combo_route_ids: [] });
+          await b44(() => base44.entities.Route.update(oldRouteId, { combo_route_ids: [] }));
         }
       }
 
       // Get all addresses from selected routes
       let allAddresses = [];
       for (const routeId of selectedRoutes) {
-        const addresses = await base44.entities.Address.filter({
+        const addresses = await b44(() => base44.entities.Address.filter({
           route_id: routeId,
           deleted_at: null,
           served: false
-        });
+        }));
         allAddresses = [...allAddresses, ...addresses.map(a => ({ ...a, originalRouteId: routeId }))];
       }
 
@@ -258,7 +278,7 @@ export default function ComboRouteSelection() {
           try {
             const coords = await geocodeAddress(fullAddress, hereKey, mapquestKey, startLat, startLng);
             if (coords) {
-              await base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' });
+              await b44(() => base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' }));
               addr.lat = coords.lat;
               addr.lng = coords.lng;
             }
@@ -341,7 +361,7 @@ export default function ComboRouteSelection() {
 
       const startedAtNow = new Date().toISOString();
 
-      const combo = await base44.entities.ComboRoute.create({
+      const combo = await b44(() => base44.entities.ComboRoute.create({
         user_id: user.id,
         company_id: user.company_id,
         name: `Combo - ${format(new Date(), 'MMM d')}`,
@@ -354,27 +374,27 @@ export default function ComboRouteSelection() {
         started_at: startedAtNow,
         total_miles: Math.round(totalMiles * 10) / 10,
         total_drive_time_minutes: totalDriveTimeMinutes
-      });
+      }));
 
       const BATCH_SIZE = 10;
       for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
         const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
         await Promise.all(
           batch.map((addr, i) =>
-            base44.entities.Address.update(addr.id, { order_index: start + i + 1 })
+            b44(() => base44.entities.Address.update(addr.id, { order_index: start + i + 1 }))
           )
         );
       }
 
       for (const routeId of selectedRoutes) {
-        await base44.entities.Route.update(routeId, { status: 'active', started_at: startedAtNow });
+        await b44(() => base44.entities.Route.update(routeId, { status: 'active', started_at: startedAtNow }));
       }
 
       toast.success(`Combo route created with ${allAddresses.length} addresses!`);
 
       // Wait for Base44 to propagate both the record AND optimized_order before navigating.
       for (let attempt = 0; attempt < 6; attempt++) {
-        const check = await base44.entities.ComboRoute.filter({ id: combo.id });
+        const check = await b44(() => base44.entities.ComboRoute.filter({ id: combo.id }));
         if (check[0]?.optimized_order?.length > 0) break;
         await new Promise(r => setTimeout(r, 1500));
       }
