@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { ChevronLeft, Loader2, MapPin, AlertCircle, FolderOpen, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +10,13 @@ import { formatAddress } from '@/components/utils/addressUtils';
 
 export default function ComboRouteReview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const urlParams = new URLSearchParams(window.location.search);
   const comboId = urlParams.get('id');
+  // optimized_order passed via navigation state is used immediately so the
+  // review screen never falls back to creation-date sort while waiting for
+  // the DB record to propagate.
+  const navOptimizedOrder = location.state?.optimized_order || null;
 
   const { data: combo, isLoading: comboLoading } = useQuery({
     queryKey: ['comboRoute', comboId],
@@ -61,13 +66,15 @@ export default function ComboRouteReview() {
     return map;
   }, [routes]);
 
-  // Sort addresses using combo.optimized_order — same source as WorkerComboRouteDetail.
-  // This guarantees the review screen and the running route show identical order.
+  // Sort addresses using optimized_order. navOptimizedOrder (from navigation state) is
+  // preferred over combo.optimized_order so the correct sequence shows immediately
+  // even if the DB record hasn't propagated the field yet.
   const sortedAddresses = useMemo(() => {
     if (!addresses.length) return addresses;
-    if (combo?.optimized_order?.length > 0) {
+    const order = navOptimizedOrder?.length > 0 ? navOptimizedOrder : combo?.optimized_order;
+    if (order?.length > 0) {
       const orderMap = {};
-      combo.optimized_order.forEach((id, idx) => { orderMap[id] = idx; });
+      order.forEach((id, idx) => { orderMap[id] = idx; });
       return [...addresses].sort((a, b) => {
         const aIdx = orderMap[a.id] ?? Infinity;
         const bIdx = orderMap[b.id] ?? Infinity;
@@ -75,7 +82,7 @@ export default function ComboRouteReview() {
       });
     }
     return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
-  }, [addresses, combo?.optimized_order]);
+  }, [addresses, navOptimizedOrder, combo?.optimized_order]);
 
   // Global serve-order numbers derived from sortedAddresses so they work
   // whether or not combo.optimized_order exists.

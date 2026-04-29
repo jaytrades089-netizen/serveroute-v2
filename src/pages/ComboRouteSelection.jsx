@@ -372,15 +372,18 @@ export default function ComboRouteSelection() {
 
       toast.success(`Combo route created with ${allAddresses.length} addresses!`);
 
-      // Wait for Base44 to make the new record readable before navigating.
-      // Without this the review screen lands on a 429 / empty result and loops.
+      // Wait for Base44 to propagate both the record AND optimized_order before navigating.
       for (let attempt = 0; attempt < 6; attempt++) {
         const check = await base44.entities.ComboRoute.filter({ id: combo.id });
-        if (check[0]) break;
+        if (check[0]?.optimized_order?.length > 0) break;
         await new Promise(r => setTimeout(r, 1500));
       }
 
-      navigate(createPageUrl(`ComboRouteReview?id=${combo.id}`));
+      // Pass optimized_order via navigation state so ComboRouteReview can render
+      // the correct sequence immediately without waiting on DB propagation.
+      navigate(createPageUrl(`ComboRouteReview?id=${combo.id}`), {
+        state: { optimized_order: optimizedOrder }
+      });
 
     } catch (error) {
       console.error('Combo optimization failed:', error);
