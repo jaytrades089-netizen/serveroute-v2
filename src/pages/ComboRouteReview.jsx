@@ -21,8 +21,10 @@ export default function ComboRouteReview() {
       return results[0] || null;
     },
     enabled: !!comboId,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    staleTime: 0,
+    gcTime: 10 * 60 * 1000,
+    // Retry every 3s until the record appears — handles Base44 propagation delay after create
+    refetchInterval: (query) => (!query.state.data ? 3000 : false),
   });
 
   const { data: routes = [] } = useQuery({
@@ -115,10 +117,11 @@ export default function ComboRouteReview() {
     });
   }, [sortedAddresses, routeNameMap]);
 
-  if (comboLoading || addressesLoading) {
+  if (comboLoading || addressesLoading || (comboId && !combo && !comboLoading)) {
     return (
-      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
+        <p className="text-sm" style={{ color: '#8a7f87' }}>Loading combo route...</p>
       </div>
     );
   }
