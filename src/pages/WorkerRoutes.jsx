@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCurrentUser } from '@/components/hooks/useCurrentUser';
@@ -144,9 +144,9 @@ export default function WorkerRoutes() {
       });
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: Infinity,
     gcTime: 24 * 60 * 60 * 1000,
-    refetchInterval: 30000
+    refetchOnMount: 'always'
   });
 
   // Fetch attempts for all user's active routes (by route_id for accuracy)
@@ -164,7 +164,8 @@ export default function WorkerRoutes() {
       return allResults;
     },
     enabled: !!user?.id && activeRouteIds.length > 0,
-    staleTime: 2 * 60 * 1000
+    staleTime: Infinity,
+    refetchOnMount: 'always'
   });
 
   // Fetch all addresses for user's routes
@@ -181,9 +182,23 @@ export default function WorkerRoutes() {
       return addresses;
     },
     enabled: !!user?.id && routes.length > 0,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: 'always'
   });
+
+  // Pre-populate per-route caches from the bulk fetch so WorkerRouteDetail
+  // loads from device immediately without its own cloud fetch.
+  useEffect(() => {
+    if (!routes.length || !allAddresses.length) return;
+    routes.forEach(r => {
+      queryClient.setQueryData(['route', r.id], r);
+      const routeAddrs = allAddresses
+        .filter(a => a.route_id === r.id)
+        .sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
+      queryClient.setQueryData(['routeAddresses', r.id], routeAddrs);
+    });
+  }, [routes, allAddresses, queryClient]);
 
   // Group attempts by route_id
   const attemptsByRoute = React.useMemo(() => {
@@ -202,8 +217,9 @@ export default function WorkerRoutes() {
       return base44.entities.Notification.filter({ user_id: user.id, read: false });
     },
     enabled: !!user?.id,
-    staleTime: 60 * 1000,
-    gcTime: 5 * 60 * 1000
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: 'always'
   });
 
   // Load user settings for payroll day/hour
@@ -217,7 +233,8 @@ export default function WorkerRoutes() {
       return base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' });
     },
     enabled: !!user?.id,
-    staleTime: 60 * 1000
+    staleTime: Infinity,
+    refetchOnMount: 'always'
   });
 
   // Fetch open scheduled serves for this worker
@@ -227,7 +244,9 @@ export default function WorkerRoutes() {
       if (!user?.id) return [];
       return base44.entities.ScheduledServe.filter({ worker_id: user.id, status: 'open' });
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: Infinity,
+    refetchOnMount: 'always'
   });
 
   // Set run date on a route (with optional qualifiers)

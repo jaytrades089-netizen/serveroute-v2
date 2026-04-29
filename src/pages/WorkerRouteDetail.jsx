@@ -58,6 +58,7 @@ export default function WorkerRouteDetail() {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [showMoveModal, setShowMoveModal] = useState(false);
+  const [nullRetried, setNullRetried] = useState(false);
 
   const handleRetryGeocode = async () => {
     const unlocated = addresses.filter(a => !a.served && a.status !== 'served' && (!a.lat || !a.lng));
@@ -129,8 +130,20 @@ export default function WorkerRouteDetail() {
       return routes[0] || null;
     },
     enabled: !!routeId,
-    gcTime: 10 * 60 * 1000
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000
   });
+
+  // If the route comes back null (Base44 propagation hiccup or stale null cached),
+  // wait 2 seconds and do one targeted refetch before showing "not found".
+  useEffect(() => {
+    if (routeLoading || route || !routeId || nullRetried) return;
+    const timer = setTimeout(() => {
+      queryClient.refetchQueries({ queryKey: ['route', routeId] });
+      setNullRetried(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [routeLoading, route, routeId, nullRetried, queryClient]);
 
   const { data: addresses = [], isLoading: addressesLoading } = useQuery({
     queryKey: ['routeAddresses', routeId],
@@ -140,8 +153,8 @@ export default function WorkerRouteDetail() {
       return addrs.sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
     },
     enabled: !!routeId,
-    staleTime: 2 * 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000
   });
 
   // Badge count for scheduled serves tab — shows the worker's total open serves
@@ -166,8 +179,8 @@ export default function WorkerRouteDetail() {
       return base44.entities.Attempt.filter({ route_id: routeId }, '-attempt_time');
     },
     enabled: !!routeId,
-    staleTime: 60 * 1000,
-    gcTime: 10 * 60 * 1000
+    staleTime: Infinity,
+    gcTime: 24 * 60 * 60 * 1000
   });
 
   // Create a map of address_id to latest attempt
@@ -308,7 +321,7 @@ export default function WorkerRouteDetail() {
     }
   }, [calculateProgress.percentage, route?.id, route?.status, getUpdatedEstCompletion]);
 
-  if (routeLoading) {
+  if (routeLoading || (routeId && !route && !nullRetried)) {
     return (
       <div style={{ minHeight: '100vh', background: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Loader2 className="w-8 h-8 animate-spin" style={{ color: '#e9c349' }} />
