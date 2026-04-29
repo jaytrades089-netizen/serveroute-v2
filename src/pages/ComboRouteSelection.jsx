@@ -1,21 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate, Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { ChevronLeft, Check, Shuffle, Loader2, MapPin, Calendar, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Check, Shuffle, Loader2, MapPin, Calendar, AlertCircle, X, LocateFixed, CheckCircle, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { optimizeWithHybrid } from '@/components/services/OptimizationService';
+import LocationPicker from '@/components/route/LocationPicker';
 import BottomNav from '@/components/layout/BottomNav';
 
 export default function ComboRouteSelection() {
@@ -24,8 +17,18 @@ export default function ComboRouteSelection() {
   const preselect = urlParams.get('preselect');
   const preselectIds = preselect ? preselect.split(',').filter(Boolean) : [];
   const [selectedRoutes, setSelectedRoutes] = useState(preselectIds);
-  const [selectedEndLocation, setSelectedEndLocation] = useState('');
   const [isOptimizing, setIsOptimizing] = useState(false);
+
+  // Optimize modal state
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false);
+  const [useCurrentLocation, setUseCurrentLocation] = useState(true);
+  const [selectedStartLocation, setSelectedStartLocation] = useState('');
+  const [selectedEndLocation, setSelectedEndLocation] = useState('');
+  const [routeType, setRouteType] = useState('fastest');
+  const [cachedGps, setCachedGps] = useState(null);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+  const [currentLocationAddress, setCurrentLocationAddress] = useState(null);
 
   const { data: user } = useQuery({
     queryKey: ['currentUser'],
@@ -36,11 +39,9 @@ export default function ComboRouteSelection() {
     queryKey: ['comboRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const allRoutes = await base44.entities.Route.filter({ 
-        deleted_at: null 
-      });
-      return allRoutes.filter(r => 
-        r.worker_id === user.id && 
+      const allRoutes = await base44.entities.Route.filter({ deleted_at: null });
+      return allRoutes.filter(r =>
+        r.worker_id === user.id &&
         ['ready', 'assigned', 'active'].includes(r.status)
       );
     },
@@ -52,10 +53,10 @@ export default function ComboRouteSelection() {
     queryFn: async () => {
       const counts = {};
       for (const route of routes) {
-        const addresses = await base44.entities.Address.filter({ 
-          route_id: route.id, 
+        const addresses = await base44.entities.Address.filter({
+          route_id: route.id,
           deleted_at: null,
-          served: false 
+          served: false
         });
         counts[route.id] = addresses.length;
       }
@@ -68,7 +69,12 @@ export default function ComboRouteSelection() {
     queryKey: ['savedLocations', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      return base44.entities.SavedLocation.filter({ user_id: user.id });
+      const locs = await base44.entities.SavedLocation.filter({ user_id: user.id });
+      return locs.sort((a, b) => {
+        const aTime = a.last_used ? new Date(a.last_used) : new Date(a.created_date || 0);
+        const bTime = b.last_used ? new Date(b.last_used) : new Date(b.created_date || 0);
+        return bTime - aTime;
+      });
     },
     enabled: !!user?.id
   });
@@ -83,25 +89,85 @@ export default function ComboRouteSelection() {
     enabled: !!user?.id
   });
 
+  // Auto-select first saved location as end when locations load
+  useEffect(() => {
+    if (savedLocations.length > 0 && !selectedEndLocation) {
+      setSelectedEndLocation(savedLocations[0].id);
+    }
+  }, [savedLocations, selectedEndLocation]);
+
+  // Pre-fetch GPS when modal opens with "Use Current Location" toggled on
+  useEffect(() => {
+    if (!useCurrentLocation || !showOptimizeModal) {
+      setCachedGps(null);
+      setCurrentLocationAddress(null);
+      setLocationError(null);
+      return;
+    }
+    let cancelled = false;
+    const prefetch = async () => {
+      setGpsLoading(true);
+      setLocationError(null);
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 15000,
+            maximumAge: 30000
+          });
+        });
+        if (cancelled) return;
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        let readable = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        try {
+          const apiKey = userSettings?.mapquest_api_key;
+          if (apiKey) {
+            const res = await fetch(`https://www.mapquestapi.com/geocoding/v1/reverse?key=${apiKey}&location=${lat},${lng}`);
+            const data = await res.json();
+            const loc = data?.results?.[0]?.locations?.[0];
+            if (loc) {
+              readable = [loc.street, loc.adminArea5, loc.adminArea3].filter(Boolean).join(', ') || readable;
+            }
+          }
+        } catch { /* reverse geocode is cosmetic */ }
+        if (cancelled) return;
+        setCachedGps({ lat, lng });
+        setCurrentLocationAddress(readable);
+      } catch (geoError) {
+        if (cancelled) return;
+        const msg = geoError.code === 1
+          ? 'Location permission denied. Enable location in your phone settings or choose a start location below.'
+          : geoError.code === 2
+          ? 'Could not detect your location. Check GPS signal and try again.'
+          : geoError.code === 3
+          ? 'Location request timed out. Try again or choose a start location.'
+          : 'Could not get your location. Please enable location services.';
+        setLocationError(msg);
+      } finally {
+        if (!cancelled) setGpsLoading(false);
+      }
+    };
+    prefetch();
+    return () => { cancelled = true; };
+  }, [useCurrentLocation, showOptimizeModal, userSettings?.mapquest_api_key]);
+
   const toggleRouteSelection = (routeId) => {
-    setSelectedRoutes(prev => 
-      prev.includes(routeId)
-        ? prev.filter(id => id !== routeId)
-        : [...prev, routeId]
+    setSelectedRoutes(prev =>
+      prev.includes(routeId) ? prev.filter(id => id !== routeId) : [...prev, routeId]
     );
   };
 
-  const getTotalAddresses = () => {
-    return selectedRoutes.reduce((sum, routeId) => sum + (routeAddressCounts[routeId] || 0), 0);
-  };
+  const getTotalAddresses = () =>
+    selectedRoutes.reduce((sum, routeId) => sum + (routeAddressCounts[routeId] || 0), 0);
 
   const handleOptimizeCombo = async () => {
     if (selectedRoutes.length < 2) {
       toast.error('Please select at least 2 routes');
       return;
     }
-    if (!selectedEndLocation) {
-      toast.error('Please select an end location');
+    if (!selectedEndLocation && !routeType) {
+      toast.error('Please select an end location or optimization mode');
       return;
     }
 
@@ -111,17 +177,40 @@ export default function ComboRouteSelection() {
       return;
     }
 
+    // Resolve start location
+    let startLat, startLng;
+    if (useCurrentLocation) {
+      if (!cachedGps) {
+        if (gpsLoading) {
+          toast.info('Getting your location — try again in a moment...');
+        } else {
+          toast.error(locationError || 'Could not get your location. Check GPS and try again.');
+        }
+        return;
+      }
+      startLat = cachedGps.lat;
+      startLng = cachedGps.lng;
+    } else {
+      if (!selectedStartLocation) {
+        toast.error('Please select a start location');
+        return;
+      }
+      const startLoc = savedLocations.find(l => l.id === selectedStartLocation);
+      if (!startLoc) {
+        toast.error('Start location not found');
+        return;
+      }
+      startLat = startLoc.latitude;
+      startLng = startLoc.longitude;
+    }
+
     setIsOptimizing(true);
 
     try {
-      // Mark any existing active combo routes as completed and clear combo_route_ids from their routes
-      const existingCombos = await base44.entities.ComboRoute.filter({ 
-        user_id: user.id, 
-        status: 'active' 
-      });
+      // Mark any existing active combo routes as completed
+      const existingCombos = await base44.entities.ComboRoute.filter({ user_id: user.id, status: 'active' });
       for (const old of existingCombos) {
         await base44.entities.ComboRoute.update(old.id, { status: 'completed' });
-        // Clear combo_route_ids from all routes in the old combo
         for (const oldRouteId of (old.route_ids || [])) {
           await base44.entities.Route.update(oldRouteId, { combo_route_ids: [] });
         }
@@ -130,56 +219,29 @@ export default function ComboRouteSelection() {
       // Get all addresses from selected routes
       let allAddresses = [];
       for (const routeId of selectedRoutes) {
-        const addresses = await base44.entities.Address.filter({ 
-          route_id: routeId, 
+        const addresses = await base44.entities.Address.filter({
+          route_id: routeId,
           deleted_at: null,
-          served: false 
+          served: false
         });
         allAddresses = [...allAddresses, ...addresses.map(a => ({ ...a, originalRouteId: routeId }))];
       }
 
-      // Get current position — graceful fallback if denied
-      let startLat, startLng;
-      try {
-        const position = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, {
-            enableHighAccuracy: true,
-            timeout: 15000
-          });
-        });
-        startLat = position.coords.latitude;
-        startLng = position.coords.longitude;
-      } catch (geoError) {
-        console.warn('Geolocation unavailable, using first address as start:', geoError.message);
-        // Fall back to first address that has coordinates
-        const firstWithCoords = allAddresses.find(a => a.lat && a.lng);
-        if (firstWithCoords) {
-          startLat = firstWithCoords.lat;
-          startLng = firstWithCoords.lng;
-          toast.info('Location unavailable — using first address as starting point');
-        } else {
-          toast.error('Location unavailable and no addresses have coordinates. Please enable location services.');
-          setIsOptimizing(false);
-          return;
-        }
-      }
+      const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation) || null;
 
-      const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation);
-
-      // Use hybrid optimization
       const optimizedAddresses = await optimizeWithHybrid(
         allAddresses,
         startLat,
         startLng,
-        endLocation.latitude,
-        endLocation.longitude,
-        apiKey
+        endLocation?.latitude || null,
+        endLocation?.longitude || null,
+        apiKey,
+        routeType || 'fastest'
       );
 
       // Determine route order based on optimized addresses
       const routeOrder = [];
       const seenRoutes = new Set();
-      
       for (const addr of optimizedAddresses) {
         if (!seenRoutes.has(addr.originalRouteId)) {
           seenRoutes.add(addr.originalRouteId);
@@ -187,38 +249,30 @@ export default function ComboRouteSelection() {
         }
       }
 
-      // Build the optimized address ID order — this is what WorkerComboRouteDetail
-      // uses to sort addresses. Without this the detail screen falls back to
-      // creation date order and ignores the organization screen entirely.
       const optimizedOrder = optimizedAddresses.map(a => a.id);
 
       // Calculate route metrics via MapQuest Directions
       let totalMiles = 0;
       let totalDriveTimeMinutes = 0;
-      
       try {
         const geocodedAddrs = optimizedAddresses.filter(a => (a.lat || a.latitude) && (a.lng || a.longitude));
         if (geocodedAddrs.length > 0) {
-          // Build waypoints: start → all addresses → end
           const waypoints = [
             `${startLat},${startLng}`,
             ...geocodedAddrs.map(a => `${a.lat || a.latitude},${a.lng || a.longitude}`),
-            `${endLocation.latitude},${endLocation.longitude}`
+            ...(endLocation ? [`${endLocation.latitude},${endLocation.longitude}`] : [])
           ];
-          
-          // MapQuest Directions limit is ~100 waypoints per call; chunk if needed
           const CHUNK_SIZE = 90;
           for (let i = 0; i < waypoints.length - 1; i += CHUNK_SIZE) {
             const chunk = waypoints.slice(i, Math.min(i + CHUNK_SIZE + 1, waypoints.length));
             if (chunk.length < 2) continue;
-            
             const dirUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
             const dirResponse = await fetch(dirUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 locations: chunk,
-                options: { routeType: 'fastest', unit: 'm' }
+                options: { routeType: routeType || 'fastest', unit: 'm' }
               })
             });
             const dirData = await dirResponse.json();
@@ -234,8 +288,6 @@ export default function ComboRouteSelection() {
 
       const startedAtNow = new Date().toISOString();
 
-      // Create ComboRoute record with metrics + optimized_order so the detail
-      // screen sorts addresses correctly instead of falling back to creation date.
       const combo = await base44.entities.ComboRoute.create({
         user_id: user.id,
         company_id: user.company_id,
@@ -243,7 +295,7 @@ export default function ComboRouteSelection() {
         route_ids: selectedRoutes,
         route_order: routeOrder,
         optimized_order: optimizedOrder,
-        end_location_id: selectedEndLocation,
+        end_location_id: selectedEndLocation || null,
         status: 'active',
         total_addresses: allAddresses.length,
         started_at: startedAtNow,
@@ -251,30 +303,21 @@ export default function ComboRouteSelection() {
         total_drive_time_minutes: totalDriveTimeMinutes
       });
 
-      // Update address orders in batches of 10 to avoid N+1 sequential API calls
       const BATCH_SIZE = 10;
       for (let start = 0; start < optimizedAddresses.length; start += BATCH_SIZE) {
         const batch = optimizedAddresses.slice(start, start + BATCH_SIZE);
         await Promise.all(
           batch.map((addr, i) =>
-            base44.entities.Address.update(addr.id, {
-              order_index: start + i + 1
-            })
+            base44.entities.Address.update(addr.id, { order_index: start + i + 1 })
           )
         );
       }
 
-      // Set all selected routes to active
       for (const routeId of selectedRoutes) {
-        await base44.entities.Route.update(routeId, { 
-          status: 'active',
-          started_at: startedAtNow
-        });
+        await base44.entities.Route.update(routeId, { status: 'active', started_at: startedAtNow });
       }
 
       toast.success(`Combo route created with ${allAddresses.length} addresses!`);
-      
-      // Navigate to review screen
       navigate(createPageUrl(`ComboRouteReview?id=${combo.id}`));
 
     } catch (error) {
@@ -283,6 +326,13 @@ export default function ComboRouteSelection() {
     } finally {
       setIsOptimizing(false);
     }
+  };
+
+  const getLocationIcon = (label) => {
+    const lower = (label || '').toLowerCase();
+    if (lower.includes('home')) return <MapPin className="w-4 h-4" />;
+    if (lower.includes('office') || lower.includes('work')) return <MapPin className="w-4 h-4" />;
+    return <MapPin className="w-4 h-4" />;
   };
 
   return (
@@ -299,29 +349,6 @@ export default function ComboRouteSelection() {
       </header>
 
       <main className="px-4 py-4 max-w-lg mx-auto">
-        {/* End Location Selection */}
-        <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)' }}>
-          <label className="flex items-center gap-2 text-sm font-semibold mb-3" style={{ color: '#8a7f87' }}>
-            <MapPin className="w-4 h-4" />
-            End Location
-          </label>
-          <Select value={selectedEndLocation} onValueChange={setSelectedEndLocation}>
-            <SelectTrigger style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)', color: '#e6e1e4' }}>
-              <SelectValue placeholder="Select where to end" />
-            </SelectTrigger>
-            <SelectContent>
-              {savedLocations.map(loc => (
-                <SelectItem key={loc.id} value={loc.id}>
-                  {loc.label} - {loc.address?.substring(0, 30)}...
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {savedLocations.length === 0 && (
-            <p className="text-xs mt-2" style={{ color: '#6B7280' }}>No saved locations. Add one in Settings.</p>
-          )}
-        </div>
-
         {/* Route Selection */}
         <div className="rounded-2xl p-4 mb-4" style={{ background: 'rgba(14,20,44,0.55)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)' }}>
           <h2 className="font-semibold mb-3" style={{ color: '#e6e1e4' }}>Select Routes to Combine</h2>
@@ -385,20 +412,15 @@ export default function ComboRouteSelection() {
                       <Shuffle className="w-3.5 h-3.5" style={{ color: '#e9c349' }} />
                       <span className="text-xs font-bold uppercase tracking-wide" style={{ color: '#e9c349' }}>Scheduled Combo</span>
                     </div>
-                    <div className="space-y-2">
-                      {scheduledRoutes.map(renderRouteRow)}
-                    </div>
+                    <div className="space-y-2">{scheduledRoutes.map(renderRouteRow)}</div>
                   </div>
                 )}
-
                 {otherRoutes.length > 0 && (
                   <div>
                     {scheduledRoutes.length > 0 && (
                       <p className="text-xs font-semibold uppercase tracking-wide mb-2 px-1" style={{ color: '#6B7280' }}>Other Routes</p>
                     )}
-                    <div className="space-y-2">
-                      {otherRoutes.map(renderRouteRow)}
-                    </div>
+                    <div className="space-y-2">{otherRoutes.map(renderRouteRow)}</div>
                   </div>
                 )}
               </div>
@@ -414,18 +436,15 @@ export default function ComboRouteSelection() {
           </p>
         </div>
 
-        {/* Optimize Button */}
+        {/* Continue Button */}
         <button
-          onClick={handleOptimizeCombo}
-          disabled={selectedRoutes.length < 2 || !selectedEndLocation || isOptimizing}
+          onClick={() => setShowOptimizeModal(true)}
+          disabled={selectedRoutes.length < 2}
           className="w-full rounded-xl py-4 font-bold text-base flex items-center justify-center gap-2 transition-opacity disabled:opacity-40"
           style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
         >
-          {isOptimizing ? (
-            <><Loader2 className="w-5 h-5 animate-spin" /> Optimizing...</>
-          ) : (
-            <><Shuffle className="w-5 h-5" /> Optimize Combo Route</>
-          )}
+          <Shuffle className="w-5 h-5" />
+          Continue to Optimize
         </button>
 
         {selectedRoutes.length < 2 && (
@@ -434,6 +453,122 @@ export default function ComboRouteSelection() {
       </main>
 
       <BottomNav currentPage="WorkerRoutes" />
+
+      {/* Optimize Modal */}
+      {showOptimizeModal && (
+        <div className="fixed inset-0 z-50">
+          <style>{`
+            @keyframes slide-down { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+            .animate-slide-down { animation: slide-down 0.3s ease-out; }
+          `}</style>
+
+          <div className="absolute inset-0 bg-black/50" onClick={() => !isOptimizing && setShowOptimizeModal(false)} />
+
+          <div className="absolute top-0 left-0 right-0 rounded-b-3xl px-4 pt-3 pb-6 shadow-2xl animate-slide-down z-50 max-h-[95vh] overflow-y-auto"
+            style={{ background: 'rgba(11,15,30,0.92)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.10)', borderTop: 'none' }}>
+            <div className="w-12 h-1 rounded-full mx-auto mb-2" style={{ background: 'rgba(255,255,255,0.20)' }} />
+
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold" style={{ color: '#E6E1E4' }}>Optimize Combo Route</h2>
+              <button onClick={() => !isOptimizing && setShowOptimizeModal(false)} className="p-2 rounded-full hover:bg-white/10">
+                <X className="w-5 h-5" style={{ color: '#9CA3AF' }} />
+              </button>
+            </div>
+
+            {/* Route summary pill */}
+            <div className="rounded-xl p-2.5 mb-4 flex items-center justify-between" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)' }}>
+              <p className="font-semibold text-sm" style={{ color: '#E6E1E4' }}>{selectedRoutes.length} routes · {getTotalAddresses()} addresses</p>
+            </div>
+
+            {/* Start Location */}
+            <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>Start Location</label>
+            <button
+              onClick={() => setUseCurrentLocation(v => !v)}
+              className="w-full mb-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+              style={useCurrentLocation
+                ? { background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.40)', color: '#22c55e' }
+                : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(34,197,94,0.35)', color: '#22c55e' }}
+            >
+              <LocateFixed className="w-4 h-4" />
+              Use Current Location
+              {useCurrentLocation && gpsLoading && <span style={{ fontSize: '11px', marginLeft: 4, opacity: 0.7 }}>locating...</span>}
+            </button>
+
+            {useCurrentLocation && currentLocationAddress && !locationError && (
+              <div className="flex items-center gap-1.5 mb-3 ml-6">
+                <CheckCircle className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#22c55e' }} />
+                <p className="text-xs font-medium" style={{ color: '#22c55e' }}>{currentLocationAddress}</p>
+              </div>
+            )}
+            {useCurrentLocation && locationError && (
+              <div className="flex items-start gap-1.5 mb-3 ml-6 rounded-lg p-2" style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.30)' }}>
+                <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+                <p className="text-xs" style={{ color: '#ef4444' }}>{locationError}</p>
+              </div>
+            )}
+            {useCurrentLocation && !currentLocationAddress && !locationError && !gpsLoading && (
+              <p className="text-xs mb-3 ml-6" style={{ color: '#4B5563' }}>Address will show here after location is detected</p>
+            )}
+
+            {!useCurrentLocation && (
+              <LocationPicker
+                locations={savedLocations}
+                value={selectedStartLocation}
+                onChange={setSelectedStartLocation}
+                placeholder="Select start location"
+                getLocationIcon={getLocationIcon}
+                className="mb-4"
+              />
+            )}
+
+            {/* Optimization Mode */}
+            <label className="block text-xs font-medium mb-1 mt-3" style={{ color: '#9CA3AF' }}>Optimization Mode</label>
+            <div className="flex gap-2 mb-3">
+              <button type="button"
+                onClick={() => { setRouteType(routeType === 'fastest' ? null : 'fastest'); setSelectedEndLocation(''); }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+                style={routeType === 'fastest'
+                  ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }
+                  : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
+              >⏱ Efficient Time</button>
+              <button type="button"
+                onClick={() => { setRouteType(routeType === 'shortest' ? null : 'shortest'); setSelectedEndLocation(''); }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all"
+                style={routeType === 'shortest'
+                  ? { background: 'rgba(233,195,73,0.18)', border: '1px solid rgba(233,195,73,0.40)', color: '#e9c349' }
+                  : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(233,195,73,0.35)', color: '#e9c349' }}
+              >📍 Efficient Miles</button>
+            </div>
+
+            {/* End Location */}
+            <label className="block text-xs font-medium mb-1" style={{ color: '#9CA3AF' }}>End Location</label>
+            <div className={routeType ? 'opacity-40 pointer-events-none' : ''}>
+              <LocationPicker
+                locations={savedLocations}
+                value={selectedEndLocation}
+                onChange={setSelectedEndLocation}
+                placeholder="Select where to end"
+                getLocationIcon={getLocationIcon}
+                className="mb-4"
+              />
+            </div>
+
+            {/* Optimize Button */}
+            <button
+              onClick={handleOptimizeCombo}
+              disabled={(!selectedEndLocation && !routeType) || isOptimizing}
+              className="w-full rounded-xl py-3.5 font-bold text-base flex items-center justify-center gap-2 transition-opacity disabled:opacity-40 mt-2"
+              style={{ background: 'rgba(233,195,73,0.20)', border: '1px solid rgba(233,195,73,0.50)', color: '#e9c349' }}
+            >
+              {isOptimizing ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Optimizing...</>
+              ) : (
+                <><Navigation className="w-5 h-5" /> Optimize Combo Route</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
