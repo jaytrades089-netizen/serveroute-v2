@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronLeft, Check, Shuffle, Loader2, MapPin, Calendar, AlertCircle, X, LocateFixed, CheckCircle, Navigation } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { optimizeWithHybrid } from '@/components/services/OptimizationService';
+import { optimizeWithHybrid, geocodeAddress, calculateDistanceFeet } from '@/components/services/OptimizationService';
 import LocationPicker from '@/components/route/LocationPicker';
 import BottomNav from '@/components/layout/BottomNav';
 
@@ -39,9 +39,11 @@ export default function ComboRouteSelection() {
     queryKey: ['comboRoutes', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const allRoutes = await base44.entities.Route.filter({ deleted_at: null });
+      const allRoutes = await base44.entities.Route.filter({});
+      // Exclude archived, completed, and deleted routes — match ScanAddToRoute filter pattern
       return allRoutes.filter(r =>
         r.worker_id === user.id &&
+        !r.deleted_at &&
         ['ready', 'assigned', 'active'].includes(r.status)
       );
     },
@@ -89,6 +91,18 @@ export default function ComboRouteSelection() {
     enabled: !!user?.id
   });
 
+  const { data: backendApiKeys } = useQuery({
+    queryKey: ['backendApiKeys'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getApiKeys', {});
+      return res.data;
+    },
+    staleTime: 10 * 60 * 1000
+  });
+
+  const mapquestKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key || null;
+  const hereKey = backendApiKeys?.here_api_key || userSettings?.here_api_key || null;
+
   // Auto-select first saved location as end when locations load
   useEffect(() => {
     if (savedLocations.length > 0 && !selectedEndLocation) {
@@ -96,7 +110,7 @@ export default function ComboRouteSelection() {
     }
   }, [savedLocations, selectedEndLocation]);
 
-  // Pre-fetch GPS when modal opens with "Use Current Location" toggled on
+  // Pre-fetch GPS when modal opens — re-runs when mapquestKey loads so reverse geocode gets a real address
   useEffect(() => {
     if (!useCurrentLocation || !showOptimizeModal) {
       setCachedGps(null);
@@ -121,9 +135,8 @@ export default function ComboRouteSelection() {
         const lng = position.coords.longitude;
         let readable = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         try {
-          const apiKey = userSettings?.mapquest_api_key;
-          if (apiKey) {
-            const res = await fetch(`https://www.mapquestapi.com/geocoding/v1/reverse?key=${apiKey}&location=${lat},${lng}`);
+          if (mapquestKey) {
+            const res = await fetch(`https://www.mapquestapi.com/geocoding/v1/reverse?key=${mapquestKey}&location=${lat},${lng}`);
             const data = await res.json();
             const loc = data?.results?.[0]?.locations?.[0];
             if (loc) {
@@ -150,7 +163,7 @@ export default function ComboRouteSelection() {
     };
     prefetch();
     return () => { cancelled = true; };
-  }, [useCurrentLocation, showOptimizeModal, userSettings?.mapquest_api_key]);
+  }, [useCurrentLocation, showOptimizeModal, mapquestKey]);
 
   const toggleRouteSelection = (routeId) => {
     setSelectedRoutes(prev =>
@@ -171,8 +184,7 @@ export default function ComboRouteSelection() {
       return;
     }
 
-    const apiKey = userSettings?.mapquest_api_key;
-    if (!apiKey) {
+    if (!mapquestKey) {
       toast.error('MapQuest API key not configured. Go to Settings to add it.');
       return;
     }
@@ -227,6 +239,40 @@ export default function ComboRouteSelection() {
         allAddresses = [...allAddresses, ...addresses.map(a => ({ ...a, originalRouteId: routeId }))];
       }
 
+      // Geocode any addresses that don't have coordinates — same as single-route optimization.
+      // Without this, addresses without lat/lng are appended in original order, defeating optimization.
+      const needsGeocoding = allAddresses.filter(a => !a.lat || !a.lng);
+      if (needsGeocoding.length > 0) {
+        toast.info(`Geocoding ${needsGeocoding.length} address${needsGeocoding.length > 1 ? 'es' : ''}...`);
+        for (const addr of needsGeocoding) {
+          const fullAddress = addr.normalized_address || addr.legal_address;
+          try {
+            const coords = await geocodeAddress(fullAddress, hereKey, mapquestKey, startLat, startLng);
+            if (coords) {
+              await base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' });
+              addr.lat = coords.lat;
+              addr.lng = coords.lng;
+            }
+          } catch (geoErr) {
+            console.error('Geocode error for', fullAddress, geoErr);
+          }
+        }
+      }
+
+      // Outlier detection — same 100-mile threshold as single-route optimization
+      const coordAddresses = allAddresses.filter(a => a.lat && a.lng);
+      if (coordAddresses.length >= 2) {
+        const centLat = coordAddresses.reduce((s, a) => s + a.lat, 0) / coordAddresses.length;
+        const centLng = coordAddresses.reduce((s, a) => s + a.lng, 0) / coordAddresses.length;
+        const OUTLIER_FEET = 100 * 5280;
+        coordAddresses
+          .filter(a => calculateDistanceFeet(centLat, centLng, a.lat, a.lng) > OUTLIER_FEET)
+          .forEach(a => {
+            const label = (a.normalized_address || a.legal_address || '').split('\n')[0].trim().substring(0, 50);
+            toast.warning(`⚠️ "${label}" is 100+ miles from your other stops — verify city & zip, then re-optimize.`, { duration: 20000 });
+          });
+      }
+
       const endLocation = savedLocations.find(loc => loc.id === selectedEndLocation) || null;
 
       const optimizedAddresses = await optimizeWithHybrid(
@@ -235,8 +281,7 @@ export default function ComboRouteSelection() {
         startLng,
         endLocation?.latitude || null,
         endLocation?.longitude || null,
-        apiKey,
-        routeType || 'fastest'
+        mapquestKey
       );
 
       // Determine route order based on optimized addresses
@@ -266,8 +311,7 @@ export default function ComboRouteSelection() {
           for (let i = 0; i < waypoints.length - 1; i += CHUNK_SIZE) {
             const chunk = waypoints.slice(i, Math.min(i + CHUNK_SIZE + 1, waypoints.length));
             if (chunk.length < 2) continue;
-            const dirUrl = `https://www.mapquestapi.com/directions/v2/route?key=${apiKey}`;
-            const dirResponse = await fetch(dirUrl, {
+            const dirResponse = await fetch(`https://www.mapquestapi.com/directions/v2/route?key=${mapquestKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -328,12 +372,7 @@ export default function ComboRouteSelection() {
     }
   };
 
-  const getLocationIcon = (label) => {
-    const lower = (label || '').toLowerCase();
-    if (lower.includes('home')) return <MapPin className="w-4 h-4" />;
-    if (lower.includes('office') || lower.includes('work')) return <MapPin className="w-4 h-4" />;
-    return <MapPin className="w-4 h-4" />;
-  };
+  const getLocationIcon = (label) => <MapPin className="w-4 h-4" />;
 
   return (
     <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: 80 }}>
