@@ -100,20 +100,20 @@ Audit prompt lives in the audit doc — paste into Cline with routetoserve-gemma
 Bugs logged from the field via Telegram bot are saved to Google Drive and synced locally.
 Haiku structures every report using the instructions in `rts-bot-instructions.md` (stored in Drive > Claude Workspaces > Bot).
 
-**Bug intake path (new reports land here first):**
+**Bug intake path (new reports land here first) — EXACT PATH, go here directly:**
 ```
-~/Desktop/Claude/Claude Workspaces/RouteToServe/Bug Reports/Bug Intake/
+/Users/jtodd/Desktop/Claude/Claude Workspaces/RouteToServe/Bug Reports/Bug Intake (1)/
 ```
 
-**Bug lifecycle folders:**
+**Bug lifecycle folders (all under `/Users/jtodd/Desktop/Claude/Claude Workspaces/RouteToServe/Bug Reports/`):**
 ```
 Bug Reports/
-├── Bug Intake/     ← new reports land here (Open)
-├── Stability/      ← confirmed bugs being tracked
-├── Features/       ← feature requests from the field
-├── Horizon/        ← future ideas, not current sprint
-In Progress/        ← bugs actively being worked
-Archived/           ← resolved and closed
+├── Bug Intake (1)/   ← new reports land here (Open) — NOTE: folder is named "Bug Intake (1)"
+├── Stability/        ← confirmed bugs being tracked
+├── Features/         ← feature requests from the field
+├── Horizon/          ← future ideas, not current sprint
+├── In Progress/      ← bugs actively being worked
+└── Archived/         ← resolved and closed
 ```
 
 **File format:** All reports are `.md` files, not `.txt`.

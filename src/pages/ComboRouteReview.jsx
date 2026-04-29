@@ -77,6 +77,14 @@ export default function ComboRouteReview() {
     return [...addresses].sort((a, b) => new Date(a.created_date || 0) - new Date(b.created_date || 0));
   }, [addresses, combo?.optimized_order]);
 
+  // Global serve-order numbers derived from sortedAddresses so they work
+  // whether or not combo.optimized_order exists.
+  const globalOrderMap = useMemo(() => {
+    const map = {};
+    sortedAddresses.forEach((addr, idx) => { map[addr.id] = idx + 1; });
+    return map;
+  }, [sortedAddresses]);
+
   // Group addresses by folder for physical folder organization display.
   // Uses sortedAddresses (optimized_order based) not raw addresses.
   const groupedBlocks = useMemo(() => {
@@ -193,9 +201,7 @@ export default function ComboRouteReview() {
                     style={{ background: 'rgba(14,20,44,0.55)', border: '1px solid rgba(255,255,255,0.10)' }}
                   >
                     <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'rgba(233,195,73,0.20)', color: '#e9c349' }}>
-                      {(combo?.optimized_order?.indexOf(addr.id) ?? -1) >= 0
-                        ? combo.optimized_order.indexOf(addr.id) + 1
-                        : '?'}
+                      {globalOrderMap[addr.id] ?? '?'}
                     </div>
                     <div className="min-w-0 flex-1">
                       {addr.defendant_name && (
