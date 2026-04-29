@@ -34,10 +34,21 @@ serveroute-v2/
 | Want to... | Read first | Skip |
 |---|---|---|
 | Fix a bug | `docs/WORKFLOW.md` + affected `.jsx` file | Everything else |
+| Fix/work on a specific feature | Spec sheet from **Feature Specs Index** below | Unrelated files |
 | Build a new feature | `docs/WORKFLOW.md` + relevant spec in `docs/specs/` | Unrelated components |
 | Start a new session | `CLAUDE.md` + latest file in `docs/handoffs/` | `node_modules`, configs |
 | Write a Base44 prompt | Feature spec + affected component files | Assets, unrelated pages |
 | Add a hook | `src/components/hooks/` only | Anywhere else |
+
+---
+
+## Feature Specs Index
+
+When Joshua says "pull up the spec for X" or "we're fixing the combo route" — go directly to the file below. No scanning needed.
+
+| Feature | Spec File | What it covers |
+|---|---|---|
+| Combo Route | `docs/specs/spec_combo-route-reference.md` | Full system: selection, optimization, review, running, all known bugs + fixes |
 
 ---
 
