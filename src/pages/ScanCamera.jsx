@@ -28,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { geocodeWithMapQuest } from '@/components/services/OptimizationService';
+import { geocodeAddress } from '@/components/services/OptimizationService';
 import {
   DOCUMENT_INFO,
   PAY_RATES,
@@ -372,7 +372,7 @@ export default function ScanCamera() {
         const apiKey = userSettings?.mapquest_api_key;
         if (apiKey && newAddress.extractedData?.fullAddress) {
           try {
-            const coords = await geocodeWithMapQuest(newAddress.extractedData.fullAddress, apiKey);
+            const coords = await geocodeAddress(newAddress.extractedData.fullAddress, apiKey);
             if (coords) { newAddress.lat = coords.lat; newAddress.lng = coords.lng; }
           } catch (err) {
             console.warn('Geocode failed for:', newAddress.extractedData.fullAddress);
