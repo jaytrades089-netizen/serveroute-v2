@@ -1,3 +1,6 @@
+# Local docs — kept on device only, not pushed to GitHub
+docs/
+
 #env
 .env
 .env.*
