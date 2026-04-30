@@ -87,7 +87,6 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
   });
 
   const mapquestKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key || null;
-  const hereKey = backendApiKeys?.here_api_key || userSettings?.here_api_key || null;
 
   const handleDeleteLocation = async (locId) => {
     try {
@@ -345,38 +344,25 @@ export default function RouteOptimizeModal({ routeId, route, addresses, onClose,
         console.log(`Excluded ${allFreshAddresses.length - validAddresses.length} completed address(es) from optimization`);
       }
 
-      // On a re-optimize, always re-geocode every address — previous coordinates may have
-      // been cached from an incorrect geocoding run and would silently produce wrong routes.
-      // On a first optimize, only geocode addresses that have no coordinates yet.
-      const isReoptimize = (route?.optimized_order?.length ?? 0) > 0;
-      const needsGeocoding = isReoptimize ? validAddresses : validAddresses.filter(a => !a.lat || !a.lng);
-
-      if (needsGeocoding.length > 0) {
-        const geocodeMsg = isReoptimize
-          ? `Refreshing coordinates for ${needsGeocoding.length} addresses...`
-          : `Geocoding ${needsGeocoding.length} addresses...`;
-        console.log(geocodeMsg);
-        toast.info(geocodeMsg);
-
-        const hereApiKey = hereKey;
-
-        for (const addr of needsGeocoding) {
-          const fullAddress = addr.normalized_address || addr.legal_address;
-          try {
-            // Pass GPS start as bias so ambiguous street names resolve locally, not across the country
-            const coords = await geocodeAddress(fullAddress, hereApiKey, apiKey, startLat, startLng);
-            if (coords) {
-              await base44.entities.Address.update(addr.id, {
-                lat: coords.lat,
-                lng: coords.lng,
-                geocode_status: 'exact'
-              });
-              addr.lat = coords.lat;
-              addr.lng = coords.lng;
-            }
-          } catch (geoErr) {
-            console.error('Geocode error for', fullAddress, geoErr);
+      // Always re-geocode all addresses using the full address string (street + city + state + zip).
+      // This corrects any bad coordinates from a previous scan where geocoding failed or used an incomplete address.
+      toast.info(`Refreshing coordinates for ${validAddresses.length} addresses...`);
+      for (const addr of validAddresses) {
+        const fullAddress = [addr.normalized_address, addr.city, addr.state, addr.zip]
+          .filter(Boolean).join(', ') || addr.legal_address;
+        try {
+          const coords = await geocodeAddress(fullAddress, apiKey, startLat, startLng);
+          if (coords) {
+            await base44.entities.Address.update(addr.id, {
+              lat: coords.lat,
+              lng: coords.lng,
+              geocode_status: 'exact'
+            });
+            addr.lat = coords.lat;
+            addr.lng = coords.lng;
           }
+        } catch (geoErr) {
+          console.error('Geocode error for', fullAddress, geoErr);
         }
       }
 

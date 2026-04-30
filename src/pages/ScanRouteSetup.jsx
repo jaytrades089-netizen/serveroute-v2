@@ -84,6 +84,15 @@ export default function ScanRouteSetup() {
     enabled: !!user?.id
   });
 
+  const { data: backendApiKeys } = useQuery({
+    queryKey: ['backendApiKeys'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getApiKeys', {});
+      return res.data;
+    },
+    staleTime: 10 * 60 * 1000
+  });
+
   const geocodeAddress = async (fullAddress, apiKey) => {
     if (!apiKey) return null;
     try {
@@ -177,7 +186,7 @@ export default function ScanRouteSetup() {
       // never shows "route not found" — cloud write already succeeded.
       queryClient.setQueryData(['route', route.id], route);
 
-      const mapquestApiKey = userSettings?.mapquest_api_key;
+      const mapquestApiKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key;
       let geocodedCount = 0;
       const createdAddresses = [];
 

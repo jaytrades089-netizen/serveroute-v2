@@ -122,7 +122,6 @@ export default function ComboRouteSelection() {
   });
 
   const mapquestKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key || null;
-  const hereKey = backendApiKeys?.here_api_key || userSettings?.here_api_key || null;
 
   // Auto-select first saved location as end when locations load
   useEffect(() => {
@@ -268,23 +267,20 @@ export default function ComboRouteSelection() {
         allAddresses = [...allAddresses, ...addresses.map(a => ({ ...a, originalRouteId: routeId }))];
       }
 
-      // Geocode any addresses that don't have coordinates — same as single-route optimization.
-      // Without this, addresses without lat/lng are appended in original order, defeating optimization.
-      const needsGeocoding = allAddresses.filter(a => !a.lat || !a.lng);
-      if (needsGeocoding.length > 0) {
-        toast.info(`Geocoding ${needsGeocoding.length} address${needsGeocoding.length > 1 ? 'es' : ''}...`);
-        for (const addr of needsGeocoding) {
-          const fullAddress = addr.normalized_address || addr.legal_address;
-          try {
-            const coords = await geocodeAddress(fullAddress, hereKey, mapquestKey, startLat, startLng);
-            if (coords) {
-              await b44(() => base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' }));
-              addr.lat = coords.lat;
-              addr.lng = coords.lng;
-            }
-          } catch (geoErr) {
-            console.error('Geocode error for', fullAddress, geoErr);
+      // Always re-geocode all addresses using the full address string (street + city + state + zip).
+      toast.info(`Refreshing coordinates for ${allAddresses.length} address${allAddresses.length > 1 ? 'es' : ''}...`);
+      for (const addr of allAddresses) {
+        const fullAddress = [addr.normalized_address, addr.city, addr.state, addr.zip]
+          .filter(Boolean).join(', ') || addr.legal_address;
+        try {
+          const coords = await geocodeAddress(fullAddress, mapquestKey, startLat, startLng);
+          if (coords) {
+            await b44(() => base44.entities.Address.update(addr.id, { lat: coords.lat, lng: coords.lng, geocode_status: 'exact' }));
+            addr.lat = coords.lat;
+            addr.lng = coords.lng;
           }
+        } catch (geoErr) {
+          console.error('Geocode error for', fullAddress, geoErr);
         }
       }
 

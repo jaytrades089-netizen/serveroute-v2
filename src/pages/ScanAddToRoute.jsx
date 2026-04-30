@@ -51,6 +51,15 @@ export default function ScanAddToRoute() {
     enabled: !!user?.id
   });
 
+  const { data: backendApiKeys } = useQuery({
+    queryKey: ['backendApiKeys'],
+    queryFn: async () => {
+      const res = await base44.functions.invoke('getApiKeys', {});
+      return res.data;
+    },
+    staleTime: 10 * 60 * 1000
+  });
+
   const isBoss = user?.role === 'boss' || user?.role === 'admin';
 
   const { data: routes = [], isLoading: routesLoading } = useQuery({
@@ -128,7 +137,7 @@ export default function ScanAddToRoute() {
     const route = routes.find(r => r.id === selectedRouteId);
 
     try {
-      const mapquestApiKey = userSettings?.mapquest_api_key;
+      const mapquestApiKey = backendApiKeys?.mapquest_api_key || userSettings?.mapquest_api_key;
 
       for (let i = 0; i < validAddresses.length; i++) {
         const addr = validAddresses[i];
