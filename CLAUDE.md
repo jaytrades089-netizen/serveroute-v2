@@ -49,6 +49,7 @@ When Joshua says "pull up the spec for X" or "we're fixing the combo route" — 
 | Feature | Spec File | What it covers |
 |---|---|---|
 | Combo Route | `docs/specs/spec_combo-route-reference.md` | Full system: selection, optimization, review, running, all known bugs + fixes |
+| Local Data Privacy | `docs/specs/spec_local-data-privacy.md` | Encrypted on-device store for PII: architecture, build order, backup file format, all integration points |
 
 ---
 
